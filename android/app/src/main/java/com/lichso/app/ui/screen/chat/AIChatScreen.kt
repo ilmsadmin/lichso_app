@@ -48,6 +48,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,7 +63,7 @@ fun AIChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
     val c = LichSoThemeColors.current
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var inputText by remember { mutableStateOf("") }
+    var inputText by remember { mutableStateOf(TextFieldValue("")) }
     val listState = rememberLazyListState()
     var showClearDialog by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
@@ -76,7 +77,10 @@ fun AIChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
                 ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
                 ?.firstOrNull()
             if (!spokenText.isNullOrBlank()) {
-                inputText = spokenText
+                inputText = TextFieldValue(
+                    text = spokenText,
+                    selection = androidx.compose.ui.text.TextRange(spokenText.length)
+                )
             }
         }
     }
@@ -199,20 +203,33 @@ fun AIChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
             }
         }
 
-        // Quick topics
+        // Quick topics — 2 rows: Phong thuỷ + Quản lý
         QuickTopicRow { topic ->
-            inputText = ""
+            inputText = TextFieldValue("")
             viewModel.sendMessage(topic)
+        }
+        QuickActionRow { prompt ->
+            // Prompts ending with space → fill input box for user to complete, cursor at end
+            if (prompt.endsWith(" ")) {
+                inputText = TextFieldValue(
+                    text = prompt,
+                    selection = androidx.compose.ui.text.TextRange(prompt.length)
+                )
+                focusRequester.requestFocus()
+            } else {
+                inputText = TextFieldValue("")
+                viewModel.sendMessage(prompt)
+            }
         }
 
         // Input bar with voice button
         ChatInputBar(
-            text = inputText,
+            textFieldValue = inputText,
             onTextChange = { inputText = it },
             onSend = {
-                if (inputText.isNotBlank()) {
-                    viewModel.sendMessage(inputText)
-                    inputText = ""
+                if (inputText.text.isNotBlank()) {
+                    viewModel.sendMessage(inputText.text)
+                    inputText = TextFieldValue("")
                     focusRequester.requestFocus()
                 }
             },
@@ -432,7 +449,10 @@ private fun QuickTopicRow(onTopicClick: (String) -> Unit) {
         QuickTopic(Icons.Outlined.Store, "Khai trương"),
         QuickTopic(Icons.Outlined.AutoAwesome, "Can chi hôm nay"),
         QuickTopic(Icons.Outlined.WbSunny, "Tiết khí"),
-        QuickTopic(Icons.Outlined.Home, "Động thổ xây nhà")
+        QuickTopic(Icons.Outlined.Home, "Động thổ xây nhà"),
+        QuickTopic(Icons.Outlined.Assessment, "Thống kê"),
+        QuickTopic(Icons.Outlined.EventNote, "Kế hoạch ngày"),
+        QuickTopic(Icons.Outlined.Info, "Bạn giúp gì được?"),
     )
 
     Row(
@@ -463,16 +483,87 @@ private fun QuickTopicRow(onTopicClick: (String) -> Unit) {
     }
 }
 
+/**
+ * Row 2: Quick action prompts cho Task / Note / Reminder
+ * Dùng Material Icons đồng bộ với QuickTopicRow
+ */
+@Composable
+private fun QuickActionRow(onActionClick: (String) -> Unit) {
+    val c = LichSoThemeColors.current
+
+    data class QuickAction(val icon: ImageVector, val label: String, val prompt: String)
+
+    val actions = listOf(
+        QuickAction(Icons.Outlined.EventNote, "Kế hoạch ngày", "Tạo checklist kế hoạch ngày hôm nay gồm: kiểm tra email, họp team, hoàn thành task quan trọng, review, cập nhật tiến độ"),
+        QuickAction(Icons.Outlined.NoteAdd, "Ghi chú nhanh", "Ghi chú: "),
+        QuickAction(Icons.Outlined.Alarm, "Nhắc uống thuốc", "Nhắc tôi uống thuốc lúc 8h sáng hàng ngày"),
+        QuickAction(Icons.Outlined.ShoppingCart, "Đi chợ", "Tạo checklist đi chợ: Rau xanh, Thịt/cá, Trái cây, Gia vị, Đồ uống"),
+        QuickAction(Icons.Outlined.FitnessCenter, "Lịch tập gym", "Tạo kế hoạch tập gym tuần: Thứ 2 - Chest, Thứ 3 - Back, Thứ 4 - Nghỉ, Thứ 5 - Legs, Thứ 6 - Cardio"),
+        QuickAction(Icons.Outlined.LightMode, "Routine sáng", "Tạo nhắc nhở buổi sáng hàng ngày: Thức dậy lúc 6:00, Tập thể dục lúc 6:15, Ăn sáng lúc 7:00, Đọc sách lúc 7:30"),
+        QuickAction(Icons.Outlined.MenuBook, "Học tập", "Tạo kế hoạch học tập: Đọc tài liệu, Làm bài tập, Ôn bài cũ, Ghi chú tóm tắt, Luyện đề"),
+        QuickAction(Icons.Outlined.Flight, "Du lịch", "Tạo checklist chuẩn bị du lịch: Đặt vé, Đặt khách sạn, Chuẩn bị hành lý, Đổi tiền, Mua bảo hiểm"),
+        QuickAction(Icons.Outlined.Cake, "Sinh nhật", "Tạo checklist sinh nhật: Đặt bánh, Mua đồ trang trí, Gửi lời mời, Chuẩn bị quà, Đặt nhà hàng"),
+        QuickAction(Icons.Outlined.AccountBalance, "Ngân sách tháng", "Ghi chú ngân sách tháng: Thu nhập, Chi phí cố định, Ăn uống, Di chuyển, Giải trí, Tiết kiệm"),
+        QuickAction(Icons.Outlined.Assessment, "Thống kê", "Thống kê tổng hợp tất cả"),
+        QuickAction(Icons.Outlined.CheckCircle, "Xong task", "Xong task "),
+        QuickAction(Icons.Outlined.RemoveCircle, "Xoá task", "Xoá task "),
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        actions.forEach { action ->
+            Box(
+                modifier = Modifier
+                    .background(
+                        if (c.isDark) Color(0xFF17221E) else Color(0xFFF2F8F6),
+                        RoundedCornerShape(20.dp)
+                    )
+                    .border(
+                        1.dp,
+                        if (c.isDark) Color(0xFF263832) else Color(0xFFD6EAE3),
+                        RoundedCornerShape(20.dp)
+                    )
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { onActionClick(action.prompt) }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Icon(
+                        action.icon,
+                        contentDescription = null,
+                        tint = c.teal2,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        text = action.label,
+                        style = TextStyle(fontSize = 11.sp, color = c.teal2),
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun ChatInputBar(
-    text: String,
-    onTextChange: (String) -> Unit,
+    textFieldValue: TextFieldValue,
+    onTextChange: (TextFieldValue) -> Unit,
     onSend: () -> Unit,
     onVoice: () -> Unit,
     isEnabled: Boolean,
     focusRequester: FocusRequester = FocusRequester()
 ) {
     val c = LichSoThemeColors.current
+    val text = textFieldValue.text
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -506,7 +597,7 @@ private fun ChatInputBar(
                 .border(1.dp, c.border, RoundedCornerShape(24.dp))
         ) {
             TextField(
-                value = text,
+                value = textFieldValue,
                 onValueChange = onTextChange,
                 placeholder = {
                     Text("Hỏi về phong thuỷ, ngày tốt...", style = TextStyle(fontSize = 13.sp, color = c.textQuaternary))

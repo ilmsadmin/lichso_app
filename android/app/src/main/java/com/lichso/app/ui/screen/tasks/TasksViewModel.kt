@@ -319,6 +319,93 @@ class TasksViewModel @Inject constructor(
                             )
                         }
                     }
+                    "delete_task" -> {
+                        result.items.forEach { item ->
+                            val keyword = item.title.lowercase()
+                            _uiState.value.tasks.find { t ->
+                                t.title.lowercase().contains(keyword)
+                            }?.let { found -> taskDao.delete(found) }
+                        }
+                    }
+                    "delete_note" -> {
+                        result.items.forEach { item ->
+                            val keyword = item.title.lowercase()
+                            _uiState.value.notes.find { n ->
+                                n.title.lowercase().contains(keyword)
+                            }?.let { found -> noteDao.delete(found) }
+                        }
+                    }
+                    "delete_reminder" -> {
+                        result.items.forEach { item ->
+                            val keyword = item.title.lowercase()
+                            _uiState.value.reminders.find { r ->
+                                r.title.lowercase().contains(keyword)
+                            }?.let { found -> reminderDao.delete(found) }
+                        }
+                    }
+                    "edit_task" -> {
+                        result.items.forEach { item ->
+                            val oldTitle = item.description.removePrefix("old_title:").lowercase()
+                            _uiState.value.tasks.find { t ->
+                                t.title.lowercase().contains(oldTitle)
+                            }?.let { found ->
+                                taskDao.update(found.copy(title = item.title, updatedAt = System.currentTimeMillis()))
+                            }
+                        }
+                    }
+                    "edit_note" -> {
+                        result.items.forEach { item ->
+                            val oldTitle = item.description.removePrefix("old_title:").lowercase()
+                            _uiState.value.notes.find { n ->
+                                n.title.lowercase().contains(oldTitle)
+                            }?.let { found ->
+                                noteDao.update(found.copy(title = item.title, updatedAt = System.currentTimeMillis()))
+                            }
+                        }
+                    }
+                    "edit_task_priority" -> {
+                        result.items.forEach { item ->
+                            val keyword = item.title.lowercase()
+                            _uiState.value.tasks.find { t ->
+                                t.title.lowercase().contains(keyword)
+                            }?.let { found ->
+                                taskDao.update(found.copy(priority = item.priority, updatedAt = System.currentTimeMillis()))
+                            }
+                        }
+                    }
+                    "edit_reminder" -> {
+                        result.items.forEach { item ->
+                            val keyword = item.title.lowercase()
+                            _uiState.value.reminders.find { r ->
+                                r.title.lowercase().contains(keyword)
+                            }?.let { found ->
+                                val cal = Calendar.getInstance()
+                                cal.timeInMillis = found.triggerTime
+                                item.time?.let { timeStr ->
+                                    val parts = timeStr.split(":")
+                                    cal.set(Calendar.HOUR_OF_DAY, parts[0].toInt().coerceIn(0, 23))
+                                    cal.set(Calendar.MINUTE, parts.getOrElse(1) { "0" }.toInt().coerceIn(0, 59))
+                                }
+                                reminderDao.update(found.copy(triggerTime = cal.timeInMillis))
+                            }
+                        }
+                    }
+                    "mark_done" -> {
+                        result.items.forEach { item ->
+                            val keyword = item.title.lowercase()
+                            _uiState.value.tasks.find { t ->
+                                t.title.lowercase().contains(keyword) && !t.isDone
+                            }?.let { found ->
+                                taskDao.toggleDone(found.id, true)
+                            }
+                        }
+                    }
+                    "stats_all", "stats_tasks", "stats_notes", "stats_reminders" -> {
+                        // Build stats message from current state
+                        val statsMsg = buildQuickStats(result.action)
+                        _uiState.update { it.copy(isAiProcessing = false, aiMessage = statsMsg) }
+                        return@launch
+                    }
                 }
 
                 _uiState.update { it.copy(isAiProcessing = false, aiMessage = result.message) }
@@ -367,6 +454,48 @@ class TasksViewModel @Inject constructor(
             }
         }
         return sb.toString()
+    }
+
+    private fun buildQuickStats(action: String): String {
+        val state = _uiState.value
+        val sb = StringBuilder()
+
+        when (action) {
+            "stats_tasks", "stats_all" -> {
+                val total = state.tasks.size
+                val done = state.tasks.count { it.isDone }
+                val pending = total - done
+                val high = state.tasks.count { it.priority == 2 && !it.isDone }
+                val med = state.tasks.count { it.priority == 1 && !it.isDone }
+                val low = state.tasks.count { it.priority == 0 && !it.isDone }
+                sb.appendLine("✦ THỐNG KÊ CÔNG VIỆC")
+                sb.appendLine("── Tổng: $total | ✅ Xong: $done | ⬜ Chưa xong: $pending")
+                if (total > 0) sb.appendLine("⟡ Tiến độ: ${(done * 100) / total}%")
+                sb.appendLine("› Ưu tiên chưa xong: 🔴 Cao: $high · 🟡 Vừa: $med · 🟢 Thấp: $low")
+            }
+        }
+        when (action) {
+            "stats_notes", "stats_all" -> {
+                if (sb.isNotEmpty()) sb.appendLine()
+                sb.appendLine("◇ THỐNG KÊ GHI CHÚ")
+                sb.appendLine("── Tổng: ${state.notes.size} ghi chú 📝")
+            }
+        }
+        when (action) {
+            "stats_reminders", "stats_all" -> {
+                if (sb.isNotEmpty()) sb.appendLine()
+                val enabled = state.reminders.count { it.isEnabled }
+                val disabled = state.reminders.size - enabled
+                sb.appendLine("◷ THỐNG KÊ NHẮC NHỞ")
+                sb.appendLine("── Tổng: ${state.reminders.size} | ✅ Bật: $enabled | ⬜ Tắt: $disabled")
+            }
+        }
+        if (action == "stats_all") {
+            sb.appendLine()
+            val total = state.tasks.size + state.notes.size + state.reminders.size
+            sb.appendLine("⊛ Tổng cộng: $total mục")
+        }
+        return sb.toString().trim()
     }
 
     private fun parseDateToMillis(dateStr: String): Long? {
