@@ -1,7 +1,6 @@
 package com.lichso.app.ui.screen.settings
 
-import android.content.Intent
-import android.net.Uri
+import android.webkit.WebView
 import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -22,6 +21,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lichso.app.ui.theme.*
@@ -40,16 +42,10 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         }
     }
 
-    // Open URL (Privacy Policy, etc.)
-    LaunchedEffect(state.openUrlEvent) {
-        state.openUrlEvent?.let { url ->
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-            context.startActivity(intent)
-            viewModel.consumeOpenUrl()
-        }
-    }
-
     // ─── Dialogs ───
+    if (state.showPrivacyPolicyDialog) {
+        PrivacyPolicyDialog(onDismiss = { viewModel.dismissPrivacyPolicy() })
+    }
 
     // ─── Content ───
 
@@ -183,4 +179,74 @@ private fun SettingsArrow(title: String, icon: ImageVector, value: String?, onCl
 private fun SettingsDivider() {
     val c = LichSoThemeColors.current
     HorizontalDivider(color = c.border, thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
+}
+
+// ═══════════════════════════════════════
+// Privacy Policy Dialog (WebView)
+// ═══════════════════════════════════════
+
+@Composable
+private fun PrivacyPolicyDialog(onDismiss: () -> Unit) {
+    val c = LichSoThemeColors.current
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.88f)
+                .background(c.bg2, RoundedCornerShape(16.dp))
+        ) {
+            // Title bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Chính sách bảo mật",
+                    style = TextStyle(
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = c.gold2
+                    )
+                )
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Đóng",
+                        tint = c.textSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+            HorizontalDivider(color = c.border, thickness = 0.5.dp)
+
+            // WebView
+            AndroidView(
+                factory = { ctx ->
+                    WebView(ctx).apply {
+                        settings.javaScriptEnabled = false
+                        settings.loadWithOverviewMode = true
+                        settings.useWideViewPort = true
+                        setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                        loadUrl("file:///android_asset/privacy_policy.html")
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 4.dp)
+            )
+        }
+    }
 }

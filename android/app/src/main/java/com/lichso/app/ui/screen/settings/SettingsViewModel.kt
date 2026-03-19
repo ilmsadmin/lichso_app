@@ -50,10 +50,9 @@ data class SettingsUiState(
     val showCalendarStyleDialog: Boolean = false,
     val showWeekStartDialog: Boolean = false,
     val showClearCacheDialog: Boolean = false,
+    val showPrivacyPolicyDialog: Boolean = false,
     // Feedback
     val toastMessage: String? = null,
-    // Navigation events (consumed once)
-    val openUrlEvent: String? = null,
 )
 
 @HiltViewModel
@@ -231,7 +230,11 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun openPrivacyPolicy() {
-        _uiState.update { it.copy(openUrlEvent = "file:///android_asset/privacy_policy.html") }
+        _uiState.update { it.copy(showPrivacyPolicyDialog = true) }
+    }
+
+    fun dismissPrivacyPolicy() {
+        _uiState.update { it.copy(showPrivacyPolicyDialog = false) }
     }
 
     fun openHelp() {
@@ -240,10 +243,6 @@ class SettingsViewModel @Inject constructor(
 
     fun consumeToast() {
         _uiState.update { it.copy(toastMessage = null) }
-    }
-
-    fun consumeOpenUrl() {
-        _uiState.update { it.copy(openUrlEvent = null) }
     }
 
     // ═══ Helpers ═══
