@@ -2,6 +2,8 @@ package com.lichso.app.ui.screen.tasks
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lichso.app.data.ai.AiTaskService
+import com.lichso.app.data.ai.AiTemplates
 import com.lichso.app.data.local.dao.NoteDao
 import com.lichso.app.data.local.dao.ReminderDao
 import com.lichso.app.data.local.dao.TaskDao
@@ -32,14 +34,20 @@ data class TasksUiState(
     // Delete confirmation
     val deletingTask: TaskEntity? = null,
     val deletingNote: NoteEntity? = null,
-    val deletingReminder: ReminderEntity? = null
+    val deletingReminder: ReminderEntity? = null,
+    // AI
+    val isAiProcessing: Boolean = false,
+    val aiMessage: String? = null,
+    val showAiTemplates: Boolean = false,
+    val aiError: String? = null
 )
 
 @HiltViewModel
 class TasksViewModel @Inject constructor(
     private val taskDao: TaskDao,
     private val noteDao: NoteDao,
-    private val reminderDao: ReminderDao
+    private val reminderDao: ReminderDao,
+    private val aiTaskService: AiTaskService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TasksUiState())
@@ -239,5 +247,145 @@ class TasksViewModel @Inject constructor(
         2 -> "Cao"
         1 -> "Vừa"
         else -> "Thấp"
+    }
+
+    // ════════════════════════════
+    // AI Functions
+    // ════════════════════════════
+
+    fun processAiCommand(input: String) {
+        if (input.isBlank()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAiProcessing = true, aiMessage = null, aiError = null) }
+
+            try {
+                val context = buildExistingContext()
+                val result = aiTaskService.processCommand(input, context)
+
+                // Execute actions based on AI result
+                when (result.action) {
+                    "create_task", "bulk_create" -> {
+                        result.items.filter { it.type == "task" }.forEach { item ->
+                            val dueDate = item.dueDate?.let { parseDateToMillis(it) }
+                            taskDao.insert(
+                                TaskEntity(
+                                    title = item.title,
+                                    description = item.description,
+                                    priority = item.priority,
+                                    dueDate = dueDate
+                                )
+                            )
+                        }
+                        result.items.filter { it.type == "note" }.forEach { item ->
+                            noteDao.insert(
+                                NoteEntity(
+                                    title = item.title,
+                                    content = item.description,
+                                    colorIndex = item.colorIndex
+                                )
+                            )
+                        }
+                        result.items.filter { it.type == "reminder" }.forEach { item ->
+                            val triggerTime = parseTimeToMillis(item.time)
+                            reminderDao.insert(
+                                ReminderEntity(
+                                    title = item.title,
+                                    triggerTime = triggerTime,
+                                    repeatType = item.repeatType
+                                )
+                            )
+                        }
+                    }
+                    "create_note" -> {
+                        result.items.forEach { item ->
+                            noteDao.insert(
+                                NoteEntity(
+                                    title = item.title,
+                                    content = item.description,
+                                    colorIndex = item.colorIndex
+                                )
+                            )
+                        }
+                    }
+                    "create_reminder" -> {
+                        result.items.forEach { item ->
+                            val triggerTime = parseTimeToMillis(item.time)
+                            reminderDao.insert(
+                                ReminderEntity(
+                                    title = item.title,
+                                    triggerTime = triggerTime,
+                                    repeatType = item.repeatType
+                                )
+                            )
+                        }
+                    }
+                }
+
+                _uiState.update { it.copy(isAiProcessing = false, aiMessage = result.message) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isAiProcessing = false,
+                        aiError = "Có lỗi xảy ra: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun executeTemplate(template: AiTemplates.QuickTemplate) {
+        processAiCommand(template.prompt)
+    }
+
+    fun toggleAiTemplates() {
+        _uiState.update { it.copy(showAiTemplates = !it.showAiTemplates) }
+    }
+
+    fun dismissAiMessage() {
+        _uiState.update { it.copy(aiMessage = null, aiError = null) }
+    }
+
+    private fun buildExistingContext(): String {
+        val state = _uiState.value
+        val sb = StringBuilder()
+        if (state.tasks.isNotEmpty()) {
+            sb.appendLine("Tasks hiện tại (${state.tasks.size}):")
+            state.tasks.take(10).forEach { t ->
+                sb.appendLine("- [id:${t.id}] ${t.title} (${if (t.isDone) "done" else "pending"}, priority:${t.priority})")
+            }
+        }
+        if (state.notes.isNotEmpty()) {
+            sb.appendLine("Notes hiện tại (${state.notes.size}):")
+            state.notes.take(5).forEach { n ->
+                sb.appendLine("- [id:${n.id}] ${n.title}")
+            }
+        }
+        if (state.reminders.isNotEmpty()) {
+            sb.appendLine("Reminders hiện tại (${state.reminders.size}):")
+            state.reminders.take(5).forEach { r ->
+                sb.appendLine("- [id:${r.id}] ${r.title} (${if (r.isEnabled) "on" else "off"})")
+            }
+        }
+        return sb.toString()
+    }
+
+    private fun parseDateToMillis(dateStr: String): Long? {
+        return try {
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            sdf.parse(dateStr)?.time
+        } catch (e: Exception) { null }
+    }
+
+    private fun parseTimeToMillis(timeStr: String?): Long {
+        val cal = Calendar.getInstance()
+        if (timeStr != null) {
+            try {
+                val parts = timeStr.split(":")
+                cal.set(Calendar.HOUR_OF_DAY, parts[0].toInt().coerceIn(0, 23))
+                cal.set(Calendar.MINUTE, parts.getOrElse(1) { "0" }.toInt().coerceIn(0, 59))
+                cal.set(Calendar.SECOND, 0)
+            } catch (_: Exception) { }
+        }
+        return cal.timeInMillis
     }
 }

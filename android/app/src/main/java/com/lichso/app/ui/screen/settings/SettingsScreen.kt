@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.settings
 
+import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -15,6 +16,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -22,14 +25,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.lichso.app.ui.theme.*
 
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val c = LichSoThemeColors.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
-    // Language picker dialog
+    // Toast
+    LaunchedEffect(state.toastMessage) {
+        state.toastMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.consumeToast()
+        }
+    }
+
+    // ─── Dialogs ───
+
     if (state.showLanguageDialog) {
         PickerDialog(
             title = "Ngôn ngữ",
@@ -40,7 +55,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         )
     }
 
-    // Calendar style dialog
     if (state.showCalendarStyleDialog) {
         PickerDialog(
             title = "Kiểu lịch",
@@ -51,7 +65,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         )
     }
 
-    // Week start dialog
     if (state.showWeekStartDialog) {
         PickerDialog(
             title = "Ngày bắt đầu tuần",
@@ -62,7 +75,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         )
     }
 
-    // Clear cache dialog
     if (state.showClearCacheDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.hideClearCacheDialog() },
@@ -73,11 +85,29 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 TextButton(onClick = { viewModel.hideClearCacheDialog() }) { Text("Huỷ", color = c.textSecondary) }
             },
             title = { Text("Xoá cache?", color = c.textPrimary) },
-            text = { Text("Dữ liệu cache (${state.cacheSize}) sẽ bị xoá. Ứng dụng sẽ tải lại dữ liệu khi cần.", color = c.textSecondary) },
+            text = { Text("Dữ liệu cache (${state.cacheSize}) sẽ bị xoá.", color = c.textSecondary) },
             containerColor = c.bg2,
             shape = RoundedCornerShape(16.dp)
         )
     }
+
+    if (state.showSignOutDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.hideSignOutDialog() },
+            confirmButton = {
+                TextButton(onClick = { viewModel.signOut() }) { Text("Đăng xuất", color = c.red) }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.hideSignOutDialog() }) { Text("Huỷ", color = c.textSecondary) }
+            },
+            title = { Text("Đăng xuất?", color = c.textPrimary) },
+            text = { Text("Bạn sẽ mất đồng bộ dữ liệu. Bạn có chắc muốn đăng xuất?", color = c.textSecondary) },
+            containerColor = c.bg2,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
+    // ─── Content ───
 
     Column(
         modifier = Modifier
@@ -93,39 +123,20 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             Text("Cài đặt", style = TextStyle(fontFamily = FontFamily.Serif, fontSize = 22.sp, color = c.gold2))
         }
 
-        // Profile Section
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .background(c.bg2, RoundedCornerShape(12.dp))
-                .border(1.dp, c.border, RoundedCornerShape(12.dp))
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(Brush.linearGradient(listOf(c.gold, c.teal)), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("L", style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp, color = if (c.isDark) Color(0xFF1A1500) else Color.White))
+        // ═══ Account / Profile Section ═══
+        AccountSection(
+            user = state.user,
+            isSigningIn = state.isSigningIn,
+            onSignIn = { viewModel.signInWithGoogle(context) },
+            onProfileClick = {
+                if (state.user != null) viewModel.showSignOutDialog()
+                else viewModel.signInWithGoogle(context)
             }
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Lịch Số Premium", style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = c.textPrimary))
-                Spacer(modifier = Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = c.teal2, modifier = Modifier.size(12.dp))
-                    Text("Phiên bản Pro · Trọn đời", style = TextStyle(fontSize = 11.sp, color = c.teal2))
-                }
-            }
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = c.textQuaternary, modifier = Modifier.size(20.dp))
-        }
+        )
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        // General Settings
+        // ═══ General Settings ═══
         SettingsGroup("Cài đặt chung") {
             SettingsToggle("Thông báo nhắc nhở", Icons.Outlined.Notifications, state.notifyEnabled) { viewModel.setNotifyEnabled(it) }
             SettingsDivider()
@@ -138,7 +149,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Display Settings
+        // ═══ Display Settings ═══
         SettingsGroup("Hiển thị") {
             SettingsArrow("Ngôn ngữ", Icons.Outlined.Language, state.language) { viewModel.showLanguageDialog() }
             SettingsDivider()
@@ -149,26 +160,26 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Data & Sync
+        // ═══ Data & Sync ═══
         SettingsGroup("Dữ liệu & Đồng bộ") {
-            SettingsArrow("Sao lưu dữ liệu", Icons.Outlined.CloudUpload, null) { /* TODO */ }
+            SettingsArrow("Sao lưu dữ liệu", Icons.Outlined.CloudUpload, null) { viewModel.backupData() }
             SettingsDivider()
-            SettingsArrow("Khôi phục dữ liệu", Icons.Outlined.CloudDownload, null) { /* TODO */ }
+            SettingsArrow("Khôi phục dữ liệu", Icons.Outlined.CloudDownload, null) { viewModel.restoreData() }
             SettingsDivider()
             SettingsArrow("Xoá cache", Icons.Outlined.DeleteOutline, state.cacheSize) { viewModel.showClearCacheDialog() }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // About
+        // ═══ About ═══
         SettingsGroup("Thông tin") {
-            SettingsArrow("Hướng dẫn sử dụng", Icons.Outlined.HelpOutline, null) { }
+            SettingsArrow("Hướng dẫn sử dụng", Icons.Outlined.HelpOutline, null) { viewModel.openHelp() }
             SettingsDivider()
-            SettingsArrow("Đánh giá ứng dụng", Icons.Outlined.Star, null) { }
+            SettingsArrow("Đánh giá ứng dụng", Icons.Outlined.Star, null) { viewModel.rateApp() }
             SettingsDivider()
-            SettingsArrow("Chia sẻ ứng dụng", Icons.Outlined.Share, null) { }
+            SettingsArrow("Chia sẻ ứng dụng", Icons.Outlined.Share, null) { viewModel.shareApp() }
             SettingsDivider()
-            SettingsArrow("Chính sách bảo mật", Icons.Outlined.Lock, null) { }
+            SettingsArrow("Chính sách bảo mật", Icons.Outlined.Lock, null) { viewModel.openPrivacyPolicy() }
         }
 
         Spacer(modifier = Modifier.height(18.dp))
@@ -188,6 +199,113 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         Spacer(modifier = Modifier.height(96.dp))
     }
 }
+
+// ═══════════════════════════════════════
+// Account Section — Google Sign-In
+// ═══════════════════════════════════════
+
+@Composable
+private fun AccountSection(
+    user: com.lichso.app.data.auth.UserInfo?,
+    isSigningIn: Boolean,
+    onSignIn: () -> Unit,
+    onProfileClick: () -> Unit
+) {
+    val c = LichSoThemeColors.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .background(c.bg2, RoundedCornerShape(12.dp))
+            .border(1.dp, c.border, RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onProfileClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        if (user != null) {
+            // Signed in — avatar
+            if (user.photoUrl != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(user.photoUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Avatar",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .border(2.dp, c.teal.copy(alpha = 0.3f), CircleShape)
+                )
+            } else {
+                // Fallback avatar with initial
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Brush.linearGradient(listOf(c.teal, c.gold)), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        user.displayName.take(1).uppercase(),
+                        style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White)
+                    )
+                }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    user.displayName,
+                    style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = c.textPrimary)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    user.email,
+                    style = TextStyle(fontSize = 11.5.sp, color = c.textTertiary)
+                )
+            }
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = c.textQuaternary, modifier = Modifier.size(20.dp))
+        } else {
+            // Not signed in
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Brush.linearGradient(listOf(c.gold, c.teal)), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("L", style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp, color = if (c.isDark) Color(0xFF1A1500) else Color.White))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Đăng nhập",
+                    style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = c.textPrimary)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = c.teal2, modifier = Modifier.size(12.dp))
+                    Text(
+                        "Đăng nhập với Google để đồng bộ",
+                        style = TextStyle(fontSize = 11.sp, color = c.teal2)
+                    )
+                }
+            }
+            if (isSigningIn) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = c.teal,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = c.textQuaternary, modifier = Modifier.size(20.dp))
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════
+// Reusable Setting Components
+// ═══════════════════════════════════════
 
 @Composable
 private fun PickerDialog(

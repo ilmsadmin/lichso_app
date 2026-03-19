@@ -2,9 +2,16 @@ package com.lichso.app.ui.screen.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lichso.app.data.ai.AiTaskService
 import com.lichso.app.data.local.AiMemoryStore
 import com.lichso.app.data.local.dao.ChatMessageDao
+import com.lichso.app.data.local.dao.NoteDao
+import com.lichso.app.data.local.dao.ReminderDao
+import com.lichso.app.data.local.dao.TaskDao
 import com.lichso.app.data.local.entity.ChatMessageEntity
+import com.lichso.app.data.local.entity.NoteEntity
+import com.lichso.app.data.local.entity.ReminderEntity
+import com.lichso.app.data.local.entity.TaskEntity
 import com.lichso.app.data.remote.ChatMessage
 import com.lichso.app.data.remote.OpenRouterApi
 import com.lichso.app.domain.DayInfoProvider
@@ -26,7 +33,11 @@ class ChatViewModel @Inject constructor(
     private val chatMessageDao: ChatMessageDao,
     private val dayInfoProvider: DayInfoProvider,
     private val openRouterApi: OpenRouterApi,
-    private val aiMemoryStore: AiMemoryStore
+    private val aiMemoryStore: AiMemoryStore,
+    private val aiTaskService: AiTaskService,
+    private val taskDao: TaskDao,
+    private val noteDao: NoteDao,
+    private val reminderDao: ReminderDao
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -76,6 +87,31 @@ class ChatViewModel @Inject constructor(
             chatMessageDao.insert(ChatMessageEntity(content = text.trim(), isUser = true))
             _uiState.update { it.copy(isTyping = true) }
 
+            // Check if this is a task/note/reminder command
+            val lower = text.lowercase()
+            val isActionCommand = lower.let { l ->
+                l.contains("tạo") || l.contains("thêm") || l.contains("nhắc") ||
+                l.contains("ghi chú") || l.contains("checklist") || l.contains("todo") ||
+                l.contains("task") || l.contains("note") || l.contains("reminder") ||
+                l.contains("kế hoạch") || l.contains("danh sách")
+            }
+
+            if (isActionCommand) {
+                try {
+                    val result = aiTaskService.processCommand(text.trim())
+                    if (result.action != "general" && result.action != "suggest" && result.items.isNotEmpty()) {
+                        // Execute the action
+                        executeAiAction(result)
+                        val response = "${result.message}\n\n✨ Đã thực hiện xong! Bạn có thể xem ở tab \"Ghi chú & Việc làm\"."
+                        chatMessageDao.insert(ChatMessageEntity(content = response, isUser = false))
+                        _uiState.update { it.copy(isTyping = false) }
+                        return@launch
+                    }
+                } catch (_: Exception) {
+                    // Fall through to normal chat
+                }
+            }
+
             val contextInfo = buildTodayContext()
             val memoryContext = aiMemoryStore.getMemoryContext()
 
@@ -94,7 +130,18 @@ class ChatViewModel @Inject constructor(
             )
 
             val response = result.getOrElse { error ->
-                "${ChatIcons.WARNING} Không thể kết nối AI. Đang dùng trả lời cục bộ.\n\n" + generateLocalResponse(text.trim())
+                val errMsg = error.message ?: ""
+                val hint = when {
+                    errMsg.contains("401") || errMsg.contains("User not found") ->
+                        "${ChatIcons.WARNING} API key không hợp lệ hoặc đã hết hạn. Vui lòng cập nhật API key trong cài đặt.\n\n"
+                    errMsg.contains("429") ->
+                        "${ChatIcons.WARNING} Đã vượt giới hạn gọi AI. Thử lại sau vài phút.\n\n"
+                    errMsg.contains("timeout") || errMsg.contains("Timeout") ->
+                        "${ChatIcons.WARNING} Kết nối AI bị timeout. Kiểm tra mạng và thử lại.\n\n"
+                    else ->
+                        "${ChatIcons.WARNING} Không thể kết nối AI. Đang dùng trả lời cục bộ.\n\n"
+                }
+                hint + generateLocalResponse(text.trim())
             }
 
             chatMessageDao.insert(ChatMessageEntity(content = response, isUser = false))
@@ -108,6 +155,55 @@ class ChatViewModel @Inject constructor(
     fun clearChat() {
         viewModelScope.launch {
             chatMessageDao.clearAll()
+        }
+    }
+
+    private suspend fun executeAiAction(result: AiTaskService.AiActionResult) {
+        result.items.forEach { item ->
+            when (item.type) {
+                "task" -> {
+                    val dueDate = item.dueDate?.let {
+                        try {
+                            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(it)?.time
+                        } catch (_: Exception) { null }
+                    }
+                    taskDao.insert(
+                        TaskEntity(
+                            title = item.title,
+                            description = item.description,
+                            priority = item.priority,
+                            dueDate = dueDate
+                        )
+                    )
+                }
+                "note" -> {
+                    noteDao.insert(
+                        NoteEntity(
+                            title = item.title,
+                            content = item.description,
+                            colorIndex = item.colorIndex
+                        )
+                    )
+                }
+                "reminder" -> {
+                    val cal = Calendar.getInstance()
+                    item.time?.let { timeStr ->
+                        try {
+                            val parts = timeStr.split(":")
+                            cal.set(Calendar.HOUR_OF_DAY, parts[0].toInt().coerceIn(0, 23))
+                            cal.set(Calendar.MINUTE, parts.getOrElse(1) { "0" }.toInt().coerceIn(0, 59))
+                            cal.set(Calendar.SECOND, 0)
+                        } catch (_: Exception) { }
+                    }
+                    reminderDao.insert(
+                        ReminderEntity(
+                            title = item.title,
+                            triggerTime = cal.timeInMillis,
+                            repeatType = item.repeatType
+                        )
+                    )
+                }
+            }
         }
     }
 

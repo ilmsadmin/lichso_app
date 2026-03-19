@@ -241,37 +241,72 @@ private fun buildIcon(
     viewportHeight = 24f
 ).apply(block).build()
 
-/** Home icon — diamond/sun with rays */
+/** Home icon — house with roof and chimney */
 @Composable
 private fun rememberHomeIcon(tint: Color): VectorPainter {
     val icon = remember(tint) {
         buildIcon("Home") {
-            // Diamond shape in center
+            // Roof (triangle)
             addPath(
                 pathData = PathData {
-                    moveTo(12f, 3f)
-                    lineTo(20f, 12f)
-                    lineTo(12f, 21f)
-                    lineTo(4f, 12f)
-                    close()
+                    moveTo(3f, 12f)
+                    lineTo(12f, 3f)
+                    lineTo(21f, 12f)
+                },
+                stroke = SolidColor(tint),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            // House body
+            addPath(
+                pathData = PathData {
+                    moveTo(5f, 10f)
+                    verticalLineTo(20f)
+                    arcTo(1f, 1f, 0f, false, false, 6f, 21f)
+                    horizontalLineTo(18f)
+                    arcTo(1f, 1f, 0f, false, false, 19f, 20f)
+                    verticalLineTo(10f)
                 },
                 stroke = SolidColor(tint),
                 strokeLineWidth = 1.6f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
-            // Inner diamond
+            // Door (arch)
             addPath(
                 pathData = PathData {
-                    moveTo(12f, 8f)
-                    lineTo(16f, 12f)
-                    lineTo(12f, 16f)
-                    lineTo(8f, 12f)
+                    moveTo(9f, 21f)
+                    verticalLineTo(16f)
+                    arcTo(3f, 3f, 0f, false, true, 15f, 16f)
+                    verticalLineTo(21f)
+                },
+                stroke = SolidColor(tint),
+                strokeLineWidth = 1.4f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+            // Door fill (subtle)
+            addPath(
+                pathData = PathData {
+                    moveTo(9f, 21f)
+                    verticalLineTo(16f)
+                    arcTo(3f, 3f, 0f, false, true, 15f, 16f)
+                    verticalLineTo(21f)
                     close()
                 },
-                fill = SolidColor(tint.copy(alpha = 0.2f)),
+                fill = SolidColor(tint.copy(alpha = 0.15f)),
+            )
+            // Chimney
+            addPath(
+                pathData = PathData {
+                    moveTo(16.5f, 4f)
+                    verticalLineTo(8f)
+                    horizontalLineTo(18.5f)
+                    verticalLineTo(6f)
+                },
                 stroke = SolidColor(tint),
-                strokeLineWidth = 1.2f,
+                strokeLineWidth = 1.4f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )

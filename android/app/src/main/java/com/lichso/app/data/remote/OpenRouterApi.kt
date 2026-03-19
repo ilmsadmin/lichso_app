@@ -1,6 +1,7 @@
 package com.lichso.app.data.remote
 
 import com.google.gson.Gson
+import com.lichso.app.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -32,7 +33,8 @@ class OpenRouterApi @Inject constructor() {
 
     companion object {
         private const val BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
-        private const val API_KEY = "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"
+        // API key được đọc từ local.properties qua BuildConfig (an toàn, không bị commit lên Git)
+        private val API_KEY = BuildConfig.OPENROUTER_API_KEY
     }
 
     private val gson = Gson()
@@ -56,6 +58,7 @@ Quy tắc:
 - Nếu người dùng cho biết tên, ngày sinh, sở thích, thói quen — hãy ghi nhận và dùng tên họ khi trả lời
 - Nếu người dùng đặt tên cho bạn, hãy chấp nhận và tự giới thiệu bằng tên mới
 - Hãy tỏ ra thân thiện, gọi người dùng bằng tên nếu biết
+- Bạn cũng có thể giúp tạo task, ghi chú, nhắc nhở — hãy xác nhận khi đã thực hiện
 """.trimIndent()
 
     suspend fun chat(

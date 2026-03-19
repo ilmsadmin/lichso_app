@@ -1,5 +1,7 @@
 package com.lichso.app.ui.screen.calendar
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -32,12 +34,16 @@ fun CalendarScreen(viewModel: HomeViewModel = hiltViewModel()) {
     val c = LichSoThemeColors.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(c.bg)
-            .verticalScroll(rememberScrollState())
-    ) {
+    // Track which day's detail overlay is shown
+    var showDayDetail by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(c.bg)
+                .verticalScroll(rememberScrollState())
+        ) {
         // Header
         Row(
             modifier = Modifier
@@ -85,7 +91,10 @@ fun CalendarScreen(viewModel: HomeViewModel = hiltViewModel()) {
         CalendarGrid(
             days = uiState.calendarDays,
             selectedDate = uiState.selectedDate,
-            onDayClick = { day -> viewModel.selectDay(day.solarDay, day.solarMonth, day.solarYear) }
+            onDayClick = { day ->
+                viewModel.selectDay(day.solarDay, day.solarMonth, day.solarYear)
+                showDayDetail = true
+            }
         )
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -107,6 +116,27 @@ fun CalendarScreen(viewModel: HomeViewModel = hiltViewModel()) {
         }
 
         Spacer(modifier = Modifier.height(96.dp))
+        }
+
+        // ═══ Day Detail Overlay ═══
+        AnimatedVisibility(
+            visible = showDayDetail && uiState.dayInfo != null,
+            enter = fadeIn(animationSpec = tween(200)) + slideInVertically(
+                initialOffsetY = { it / 4 },
+                animationSpec = tween(300, easing = EaseOutCubic)
+            ),
+            exit = fadeOut(animationSpec = tween(150)) + slideOutVertically(
+                targetOffsetY = { it / 4 },
+                animationSpec = tween(200)
+            )
+        ) {
+            uiState.dayInfo?.let { info ->
+                DayDetailOverlay(
+                    dayInfo = info,
+                    onDismiss = { showDayDetail = false }
+                )
+            }
+        }
     }
 }
 

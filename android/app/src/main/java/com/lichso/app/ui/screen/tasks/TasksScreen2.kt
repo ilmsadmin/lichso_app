@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.tasks
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.lichso.app.data.ai.AiTemplates
 import com.lichso.app.data.local.entity.NoteEntity
 import com.lichso.app.data.local.entity.ReminderEntity
 import com.lichso.app.data.local.entity.TaskEntity
@@ -35,6 +37,17 @@ fun TasksScreen2(viewModel: TasksViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableStateOf(TaskTab2.TASKS) }
     val c = LichSoThemeColors.current
+    var aiInput by remember { mutableStateOf("") }
+    var showAiBar by remember { mutableStateOf(false) }
+
+    // Show AI message as snackbar
+    LaunchedEffect(state.aiMessage, state.aiError) {
+        val msg = state.aiMessage ?: state.aiError
+        if (msg != null) {
+            kotlinx.coroutines.delay(4000)
+            viewModel.dismissAiMessage()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(c.bg)) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -45,6 +58,77 @@ fun TasksScreen2(viewModel: TasksViewModel = hiltViewModel()) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Ghi chú & Việc làm", style = TextStyle(fontFamily = FontFamily.Serif, fontSize = 22.sp, color = c.gold2))
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // AI Templates button
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(c.teal.copy(alpha = 0.12f), CircleShape)
+                            .clip(CircleShape)
+                            .clickable { viewModel.toggleAiTemplates() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Outlined.Dashboard, null, tint = c.teal, modifier = Modifier.size(16.dp))
+                    }
+                    // AI input toggle
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(
+                                if (showAiBar) c.gold.copy(alpha = 0.2f) else c.gold.copy(alpha = 0.12f),
+                                CircleShape
+                            )
+                            .clip(CircleShape)
+                            .clickable { showAiBar = !showAiBar },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Outlined.AutoAwesome, null, tint = c.gold2, modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+
+            // AI Input Bar
+            AnimatedVisibility(
+                visible = showAiBar,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                AiInputBar(
+                    input = aiInput,
+                    onInputChange = { aiInput = it },
+                    isProcessing = state.isAiProcessing,
+                    onSend = {
+                        viewModel.processAiCommand(aiInput)
+                        aiInput = ""
+                    }
+                )
+            }
+
+            // AI Templates Panel
+            AnimatedVisibility(
+                visible = state.showAiTemplates,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                AiTemplatesPanel(
+                    onTemplateClick = { template ->
+                        viewModel.executeTemplate(template)
+                        viewModel.toggleAiTemplates()
+                    }
+                )
+            }
+
+            // AI Message Banner
+            AnimatedVisibility(
+                visible = state.aiMessage != null || state.aiError != null,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                AiMessageBanner(
+                    message = state.aiMessage ?: state.aiError ?: "",
+                    isError = state.aiError != null,
+                    onDismiss = { viewModel.dismissAiMessage() }
+                )
             }
 
             // Quick Stats
@@ -818,6 +902,250 @@ private fun EditReminderDialog(reminder: ReminderEntity, viewModel: TasksViewMod
             ) { Text("Huỷ", color = c.textSecondary) }
         }
     )
+}
+
+// ═══════════════════════════════════════════
+// AI Components
+// ═══════════════════════════════════════════
+
+@Composable
+private fun AiInputBar(
+    input: String,
+    onInputChange: (String) -> Unit,
+    isProcessing: Boolean,
+    onSend: () -> Unit
+) {
+    val c = LichSoThemeColors.current
+    Column(modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 10.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(c.bg2, RoundedCornerShape(14.dp))
+                .border(1.dp, c.gold.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
+                .padding(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Outlined.AutoAwesome, null,
+                tint = c.gold.copy(alpha = 0.6f),
+                modifier = Modifier.padding(start = 10.dp).size(18.dp)
+            )
+            OutlinedTextField(
+                value = input,
+                onValueChange = onInputChange,
+                placeholder = {
+                    Text(
+                        "Hỏi AI: \"tạo checklist đi chợ\"...",
+                        style = TextStyle(fontSize = 13.sp, color = c.textQuaternary)
+                    )
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedBorderColor = Color.Transparent,
+                    cursorColor = c.gold,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent
+                ),
+                textStyle = TextStyle(color = c.textPrimary, fontSize = 13.sp),
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                enabled = !isProcessing
+            )
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(
+                        if (input.isNotBlank() && !isProcessing) c.gold else c.surface,
+                        RoundedCornerShape(10.dp)
+                    )
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable(enabled = input.isNotBlank() && !isProcessing) { onSend() },
+                contentAlignment = Alignment.Center
+            ) {
+                if (isProcessing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = c.gold,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        Icons.Filled.ArrowUpward, null,
+                        tint = if (input.isNotBlank()) Color(0xFF1A1500) else c.textQuaternary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+        // Quick suggestion chips
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            AiSuggestionChip("📝 Ghi chú nhanh") { onInputChange("ghi chú: ") }
+            AiSuggestionChip("✅ Tạo checklist") { onInputChange("tạo checklist: ") }
+            AiSuggestionChip("⏰ Nhắc nhở") { onInputChange("nhắc tôi ") }
+            AiSuggestionChip("📋 Kế hoạch ngày") { onInputChange("tạo kế hoạch ngày hôm nay") }
+        }
+    }
+}
+
+@Composable
+private fun AiSuggestionChip(text: String, onClick: () -> Unit) {
+    val c = LichSoThemeColors.current
+    Box(
+        modifier = Modifier
+            .background(c.bg3, RoundedCornerShape(20.dp))
+            .border(1.dp, c.border, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+    ) {
+        Text(text, style = TextStyle(fontSize = 11.sp, color = c.textTertiary))
+    }
+}
+
+@Composable
+private fun AiMessageBanner(
+    message: String,
+    isError: Boolean,
+    onDismiss: () -> Unit
+) {
+    val c = LichSoThemeColors.current
+    val bg = if (isError) c.red2.copy(alpha = 0.1f) else c.teal.copy(alpha = 0.1f)
+    val borderColor = if (isError) c.red2.copy(alpha = 0.3f) else c.teal.copy(alpha = 0.3f)
+    val textColor = if (isError) c.red2 else c.teal2
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 4.dp)
+            .background(bg, RoundedCornerShape(10.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(10.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            if (isError) Icons.Outlined.ErrorOutline else Icons.Outlined.CheckCircleOutline,
+            null, tint = textColor, modifier = Modifier.size(18.dp).padding(top = 1.dp)
+        )
+        Text(
+            message,
+            style = TextStyle(fontSize = 12.5.sp, color = textColor, lineHeight = 18.sp),
+            modifier = Modifier.weight(1f)
+        )
+        Icon(
+            Icons.Outlined.Close, null, tint = textColor.copy(alpha = 0.5f),
+            modifier = Modifier.size(16.dp).clickable(onClick = onDismiss)
+        )
+    }
+}
+
+@Composable
+private fun AiTemplatesPanel(
+    onTemplateClick: (AiTemplates.QuickTemplate) -> Unit
+) {
+    val c = LichSoThemeColors.current
+    var selectedCategory by remember { mutableStateOf<AiTemplates.TemplateCategory?>(null) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 10.dp)
+            .background(c.bg2, RoundedCornerShape(14.dp))
+            .border(1.dp, c.border, RoundedCornerShape(14.dp))
+            .padding(14.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(Icons.Outlined.Dashboard, null, tint = c.teal, modifier = Modifier.size(16.dp))
+            Text(
+                "Mẫu nhanh",
+                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = c.gold2)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Category chips
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            val isAll = selectedCategory == null
+            Box(
+                modifier = Modifier
+                    .background(if (isAll) c.goldDim else c.bg3, RoundedCornerShape(20.dp))
+                    .border(1.dp, if (isAll) c.gold.copy(alpha = 0.38f) else c.border, RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { selectedCategory = null }
+                    .padding(horizontal = 12.dp, vertical = 5.dp)
+            ) {
+                Text("Tất cả", style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (isAll) c.gold2 else c.textTertiary))
+            }
+            AiTemplates.TemplateCategory.entries.forEach { cat ->
+                val isActive = selectedCategory == cat
+                Box(
+                    modifier = Modifier
+                        .background(if (isActive) c.goldDim else c.bg3, RoundedCornerShape(20.dp))
+                        .border(1.dp, if (isActive) c.gold.copy(alpha = 0.38f) else c.border, RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable { selectedCategory = cat }
+                        .padding(horizontal = 12.dp, vertical = 5.dp)
+                ) {
+                    Text(cat.label, style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (isActive) c.gold2 else c.textTertiary))
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Template list
+        val templates = if (selectedCategory != null) {
+            AiTemplates.getByCategory(selectedCategory!!)
+        } else {
+            AiTemplates.quickTemplates
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            templates.forEach { template ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(c.surface, RoundedCornerShape(10.dp))
+                        .border(1.dp, c.border, RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable { onTemplateClick(template) }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(template.icon, fontSize = 20.sp)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            template.title,
+                            style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = c.textPrimary)
+                        )
+                        Text(
+                            template.subtitle,
+                            style = TextStyle(fontSize = 11.sp, color = c.textTertiary),
+                            maxLines = 1, overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Icon(Icons.Default.ChevronRight, null, tint = c.textQuaternary, modifier = Modifier.size(16.dp))
+                }
+            }
+        }
+    }
 }
 
 // ═══════════════════════════════════════════

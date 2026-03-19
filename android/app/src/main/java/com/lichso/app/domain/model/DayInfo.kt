@@ -12,6 +12,7 @@ data class DayInfo(
     val yearCanChi: String,
     val monthCanChi: String,
     val dayCanChi: String,
+    val hourCanChi: String,
     val moonPhase: MoonPhaseInfo,
     val gioHoangDao: List<GioHoangDaoInfo>,
     val activities: DayActivitiesInfo,
@@ -19,6 +20,9 @@ data class DayInfo(
     val solarHoliday: String?,
     val lunarHoliday: String?,
     val tietKhi: TietKhiInfo,
+    val trucNgay: TrucNgayInfo,
+    val saoChieu: SaoChieuInfo,
+    val dayRating: DayRatingInfo,
     val isRam: Boolean,
     val isMung1: Boolean
 )
@@ -88,3 +92,18 @@ data class UpcomingEvent(
 )
 
 enum class EventColor { GOLD, TEAL, RED }
+
+data class TrucNgayInfo(
+    val name: String,
+    val rating: String // "Tốt", "Xấu", "Trung bình"
+)
+
+data class SaoChieuInfo(
+    val name: String,
+    val rating: String // "Tốt", "Xấu", "Trung bình"
+)
+
+data class DayRatingInfo(
+    val label: String, // "Rất tốt", "Tốt", "Trung bình", "Xấu"
+    val percent: Int   // 0–100
+)

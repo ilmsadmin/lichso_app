@@ -3,6 +3,7 @@ package com.lichso.app.domain
 import com.lichso.app.domain.model.*
 import com.lichso.app.util.*
 import java.time.LocalDate
+import java.time.LocalTime
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,6 +30,15 @@ class DayInfoProvider @Inject constructor() {
         val solarHoliday = HolidayUtil.getSolarHoliday(dd, mm)
         val lunarHoliday = HolidayUtil.getLunarHoliday(lunar.lunarDay, lunar.lunarMonth)
         val tietKhi = TietKhiCalculator.getCurrentSolarTerm(dd, mm, yy)
+        val trucNgay = TrucNgayCalculator.getTrucNgay(jd, lunar.lunarMonth)
+        val saoChieu = SaoChieuCalculator.getSaoChieu(jd)
+
+        // Hour Can Chi (current hour)
+        val currentHour = LocalTime.now().hour
+        val hourCanChi = getHourCanChi(jd, currentHour)
+
+        // Day rating
+        val dayRating = calculateDayRating(trucNgay, saoChieu, activities)
 
         val lunarMonthName = if (lunar.lunarLeap == 1) "tháng ${lunar.lunarMonth} nhuận" else "tháng ${lunar.lunarMonth}"
 
@@ -41,6 +51,7 @@ class DayInfoProvider @Inject constructor() {
             yearCanChi = yearCanChi,
             monthCanChi = monthCanChi,
             dayCanChi = dayCanChi,
+            hourCanChi = hourCanChi,
             moonPhase = MoonPhaseInfo(moonPhase.icon, moonPhase.name, moonPhase.age),
             gioHoangDao = gioHD.map { GioHoangDaoInfo(it.name, it.time) },
             activities = DayActivitiesInfo(activities.nenLam, activities.khongNen, activities.isXauDay, activities.isNguyetKy, activities.isTamNuong),
@@ -54,6 +65,9 @@ class DayInfoProvider @Inject constructor() {
                 nextMm = tietKhi.next?.mm,
                 daysUntilNext = tietKhi.daysUntilNext
             ),
+            trucNgay = TrucNgayInfo(trucNgay.name, trucNgay.rating),
+            saoChieu = SaoChieuInfo(saoChieu.name, saoChieu.rating),
+            dayRating = dayRating,
             isRam = lunar.lunarDay == 15,
             isMung1 = lunar.lunarDay == 1
         )
@@ -183,5 +197,57 @@ class DayInfoProvider @Inject constructor() {
         }
 
         return events.take(4)
+    }
+
+    private fun getHourCanChi(jd: Int, hour: Int): String {
+        val can = CanChiCalculator.THIEN_CAN
+        val chi = CanChiCalculator.DIA_CHI
+        val chiIdx = when (hour) {
+            23, 0 -> 0; 1, 2 -> 1; 3, 4 -> 2; 5, 6 -> 3
+            7, 8 -> 4; 9, 10 -> 5; 11, 12 -> 6; 13, 14 -> 7
+            15, 16 -> 8; 17, 18 -> 9; 19, 20 -> 10; 21, 22 -> 11
+            else -> 0
+        }
+        val dayCan = (jd + 9) % 10
+        val canIdx = (dayCan * 2 + chiIdx) % 10
+        return "${can[canIdx]} ${chi[chiIdx]}"
+    }
+
+    private fun calculateDayRating(
+        truc: TrucNgayCalculator.TrucNgayInfo,
+        sao: SaoChieuCalculator.SaoChieuInfo,
+        activities: DayActivityCalculator.DayActivities
+    ): DayRatingInfo {
+        var score = 50
+
+        // Trực ngày rating contribution
+        when (truc.rating) {
+            "Tốt" -> score += 20
+            "Xấu" -> score -= 15
+        }
+
+        // Sao chiếu rating contribution
+        when (sao.rating) {
+            "Tốt" -> score += 20
+            "Xấu" -> score -= 15
+        }
+
+        // Nguyệt kỵ / Tam nương penalty
+        if (activities.isNguyetKy) score -= 15
+        if (activities.isTamNuong) score -= 10
+
+        // Base bonus from good activities
+        score += (activities.nenLam.size * 2).coerceAtMost(10)
+
+        score = score.coerceIn(10, 100)
+
+        val label = when {
+            score >= 80 -> "Rất tốt"
+            score >= 60 -> "Tốt"
+            score >= 40 -> "Trung bình"
+            else -> "Xấu"
+        }
+
+        return DayRatingInfo(label, score)
     }
 }

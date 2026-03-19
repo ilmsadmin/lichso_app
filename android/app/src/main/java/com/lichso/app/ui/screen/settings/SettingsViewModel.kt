@@ -1,11 +1,15 @@
 package com.lichso.app.ui.screen.settings
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lichso.app.data.auth.AuthRepository
+import com.lichso.app.data.auth.UserInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -26,6 +30,12 @@ object SettingsKeys {
 }
 
 data class SettingsUiState(
+    // Account
+    val user: UserInfo? = null,
+    val isSigningIn: Boolean = false,
+    val signInError: String? = null,
+    val showSignOutDialog: Boolean = false,
+    // Settings
     val notifyEnabled: Boolean = true,
     val lunarBadgeEnabled: Boolean = true,
     val gioDaiCatEnabled: Boolean = false,
@@ -38,12 +48,15 @@ data class SettingsUiState(
     val showLanguageDialog: Boolean = false,
     val showCalendarStyleDialog: Boolean = false,
     val showWeekStartDialog: Boolean = false,
-    val showClearCacheDialog: Boolean = false
+    val showClearCacheDialog: Boolean = false,
+    // Feedback
+    val toastMessage: String? = null,
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val dataStore = context.settingsDataStore
@@ -52,6 +65,7 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     init {
+        // Collect DataStore prefs
         viewModelScope.launch {
             dataStore.data.collect { prefs ->
                 _uiState.update {
@@ -67,8 +81,41 @@ class SettingsViewModel @Inject constructor(
                 }
             }
         }
+        // Collect auth user
+        viewModelScope.launch {
+            authRepository.currentUser.collect { user ->
+                _uiState.update { it.copy(user = user) }
+            }
+        }
         calculateCacheSize()
     }
+
+    // ═══ Auth ═══
+
+    fun signInWithGoogle(activityContext: Context) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSigningIn = true, signInError = null) }
+            val result = authRepository.signInWithGoogle(activityContext)
+            result.fold(
+                onSuccess = {
+                    _uiState.update { it.copy(isSigningIn = false, toastMessage = "Đăng nhập thành công") }
+                },
+                onFailure = { e ->
+                    _uiState.update { it.copy(isSigningIn = false, signInError = e.message) }
+                }
+            )
+        }
+    }
+
+    fun showSignOutDialog() = _uiState.update { it.copy(showSignOutDialog = true) }
+    fun hideSignOutDialog() = _uiState.update { it.copy(showSignOutDialog = false) }
+
+    fun signOut() {
+        authRepository.signOut()
+        _uiState.update { it.copy(showSignOutDialog = false, toastMessage = "Đã đăng xuất") }
+    }
+
+    // ═══ Settings toggles ═══
 
     fun setNotifyEnabled(value: Boolean) = savePref(SettingsKeys.NOTIFY_ENABLED, value)
     fun setLunarBadge(value: Boolean) = savePref(SettingsKeys.LUNAR_BADGE, value)
@@ -90,6 +137,8 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(showWeekStartDialog = false) }
     }
 
+    // ═══ Dialog visibility ═══
+
     fun showLanguageDialog() = _uiState.update { it.copy(showLanguageDialog = true) }
     fun hideLanguageDialog() = _uiState.update { it.copy(showLanguageDialog = false) }
     fun showCalendarStyleDialog() = _uiState.update { it.copy(showCalendarStyleDialog = true) }
@@ -99,11 +148,13 @@ class SettingsViewModel @Inject constructor(
     fun showClearCacheDialog() = _uiState.update { it.copy(showClearCacheDialog = true) }
     fun hideClearCacheDialog() = _uiState.update { it.copy(showClearCacheDialog = false) }
 
+    // ═══ Cache ═══
+
     fun clearCache() {
         viewModelScope.launch {
             try {
                 context.cacheDir.deleteRecursively()
-                _uiState.update { it.copy(cacheSize = "0 KB", showClearCacheDialog = false) }
+                _uiState.update { it.copy(cacheSize = "0 KB", showClearCacheDialog = false, toastMessage = "Đã xoá cache") }
             } catch (_: Exception) {
                 _uiState.update { it.copy(showClearCacheDialog = false) }
             }
@@ -125,6 +176,58 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
+
+    // ═══ Actions ═══
+
+    fun backupData() {
+        _uiState.update { it.copy(toastMessage = "Tính năng sao lưu sẽ có trong bản cập nhật tiếp theo") }
+    }
+
+    fun restoreData() {
+        _uiState.update { it.copy(toastMessage = "Tính năng khôi phục sẽ có trong bản cập nhật tiếp theo") }
+    }
+
+    fun rateApp() {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}"))
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        } catch (_: Exception) {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}"))
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        }
+    }
+
+    fun shareApp() {
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "Lịch Số — Lịch Vạn Niên")
+            putExtra(Intent.EXTRA_TEXT, "Xem lịch âm dương, ngày tốt xấu, giờ hoàng đạo với Lịch Số:\nhttps://play.google.com/store/apps/details?id=${context.packageName}")
+        }
+        val chooser = Intent.createChooser(intent, "Chia sẻ ứng dụng").apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(chooser)
+    }
+
+    fun openPrivacyPolicy() {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://lichso.app/privacy"))
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try { context.startActivity(intent) } catch (_: Exception) {}
+    }
+
+    fun openHelp() {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://lichso.app/help"))
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try { context.startActivity(intent) } catch (_: Exception) {}
+    }
+
+    fun consumeToast() {
+        _uiState.update { it.copy(toastMessage = null) }
+    }
+
+    // ═══ Helpers ═══
 
     private fun savePref(key: Preferences.Key<Boolean>, value: Boolean) {
         viewModelScope.launch {
