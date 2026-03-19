@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chính Sách Bảo Mật — Lịch Số</title>
+    <style>
+        :root {
+            --gold: #E8B86D;
+            --gold2: #C4783A;
+            --teal: #4ABEAA;
+            --bg: #0D1117;
+            --bg2: #161B22;
+            --bg3: #1E2530;
+            --text: #E6EDF3;
+            --text2: #8B949E;
+            --text3: #6E7681;
+            --border: #30363D;
+            --red: #FF5555;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            font-size: 15px;
+        }
+        .header {
+            background: linear-gradient(135deg, #1A1008 0%, #0D1117 50%, #0A1A1A 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 40px 24px 32px;
+            text-align: center;
+        }
+        .logo-ring {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #E8B86D, #C4783A);
+            margin-bottom: 14px;
+            box-shadow: 0 0 24px rgba(232,184,109,0.3);
+        }
+        .logo-ring svg { width: 38px; height: 38px; }
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--gold);
+            font-family: Georgia, serif;
+            margin-bottom: 6px;
+        }
+        .subtitle {
+            color: var(--text2);
+            font-size: 13px;
+        }
+        .badge {
+            display: inline-block;
+            background: rgba(74,190,170,0.12);
+            color: var(--teal);
+            border: 1px solid rgba(74,190,170,0.3);
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 10px;
+            letter-spacing: 0.5px;
+        }
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 32px 24px 60px;
+        }
+        .toc {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 32px;
+        }
+        .toc h3 {
+            color: var(--gold);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+        .toc ol {
+            padding-left: 18px;
+        }
+        .toc li {
+            margin-bottom: 6px;
+        }
+        .toc a {
+            color: var(--teal);
+            text-decoration: none;
+            font-size: 13.5px;
+        }
+        .toc a:hover { text-decoration: underline; }
+        .section {
+            margin-bottom: 36px;
+            padding-bottom: 36px;
+            border-bottom: 1px solid var(--border);
+        }
+        .section:last-of-type { border-bottom: none; }
+        .section-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gold), var(--gold2));
+            color: #1A1008;
+            font-size: 13px;
+            font-weight: 800;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        h2 {
+            display: flex;
+            align-items: center;
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 14px;
+        }
+        p { color: var(--text2); margin-bottom: 12px; font-size: 14px; }
+        ul, ol { padding-left: 20px; margin-bottom: 12px; }
+        li { color: var(--text2); margin-bottom: 6px; font-size: 14px; }
+        li strong { color: var(--text); }
+        .highlight-box {
+            background: rgba(74,190,170,0.06);
+            border-left: 3px solid var(--teal);
+            border-radius: 0 8px 8px 0;
+            padding: 12px 16px;
+            margin: 14px 0;
+        }
+        .highlight-box p { margin: 0; color: var(--text); font-size: 13.5px; }
+        .warning-box {
+            background: rgba(232,184,109,0.07);
+            border-left: 3px solid var(--gold);
+            border-radius: 0 8px 8px 0;
+            padding: 12px 16px;
+            margin: 14px 0;
+        }
+        .warning-box p { margin: 0; color: var(--text2); font-size: 13.5px; }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 14px 0;
+            font-size: 13px;
+        }
+        .data-table th {
+            background: var(--bg3);
+            color: var(--gold);
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 700;
+            border: 1px solid var(--border);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .data-table td {
+            padding: 9px 14px;
+            border: 1px solid var(--border);
+            color: var(--text2);
+            vertical-align: top;
+        }
+        .data-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+        .no-collect {
+            background: rgba(74,190,170,0.08);
+            border: 1px solid rgba(74,190,170,0.2);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin: 14px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .no-collect .icon { font-size: 22px; flex-shrink: 0; }
+        .no-collect p { margin: 0; color: var(--text); font-size: 13.5px; }
+        .contact-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-top: 16px;
+        }
+        .contact-card a { color: var(--teal); text-decoration: none; }
+        .contact-card a:hover { text-decoration: underline; }
+        .footer {
+            background: var(--bg2);
+            border-top: 1px solid var(--border);
+            padding: 24px;
+            text-align: center;
+        }
+        .footer p { color: var(--text3); font-size: 12px; margin: 0; }
+        .footer .app-name { color: var(--gold); font-weight: 600; }
+        .tag {
+            display: inline-block;
+            background: rgba(232,184,109,0.1);
+            color: var(--gold);
+            border-radius: 4px;
+            padding: 1px 7px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="logo-ring">
+        <svg viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="19" cy="19" r="17" stroke="#FFF8E0" stroke-width="1.5" opacity="0.3"/>
+            <path d="M19 19 C19 12 25 9 28 13 C31 17 29 25 24 27 C19 29 12 25 11 19 C10 13 14 8 18 8 C22 8 25 11 25 16 C25 20 22 23 19 23 C16 23 14 21 14 19 C14 17 16 15 19 15 C20.8 15 22 16.5 22 18" stroke="#E8A84A" stroke-width="2.2" stroke-linecap="round"/>
+            <circle cx="19" cy="19" r="1.8" fill="#E8B050"/>
+            <circle cx="19" cy="19" r="0.8" fill="#FFF8D0"/>
+        </svg>
+    </div>
+    <h1>Chính Sách Bảo Mật</h1>
+    <p class="subtitle">Lịch Số — Lịch Vạn Niên &amp; Phong Thuỷ</p>
+    <div class="badge">✦ Cam kết bảo vệ quyền riêng tư của bạn</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="container">
+
+    <!-- Last updated -->
+    <p style="text-align:center; color: var(--text3); font-size: 12px; margin-bottom: 28px;">
+        Cập nhật lần cuối: <strong style="color:var(--text2)">19 tháng 3, 2026</strong>
+        &nbsp;·&nbsp; Phiên bản ứng dụng: <strong style="color:var(--text2)">2.0.1</strong>
+    </p>
+
+    <!-- TOC -->
+    <div class="toc">
+        <h3>Mục lục</h3>
+        <ol>
+            <li><a href="#s1">Giới thiệu</a></li>
+            <li><a href="#s2">Thông tin chúng tôi thu thập</a></li>
+            <li><a href="#s3">Cách chúng tôi sử dụng thông tin</a></li>
+            <li><a href="#s4">Lưu trữ dữ liệu</a></li>
+            <li><a href="#s5">Chia sẻ thông tin với bên thứ ba</a></li>
+            <li><a href="#s6">Quyền và tính năng ứng dụng</a></li>
+            <li><a href="#s7">Bảo mật dữ liệu</a></li>
+            <li><a href="#s8">Quyền của người dùng</a></li>
+            <li><a href="#s9">Trẻ em</a></li>
+            <li><a href="#s10">Thay đổi chính sách</a></li>
+            <li><a href="#s11">Liên hệ</a></li>
+        </ol>
+    </div>
+
+    <!-- SECTION 1 -->
+    <div class="section" id="s1">
+        <h2><span class="section-number">1</span>Giới thiệu</h2>
+        <p>
+            Chào mừng bạn đến với <strong style="color:var(--gold)">Lịch Số — Lịch Vạn Niên</strong> ("ứng dụng", "chúng tôi").
+            Chúng tôi hiểu rằng quyền riêng tư của bạn rất quan trọng và chúng tôi cam kết bảo vệ thông tin cá nhân
+            của bạn một cách cẩn thận và minh bạch.
+        </p>
+        <p>
+            Chính sách bảo mật này mô tả cách ứng dụng Lịch Số thu thập, sử dụng và bảo vệ thông tin khi bạn
+            sử dụng ứng dụng của chúng tôi trên thiết bị Android.
+        </p>
+        <div class="highlight-box">
+            <p>
+                📋 <strong>Tóm tắt:</strong> Lịch Số là ứng dụng hoạt động <strong>chủ yếu offline</strong>.
+                Tất cả dữ liệu cá nhân (task, ghi chú, nhắc nhở) được lưu trữ <strong>hoàn toàn trên thiết bị của bạn</strong>.
+                Chúng tôi không bán hay chia sẻ thông tin cá nhân của bạn với bên thứ ba vì mục đích thương mại.
+            </p>
+        </div>
+    </div>
+
+    <!-- SECTION 2 -->
+    <div class="section" id="s2">
+        <h2><span class="section-number">2</span>Thông tin chúng tôi thu thập</h2>
+
+        <p><strong style="color:var(--text)">2.1 Dữ liệu bạn tự tạo (lưu cục bộ)</strong></p>
+        <ul>
+            <li><strong>Task và công việc:</strong> Tiêu đề, mô tả, ngày đến hạn, mức ưu tiên bạn nhập vào</li>
+            <li><strong>Ghi chú:</strong> Nội dung ghi chú bạn tạo</li>
+            <li><strong>Nhắc nhở:</strong> Tiêu đề, thời gian, loại lặp lại</li>
+            <li><strong>Lịch sử chat AI:</strong> Các câu hỏi và câu trả lời trong phiên chat với AI</li>
+        </ul>
+        <div class="no-collect">
+            <span class="icon">🔒</span>
+            <p>Tất cả dữ liệu trên được lưu <strong>trực tiếp trên thiết bị của bạn</strong> thông qua cơ sở dữ liệu cục bộ (Room Database) và không được tải lên máy chủ của chúng tôi.</p>
+        </div>
+
+        <p style="margin-top:16px"><strong style="color:var(--text)">2.2 Dữ liệu gửi đến dịch vụ AI</strong></p>
+        <p>Khi bạn sử dụng tính năng <strong>Lịch Số AI</strong> (trợ lý phong thuỷ), nội dung câu hỏi của bạn
+        được gửi đến dịch vụ AI bên thứ ba (<strong>OpenRouter API</strong>) để xử lý và trả lời.
+        Xem thêm mục <a href="#s5" style="color:var(--teal)">Chia sẻ với bên thứ ba</a>.</p>
+
+        <p><strong style="color:var(--text)">2.3 Dữ liệu kỹ thuật (không nhận dạng cá nhân)</strong></p>
+        <ul>
+            <li>Thông tin lỗi ứng dụng (nếu crash) — thông qua Firebase Crashlytics nếu được bật</li>
+            <li>Phiên bản hệ điều hành Android</li>
+        </ul>
+
+        <p><strong style="color:var(--text)">2.4 Dữ liệu KHÔNG thu thập</strong></p>
+        <table class="data-table">
+            <tr>
+                <th>Loại dữ liệu</th>
+                <th>Trạng thái</th>
+            </tr>
+            <tr>
+                <td>Tên, số điện thoại, địa chỉ email</td>
+                <td>✅ Không thu thập</td>
+            </tr>
+            <tr>
+                <td>Vị trí địa lý (GPS)</td>
+                <td>✅ Không thu thập</td>
+            </tr>
+            <tr>
+                <td>Danh bạ điện thoại</td>
+                <td>✅ Không thu thập</td>
+            </tr>
+            <tr>
+                <td>Ảnh, tệp tin cá nhân</td>
+                <td>✅ Không thu thập</td>
+            </tr>
+            <tr>
+                <td>Cookie, theo dõi quảng cáo</td>
+                <td>✅ Không thu thập</td>
+            </tr>
+            <tr>
+                <td>Thông tin thanh toán</td>
+                <td>✅ Không thu thập</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- SECTION 3 -->
+    <div class="section" id="s3">
+        <h2><span class="section-number">3</span>Cách chúng tôi sử dụng thông tin</h2>
+        <p>Thông tin được thu thập chỉ được sử dụng để:</p>
+        <ul>
+            <li>✦ Cung cấp tính năng lịch vạn niên, xem ngày tốt/xấu, giờ hoàng đạo</li>
+            <li>✦ Quản lý task, ghi chú và nhắc nhở của bạn trên thiết bị</li>
+            <li>✦ Gửi thông báo nhắc nhở đúng thời gian bạn đã đặt</li>
+            <li>✦ Xử lý câu hỏi phong thuỷ thông qua AI (nội dung gửi đến OpenRouter)</li>
+            <li>✦ Cải thiện hiệu suất và sửa lỗi ứng dụng</li>
+        </ul>
+        <div class="warning-box">
+            <p>⚠️ Chúng tôi <strong>không sử dụng</strong> thông tin của bạn cho mục đích quảng cáo, marketing, hoặc bán cho bên thứ ba.</p>
+        </div>
+    </div>
+
+    <!-- SECTION 4 -->
+    <div class="section" id="s4">
+        <h2><span class="section-number">4</span>Lưu trữ dữ liệu</h2>
+        <p><strong style="color:var(--text)">Dữ liệu cục bộ (Local Storage):</strong></p>
+        <ul>
+            <li>Task, ghi chú, nhắc nhở: Lưu trong cơ sở dữ liệu SQLite (Room) trên thiết bị của bạn</li>
+            <li>Cài đặt ứng dụng: Lưu trong Android DataStore Preferences (cục bộ)</li>
+            <li>Lịch sử chat AI: Lưu trong cơ sở dữ liệu cục bộ</li>
+        </ul>
+        <p><strong style="color:var(--text)">Thời gian lưu trữ:</strong></p>
+        <ul>
+            <li>Dữ liệu cục bộ tồn tại cho đến khi bạn xoá thủ công hoặc gỡ cài đặt ứng dụng</li>
+            <li>Khi gỡ cài đặt, toàn bộ dữ liệu cục bộ bị xoá vĩnh viễn</li>
+        </ul>
+        <div class="highlight-box">
+            <p>💡 Chúng tôi khuyến nghị bạn sao lưu dữ liệu quan trọng thường xuyên, vì ứng dụng hiện chưa hỗ trợ sao lưu đám mây.</p>
+        </div>
+    </div>
+
+    <!-- SECTION 5 -->
+    <div class="section" id="s5">
+        <h2><span class="section-number">5</span>Chia sẻ thông tin với bên thứ ba</h2>
+        <p>Chúng tôi chỉ chia sẻ thông tin trong các trường hợp hạn chế sau:</p>
+
+        <p><strong style="color:var(--text)">5.1 OpenRouter API (Dịch vụ AI)</strong></p>
+        <p>
+            Khi bạn sử dụng tính năng chat AI, nội dung tin nhắn của bạn được gửi đến
+            <strong>OpenRouter</strong> để xử lý bằng mô hình ngôn ngữ lớn (LLM).
+            OpenRouter có chính sách bảo mật riêng tại
+            <a href="https://openrouter.ai/privacy" style="color:var(--teal)">openrouter.ai/privacy</a>.
+        </p>
+        <ul>
+            <li>Chỉ nội dung câu hỏi được gửi đi, không gửi thông tin định danh cá nhân</li>
+            <li>Không gửi task, ghi chú, hoặc nhắc nhở của bạn</li>
+            <li>Dữ liệu truyền đi được mã hoá bằng HTTPS/TLS</li>
+        </ul>
+
+        <p><strong style="color:var(--text)">5.2 Firebase (Google)</strong></p>
+        <p>
+            Ứng dụng sử dụng Firebase SDK của Google cho mục đích phân tích lỗi kỹ thuật.
+            Dữ liệu kỹ thuật ẩn danh có thể được gửi đến máy chủ Google theo
+            <a href="https://policies.google.com/privacy" style="color:var(--teal)">Chính sách bảo mật của Google</a>.
+        </p>
+
+        <p><strong style="color:var(--text)">5.3 Trường hợp pháp lý</strong></p>
+        <p>
+            Chúng tôi có thể tiết lộ thông tin nếu pháp luật yêu cầu hoặc để bảo vệ
+            quyền và sự an toàn của người dùng.
+        </p>
+
+        <div class="no-collect">
+            <span class="icon">🚫</span>
+            <p>Chúng tôi <strong>không bán, cho thuê, hoặc trao đổi</strong> thông tin cá nhân của bạn với bất kỳ bên thứ ba nào vì mục đích thương mại hoặc quảng cáo.</p>
+        </div>
+    </div>
+
+    <!-- SECTION 6 -->
+    <div class="section" id="s6">
+        <h2><span class="section-number">6</span>Quyền và tính năng ứng dụng</h2>
+        <table class="data-table">
+            <tr>
+                <th>Quyền (Permission)</th>
+                <th>Mục đích sử dụng</th>
+            </tr>
+            <tr>
+                <td><code style="color:var(--teal)">POST_NOTIFICATIONS</code></td>
+                <td>Gửi thông báo nhắc nhở và giờ hoàng đạo khi bạn bật tính năng này</td>
+            </tr>
+            <tr>
+                <td><code style="color:var(--teal)">SCHEDULE_EXACT_ALARM</code><br><code style="color:var(--teal)">USE_EXACT_ALARM</code></td>
+                <td>Đặt lịch nhắc nhở đúng giờ bạn đã chọn</td>
+            </tr>
+            <tr>
+                <td><code style="color:var(--teal)">RECEIVE_BOOT_COMPLETED</code></td>
+                <td>Tự động lên lịch lại nhắc nhở sau khi thiết bị khởi động lại</td>
+            </tr>
+            <tr>
+                <td><code style="color:var(--teal)">INTERNET</code></td>
+                <td>Kết nối với dịch vụ AI (OpenRouter) khi bạn sử dụng tính năng chat</td>
+            </tr>
+            <tr>
+                <td><code style="color:var(--teal)">RECORD_AUDIO</code></td>
+                <td>Nhận dạng giọng nói để nhập liệu bằng tiếng nói (chỉ khi bạn nhấn nút micro)</td>
+            </tr>
+            <tr>
+                <td><code style="color:var(--teal)">WAKE_LOCK</code></td>
+                <td>Giữ thiết bị thức để xử lý thông báo đúng giờ</td>
+            </tr>
+        </table>
+        <p>Bạn có thể thu hồi các quyền này bất cứ lúc nào trong <strong>Cài đặt &gt; Ứng dụng &gt; Lịch Số &gt; Quyền</strong> trên thiết bị Android của bạn.</p>
+    </div>
+
+    <!-- SECTION 7 -->
+    <div class="section" id="s7">
+        <h2><span class="section-number">7</span>Bảo mật dữ liệu</h2>
+        <p>Chúng tôi áp dụng các biện pháp bảo mật phù hợp để bảo vệ dữ liệu của bạn:</p>
+        <ul>
+            <li>✦ Dữ liệu cục bộ được bảo vệ bởi hệ thống sandbox của Android</li>
+            <li>✦ Mọi kết nối mạng đều sử dụng giao thức HTTPS/TLS</li>
+            <li>✦ Mã nguồn ứng dụng được bảo vệ bằng ProGuard/R8 trong bản release</li>
+            <li>✦ Ứng dụng không yêu cầu quyền root hoặc quyền hệ thống đặc biệt</li>
+        </ul>
+        <div class="warning-box">
+            <p>⚠️ Mặc dù chúng tôi nỗ lực bảo vệ dữ liệu của bạn, không có phương thức truyền dữ liệu qua Internet hoặc lưu trữ điện tử nào có thể đảm bảo 100% an toàn tuyệt đối.</p>
+        </div>
+    </div>
+
+    <!-- SECTION 8 -->
+    <div class="section" id="s8">
+        <h2><span class="section-number">8</span>Quyền của người dùng</h2>
+        <p>Bạn có các quyền sau đối với dữ liệu của mình:</p>
+        <ul>
+            <li>
+                <strong>Quyền truy cập:</strong> Xem toàn bộ dữ liệu cục bộ trực tiếp trong ứng dụng
+                (tab Task, Ghi chú, Nhắc nhở)
+            </li>
+            <li>
+                <strong>Quyền chỉnh sửa:</strong> Sửa hoặc cập nhật mọi dữ liệu bất kỳ lúc nào
+            </li>
+            <li>
+                <strong>Quyền xoá:</strong> Xoá từng mục hoặc toàn bộ lịch sử chat trong ứng dụng
+            </li>
+            <li>
+                <strong>Quyền thu hồi quyền:</strong> Thu hồi quyền thông báo, micro bất kỳ lúc nào
+                trong Cài đặt hệ thống
+            </li>
+            <li>
+                <strong>Quyền gỡ cài đặt:</strong> Gỡ cài đặt ứng dụng bất kỳ lúc nào —
+                toàn bộ dữ liệu cục bộ sẽ bị xoá hoàn toàn
+            </li>
+        </ul>
+    </div>
+
+    <!-- SECTION 9 -->
+    <div class="section" id="s9">
+        <h2><span class="section-number">9</span>Trẻ em</h2>
+        <p>
+            Ứng dụng Lịch Số không hướng đến đối tượng trẻ em dưới 13 tuổi và chúng tôi không cố ý
+            thu thập thông tin cá nhân từ trẻ em dưới độ tuổi này.
+        </p>
+        <p>
+            Nếu bạn là phụ huynh hoặc người giám hộ và phát hiện con bạn đã cung cấp thông tin
+            cá nhân cho chúng tôi, vui lòng liên hệ để chúng tôi xoá thông tin đó.
+        </p>
+    </div>
+
+    <!-- SECTION 10 -->
+    <div class="section" id="s10">
+        <h2><span class="section-number">10</span>Thay đổi chính sách</h2>
+        <p>
+            Chúng tôi có thể cập nhật Chính sách bảo mật này theo thời gian để phản ánh những
+            thay đổi trong cách chúng tôi vận hành ứng dụng hoặc các yêu cầu pháp lý mới.
+        </p>
+        <ul>
+            <li>Khi có thay đổi, chúng tôi sẽ cập nhật ngày "Cập nhật lần cuối" ở đầu trang</li>
+            <li>Các thay đổi quan trọng sẽ được thông báo qua cập nhật ứng dụng trên Google Play</li>
+            <li>Việc tiếp tục sử dụng ứng dụng sau khi có thay đổi đồng nghĩa với việc bạn chấp nhận chính sách mới</li>
+        </ul>
+    </div>
+
+    <!-- SECTION 11 -->
+    <div class="section" id="s11">
+        <h2><span class="section-number">11</span>Liên hệ</h2>
+        <p>
+            Nếu bạn có câu hỏi, thắc mắc hoặc yêu cầu liên quan đến chính sách bảo mật
+            hoặc dữ liệu của bạn, vui lòng liên hệ với chúng tôi:
+        </p>
+        <div class="contact-card">
+            <p style="margin-bottom:10px"><strong style="color:var(--gold)">Lịch Số — Nhóm phát triển</strong></p>
+            <p>📧 Email: <a href="mailto:support@lichso.app">support@lichso.app</a></p>
+            <p>🌐 Website: <a href="https://lichso.app">lichso.app</a></p>
+            <p style="margin-top:10px; color:var(--text3); font-size:12px">
+                Chúng tôi sẽ cố gắng phản hồi trong vòng 7 ngày làm việc.
+            </p>
+        </div>
+    </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+    <p>
+        © 2026 <span class="app-name">Lịch Số</span> — Lịch Vạn Niên &amp; Phong Thuỷ
+        &nbsp;·&nbsp; Phiên bản 2.0.1
+    </p>
+    <p style="margin-top:6px">Made with ♥ in Vietnam</p>
+</div>
+
+</body>
+</html>

@@ -52,6 +52,8 @@ data class SettingsUiState(
     val showClearCacheDialog: Boolean = false,
     // Feedback
     val toastMessage: String? = null,
+    // Navigation events (consumed once)
+    val openUrlEvent: String? = null,
 )
 
 @HiltViewModel
@@ -229,7 +231,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun openPrivacyPolicy() {
-        _uiState.update { it.copy(toastMessage = "Chính sách bảo mật sẽ được cập nhật sớm") }
+        _uiState.update { it.copy(openUrlEvent = "file:///android_asset/privacy_policy.html") }
     }
 
     fun openHelp() {
@@ -238,6 +240,10 @@ class SettingsViewModel @Inject constructor(
 
     fun consumeToast() {
         _uiState.update { it.copy(toastMessage = null) }
+    }
+
+    fun consumeOpenUrl() {
+        _uiState.update { it.copy(openUrlEvent = null) }
     }
 
     // ═══ Helpers ═══

@@ -1,5 +1,7 @@
 package com.lichso.app.ui.screen.settings
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -35,6 +37,15 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         state.toastMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             viewModel.consumeToast()
+        }
+    }
+
+    // Open URL (Privacy Policy, etc.)
+    LaunchedEffect(state.openUrlEvent) {
+        state.openUrlEvent?.let { url ->
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            context.startActivity(intent)
+            viewModel.consumeOpenUrl()
         }
     }
 

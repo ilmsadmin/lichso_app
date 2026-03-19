@@ -1,25 +1,132 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive Icon Foreground — Lịch Số
+  Safe zone: 72dp centered in 108dp canvas (18dp padding each side)
+  Design: Xoắn ốc phong thuỷ trên nền ngọc bích, viền vàng đồng
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Calendar icon -->
+
+    <!-- Outer ring: gradient vàng đồng -->
     <path
-        android:fillColor="#E8C84A"
-        android:pathData="M34,36h40c2.2,0 4,1.8 4,4v32c0,2.2 -1.8,4 -4,4H34c-2.2,0 -4,-1.8 -4,-4V40C30,37.8 31.8,36 34,36z"/>
+        android:fillColor="#C4783A"
+        android:pathData="M54,10 A44,44 0 1 1 53.999,10 Z"/>
+    <!-- Ring highlight top-left -->
     <path
-        android:fillColor="#0D1117"
-        android:pathData="M30,46h48v26c0,2.2 -1.8,4 -4,4H34c-2.2,0 -4,-1.8 -4,-4V46z"/>
-    <!-- Moon symbol -->
+        android:fillColor="#E8B86D"
+        android:pathData="M54,10 A44,44 0 0 1 87,33 A42,42 0 0 0 54,12 Z"/>
+
+    <!-- Inner disc: màu ngọc bích -->
     <path
-        android:fillColor="#4ABEAA"
-        android:pathData="M54,58a8,8 0,1 0,0 16a8,8 0,0 1,0 -16"/>
-    <!-- Day number -->
+        android:fillColor="#3D7B7A"
+        android:pathData="M54,15 A39,39 0 1 1 53.999,15 Z"/>
+    <!-- Disc highlight -->
     <path
-        android:fillColor="#E8C84A"
-        android:pathData="M44,56h4v12h-4z"/>
+        android:fillColor="#6BAAA8"
+        android:pathData="M54,15 A39,39 0 0 1 79,28 A37,37 0 0 0 54,17 Z"/>
+
+    <!-- Vòng tròn bát quái ngoài (arc segments) -->
+    <!-- Arc top-right -->
     <path
-        android:fillColor="#E8C84A"
-        android:pathData="M40,64h12v4h-12z"/>
+        android:strokeColor="#D4956A"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M54,19 A35,35 0 0 1 82,37"/>
+    <!-- Arc right-bottom -->
+    <path
+        android:strokeColor="#C4783A"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M82,37 A35,35 0 0 1 76,71"/>
+    <!-- Arc top-left -->
+    <path
+        android:strokeColor="#D08040"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M54,19 A35,35 0 0 0 26,37"/>
+    <!-- Arc left-bottom -->
+    <path
+        android:strokeColor="#B8602A"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M26,37 A35,35 0 0 0 32,71"/>
+    <!-- Arc bottom -->
+    <path
+        android:strokeColor="#C87030"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M32,71 A35,35 0 0 0 76,71"/>
+
+    <!-- Node dots on arcs -->
+    <path android:fillColor="#2A5A5C"
+        android:pathData="M54,19 m-4,0 a4,4 0 1 0 8,0 a4,4 0 1 0 -8,0"/>
+    <path android:fillColor="#2A5A5C"
+        android:pathData="M82,37 m-3.5,0 a3.5,3.5 0 1 0 7,0 a3.5,3.5 0 1 0 -7,0"/>
+    <path android:fillColor="#2A5A5C"
+        android:pathData="M26,37 m-3.5,0 a3.5,3.5 0 1 0 7,0 a3.5,3.5 0 1 0 -7,0"/>
+
+    <!-- Centre glow circle -->
+    <path
+        android:fillColor="#2A5A5C"
+        android:alpha="0.7"
+        android:pathData="M54,54 m-22,0 a22,22 0 1 0 44,0 a22,22 0 1 0 -44,0"/>
+
+    <!-- Spiral xoắn ốc chính (path 1 — outer) -->
+    <path
+        android:strokeColor="#E8A84A"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M54,54 C54,43 63,38 68,44 C73,50 70,62 62,65 C54,68 43,63 41,55 C39,47 45,39 53,39 C61,39 67,44 67,52 C67,59 62,63 54,63 C47,63 43,59 43,54 C43,49 47,45 54,45 C57.5,45 60,48 60,51"/>
+    <!-- Spiral inner accent -->
+    <path
+        android:strokeColor="#FFF0C0"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:alpha="0.8"
+        android:fillColor="#00000000"
+        android:pathData="M54,54 C52,52 50,49 52,47 C53.5,45.5 56.5,46 57.5,48 C58.5,50 57,53 54,54"/>
+
+    <!-- Centre dot -->
+    <path
+        android:fillColor="#E8B050"
+        android:pathData="M54,54 m-2.5,0 a2.5,2.5 0 1 0 5,0 a2.5,2.5 0 1 0 -5,0"/>
+    <path
+        android:fillColor="#FFF8E0"
+        android:pathData="M54,54 m-1.2,0 a1.2,1.2 0 1 0 2.4,0 a1.2,1.2 0 1 0 -2.4,0"/>
+
+    <!-- Sparkle star top-right -->
+    <path
+        android:fillColor="#FADF70"
+        android:pathData="M70.5,27 L71.5,24.5 L72.5,27 L75,28 L72.5,29 L71.5,31.5 L70.5,29 L68,28 Z"/>
+
+    <!-- Moon crescent (phong thuỷ symbol) -->
+    <path
+        android:fillColor="#F0D070"
+        android:alpha="0.9"
+        android:pathData="M63,34 C60.5,31.5 57,31.5 55.5,34 C58.5,34 61,36.5 61,40 C63.5,38 65.5,36 63,34 Z"/>
+
+    <!-- Small accent dots -->
+    <path android:fillColor="#E8D070" android:alpha="0.8"
+        android:pathData="M66,40 m-1.2,0 a1.2,1.2 0 1 0 2.4,0 a1.2,1.2 0 1 0 -2.4,0"/>
+    <path android:fillColor="#D4B060" android:alpha="0.65"
+        android:pathData="M70,44 m-1,0 a1,1 0 1 0 2,0 a1,1 0 1 0 -2,0"/>
+
+    <!-- Outer ring stroke (border highlight) -->
+    <path
+        android:strokeColor="#E8C870"
+        android:strokeWidth="1"
+        android:alpha="0.3"
+        android:fillColor="#00000000"
+        android:pathData="M54,11 A43,43 0 1 1 53.999,11 Z"/>
+
 </vector>
+
