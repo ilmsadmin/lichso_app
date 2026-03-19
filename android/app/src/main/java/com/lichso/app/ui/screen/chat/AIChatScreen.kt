@@ -1,14 +1,5 @@
 package com.lichso.app.ui.screen.chat
 
-import android.Manifest
-import android.app.Activity
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -56,7 +47,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lichso.app.data.local.entity.ChatMessageEntity
@@ -71,34 +61,6 @@ fun AIChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
     val listState = rememberLazyListState()
     var showClearDialog by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
-
-    // Speech-to-text launcher
-    val speechLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val spokenText = result.data
-                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                ?.firstOrNull()
-            if (!spokenText.isNullOrBlank()) {
-                inputText = TextFieldValue(
-                    text = spokenText,
-                    selection = androidx.compose.ui.text.TextRange(spokenText.length)
-                )
-            }
-        }
-    }
-
-    // Permission launcher for RECORD_AUDIO
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            launchSpeechRecognizer(speechLauncher, context)
-        } else {
-            Toast.makeText(context, "Cần cấp quyền micro để dùng giọng nói", Toast.LENGTH_SHORT).show()
-        }
-    }
 
     // Auto-scroll to bottom
     LaunchedEffect(state.messages.size, state.isTyping) {
@@ -221,7 +183,7 @@ fun AIChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
             focusRequester.requestFocus()
         }
 
-        // Input bar with voice button
+        // Input bar
         ChatInputBar(
             textFieldValue = inputText,
             onTextChange = { inputText = it },
@@ -232,37 +194,10 @@ fun AIChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
                     focusRequester.requestFocus()
                 }
             },
-            onVoice = {
-                val hasPermission = ContextCompat.checkSelfPermission(
-                    context, Manifest.permission.RECORD_AUDIO
-                ) == PackageManager.PERMISSION_GRANTED
-                if (hasPermission) {
-                    launchSpeechRecognizer(speechLauncher, context)
-                } else {
-                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                }
-            },
             isEnabled = !state.isTyping,
             focusRequester = focusRequester
         )
     }
-}
-
-private fun launchSpeechRecognizer(
-    launcher: androidx.activity.result.ActivityResultLauncher<Intent>,
-    context: android.content.Context
-) {
-    if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-        Toast.makeText(context, "Thiết bị không hỗ trợ nhận dạng giọng nói", Toast.LENGTH_SHORT).show()
-        return
-    }
-    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-        putExtra(RecognizerIntent.EXTRA_LANGUAGE, "vi-VN")
-        putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "vi-VN")
-        putExtra(RecognizerIntent.EXTRA_PROMPT, "Nói nội dung bạn muốn hỏi...")
-    }
-    launcher.launch(intent)
 }
 
 @Composable
@@ -557,7 +492,6 @@ private fun ChatInputBar(
     textFieldValue: TextFieldValue,
     onTextChange: (TextFieldValue) -> Unit,
     onSend: () -> Unit,
-    onVoice: () -> Unit,
     isEnabled: Boolean,
     focusRequester: FocusRequester = FocusRequester()
 ) {
@@ -571,24 +505,6 @@ private fun ChatInputBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // Voice button
-        IconButton(
-            onClick = onVoice,
-            enabled = isEnabled,
-            modifier = Modifier
-                .size(40.dp)
-                .background(c.bg3, CircleShape)
-                .border(1.dp, c.border, CircleShape)
-        ) {
-            Icon(
-                Icons.Outlined.Mic,
-                contentDescription = "Giọng nói",
-                tint = if (isEnabled) c.teal2 else c.textQuaternary,
-                modifier = Modifier.size(18.dp)
-            )
-        }
-
-        // Text field
         Box(
             modifier = Modifier
                 .weight(1f)

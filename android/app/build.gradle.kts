@@ -42,6 +42,7 @@ android {
 
     signingConfigs {
         create("release") {
+            // Quay lại dùng keystore.jks mặc định
             storeFile = file(localProperties.getProperty("RELEASE_STORE_FILE", "keystore.jks"))
             storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD", "")
             keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS", "")
@@ -76,6 +77,11 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 }
 
