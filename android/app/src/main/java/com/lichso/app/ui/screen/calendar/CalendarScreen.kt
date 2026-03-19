@@ -91,6 +91,7 @@ fun CalendarScreen(viewModel: HomeViewModel = hiltViewModel()) {
         CalendarGrid(
             days = uiState.calendarDays,
             selectedDate = uiState.selectedDate,
+            showLunarBadge = uiState.showLunarBadge,
             onDayClick = { day ->
                 viewModel.selectDay(day.solarDay, day.solarMonth, day.solarYear)
                 showDayDetail = true
@@ -177,6 +178,7 @@ private fun MonthNavigation(month: Int, year: Int, onPrev: () -> Unit, onNext: (
 private fun CalendarGrid(
     days: List<CalendarDay>,
     selectedDate: java.time.LocalDate,
+    showLunarBadge: Boolean,
     onDayClick: (CalendarDay) -> Unit
 ) {
     val c = LichSoThemeColors.current
@@ -232,6 +234,7 @@ private fun CalendarGrid(
                     DayCell(
                         day = day,
                         isSelected = isSelected,
+                        showLunarBadge = showLunarBadge,
                         onClick = { if (day.isCurrentMonth) onDayClick(day) },
                         modifier = Modifier.weight(1f)
                     )
@@ -248,6 +251,7 @@ private fun CalendarGrid(
 private fun DayCell(
     day: CalendarDay,
     isSelected: Boolean,
+    showLunarBadge: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -286,10 +290,12 @@ private fun DayCell(
                 text = "${day.solarDay}",
                 style = TextStyle(fontSize = 14.sp, fontWeight = fontWeight, color = textColor, lineHeight = 14.sp)
             )
-            Text(
-                text = day.lunarDisplayText,
-                style = TextStyle(fontSize = 9.sp, color = if (day.isCurrentMonth) c.textTertiary else c.textTertiary.copy(alpha = 0.28f), lineHeight = 9.sp)
-            )
+            if (showLunarBadge) {
+                Text(
+                    text = day.lunarDisplayText,
+                    style = TextStyle(fontSize = 9.sp, color = if (day.isCurrentMonth) c.textTertiary else c.textTertiary.copy(alpha = 0.28f), lineHeight = 9.sp)
+                )
+            }
         }
 
         if (day.isToday) {

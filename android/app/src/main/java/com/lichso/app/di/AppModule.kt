@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.lichso.app.data.local.LichSoDatabase
 import com.lichso.app.data.local.dao.*
+import com.lichso.app.data.settings.AppSettingsRepository
 import com.lichso.app.domain.DayInfoProvider
 import dagger.Module
 import dagger.Provides
@@ -23,9 +24,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): LichSoDatabase =
-        Room.databaseBuilder(context, LichSoDatabase::class.java, "lichso.db")
-            .fallbackToDestructiveMigration()
-            .build()
+        LichSoDatabase.getInstance(context)
 
     @Provides
     fun provideTaskDao(db: LichSoDatabase): TaskDao = db.taskDao()
@@ -38,4 +37,9 @@ object AppModule {
 
     @Provides
     fun provideChatMessageDao(db: LichSoDatabase): ChatMessageDao = db.chatMessageDao()
+
+    @Provides
+    @Singleton
+    fun provideAppSettingsRepository(@ApplicationContext context: Context): AppSettingsRepository =
+        AppSettingsRepository(context)
 }

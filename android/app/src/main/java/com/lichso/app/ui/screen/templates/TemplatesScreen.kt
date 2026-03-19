@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -128,7 +130,7 @@ private fun TemplateDetailScreen(
                 onClick = onBack,
                 modifier = Modifier.size(34.dp)
             ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại", tint = c.textSecondary, modifier = Modifier.size(18.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = c.textSecondary, modifier = Modifier.size(18.dp))
             }
             Icon(
                 imageVector = templateIconFor(result.template.iconName),
@@ -393,5 +395,5 @@ private fun templateIconFor(iconName: String): ImageVector = when (iconName) {
     "school" -> Icons.Outlined.School
     "child_care" -> Icons.Outlined.ChildCare
     "temple_buddhist" -> Icons.Outlined.AccountBalance
-    else -> Icons.Outlined.Article
+    else -> Icons.AutoMirrored.Outlined.Article
 }

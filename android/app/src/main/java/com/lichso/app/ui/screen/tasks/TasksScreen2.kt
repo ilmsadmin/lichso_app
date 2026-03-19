@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.StickyNote2
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -570,7 +571,7 @@ private fun AddNoteDialog2(viewModel: TasksViewModel) {
                 Box(
                     modifier = Modifier.size(32.dp).background(c.gold.copy(alpha = 0.12f), CircleShape),
                     contentAlignment = Alignment.Center
-                ) { Icon(Icons.Outlined.StickyNote2, null, tint = c.gold, modifier = Modifier.size(18.dp)) }
+                ) { Icon(Icons.AutoMirrored.Outlined.StickyNote2, null, tint = c.gold, modifier = Modifier.size(18.dp)) }
                 Text("Thêm ghi chú", color = c.gold2, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         },

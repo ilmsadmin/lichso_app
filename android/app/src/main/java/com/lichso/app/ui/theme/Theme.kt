@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 private val LichSoDarkColorScheme = darkColorScheme(
     primary = DarkColors.gold,
@@ -69,10 +70,13 @@ fun LichSoTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            @Suppress("DEPRECATION")
             window.statusBarColor = colors.bg.toArgb()
+            @Suppress("DEPRECATION")
             window.navigationBarColor = colors.bg2.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
+            insetsController.isAppearanceLightStatusBars = !darkTheme
+            insetsController.isAppearanceLightNavigationBars = !darkTheme
         }
     }
 

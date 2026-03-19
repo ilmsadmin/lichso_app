@@ -31,7 +31,8 @@ class AuthRepository @Inject constructor(
     private val tag = "AuthRepository"
     private val firebaseAuth = FirebaseAuth.getInstance()
 
-    // TODO: Replace with your actual Web Client ID from Firebase Console
+    // NOTE: Google Sign-In is not exposed in the UI for this release.
+    // To enable: replace with your actual Web Client ID from Firebase Console
     // Firebase Console → Project Settings → General → Web client (auto created by Google Service)
     private val webClientId = "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com"
 

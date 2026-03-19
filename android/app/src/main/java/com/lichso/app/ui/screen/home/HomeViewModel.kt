@@ -1,12 +1,16 @@
 package com.lichso.app.ui.screen.home
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.lichso.app.data.settings.AppSettingsRepository
 import com.lichso.app.domain.DayInfoProvider
 import com.lichso.app.domain.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -16,12 +20,14 @@ data class HomeUiState(
     val selectedDate: LocalDate = LocalDate.now(),
     val dayInfo: DayInfo? = null,
     val calendarDays: List<CalendarDay> = emptyList(),
-    val upcomingEvents: List<UpcomingEvent> = emptyList()
+    val upcomingEvents: List<UpcomingEvent> = emptyList(),
+    val showLunarBadge: Boolean = true
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val dayInfoProvider: DayInfoProvider
+    private val dayInfoProvider: DayInfoProvider,
+    private val appSettings: AppSettingsRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -29,6 +35,10 @@ class HomeViewModel @Inject constructor(
 
     init {
         loadCurrentDate()
+        // Lắng nghe thay đổi setting lịch âm
+        appSettings.lunarBadgeEnabled
+            .onEach { enabled -> _uiState.value = _uiState.value.copy(showLunarBadge = enabled) }
+            .launchIn(viewModelScope)
     }
 
     private fun loadCurrentDate() {
@@ -86,7 +96,8 @@ class HomeViewModel @Inject constructor(
             selectedDate = selectedDate,
             dayInfo = dayInfoProvider.getDayInfo(dd, mm, yy),
             calendarDays = dayInfoProvider.getCalendarDays(year, month),
-            upcomingEvents = dayInfoProvider.getUpcomingEvents(dd, mm, yy)
+            upcomingEvents = dayInfoProvider.getUpcomingEvents(dd, mm, yy),
+            showLunarBadge = _uiState.value.showLunarBadge  // giữ nguyên setting hiện tại
         )
     }
 }

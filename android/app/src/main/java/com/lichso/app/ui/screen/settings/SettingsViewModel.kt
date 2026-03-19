@@ -1,8 +1,6 @@
 package com.lichso.app.ui.screen.settings
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
@@ -10,6 +8,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lichso.app.data.auth.AuthRepository
 import com.lichso.app.data.auth.UserInfo
+import com.lichso.app.data.local.LichSoDatabase
+import com.lichso.app.notification.GioDaiCatWorker
+import com.lichso.app.notification.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -117,9 +118,41 @@ class SettingsViewModel @Inject constructor(
 
     // ═══ Settings toggles ═══
 
-    fun setNotifyEnabled(value: Boolean) = savePref(SettingsKeys.NOTIFY_ENABLED, value)
-    fun setLunarBadge(value: Boolean) = savePref(SettingsKeys.LUNAR_BADGE, value)
-    fun setGioDaiCat(value: Boolean) = savePref(SettingsKeys.GIO_DAI_CAT, value)
+    fun setNotifyEnabled(value: Boolean) {
+        savePref(SettingsKeys.NOTIFY_ENABLED, value)
+        viewModelScope.launch {
+            val db = LichSoDatabase.getInstance(context)
+            val scheduler = ReminderScheduler(context)
+            if (value) {
+                // Reschedule tất cả reminders đang enabled
+                db.reminderDao().getEnabledReminders().first().forEach { scheduler.schedule(it) }
+                _uiState.update { it.copy(toastMessage = "Đã bật thông báo nhắc nhở") }
+            } else {
+                // Huỷ tất cả alarms
+                db.reminderDao().getAllReminders().first().forEach { scheduler.cancel(it.id) }
+                _uiState.update { it.copy(toastMessage = "Đã tắt thông báo nhắc nhở") }
+            }
+        }
+    }
+
+    fun setLunarBadge(value: Boolean) {
+        savePref(SettingsKeys.LUNAR_BADGE, value)
+        _uiState.update {
+            it.copy(toastMessage = if (value) "Đã bật hiển thị lịch âm" else "Đã tắt hiển thị lịch âm")
+        }
+    }
+
+    fun setGioDaiCat(value: Boolean) {
+        savePref(SettingsKeys.GIO_DAI_CAT, value)
+        if (value) {
+            GioDaiCatWorker.schedule(context)
+            _uiState.update { it.copy(toastMessage = "Sẽ nhận thông báo giờ hoàng đạo lúc 6h sáng") }
+        } else {
+            GioDaiCatWorker.cancel(context)
+            _uiState.update { it.copy(toastMessage = "Đã tắt thông báo giờ hoàng đạo") }
+        }
+    }
+
     fun setDarkMode(value: Boolean) = savePref(SettingsKeys.DARK_MODE, value)
 
     fun setLanguage(value: String) {
@@ -188,39 +221,19 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun rateApp() {
-        try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}"))
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
-        } catch (_: Exception) {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}"))
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
-        }
+        _uiState.update { it.copy(toastMessage = "Tính năng đánh giá sẽ có khi ứng dụng lên Store") }
     }
 
     fun shareApp() {
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, "Lịch Số — Lịch Vạn Niên")
-            putExtra(Intent.EXTRA_TEXT, "Xem lịch âm dương, ngày tốt xấu, giờ hoàng đạo với Lịch Số:\nhttps://play.google.com/store/apps/details?id=${context.packageName}")
-        }
-        val chooser = Intent.createChooser(intent, "Chia sẻ ứng dụng").apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(chooser)
+        _uiState.update { it.copy(toastMessage = "Tính năng chia sẻ sẽ có khi ứng dụng lên Store") }
     }
 
     fun openPrivacyPolicy() {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://lichso.app/privacy"))
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        try { context.startActivity(intent) } catch (_: Exception) {}
+        _uiState.update { it.copy(toastMessage = "Chính sách bảo mật sẽ được cập nhật sớm") }
     }
 
     fun openHelp() {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://lichso.app/help"))
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        try { context.startActivity(intent) } catch (_: Exception) {}
+        _uiState.update { it.copy(toastMessage = "Hướng dẫn sử dụng sẽ được cập nhật sớm") }
     }
 
     fun consumeToast() {

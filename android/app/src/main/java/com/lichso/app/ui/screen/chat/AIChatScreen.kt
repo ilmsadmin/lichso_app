@@ -18,6 +18,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.outlined.EventNote
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.NoteAdd
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -446,7 +450,7 @@ private fun QuickTopicRow(onTopicClick: (String) -> Unit) {
         QuickTopic(Icons.Outlined.WbSunny, "Tiết khí"),
         QuickTopic(Icons.Outlined.Home, "Động thổ xây nhà"),
         QuickTopic(Icons.Outlined.Assessment, "Thống kê"),
-        QuickTopic(Icons.Outlined.EventNote, "Kế hoạch ngày"),
+        QuickTopic(Icons.AutoMirrored.Outlined.EventNote, "Kế hoạch ngày"),
         QuickTopic(Icons.Outlined.Info, "Bạn giúp gì được?"),
     )
 
@@ -489,13 +493,13 @@ private fun QuickActionRow(onActionClick: (String) -> Unit) {
     data class QuickAction(val icon: ImageVector, val label: String, val prompt: String)
 
     val actions = listOf(
-        QuickAction(Icons.Outlined.EventNote, "Kế hoạch ngày", "Tạo checklist kế hoạch ngày hôm nay gồm: kiểm tra email, họp team, hoàn thành task quan trọng, review, cập nhật tiến độ"),
-        QuickAction(Icons.Outlined.NoteAdd, "Ghi chú nhanh", "Ghi chú: "),
+        QuickAction(Icons.AutoMirrored.Outlined.EventNote, "Kế hoạch ngày", "Tạo checklist kế hoạch ngày hôm nay gồm: kiểm tra email, họp team, hoàn thành task quan trọng, review, cập nhật tiến độ"),
+        QuickAction(Icons.AutoMirrored.Outlined.NoteAdd, "Ghi chú nhanh", "Ghi chú: "),
         QuickAction(Icons.Outlined.Alarm, "Nhắc uống thuốc", "Nhắc tôi uống thuốc lúc 8h sáng hàng ngày"),
         QuickAction(Icons.Outlined.ShoppingCart, "Đi chợ", "Tạo checklist đi chợ gồm: Rau xanh, Thịt/cá, Trái cây, Gia vị, Đồ uống"),
         QuickAction(Icons.Outlined.FitnessCenter, "Lịch tập gym", "Tạo kế hoạch tập gym tuần này: Thứ 2 - Chest, Thứ 3 - Back, Thứ 4 - Nghỉ, Thứ 5 - Legs, Thứ 6 - Cardio"),
         QuickAction(Icons.Outlined.LightMode, "Routine sáng", "Tạo nhắc nhở buổi sáng hàng ngày: 6:00 Thức dậy, 6:15 Tập thể dục, 7:00 Ăn sáng, 7:30 Đọc sách"),
-        QuickAction(Icons.Outlined.MenuBook, "Học tập", "Tạo kế hoạch học tập gồm: Đọc tài liệu, Làm bài tập, Ôn bài cũ, Ghi chú tóm tắt, Luyện đề"),
+        QuickAction(Icons.AutoMirrored.Outlined.MenuBook, "Học tập", "Tạo kế hoạch học tập gồm: Đọc tài liệu, Làm bài tập, Ôn bài cũ, Ghi chú tóm tắt, Luyện đề"),
         QuickAction(Icons.Outlined.Flight, "Du lịch", "Tạo checklist chuẩn bị du lịch: Đặt vé, Đặt khách sạn, Chuẩn bị hành lý, Đổi tiền, Mua bảo hiểm"),
         QuickAction(Icons.Outlined.Cake, "Sinh nhật", "Tạo checklist sinh nhật: Đặt bánh, Mua đồ trang trí, Gửi lời mời, Chuẩn bị quà, Đặt nhà hàng"),
         QuickAction(Icons.Outlined.AccountBalance, "Ngân sách tháng", "Ghi chú ngân sách tháng này: Thu nhập, Chi phí cố định, Ăn uống, Di chuyển, Giải trí, Tiết kiệm"),
@@ -630,7 +634,7 @@ private fun ChatInputBar(
                 )
         ) {
             Icon(
-                Icons.Filled.Send,
+                Icons.AutoMirrored.Filled.Send,
                 contentDescription = "Gửi",
                 tint = if (text.isNotBlank() && isEnabled) {
                     if (c.isDark) Color(0xFF1A1500) else Color.White
