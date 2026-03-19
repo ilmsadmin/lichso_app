@@ -96,7 +96,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         ) {
             Text("Lịch Số — Lịch Vạn Niên", style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = c.textTertiary))
             Spacer(modifier = Modifier.height(3.dp))
-            Text("Phiên bản 2.0.1 · Build 2025.03", style = TextStyle(fontSize = 11.sp, color = c.textQuaternary))
+            Text("Phiên bản 1.0 · Build 2026.03", style = TextStyle(fontSize = 11.sp, color = c.textQuaternary))
             Spacer(modifier = Modifier.height(3.dp))
             Text("Made with ♥ by Lịch Số Team", style = TextStyle(fontSize = 10.sp, color = c.textQuaternary))
         }

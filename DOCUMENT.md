@@ -3,7 +3,7 @@
 > **Phiên bản tài liệu:** 1.0  
 > **Ngày tạo:** 18/03/2026  
 > **Nền tảng:** Android (Native)  
-> **Phiên bản ứng dụng mục tiêu:** v2.0.1  
+> **Phiên bản ứng dụng mục tiêu:** v1.0  
 > **Trạng thái:** Thiết kế UI hoàn tất — Chuẩn bị phát triển
 
 ---
@@ -605,7 +605,7 @@ Mỗi template bao gồm:
 
 | Setting | Loại |
 |---|---|
-| Phiên bản | Info — v2.0.1 |
+| Phiên bản | Info — v1.0 |
 | Đánh giá ứng dụng | Navigation → Google Play |
 | Đăng xuất | Action (đỏ) |
 
