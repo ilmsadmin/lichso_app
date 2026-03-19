@@ -1,8 +1,10 @@
 package com.lichso.app.ui
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,8 +14,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathData
 import androidx.compose.ui.graphics.vector.VectorPainter
@@ -27,6 +35,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
+import kotlin.math.sin
 import com.lichso.app.ui.screen.calendar.CalendarScreen
 import com.lichso.app.ui.screen.chat.AIChatScreen
 import com.lichso.app.ui.screen.home.HomeScreen
@@ -69,7 +78,7 @@ fun LichSoMainScreen(modifier: Modifier = Modifier) {
 
         // FAB Robot — draggable AI button
         val density = LocalDensity.current
-        val fabSize = with(density) { 52.dp.toPx() }
+        val fabSize = with(density) { 56.dp.toPx() }
         val bottomNavHeight = with(density) { 72.dp.toPx() }
         val fabPaddingEnd = with(density) { 18.dp.toPx() }
         val fabPaddingBottom = with(density) { 90.dp.toPx() }
@@ -86,11 +95,11 @@ fun LichSoMainScreen(modifier: Modifier = Modifier) {
         }
 
         if (fabOffsetX >= 0f) {
-            Box(
+            AnimatedRobotFab(
                 modifier = Modifier
                     .statusBarsPadding()
                     .offset { IntOffset(fabOffsetX.roundToInt(), fabOffsetY.roundToInt()) }
-                    .size(52.dp)
+                    .size(56.dp)
                     .pointerInput(Unit) {
                         detectDragGestures { change, dragAmount ->
                             change.consume()
@@ -105,16 +114,12 @@ fun LichSoMainScreen(modifier: Modifier = Modifier) {
                         Brush.linearGradient(listOf(c.teal, Color(0xFF237A6A))),
                         CircleShape
                     )
-                    .clickable { currentRoute = "chat" },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = rememberRobotIcon(Color.White),
-                    contentDescription = "AI Chat",
-                    tint = Color.White,
-                    modifier = Modifier.size(26.dp)
-                )
-            }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { currentRoute = "chat" }
+                    .padding(12.dp) // padding giữa nền tròn 56dp và robot 32dp bên trong
+            )
         }
 
         // Bottom Navigation
@@ -415,6 +420,236 @@ private fun rememberTaskIcon(tint: Color): VectorPainter {
         }
     }
     return rememberVectorPainter(image = icon)
+}
+
+/** Animated Robot FAB — blinking eyes, wobbling head, bouncing antenna */
+@Composable
+private fun AnimatedRobotFab(modifier: Modifier = Modifier) {
+    // --- Infinite transition for all animations ---
+    val infiniteTransition = rememberInfiniteTransition(label = "robot")
+
+    // Head tilt: gentle rotation -6° to +6°
+    val headTilt by infiniteTransition.animateFloat(
+        initialValue = -6f,
+        targetValue = 6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "headTilt"
+    )
+
+    // Antenna bounce: slight Y offset
+    val antennaBounce by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -1.5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "antennaBounce"
+    )
+
+    // Antenna ball glow pulse
+    val antennaGlow by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "antennaGlow"
+    )
+
+    // Eye blink: cycle 0→1→0, mostly open (0), blink at peak (1)
+    val blinkPhase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 3500
+                0f at 0                      // eyes open
+                0f at 2800                   // still open
+                1f at 2950 using LinearEasing // snap shut
+                0f at 3100 using LinearEasing // snap open
+                0f at 3500                   // stay open
+            },
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "blink"
+    )
+
+    // Whole FAB gentle breathing scale
+    val breathe by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.04f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "breathe"
+    )
+
+    // Floating Y offset
+    val floatY by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "floatY"
+    )
+
+    Canvas(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = breathe
+                scaleY = breathe
+                translationY = floatY
+            }
+    ) {
+        val w = size.width
+        val h = size.height
+        val cx = w / 2f
+        val cy = h / 2f
+
+        // Scale all drawing into the 24x24 viewport mapped to canvas
+        val scale = minOf(w, h) / 24f
+        val strokeW = 1.6f * scale
+        val color = Color.White
+
+        // Rotate head
+        rotate(degrees = headTilt, pivot = Offset(cx, cy)) {
+            // --- Body (rounded rect) ---
+            val bodyLeft = 5f * scale
+            val bodyTop = 11f * scale
+            val bodyW = 14f * scale
+            val bodyH = 10f * scale
+            val bodyCorner = 2f * scale
+            drawRoundRect(
+                color = color,
+                topLeft = Offset(bodyLeft, bodyTop),
+                size = Size(bodyW, bodyH),
+                cornerRadius = CornerRadius(bodyCorner),
+                style = Stroke(width = strokeW, cap = StrokeCap.Round, join = StrokeJoin.Round)
+            )
+
+            // --- Antenna stick ---
+            translate(top = antennaBounce * scale) {
+                drawLine(
+                    color = color,
+                    start = Offset(12f * scale, 11f * scale),
+                    end = Offset(12f * scale, 7f * scale),
+                    strokeWidth = strokeW,
+                    cap = StrokeCap.Round
+                )
+                // Antenna ball with glow
+                val ballRadius = 2f * scale
+                // Glow circle
+                drawCircle(
+                    color = Color(0xFF80FFE0).copy(alpha = antennaGlow * 0.4f),
+                    radius = ballRadius * 1.7f,
+                    center = Offset(12f * scale, 5f * scale)
+                )
+                // Main ball
+                drawCircle(
+                    color = color,
+                    radius = ballRadius,
+                    center = Offset(12f * scale, 5f * scale),
+                    style = Stroke(width = strokeW)
+                )
+                // Inner bright dot
+                drawCircle(
+                    color = color.copy(alpha = antennaGlow),
+                    radius = ballRadius * 0.4f,
+                    center = Offset(12f * scale, 5f * scale)
+                )
+            }
+
+            // --- Eyes (with blink) ---
+            val eyeHeight = 2f * scale * (1f - blinkPhase) // shrink to 0 when blinking
+            val eyeWidth = 2.5f * scale
+            val eyeCorner = 0.5f * scale
+            val eyeY = 14f * scale - eyeHeight / 2f
+
+            // Left eye
+            if (eyeHeight > 0.1f) {
+                drawRoundRect(
+                    color = color,
+                    topLeft = Offset(7f * scale, eyeY),
+                    size = Size(eyeWidth, eyeHeight),
+                    cornerRadius = CornerRadius(eyeCorner)
+                )
+            } else {
+                // Closed eye — thin line
+                drawLine(
+                    color = color,
+                    start = Offset(7f * scale, 14f * scale),
+                    end = Offset(9.5f * scale, 14f * scale),
+                    strokeWidth = strokeW * 0.8f,
+                    cap = StrokeCap.Round
+                )
+            }
+
+            // Right eye
+            if (eyeHeight > 0.1f) {
+                drawRoundRect(
+                    color = color,
+                    topLeft = Offset(14.5f * scale, eyeY),
+                    size = Size(eyeWidth, eyeHeight),
+                    cornerRadius = CornerRadius(eyeCorner)
+                )
+            } else {
+                drawLine(
+                    color = color,
+                    start = Offset(14.5f * scale, 14f * scale),
+                    end = Offset(17f * scale, 14f * scale),
+                    strokeWidth = strokeW * 0.8f,
+                    cap = StrokeCap.Round
+                )
+            }
+
+            // --- Smile (small arc) ---
+            drawArc(
+                color = color,
+                startAngle = 20f,
+                sweepAngle = 140f,
+                useCenter = false,
+                topLeft = Offset(9.5f * scale, 16f * scale),
+                size = Size(5f * scale, 2.5f * scale),
+                style = Stroke(width = strokeW * 0.7f, cap = StrokeCap.Round)
+            )
+
+            // --- Ears / side antennas ---
+            // Left ear
+            drawLine(
+                color = color.copy(alpha = 0.7f),
+                start = Offset(5f * scale, 14f * scale),
+                end = Offset(3f * scale, 13f * scale),
+                strokeWidth = strokeW * 0.8f,
+                cap = StrokeCap.Round
+            )
+            drawCircle(
+                color = color.copy(alpha = 0.7f),
+                radius = 0.7f * scale,
+                center = Offset(2.5f * scale, 12.5f * scale)
+            )
+            // Right ear
+            drawLine(
+                color = color.copy(alpha = 0.7f),
+                start = Offset(19f * scale, 14f * scale),
+                end = Offset(21f * scale, 13f * scale),
+                strokeWidth = strokeW * 0.8f,
+                cap = StrokeCap.Round
+            )
+            drawCircle(
+                color = color.copy(alpha = 0.7f),
+                radius = 0.7f * scale,
+                center = Offset(21.5f * scale, 12.5f * scale)
+            )
+        }
+    }
 }
 
 /** Robot icon — body, antenna, eyes */
