@@ -209,17 +209,12 @@ fun AIChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
             viewModel.sendMessage(topic)
         }
         QuickActionRow { prompt ->
-            // Prompts ending with space → fill input box for user to complete, cursor at end
-            if (prompt.endsWith(" ")) {
-                inputText = TextFieldValue(
-                    text = prompt,
-                    selection = androidx.compose.ui.text.TextRange(prompt.length)
-                )
-                focusRequester.requestFocus()
-            } else {
-                inputText = TextFieldValue("")
-                viewModel.sendMessage(prompt)
-            }
+            // Always fill input box for user to review/edit before sending
+            inputText = TextFieldValue(
+                text = prompt,
+                selection = androidx.compose.ui.text.TextRange(prompt.length)
+            )
+            focusRequester.requestFocus()
         }
 
         // Input bar with voice button
@@ -497,16 +492,16 @@ private fun QuickActionRow(onActionClick: (String) -> Unit) {
         QuickAction(Icons.Outlined.EventNote, "Kế hoạch ngày", "Tạo checklist kế hoạch ngày hôm nay gồm: kiểm tra email, họp team, hoàn thành task quan trọng, review, cập nhật tiến độ"),
         QuickAction(Icons.Outlined.NoteAdd, "Ghi chú nhanh", "Ghi chú: "),
         QuickAction(Icons.Outlined.Alarm, "Nhắc uống thuốc", "Nhắc tôi uống thuốc lúc 8h sáng hàng ngày"),
-        QuickAction(Icons.Outlined.ShoppingCart, "Đi chợ", "Tạo checklist đi chợ: Rau xanh, Thịt/cá, Trái cây, Gia vị, Đồ uống"),
-        QuickAction(Icons.Outlined.FitnessCenter, "Lịch tập gym", "Tạo kế hoạch tập gym tuần: Thứ 2 - Chest, Thứ 3 - Back, Thứ 4 - Nghỉ, Thứ 5 - Legs, Thứ 6 - Cardio"),
-        QuickAction(Icons.Outlined.LightMode, "Routine sáng", "Tạo nhắc nhở buổi sáng hàng ngày: Thức dậy lúc 6:00, Tập thể dục lúc 6:15, Ăn sáng lúc 7:00, Đọc sách lúc 7:30"),
-        QuickAction(Icons.Outlined.MenuBook, "Học tập", "Tạo kế hoạch học tập: Đọc tài liệu, Làm bài tập, Ôn bài cũ, Ghi chú tóm tắt, Luyện đề"),
+        QuickAction(Icons.Outlined.ShoppingCart, "Đi chợ", "Tạo checklist đi chợ gồm: Rau xanh, Thịt/cá, Trái cây, Gia vị, Đồ uống"),
+        QuickAction(Icons.Outlined.FitnessCenter, "Lịch tập gym", "Tạo kế hoạch tập gym tuần này: Thứ 2 - Chest, Thứ 3 - Back, Thứ 4 - Nghỉ, Thứ 5 - Legs, Thứ 6 - Cardio"),
+        QuickAction(Icons.Outlined.LightMode, "Routine sáng", "Tạo nhắc nhở buổi sáng hàng ngày: 6:00 Thức dậy, 6:15 Tập thể dục, 7:00 Ăn sáng, 7:30 Đọc sách"),
+        QuickAction(Icons.Outlined.MenuBook, "Học tập", "Tạo kế hoạch học tập gồm: Đọc tài liệu, Làm bài tập, Ôn bài cũ, Ghi chú tóm tắt, Luyện đề"),
         QuickAction(Icons.Outlined.Flight, "Du lịch", "Tạo checklist chuẩn bị du lịch: Đặt vé, Đặt khách sạn, Chuẩn bị hành lý, Đổi tiền, Mua bảo hiểm"),
         QuickAction(Icons.Outlined.Cake, "Sinh nhật", "Tạo checklist sinh nhật: Đặt bánh, Mua đồ trang trí, Gửi lời mời, Chuẩn bị quà, Đặt nhà hàng"),
-        QuickAction(Icons.Outlined.AccountBalance, "Ngân sách tháng", "Ghi chú ngân sách tháng: Thu nhập, Chi phí cố định, Ăn uống, Di chuyển, Giải trí, Tiết kiệm"),
-        QuickAction(Icons.Outlined.Assessment, "Thống kê", "Thống kê tổng hợp tất cả"),
-        QuickAction(Icons.Outlined.CheckCircle, "Xong task", "Xong task "),
-        QuickAction(Icons.Outlined.RemoveCircle, "Xoá task", "Xoá task "),
+        QuickAction(Icons.Outlined.AccountBalance, "Ngân sách tháng", "Ghi chú ngân sách tháng này: Thu nhập, Chi phí cố định, Ăn uống, Di chuyển, Giải trí, Tiết kiệm"),
+        QuickAction(Icons.Outlined.Assessment, "Thống kê", "Thống kê tổng hợp tất cả task, note, nhắc nhở"),
+        QuickAction(Icons.Outlined.CheckCircle, "Xong task", "Đánh dấu xong task: "),
+        QuickAction(Icons.Outlined.RemoveCircle, "Xoá task", "Xoá task: "),
     )
 
     Row(
