@@ -25,8 +25,8 @@ android {
         applicationId = "com.lichso.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -42,7 +42,7 @@ android {
 
     signingConfigs {
         create("release") {
-            // Quay lại dùng keystore.jks mặc định
+            // Sử dụng keystore.jks làm mặc định nếu không có cấu hình trong local.properties
             storeFile = file(localProperties.getProperty("RELEASE_STORE_FILE", "keystore.jks"))
             storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD", "")
             keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS", "")
@@ -59,6 +59,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
         }
     }
     compileOptions {
