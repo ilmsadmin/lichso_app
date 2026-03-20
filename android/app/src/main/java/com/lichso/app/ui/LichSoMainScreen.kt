@@ -4,7 +4,11 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .width(28.dp)
+                                .height(3.dp)
+                                .background(c.gold2, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))ose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,7 +63,7 @@ fun LichSoMainScreen(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .then(if (currentRoute == "chat") Modifier else Modifier.padding(bottom = 72.dp))
+                .then(if (currentRoute == "chat") Modifier else Modifier.padding(bottom = 80.dp))
                 .onGloballyPositioned { coords ->
                     containerWidth = coords.size.width
                     containerHeight = coords.size.height
@@ -79,7 +83,7 @@ fun LichSoMainScreen(modifier: Modifier = Modifier) {
         // FAB Robot — draggable AI button
         val density = LocalDensity.current
         val fabSize = with(density) { 56.dp.toPx() }
-        val bottomNavHeight = with(density) { 72.dp.toPx() }
+        val bottomNavHeight = with(density) { 80.dp.toPx() }
         val fabPaddingEnd = with(density) { 18.dp.toPx() }
         val fabPaddingBottom = with(density) { 90.dp.toPx() }
         // Initial position: bottom-end
@@ -151,7 +155,7 @@ private fun BottomNavBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(72.dp)
+            .height(80.dp)
             .background(c.bg2)
             .drawBehind {
                 drawLine(
@@ -199,15 +203,15 @@ private fun BottomNavBar(
                             painter = iconPainter,
                             contentDescription = item.title,
                             tint = tint,
-                            modifier = Modifier.size(22.dp).let {
+                            modifier = Modifier.size(28.dp).let {
                                 if (isSelected) it.graphicsLayer { scaleX = 1.1f; scaleY = 1.1f } else it
                             }
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(5.dp))
                         Text(
                             item.title,
                             style = TextStyle(
-                                fontSize = 10.sp,
+                                fontSize = 11.sp,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                                 color = tint
                             )
@@ -219,7 +223,7 @@ private fun BottomNavBar(
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
-                                .width(22.dp)
+                                .width(26.dp)
                                 .height(3.dp)
                                 .background(c.gold2, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))
                         )
@@ -259,7 +263,7 @@ private fun rememberHomeIcon(tint: Color): VectorPainter {
                     lineTo(21f, 12f)
                 },
                 stroke = SolidColor(tint),
-                strokeLineWidth = 1.8f,
+                strokeLineWidth = 2.2f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
@@ -274,7 +278,7 @@ private fun rememberHomeIcon(tint: Color): VectorPainter {
                     verticalLineTo(10f)
                 },
                 stroke = SolidColor(tint),
-                strokeLineWidth = 1.6f,
+                strokeLineWidth = 2.0f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
@@ -287,7 +291,7 @@ private fun rememberHomeIcon(tint: Color): VectorPainter {
                     verticalLineTo(21f)
                 },
                 stroke = SolidColor(tint),
-                strokeLineWidth = 1.4f,
+                strokeLineWidth = 1.8f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
@@ -311,7 +315,7 @@ private fun rememberHomeIcon(tint: Color): VectorPainter {
                     verticalLineTo(6f)
                 },
                 stroke = SolidColor(tint),
-                strokeLineWidth = 1.4f,
+                strokeLineWidth = 1.8f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
@@ -340,7 +344,7 @@ private fun rememberCalendarIcon(tint: Color): VectorPainter {
                     close()
                 },
                 stroke = SolidColor(tint),
-                strokeLineWidth = 1.6f,
+                strokeLineWidth = 2.0f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
@@ -348,21 +352,21 @@ private fun rememberCalendarIcon(tint: Color): VectorPainter {
             addPath(
                 pathData = PathData { moveTo(8f, 2f); lineTo(8f, 6f) },
                 stroke = SolidColor(tint),
-                strokeLineWidth = 1.6f,
+                strokeLineWidth = 2.0f,
                 strokeLineCap = StrokeCap.Round,
             )
             // Right peg
             addPath(
                 pathData = PathData { moveTo(16f, 2f); lineTo(16f, 6f) },
                 stroke = SolidColor(tint),
-                strokeLineWidth = 1.6f,
+                strokeLineWidth = 2.0f,
                 strokeLineCap = StrokeCap.Round,
             )
             // Horizontal line
             addPath(
                 pathData = PathData { moveTo(3f, 10f); lineTo(21f, 10f) },
                 stroke = SolidColor(tint),
-                strokeLineWidth = 1.6f,
+                strokeLineWidth = 2.0f,
                 strokeLineCap = StrokeCap.Round,
             )
             // Date mark (small filled rect)
@@ -378,7 +382,7 @@ private fun rememberCalendarIcon(tint: Color): VectorPainter {
                     arcTo(0.5f, 0.5f, 0f, false, true, 8.5f, 14f)
                     close()
                 },
-                fill = SolidColor(tint.copy(alpha = 0.4f)),
+                fill = SolidColor(tint.copy(alpha = 0.55f)),
             )
         }
     }
@@ -396,7 +400,7 @@ private fun rememberTaskIcon(tint: Color): VectorPainter {
                     moveTo(9f, 11f); lineTo(12f, 14f); lineTo(22f, 4f)
                 },
                 stroke = SolidColor(tint),
-                strokeLineWidth = 1.6f,
+                strokeLineWidth = 2.2f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
@@ -413,7 +417,7 @@ private fun rememberTaskIcon(tint: Color): VectorPainter {
                     horizontalLineTo(16f)
                 },
                 stroke = SolidColor(tint),
-                strokeLineWidth = 1.6f,
+                strokeLineWidth = 2.0f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
@@ -745,7 +749,7 @@ private fun rememberDocumentIcon(tint: Color): VectorPainter {
                     close()
                 },
                 stroke = SolidColor(tint),
-                strokeLineWidth = 1.6f,
+                strokeLineWidth = 2.0f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
@@ -755,7 +759,7 @@ private fun rememberDocumentIcon(tint: Color): VectorPainter {
                     moveTo(14f, 2f); verticalLineTo(8f); horizontalLineTo(20f)
                 },
                 stroke = SolidColor(tint),
-                strokeLineWidth = 1.6f,
+                strokeLineWidth = 2.0f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             )
@@ -763,21 +767,21 @@ private fun rememberDocumentIcon(tint: Color): VectorPainter {
             addPath(
                 pathData = PathData { moveTo(16f, 13f); lineTo(8f, 13f) },
                 stroke = SolidColor(tint),
-                strokeLineWidth = 1.6f,
+                strokeLineWidth = 2.0f,
                 strokeLineCap = StrokeCap.Round,
             )
             // Line 2
             addPath(
                 pathData = PathData { moveTo(16f, 17f); lineTo(8f, 17f) },
                 stroke = SolidColor(tint),
-                strokeLineWidth = 1.6f,
+                strokeLineWidth = 2.0f,
                 strokeLineCap = StrokeCap.Round,
             )
             // Short line
             addPath(
                 pathData = PathData { moveTo(10f, 9f); lineTo(8f, 9f) },
                 stroke = SolidColor(tint),
-                strokeLineWidth = 1.6f,
+                strokeLineWidth = 2.0f,
                 strokeLineCap = StrokeCap.Round,
             )
         }

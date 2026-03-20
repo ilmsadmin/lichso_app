@@ -90,7 +90,7 @@ fun AIChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
     }
 
     val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
-    val navBarPadding = 72.dp  // height of bottom nav bar
+    val navBarPadding = 80.dp  // height of bottom nav bar
 
     Column(
         modifier = Modifier
