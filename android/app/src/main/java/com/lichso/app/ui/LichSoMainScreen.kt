@@ -71,9 +71,13 @@ fun LichSoMainScreen(modifier: Modifier = Modifier) {
 
         val density = LocalDensity.current
         val fabSize = with(density) { 56.dp.toPx() }
-        val bottomNavHeight = with(density) { 80.dp.toPx() }
+        val statusBarHeight = WindowInsets.statusBars.getTop(density).toFloat()
+        val navBarHeight = WindowInsets.navigationBars.getBottom(density).toFloat()
+        // Total bottom nav = 80dp content + system nav bar
+        val bottomNavHeight = with(density) { 80.dp.toPx() } + navBarHeight
         val fabPaddingEnd = with(density) { 18.dp.toPx() }
-        val fabPaddingBottom = with(density) { 90.dp.toPx() }
+        // FAB sits 14dp above top of bottom nav bar
+        val fabPaddingBottom = with(density) { 14.dp.toPx() }
         
         var fabOffsetX by remember { mutableFloatStateOf(-1f) }
         var fabOffsetY by remember { mutableFloatStateOf(-1f) }
@@ -81,7 +85,9 @@ fun LichSoMainScreen(modifier: Modifier = Modifier) {
         LaunchedEffect(containerWidth, containerHeight) {
             if (containerWidth > 0 && containerHeight > 0 && fabOffsetX < 0f) {
                 fabOffsetX = containerWidth - fabSize - fabPaddingEnd
-                fabOffsetY = containerHeight + bottomNavHeight - fabSize - fabPaddingBottom
+                // containerHeight = content area (below statusBar, above 80dp nav)
+                // FAB offset is relative to statusBarsPadding origin, so:
+                fabOffsetY = containerHeight + statusBarHeight - fabSize - bottomNavHeight - fabPaddingBottom
             }
         }
 
@@ -95,7 +101,7 @@ fun LichSoMainScreen(modifier: Modifier = Modifier) {
                         detectDragGestures { change, dragAmount ->
                             change.consume()
                             val maxX = containerWidth - fabSize
-                            val maxY = containerHeight + bottomNavHeight - fabSize
+                            val maxY = containerHeight - fabSize - bottomNavHeight - fabPaddingBottom
                             fabOffsetX = (fabOffsetX + dragAmount.x).coerceIn(0f, maxX)
                             fabOffsetY = (fabOffsetY + dragAmount.y).coerceIn(0f, maxY)
                         }

@@ -89,8 +89,10 @@ fun AIChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
         )
     }
 
-    val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
-    val navBarPadding = 80.dp  // height of bottom nav bar
+    val density = LocalDensity.current
+    val imeBottom = WindowInsets.ime.getBottom(density)
+    val navBarBottom = WindowInsets.navigationBars.getBottom(density)
+    val navBarPadding = with(density) { 80.dp.toPx() } + navBarBottom  // content nav bar + system nav bar
 
     Column(
         modifier = Modifier
@@ -101,8 +103,8 @@ fun AIChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
                     // Keyboard is visible: use imePadding only, no bottom nav padding
                     Modifier.imePadding()
                 } else {
-                    // Keyboard hidden: add bottom nav padding
-                    Modifier.padding(bottom = navBarPadding)
+                    // Keyboard hidden: add bottom nav padding (content bar + system nav bar)
+                    Modifier.padding(bottom = with(density) { navBarPadding.toDp() })
                 }
             )
     ) {

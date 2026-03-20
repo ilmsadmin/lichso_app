@@ -1,6 +1,9 @@
 # Add project specific ProGuard rules here.
 -keepattributes *Annotation*
 
+# ── BuildConfig (Giữ lại API Key cho bản Release) ──
+-keep class com.lichso.app.BuildConfig { *; }
+
 # ── Hilt / Dagger ──
 -keep class dagger.** { *; }
 -keep class javax.inject.** { *; }

@@ -25,8 +25,8 @@ android {
         applicationId = "com.lichso.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.5"
+        versionCode = 9
+        versionName = "1.5.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -60,7 +60,8 @@ android {
                 "proguard-rules.pro"
             )
             ndk {
-                debugSymbolLevel = "SYMBOL_TABLE"
+                // FULL: upload cả unstripped .so để Google Play có thể symbolicate crash
+                debugSymbolLevel = "FULL"
             }
         }
     }
