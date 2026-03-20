@@ -151,66 +151,68 @@ private fun BottomNavBar(
                 )
             }
     ) {
-        Box(modifier = Modifier
-            .fillMaxWidth()
-            .height(80.dp)
-        ) {
-        Row(
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 6.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxWidth()
+                .height(80.dp)
         ) {
-            items.forEach { item ->
-                val isSelected = currentRoute == item.route
-                val tint = if (isSelected) c.gold2 else c.textTertiary
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 6.dp),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items.forEach { item ->
+                    val isSelected = currentRoute == item.route
+                    val tint = if (isSelected) c.gold2 else c.textTertiary
 
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onRouteSelected(item.route) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                        modifier = Modifier.padding(vertical = 8.dp)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onRouteSelected(item.route) },
+                        contentAlignment = Alignment.Center
                     ) {
-                        val iconPainter = when (item.route) {
-                            "home" -> rememberHomeIcon(tint)
-                            "calendar" -> rememberCalendarIcon(tint)
-                            "tasks" -> rememberTaskIcon(tint)
-                            "templates" -> rememberDocumentIcon(tint)
-                            else -> rememberHomeIcon(tint)
-                        }
-                        Icon(
-                            painter = iconPainter,
-                            contentDescription = item.title,
-                            tint = tint,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Spacer(modifier = Modifier.height(5.dp))
-                        Text(
-                            item.title,
-                            style = TextStyle(
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                color = tint
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        ) {
+                            val iconPainter = when (item.route) {
+                                "home" -> rememberHomeIcon(tint)
+                                "calendar" -> rememberCalendarIcon(tint)
+                                "tasks" -> rememberTaskIcon(tint)
+                                "templates" -> rememberDocumentIcon(tint)
+                                else -> rememberHomeIcon(tint)
+                            }
+                            Icon(
+                                painter = iconPainter,
+                                contentDescription = item.title,
+                                tint = tint,
+                                modifier = Modifier.size(28.dp)
                             )
-                        )
-                    }
+                            Spacer(modifier = Modifier.height(5.dp))
+                            Text(
+                                item.title,
+                                style = TextStyle(
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                    color = tint
+                                )
+                            )
+                        }
 
-                    if (isSelected) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .width(26.dp)
-                                .height(3.dp)
-                                .background(c.gold2, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))
-                        )
+                        if (isSelected) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .width(26.dp)
+                                    .height(3.dp)
+                                    .background(c.gold2, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))
+                            )
+                        }
                     }
                 }
             }
@@ -326,28 +328,108 @@ private fun rememberDocumentIcon(tint: Color): VectorPainter {
 
 @Composable
 private fun AnimatedRobotFab(modifier: Modifier = Modifier) {
-    val infiniteTransition = rememberInfiniteTransition(label = "robot")
+    val infiniteTransition = rememberInfiniteTransition(label = "fabRobot")
+
     val headTilt by infiniteTransition.animateFloat(
         initialValue = -6f, targetValue = 6f,
         animationSpec = infiniteRepeatable(tween(2200, easing = FastOutSlowInEasing), RepeatMode.Reverse),
         label = "headTilt"
     )
-    
+    val blinkPhase by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 3500
+                0f at 0; 0f at 2800
+                1f at 2950 using LinearEasing
+                0f at 3100 using LinearEasing
+                0f at 3500
+            },
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "blink"
+    )
+    val antennaGlow by infiniteTransition.animateFloat(
+        initialValue = 0.5f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1200, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "glow"
+    )
+    val antennaBounce by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = -1.2f,
+        animationSpec = infiniteRepeatable(tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "bounce"
+    )
+
+    val color = Color.White
+
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
+        val cx = w / 2f
+        val cy = h / 2f
         val scale = minOf(w, h) / 24f
         val strokeW = 1.6f * scale
-        val color = Color.White
-        
-        rotate(degrees = headTilt, pivot = Offset(w/2, h/2)) {
+
+        rotate(degrees = headTilt, pivot = Offset(cx, cy)) {
+            // Body
             drawRoundRect(
                 color = color,
                 topLeft = Offset(5f * scale, 11f * scale),
                 size = Size(14f * scale, 10f * scale),
                 cornerRadius = CornerRadius(2f * scale),
-                style = Stroke(width = strokeW)
+                style = Stroke(width = strokeW, cap = StrokeCap.Round, join = StrokeJoin.Round)
             )
+            // Antenna stick + ball
+            translate(top = antennaBounce * scale) {
+                drawLine(
+                    color = color,
+                    start = Offset(12f * scale, 11f * scale),
+                    end = Offset(12f * scale, 7f * scale),
+                    strokeWidth = strokeW,
+                    cap = StrokeCap.Round
+                )
+                val ballR = 2f * scale
+                drawCircle(
+                    color = color.copy(alpha = antennaGlow * 0.3f),
+                    radius = ballR * 1.5f,
+                    center = Offset(12f * scale, 5f * scale)
+                )
+                drawCircle(
+                    color = color,
+                    radius = ballR,
+                    center = Offset(12f * scale, 5f * scale),
+                    style = Stroke(width = strokeW)
+                )
+                drawCircle(
+                    color = color.copy(alpha = antennaGlow),
+                    radius = ballR * 0.35f,
+                    center = Offset(12f * scale, 5f * scale)
+                )
+            }
+            // Eyes with blink
+            val eyeH = 2f * scale * (1f - blinkPhase)
+            val eyeW = 2.5f * scale
+            val eyeY = 14f * scale - eyeH / 2f
+            if (eyeH > 0.1f) {
+                drawRoundRect(color = color, topLeft = Offset(7f * scale, eyeY), size = Size(eyeW, eyeH), cornerRadius = CornerRadius(0.5f * scale))
+                drawRoundRect(color = color, topLeft = Offset(14.5f * scale, eyeY), size = Size(eyeW, eyeH), cornerRadius = CornerRadius(0.5f * scale))
+            } else {
+                drawLine(color = color, start = Offset(7f * scale, 14f * scale), end = Offset(9.5f * scale, 14f * scale), strokeWidth = strokeW * 0.8f, cap = StrokeCap.Round)
+                drawLine(color = color, start = Offset(14.5f * scale, 14f * scale), end = Offset(17f * scale, 14f * scale), strokeWidth = strokeW * 0.8f, cap = StrokeCap.Round)
+            }
+            // Smile
+            drawArc(
+                color = color,
+                startAngle = 20f, sweepAngle = 140f, useCenter = false,
+                topLeft = Offset(9.5f * scale, 16f * scale),
+                size = Size(5f * scale, 2.5f * scale),
+                style = Stroke(width = strokeW * 0.7f, cap = StrokeCap.Round)
+            )
+            // Ears
+            drawLine(color = color.copy(alpha = 0.7f), start = Offset(5f * scale, 14f * scale), end = Offset(3f * scale, 13f * scale), strokeWidth = strokeW * 0.8f, cap = StrokeCap.Round)
+            drawCircle(color = color.copy(alpha = 0.7f), radius = 0.7f * scale, center = Offset(2.5f * scale, 12.5f * scale))
+            drawLine(color = color.copy(alpha = 0.7f), start = Offset(19f * scale, 14f * scale), end = Offset(21f * scale, 13f * scale), strokeWidth = strokeW * 0.8f, cap = StrokeCap.Round)
+            drawCircle(color = color.copy(alpha = 0.7f), radius = 0.7f * scale, center = Offset(21.5f * scale, 12.5f * scale))
         }
     }
 }
