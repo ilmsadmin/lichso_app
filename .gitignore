@@ -4,6 +4,9 @@ android/app/build/
 android/.gradle/
 android/local.properties
 
+# iOS secrets
+ios/LichSo/Secrets.xcconfig
+
 # Gradle
 .gradle/
 gradle-wrapper.jar

@@ -216,7 +216,7 @@ struct RobotFAB: View {
             Circle()
                 .fill(
                     LinearGradient(
-                        colors: [colors.teal, Color(hex: 0x237A6A)],
+                        colors: [colors.cyan, colors.cyan2],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -225,7 +225,7 @@ struct RobotFAB: View {
                 .padding(12)
         }
         .frame(width: 56, height: 56)
-        .shadow(color: colors.teal.opacity(0.4), radius: 8, x: 0, y: 4)
+        .shadow(color: colors.cyan.opacity(0.4), radius: 8, x: 0, y: 4)
     }
 }
 

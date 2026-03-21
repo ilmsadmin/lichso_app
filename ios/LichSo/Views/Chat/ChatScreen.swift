@@ -96,7 +96,7 @@ struct ChatHeader: View {
             ZStack {
                 Circle()
                     .fill(
-                        LinearGradient(colors: [c.gold, c.teal], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        LinearGradient(colors: [c.cyan, c.cyan2], startPoint: .topLeading, endPoint: .bottomTrailing)
                     )
                     .frame(width: 32, height: 32)
                 RobotIcon(color: .white)
@@ -106,7 +106,7 @@ struct ChatHeader: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(aiName)
                     .font(.system(size: 18, weight: .bold, design: .serif))
-                    .foregroundColor(c.gold2)
+                    .foregroundStyle(c.brandGradient)
                 Text("Trợ lý phong thuỷ thông minh")
                     .font(.system(size: 10.5))
                     .foregroundColor(c.textTertiary)
@@ -307,16 +307,18 @@ struct ChatInputBar: View {
             Button(action: onSend) {
                 Image(systemName: "paperplane.fill")
                     .font(.system(size: 16))
-                    .foregroundColor(canSend ? (c.isDark ? Color(hex: 0x1A1500) : .white) : c.textQuaternary)
+                    .foregroundColor(canSend ? .white : c.textQuaternary)
                     .frame(width: 40, height: 40)
                     .background(
                         canSend
-                        ? LinearGradient(colors: [c.gold, c.teal], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        ? LinearGradient(colors: [c.cyan, c.cyan2], startPoint: .topLeading, endPoint: .bottomTrailing)
                         : LinearGradient(colors: [c.surface, c.surface], startPoint: .top, endPoint: .bottom)
                     )
                     .clipShape(Circle())
+                    .shadow(color: canSend ? c.cyan.opacity(0.25) : Color.clear, radius: 6, x: 0, y: 2)
             }
             .disabled(!canSend)
+            .accessibilityLabel("Gửi tin nhắn")
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
@@ -342,11 +344,11 @@ struct AIMemorySheet: View {
                         // ── Status ──
                         HStack(spacing: 12) {
                             ZStack {
-                                Circle().fill(LinearGradient(colors: [c.gold, c.teal], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 48, height: 48)
+                                Circle().fill(LinearGradient(colors: [c.cyan, c.cyan2], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 48, height: 48)
                                 Image(systemName: "brain.head.profile").font(.system(size: 22)).foregroundColor(.white)
                             }
                             VStack(alignment: .leading, spacing: 3) {
-                                Text("Bộ nhớ AI").font(.system(size: 16, weight: .bold)).foregroundColor(c.gold2)
+                                Text("Bộ nhớ AI").font(.system(size: 16, weight: .bold)).foregroundStyle(c.brandGradient)
                                 Text(memory.isOnboarded ? "Đã nhớ \(memory.habits.count) thói quen" : "Chưa có dữ liệu")
                                     .font(.system(size: 12)).foregroundColor(c.textTertiary)
                             }
@@ -427,9 +429,12 @@ struct AIMemorySheet: View {
                         }) {
                             Text("Lưu thay đổi")
                                 .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(c.isDark ? Color(hex: 0x1A1500) : .white)
+                                .foregroundColor(.white)
                                 .frame(maxWidth: .infinity).padding(.vertical, 14)
-                                .background(c.gold).clipShape(RoundedRectangle(cornerRadius: 12))
+                                .background(
+                                    LinearGradient(colors: [c.cyan, c.cyan2], startPoint: .leading, endPoint: .trailing)
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
 
                         // ── Reset ──

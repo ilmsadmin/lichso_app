@@ -116,7 +116,7 @@ struct UpcomingEvent: Identifiable {
 }
 
 // MARK: - Task / Note / Reminder
-struct TaskItem: Identifiable {
+struct TaskItem: Identifiable, Codable {
     var id = UUID()
     var title: String
     var isDone: Bool
@@ -125,7 +125,7 @@ struct TaskItem: Identifiable {
     var createdAt: Date = Date()
 }
 
-struct NoteItem: Identifiable {
+struct NoteItem: Identifiable, Codable {
     var id = UUID()
     var title: String
     var content: String
@@ -133,7 +133,7 @@ struct NoteItem: Identifiable {
     var createdAt: Date = Date()
 }
 
-struct ReminderItem: Identifiable {
+struct ReminderItem: Identifiable, Codable {
     var id = UUID()
     var title: String
     var time: Date
@@ -143,9 +143,16 @@ struct ReminderItem: Identifiable {
 }
 
 // MARK: - Chat
-struct ChatMessage: Identifiable {
-    let id = UUID()
+struct ChatMessage: Identifiable, Codable {
+    let id: UUID
     let content: String
     let isUser: Bool
     let timestamp: Date
+
+    init(id: UUID = UUID(), content: String, isUser: Bool, timestamp: Date) {
+        self.id = id
+        self.content = content
+        self.isUser = isUser
+        self.timestamp = timestamp
+    }
 }

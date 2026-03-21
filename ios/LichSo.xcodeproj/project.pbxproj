@@ -21,6 +21,9 @@
 		012 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112 /* SettingsScreen.swift */; };
 		013 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 113 /* Assets.xcassets */; };
 		014 /* CustomTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115 /* CustomTemplate.swift */; };
+		015 /* SplashScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117 /* SplashScreen.swift */; };
+		018 /* DataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120 /* DataStore.swift */; };
+		019 /* APIKeyProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 121 /* APIKeyProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +43,10 @@
 		113 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		114 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		115 /* CustomTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTemplate.swift; sourceTree = "<group>"; };
+		116 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
+		117 /* SplashScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreen.swift; sourceTree = "<group>"; };
+		120 /* DataStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataStore.swift; sourceTree = "<group>"; };
+		121 /* APIKeyProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeyProvider.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,10 +78,13 @@
 			children = (
 				101,
 				114,
+				116,
 				113,
 				THEME_GROUP,
 				MODELS_GROUP,
+				DATA_GROUP,
 				DOMAIN_GROUP,
+				UTILS_GROUP,
 				VIEWMODELS_GROUP,
 				VIEWS_GROUP,
 			);
@@ -99,10 +109,22 @@
 			path = Domain;
 			sourceTree = "<group>";
 		};
+		DATA_GROUP = {
+			isa = PBXGroup;
+			children = (120,);
+			path = Data;
+			sourceTree = "<group>";
+		};
 		VIEWMODELS_GROUP = {
 			isa = PBXGroup;
 			children = (105,);
 			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		UTILS_GROUP = {
+			isa = PBXGroup;
+			children = (121,);
+			path = Utils;
 			sourceTree = "<group>";
 		};
 		VIEWS_GROUP = {
@@ -127,7 +149,7 @@
 		};
 		HOME_GROUP = {
 			isa = PBXGroup;
-			children = (107,);
+			children = (107,117,);
 			path = Home;
 			sourceTree = "<group>";
 		};
@@ -220,7 +242,7 @@
 		SOURCES = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = (001,002,003,004,005,006,007,008,009,010,011,012,014,);
+			files = (001,002,003,004,005,006,007,008,009,010,011,012,014,015,018,019,);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
@@ -228,6 +250,7 @@
 /* Begin XCBuildConfiguration section */
 		DEBUG_PROJECT = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 116 /* Secrets.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -287,6 +310,7 @@
 		};
 		RELEASE_PROJECT = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 116 /* Secrets.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -342,6 +366,7 @@
 		};
 		DEBUG_TARGET = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 116 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -351,7 +376,6 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LichSo/Info.plist;
-				INFOPLIST_KEY_NSCameraUsageDescription = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -370,6 +394,7 @@
 		};
 		RELEASE_TARGET = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 116 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -379,7 +404,6 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LichSo/Info.plist;
-				INFOPLIST_KEY_NSCameraUsageDescription = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

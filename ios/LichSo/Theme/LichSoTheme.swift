@@ -10,9 +10,14 @@ struct LichSoColors {
     let surface: Color
     let surface2: Color
     let border: Color
+    let borderSubtle: Color
     let gold: Color
     let gold2: Color
     let goldDim: Color
+    let cyan: Color
+    let cyan2: Color
+    let cyanDim: Color
+    let green: Color
     let teal: Color
     let teal2: Color
     let tealDim: Color
@@ -28,69 +33,96 @@ struct LichSoColors {
     let notePurple: Color
     let noteGreen: Color
     let noteRed: Color
+    let panelBg: Color
+    let shineTop: Color
+    let speechBg: Color
+    let inputBg: Color
     let isDark: Bool
+
+    // Gradient for brand title
+    var brandGradient: LinearGradient {
+        LinearGradient(colors: [cyan, cyan2], startPoint: .leading, endPoint: .trailing)
+    }
 }
 
-// MARK: - Dark Palette
+// MARK: - Dark Palette (matching mock: #0d0f14 base)
 extension LichSoColors {
     static let dark = LichSoColors(
-        bg:             Color(hex: 0x0F0E0C),
-        bg2:            Color(hex: 0x181610),
-        bg3:            Color(hex: 0x211F1A),
-        bg4:            Color(hex: 0x2A2720),
+        bg:             Color(hex: 0x0D0F14),
+        bg2:            Color(hex: 0x14182C).opacity(0.96),
+        bg3:            Color(hex: 0x1A1E2C).opacity(0.92),
+        bg4:            Color(hex: 0x222636),
         surface:        Color(hex: 0x2E2B23),
         surface2:       Color(hex: 0x363228),
-        border:         Color(white: 1.0, opacity: 0.11).blended(with: Color(hex: 0xFFDC64), fraction: 0.5),
-        gold:           Color(hex: 0xE8C84A),
-        gold2:          Color(hex: 0xF5D96E),
-        goldDim:        Color(hex: 0xE8C84A).opacity(0.18),
-        teal:           Color(hex: 0x4ABEAA),
-        teal2:          Color(hex: 0x62D4C0),
-        tealDim:        Color(hex: 0x4ABEAA).opacity(0.15),
+        border:         Color.white.opacity(0.075),
+        borderSubtle:   Color.white.opacity(0.042),
+        gold:           Color(hex: 0xF5C842),
+        gold2:          Color(hex: 0xF5C842),
+        goldDim:        Color(hex: 0xF5C842).opacity(0.12),
+        cyan:           Color(hex: 0x4ECDC4),
+        cyan2:          Color(hex: 0x38BDF8),
+        cyanDim:        Color(hex: 0x4ECDC4).opacity(0.12),
+        green:          Color(hex: 0x34D399),
+        teal:           Color(hex: 0x4ECDC4),
+        teal2:          Color(hex: 0x38BDF8),
+        tealDim:        Color(hex: 0x4ECDC4).opacity(0.15),
         red:            Color(hex: 0xD94F3B),
         red2:           Color(hex: 0xE8614E),
-        textPrimary:    Color(hex: 0xF0E8D0),
-        textSecondary:  Color(hex: 0xB8AA88),
-        textTertiary:   Color(hex: 0x7A6E52),
-        textQuaternary: Color(hex: 0x4A4435),
-        noteGold:       Color(hex: 0xE8C84A),
-        noteTeal:       Color(hex: 0x4ABEAA),
+        textPrimary:    Color(hex: 0xEDF0F5),
+        textSecondary:  Color(hex: 0x8590A4),
+        textTertiary:   Color(hex: 0x434D60),
+        textQuaternary: Color(hex: 0x2A3040),
+        noteGold:       Color(hex: 0xF5C842),
+        noteTeal:       Color(hex: 0x4ECDC4),
         noteOrange:     Color(hex: 0xE8A06A),
         notePurple:     Color(hex: 0xA084DC),
-        noteGreen:      Color(hex: 0x78C47A),
+        noteGreen:      Color(hex: 0x34D399),
         noteRed:        Color(hex: 0xE87070),
+        panelBg:        Color(hex: 0x141824).opacity(0.96),
+        shineTop:       Color.white.opacity(0.05),
+        speechBg:       Color(hex: 0x1A1E2C).opacity(0.95),
+        inputBg:        Color(hex: 0x141824).opacity(0.96),
         isDark: true
     )
 }
 
-// MARK: - Light Palette
+// MARK: - Light Palette (matching mock light theme)
 extension LichSoColors {
     static let light = LichSoColors(
-        bg:             Color(hex: 0xF8F6F1),
-        bg2:            Color(hex: 0xFFFFFF),
-        bg3:            Color(hex: 0xF0EDE6),
+        bg:             Color(hex: 0xE8ECF2),
+        bg2:            Color.white.opacity(0.88),
+        bg3:            Color(hex: 0xF5F7FC).opacity(0.92),
         bg4:            Color(hex: 0xE8E4DB),
         surface:        Color(hex: 0xEAE6DD),
         surface2:       Color(hex: 0xDDD8CD),
-        border:         Color(hex: 0x8B7A4A).opacity(0.10),
-        gold:           Color(hex: 0xC4A020),
-        gold2:          Color(hex: 0xAA8A10),
-        goldDim:        Color(hex: 0xC4A020).opacity(0.12),
-        teal:           Color(hex: 0x2E9A88),
-        teal2:          Color(hex: 0x1E8070),
-        tealDim:        Color(hex: 0x2E9A88).opacity(0.10),
+        border:         Color.black.opacity(0.07),
+        borderSubtle:   Color.black.opacity(0.05),
+        gold:           Color(hex: 0xC99A00),
+        gold2:          Color(hex: 0xC99A00),
+        goldDim:        Color(hex: 0xC99A00).opacity(0.10),
+        cyan:           Color(hex: 0x0AADA4),
+        cyan2:          Color(hex: 0x0A8FD4),
+        cyanDim:        Color(hex: 0x0AADA4).opacity(0.10),
+        green:          Color(hex: 0x1AAB74),
+        teal:           Color(hex: 0x0AADA4),
+        teal2:          Color(hex: 0x0A8FD4),
+        tealDim:        Color(hex: 0x0AADA4).opacity(0.10),
         red:            Color(hex: 0xC43D2B),
         red2:           Color(hex: 0xD04838),
-        textPrimary:    Color(hex: 0x1A1710),
-        textSecondary:  Color(hex: 0x5C5340),
-        textTertiary:   Color(hex: 0x8A7F68),
+        textPrimary:    Color(hex: 0x111318),
+        textSecondary:  Color(hex: 0x5A6272),
+        textTertiary:   Color(hex: 0x9AA0AE),
         textQuaternary: Color(hex: 0xB8AE98),
-        noteGold:       Color(hex: 0xC4A020),
-        noteTeal:       Color(hex: 0x2E9A88),
+        noteGold:       Color(hex: 0xC99A00),
+        noteTeal:       Color(hex: 0x0AADA4),
         noteOrange:     Color(hex: 0xCC7B3A),
         notePurple:     Color(hex: 0x7B5EB0),
-        noteGreen:      Color(hex: 0x4A9C4E),
+        noteGreen:      Color(hex: 0x1AAB74),
         noteRed:        Color(hex: 0xCC4040),
+        panelBg:        Color.white.opacity(0.88),
+        shineTop:       Color.white.opacity(0.9),
+        speechBg:       Color(hex: 0xE6EAF2).opacity(0.97),
+        inputBg:        Color.white.opacity(0.88),
         isDark: false
     )
 }

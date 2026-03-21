@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import SwiftUI
+import StoreKit
 
 // MARK: - Home ViewModel
 @MainActor
@@ -107,34 +108,25 @@ class CalendarViewModel: ObservableObject {
 // MARK: - Tasks ViewModel
 @MainActor
 class TasksViewModel: ObservableObject {
-    @Published var tasks: [TaskItem] = []
-    @Published var notes: [NoteItem] = []
-    @Published var reminders: [ReminderItem] = []
+    @Published var tasks: [TaskItem] = [] { didSet { persistTasks() } }
+    @Published var notes: [NoteItem] = [] { didSet { persistNotes() } }
+    @Published var reminders: [ReminderItem] = [] { didSet { persistReminders() } }
     @Published var selectedTab: TaskTab = .tasks
     @Published var showAddSheet: Bool = false
 
     enum TaskTab { case tasks, notes, reminders }
 
-    init() { loadSampleData() }
+    init() { loadFromDisk() }
 
-    private func loadSampleData() {
-        let cal = Calendar.current
-        tasks = [
-            TaskItem(title: "Kiểm tra ngày tốt cho khai trương", isDone: false, priority: 2,
-                     deadline: cal.date(byAdding: .day, value: 3, to: Date())),
-            TaskItem(title: "Đặt lịch cưới hỏi tháng sau", isDone: false, priority: 2,
-                     deadline: cal.date(byAdding: .day, value: 15, to: Date())),
-            TaskItem(title: "Mua đồ cúng rằm tháng Giêng", isDone: true, priority: 1, deadline: nil),
-        ]
-        notes = [
-            NoteItem(title: "Ngày xuất hành tốt", content: "Tháng 3: các ngày 3, 8, 15, 20 là ngày Hoàng Đạo, phù hợp xuất hành.", color: "gold"),
-            NoteItem(title: "Hướng tốt năm Ất Tỵ", content: "Thần Tài: Đông Bắc\nHỷ Thần: Tây Nam\nHung Thần: Tây Bắc", color: "teal"),
-        ]
-        reminders = [
-            ReminderItem(title: "Cúng rằm mùng 1", time: Date(), isActive: true, note: "Chuẩn bị hương hoa trái cây"),
-            ReminderItem(title: "Giỗ Tổ Hùng Vương 10/3 ÂL", time: Date(), isActive: true, note: ""),
-        ]
+    private func loadFromDisk() {
+        tasks = DataStore.load([TaskItem].self, forKey: DataStore.tasksKey) ?? []
+        notes = DataStore.load([NoteItem].self, forKey: DataStore.notesKey) ?? []
+        reminders = DataStore.load([ReminderItem].self, forKey: DataStore.remindersKey) ?? []
     }
+
+    private func persistTasks() { DataStore.save(tasks, forKey: DataStore.tasksKey) }
+    private func persistNotes() { DataStore.save(notes, forKey: DataStore.notesKey) }
+    private func persistReminders() { DataStore.save(reminders, forKey: DataStore.remindersKey) }
 
     // MARK: Task
     func addTask(_ title: String, priority: Int = 1, deadline: Date? = nil) {
@@ -303,7 +295,9 @@ enum OnboardingStep { case askUserName, askAIName, done }
 // MARK: - Chat ViewModel
 @MainActor
 class ChatViewModel: ObservableObject {
-    @Published var messages: [ChatMessage] = []
+    @Published var messages: [ChatMessage] = [] {
+        didSet { persistMessages() }
+    }
     @Published var isTyping: Bool = false
     @Published var inputText: String = ""
     @Published var onboardingStep: OnboardingStep = .done
@@ -312,7 +306,10 @@ class ChatViewModel: ObservableObject {
     let memory = AIMemory.shared
 
     init() {
-        if memory.isOnboarded {
+        // Load persisted messages
+        if let saved = DataStore.load([ChatMessage].self, forKey: DataStore.chatMessagesKey), !saved.isEmpty {
+            messages = saved
+        } else if memory.isOnboarded {
             appendWelcomeBack()
         } else {
             onboardingStep = .askUserName
@@ -321,6 +318,12 @@ class ChatViewModel: ObservableObject {
                 isUser: false, timestamp: Date()
             ))
         }
+    }
+
+    private func persistMessages() {
+        // Keep at most 100 messages to avoid bloat
+        let toSave = Array(messages.suffix(100))
+        DataStore.save(toSave, forKey: DataStore.chatMessagesKey)
     }
 
     private func appendWelcomeBack() {
@@ -491,6 +494,7 @@ class ChatViewModel: ObservableObject {
     }
 
     func clearChat() {
+        DataStore.delete(forKey: DataStore.chatMessagesKey)
         messages.removeAll()
         let name = memory.userName.isEmpty ? "" : " \(memory.userName)"
         messages.append(ChatMessage(
@@ -637,13 +641,11 @@ class SettingsViewModel: ObservableObject {
     }
 
     func rateApp() {
-        // Replace YOUR_APP_ID with real App Store ID when published
-        let appStoreId = "YOUR_APP_ID"
-        let urlStr = "itms-apps://itunes.apple.com/app/id\(appStoreId)?action=write-review"
-        if let url = URL(string: urlStr), UIApplication.shared.canOpenURL(url) {
-            UIApplication.shared.open(url)
+        // Use StoreKit review prompt instead of hardcoded App Store ID
+        if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+            SKStoreReviewController.requestReview(in: scene)
         } else {
-            toastMessage = "Tính năng đánh giá sẽ có khi ứng dụng lên App Store"
+            toastMessage = "Cảm ơn bạn! Hãy đánh giá Lịch Số trên App Store nhé 🌟"
         }
     }
 
@@ -678,17 +680,23 @@ extension FileManager {
 
 // MARK: - OpenRouter AI Service
 class GeminiAIService {
-    private let apiKey: String = {
-        guard let key = Bundle.main.infoDictionary?["OpenRouterAPIKey"] as? String, !key.isEmpty else {
-            assertionFailure("OpenRouterAPIKey not found in Info.plist")
-            return ""
-        }
-        return key
-    }()
+    private let apiKey: String = APIKeyProvider.openRouterKey
     private let endpoint = "https://openrouter.ai/api/v1/chat/completions"
     private let model = "google/gemini-2.0-flash-001"
 
+    /// Rate limiting: minimum interval between requests
+    private static var lastRequestTime: Date = .distantPast
+    private static let minRequestInterval: TimeInterval = 2.0
+
     func chat(userMessage: String, history: ArraySlice<ChatMessage>, memory: AIMemory? = nil) async throws -> String {
+        // Rate limiting
+        let now = Date()
+        let elapsed = now.timeIntervalSince(Self.lastRequestTime)
+        if elapsed < Self.minRequestInterval {
+            try await Task.sleep(nanoseconds: UInt64((Self.minRequestInterval - elapsed) * 1_000_000_000))
+        }
+        Self.lastRequestTime = Date()
+
         // Build context
         let today = Date()
         let cal = Calendar.current

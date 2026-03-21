@@ -168,7 +168,7 @@ fun TasksScreen2(viewModel: TasksViewModel = hiltViewModel()) {
                     TaskTab2.REMINDERS -> viewModel.showAddReminder(true)
                 }
             },
-            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = 24.dp),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = 96.dp),
             containerColor = c.gold,
             shape = CircleShape
         ) {

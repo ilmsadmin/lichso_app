@@ -79,7 +79,7 @@ struct TemplatesScreen: View {
                 HStack {
                     Text("Template")
                         .font(.system(size: 22, weight: .bold, design: .serif))
-                        .foregroundColor(c.gold2)
+                        .foregroundStyle(c.brandGradient)
                     Spacer()
                     if selectedCategory == .cuaToi {
                         Button(action: { showCreateNew = true }) {

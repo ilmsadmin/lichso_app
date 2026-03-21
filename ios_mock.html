@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lịch Số AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+
+/* ═══════════════════════════════════════════
+   DARK THEME (default)
+═══════════════════════════════════════════ */
+:root, [data-theme="dark"] {
+  --phone-bg:   #0d0f14;
+  --panel-bg:   rgba(20,24,36,0.96);
+  --panel-bg2:  rgba(26,30,44,0.92);
+  --row-hover:  rgba(255,255,255,0.032);
+  --b1:         rgba(255,255,255,0.075);
+  --b2:         rgba(255,255,255,0.042);
+  --shine-top:  rgba(255,255,255,0.05);
+  --cyan:       #4ecdc4;
+  --cyan2:      #38bdf8;
+  --gold:       #f5c842;
+  --green:      #34d399;
+  --text:       #edf0f5;
+  --text2:      #8590a4;
+  --text3:      #434d60;
+  --text-title: #edf0f5;
+  --ic-cal-bg:  rgba(78,205,196,0.12);
+  --ic-bell-bg: rgba(245,200,66,0.12);
+  --ic-note-bg: rgba(255,255,255,0.07);
+  --ic-leaf-bg: rgba(78,205,196,0.12);
+  --ic-flag-bg: rgba(245,200,66,0.12);
+  --ic-cal-c:   #4ecdc4;
+  --ic-bell-c:  #f5c842;
+  --ic-note-c:  #8590a4;
+  --ic-leaf-c:  #4ecdc4;
+  --ic-flag-c:  #f5c842;
+  --tag-lich-c: #4ecdc4; --tag-lich-b: rgba(78,205,196,0.28);
+  --tag-viec-c: #f5c842; --tag-viec-b: rgba(245,200,66,0.28);
+  --tag-note-c: #8590a4; --tag-note-b: rgba(255,255,255,0.13);
+  --chev-c:     rgba(255,255,255,0.18);
+  --add-bg:     rgba(255,255,255,0.05);
+  --speech-bg:  rgba(26,30,44,0.95);
+  --robot-glow: rgba(255,255,255,0.06);
+  --ext-card-bg:rgba(255,255,255,0.03);
+  --input-bg:   rgba(20,24,36,0.96);
+  --date-bg:    rgba(78,205,196,0.08);
+  --date-border:rgba(78,205,196,0.16);
+  --toggle-bg:  rgba(255,255,255,0.07);
+  --toggle-bdr: rgba(255,255,255,0.12);
+  /* ambient */
+  --amb1: rgba(78,205,196,0.045);
+  --amb2: rgba(56,189,248,0.05);
+}
+
+/* ═══════════════════════════════════════════
+   LIGHT THEME
+═══════════════════════════════════════════ */
+[data-theme="light"] {
+  --phone-bg:   #e8ecf2;
+  --panel-bg:   rgba(255,255,255,0.88);
+  --panel-bg2:  rgba(245,247,252,0.92);
+  --row-hover:  rgba(0,0,0,0.03);
+  --b1:         rgba(0,0,0,0.07);
+  --b2:         rgba(0,0,0,0.05);
+  --shine-top:  rgba(255,255,255,0.9);
+  --cyan:       #0aada4;
+  --cyan2:      #0a8fd4;
+  --gold:       #c99a00;
+  --green:      #1aab74;
+  --text:       #111318;
+  --text2:      #5a6272;
+  --text3:      #9aa0ae;
+  --text-title: #111318;
+  --ic-cal-bg:  rgba(10,173,164,0.10);
+  --ic-bell-bg: rgba(201,154,0,0.10);
+  --ic-note-bg: rgba(0,0,0,0.06);
+  --ic-leaf-bg: rgba(10,173,164,0.10);
+  --ic-flag-bg: rgba(201,154,0,0.10);
+  --ic-cal-c:   #0aada4;
+  --ic-bell-c:  #c99a00;
+  --ic-note-c:  #5a6272;
+  --ic-leaf-c:  #0aada4;
+  --ic-flag-c:  #c99a00;
+  --tag-lich-c: #0aada4; --tag-lich-b: rgba(10,173,164,0.25);
+  --tag-viec-c: #c99a00; --tag-viec-b: rgba(201,154,0,0.25);
+  --tag-note-c: #5a6272; --tag-note-b: rgba(0,0,0,0.10);
+  --chev-c:     rgba(0,0,0,0.18);
+  --add-bg:     rgba(0,0,0,0.04);
+  --speech-bg:  rgba(230,234,242,0.97);
+  --robot-glow: rgba(10,173,164,0.1);
+  --ext-card-bg:rgba(0,0,0,0.03);
+  --input-bg:   rgba(255,255,255,0.88);
+  --date-bg:    rgba(10,173,164,0.07);
+  --date-border:rgba(10,173,164,0.18);
+  --toggle-bg:  rgba(0,0,0,0.05);
+  --toggle-bdr: rgba(0,0,0,0.10);
+  --amb1: rgba(10,173,164,0.06);
+  --amb2: rgba(10,143,212,0.05);
+}
+
+/* ─── Base ─── */
+body {
+  font-family:'Be Vietnam Pro',-apple-system,sans-serif;
+  background:#1a1d26; color:var(--text);
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  overflow:hidden; transition:background .3s;
+}
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none;
+  background:
+    radial-gradient(ellipse 420px 280px at 18% 48%, var(--amb1) 0%,transparent 65%),
+    radial-gradient(ellipse 280px 180px at 86% 14%, var(--amb2) 0%,transparent 65%);
+  transition:background .3s;
+}
+
+/* ─── Phone shell ─── */
+.phone {
+  width:390px; height:844px;
+  background:var(--phone-bg);
+  border-radius:52px;
+  border:1.5px solid rgba(255,255,255,0.10);
+  box-shadow:0 0 0 5px rgba(0,0,0,.5),0 32px 80px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06);
+  overflow:hidden; display:flex; flex-direction:column; position:relative;
+  transition:background .3s;
+}
+[data-theme="light"] .phone {
+  border:1.5px solid rgba(0,0,0,0.10);
+  box-shadow:0 0 0 5px rgba(0,0,0,.18),0 32px 80px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.8);
+}
+
+/* Dynamic island */
+.island {
+  position:absolute; top:12px; left:50%; transform:translateX(-50%);
+  width:120px; height:34px; background:#000; border-radius:20px; z-index:100;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.island-cam { width:11px;height:11px; border-radius:50%; background:#111; border:1.5px solid #1f1f1f; }
+.island-dot  { width:8px; height:8px; border-radius:50%; background:#181818; }
+
+/* Status bar */
+.status-bar { height:50px; padding:16px 28px 0; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
+.status-time { font-size:15px; font-weight:700; letter-spacing:.2px; color:var(--text); }
+.status-icons { display:flex; gap:6px; align-items:center; }
+.s-icon { color:var(--text); opacity:.75; }
+.battery { width:23px;height:10px; border:1.5px solid currentColor; border-radius:3px; position:relative; display:flex; align-items:center; padding:1.5px; color:var(--text); opacity:.7; }
+.battery::after { content:''; position:absolute; right:-4px; top:50%; transform:translateY(-50%); width:2.5px;height:4px; background:currentColor; border-radius:0 1px 1px 0; }
+.battery-fill { width:72%;height:100%; background:var(--green); border-radius:1px; }
+
+/* Theme toggle button */
+.theme-toggle {
+  position:absolute; top:16px; right:20px; z-index:200;
+  width:30px; height:30px; border-radius:50%;
+  background:var(--toggle-bg); border:1px solid var(--toggle-bdr);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all .2s;
+  backdrop-filter:blur(8px);
+}
+.theme-toggle:hover { transform:scale(1.1); }
+.theme-toggle svg { color:var(--text2); transition:color .2s; }
+
+/* App header */
+.app-header { padding:2px 20px 12px; display:flex; justify-content:space-between; align-items:flex-end; flex-shrink:0; }
+.app-title {
+  font-family:'Nunito',sans-serif; font-size:22px; font-weight:900;
+  background:linear-gradient(130deg,var(--cyan),var(--cyan2));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:-.5px;
+}
+.app-subtitle { font-size:10px; color:var(--text3); margin-top:3px; letter-spacing:.3px; font-weight:500; }
+.date-pill {
+  background:var(--date-bg); border:1px solid var(--date-border);
+  border-radius:22px; padding:6px 13px; text-align:right; backdrop-filter:blur(8px);
+  transition:background .3s,border-color .3s;
+}
+.date-solar { font-size:10px; color:var(--cyan); font-weight:600; letter-spacing:.2px; }
+.date-lunar  { font-size:9.5px; color:var(--gold); margin-top:2px; font-weight:500; }
+
+/* ═══════════════════════════════════════════
+   MAIN GRID — L-shape
+   
+   Key technique for seamless rounded L:
+   We wrap note-panel + note-ext in a single
+   .l-shape container, clip it, then cut out
+   the robot corner using an inner element.
+   
+   Actually cleaner approach:
+   Use a background pseudo-element on .main-content
+   that draws the full L shape, then place robot
+   on top with no background.
+═══════════════════════════════════════════ */
+.main-content {
+  flex:1; min-height:0; overflow:visible;
+  padding:0 16px;
+  display:grid;
+  grid-template-columns:1fr 118px;
+  grid-template-rows:214px 1fr;
+  gap:0;
+  position:relative;
+}
+
+/* ── The L-shape background layer ──
+   Single continuous rounded rectangle that
+   covers the full grid area, with an inner
+   cutout at top-right for the robot.
+   We achieve this by overlapping two rounded rects:
+   1) Full left column (full height, rounded 20px)
+   2) Bottom-right cell (rounded 20px bottom-right only)
+   Both share identical bg/border, creating a seamless L.
+*/
+
+/* LEFT column — note panel (full height) */
+.note-panel {
+  grid-column:1; grid-row:1/3;
+  background:var(--panel-bg);
+  border:1px solid var(--b1);
+  border-right:none;          /* no right border — merges with note-ext */
+  /* Rounded: all 4 corners use --r, but right side is 0 to merge */
+  border-radius:20px 0 0 20px;
+  display:flex; flex-direction:column; overflow:hidden;
+  backdrop-filter:blur(24px);
+  box-shadow:inset 0 1px 0 var(--shine-top);
+  transition:background .3s,border-color .3s;
+  position:relative; z-index:1;
+}
+
+/* RIGHT COLUMN top — robot floats here, no background */
+.robot-cell {
+  grid-column:2; grid-row:1;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:flex-start;
+  padding:6px 6px 0 5px;
+  overflow:visible; position:relative; z-index:2;
+  /* No background — robot floats over phone bg */
+}
+
+/* RIGHT COLUMN bottom — note extension */
+/* 
+  The tricky corner: top-left corner of note-ext must visually
+  connect to bottom-right of note-panel (both are inside the L).
+  We make note-ext share the SAME background/border as note-panel,
+  remove its top and left borders (shared internally),
+  and give it radius only at bottom-right corner.
+*/
+.note-ext {
+  grid-column:2; grid-row:2;
+  background:var(--panel-bg);
+  /* Only right + bottom borders; top matches note-panel bottom; left = none */
+  border:1px solid var(--b1);
+  border-left:none;
+  border-top:1px solid var(--b2);  /* subtle inner divider */
+  border-radius:0 0 20px 0;        /* only bottom-right rounded */
+  backdrop-filter:blur(24px);
+  overflow-y:auto; scrollbar-width:none;
+  padding:9px 8px 12px 7px;
+  display:flex; flex-direction:column; gap:6px;
+  box-shadow:inset 0 1px 0 var(--shine-top);
+  transition:background .3s,border-color .3s;
+  position:relative; z-index:1;
+}
+.note-ext::-webkit-scrollbar { display:none; }
+
+/*
+  The outer top-right corner of the L (where robot-cell sits)
+  needs the note-panel's top-right corner to be straight (0px radius)
+  and note-ext's top-left also straight.
+  BUT: the OUTER border of the whole L at those points:
+  - note-panel top-right: no border-right so no visible corner ✓
+  - note-ext top-left: no border-left so no visible corner ✓
+  The robot just sits in the open space.
+  
+  For the INSIDE corner (concave) of the L shape, we use
+  a connector piece that fills the gap between note-panel
+  top-right edge and note-ext top-left edge.
+  This is a small square div placed at the junction.
+*/
+.l-connector {
+  position:absolute;
+  /* Position at the inner corner of L: 
+     right edge of note-panel = left of grid col2
+     row boundary = at 214px from main-content top */
+  right:118px;  /* = col2 width */
+  top:214px;    /* = row1 height */
+  width:1px; height:1px;
+  z-index:3;
+  pointer-events:none;
+}
+
+/* Note header */
+.note-header {
+  padding:13px 15px 10px; border-bottom:1px solid var(--b2);
+  display:flex; justify-content:space-between; align-items:center; flex-shrink:0;
+}
+.note-title { font-size:10.5px; font-weight:600; color:var(--text3); letter-spacing:1.1px; text-transform:uppercase; transition:color .3s; }
+.note-add {
+  width:22px; height:22px; border-radius:50%;
+  background:var(--add-bg); border:1px solid var(--b1);
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  transition:background .3s;
+}
+
+.note-body { flex:1; overflow-y:auto; scrollbar-width:none; padding:9px 11px 8px; display:flex; flex-direction:column; gap:1px; }
+.note-body::-webkit-scrollbar { display:none; }
+
+/* ── Note rows — Apple Reminders style ── */
+.note-row {
+  display:flex; align-items:stretch;
+  border-radius:12px; overflow:hidden; flex-shrink:0;
+  transition:background .15s; cursor:pointer;
+  animation:fadeSlide .38s cubic-bezier(.22,.8,.44,1) both;
+}
+.note-row:nth-child(1){ animation-delay:.00s }
+.note-row:nth-child(2){ animation-delay:.05s }
+.note-row:nth-child(3){ animation-delay:.10s }
+.note-row:nth-child(4){ animation-delay:.15s }
+.note-row:nth-child(5){ animation-delay:.20s }
+.note-row:active { background:var(--row-hover); }
+
+.row-icon-wrap { width:38px; flex-shrink:0; display:flex; align-items:center; justify-content:center; padding:10px 0; }
+.row-icon {
+  width:28px; height:28px; border-radius:7px;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  transition:background .3s;
+}
+.row-icon.ic-cal  { background:var(--ic-cal-bg);  color:var(--ic-cal-c);  }
+.row-icon.ic-bell { background:var(--ic-bell-bg); color:var(--ic-bell-c); }
+.row-icon.ic-note { background:var(--ic-note-bg); color:var(--ic-note-c); }
+.row-icon.ic-leaf { background:var(--ic-leaf-bg); color:var(--ic-leaf-c); }
+.row-icon.ic-flag { background:var(--ic-flag-bg); color:var(--ic-flag-c); }
+
+.row-text { flex:1; padding:9px 8px 9px 2px; min-width:0; border-bottom:1px solid var(--b2); transition:border-color .3s; }
+.note-row:last-child .row-text { border-bottom:none; }
+.row-title { font-size:12px; font-weight:600; color:var(--text-title); letter-spacing:-.1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:color .3s; }
+.row-body  { font-size:10.5px; color:var(--text2); line-height:1.5; margin-top:2px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; transition:color .3s; }
+.row-foot  { display:flex; align-items:center; justify-content:space-between; margin-top:4px; }
+.row-time  { font-size:9px; color:var(--text3); font-weight:500; transition:color .3s; }
+.row-tag { font-size:7.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; padding:1.5px 5px; border-radius:5px; border:1px solid; }
+.row-tag.t-lich { color:var(--tag-lich-c); border-color:var(--tag-lich-b); }
+.row-tag.t-viec { color:var(--tag-viec-c); border-color:var(--tag-viec-b); }
+.row-tag.t-note { color:var(--tag-note-c); border-color:var(--tag-note-b); }
+.row-chev { width:16px; flex-shrink:0; display:flex; align-items:center; justify-content:center; padding-right:10px; }
+
+/* ── Ext cards ── */
+.ext-card { border-radius:10px; padding:7px 8px; background:var(--ext-card-bg); border:1px solid var(--b2); flex-shrink:0; display:flex; align-items:flex-start; gap:7px; transition:background .3s,border-color .3s; }
+.ext-icon { width:22px;height:22px; border-radius:6px; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+.ext-icon.ic-sun  { background:var(--ic-cal-bg);  }
+.ext-icon.ic-warn { background:var(--ic-bell-bg); }
+.ext-icon.ic-dir  { background:var(--ic-cal-bg);  }
+.ext-title { font-size:9px; font-weight:700; color:var(--text); margin-bottom:1px; transition:color .3s; }
+.ext-body  { font-size:8.5px; color:var(--text2); line-height:1.4; transition:color .3s; }
+
+/* ══════════════════════════════════════════
+   WHITE ROBOT
+══════════════════════════════════════════ */
+.robot-speech {
+  background:var(--speech-bg); border:1px solid var(--b1);
+  border-radius:11px; padding:6px 8px;
+  font-size:8.5px; color:var(--text2); line-height:1.5;
+  text-align:center; width:100%; position:relative; margin-bottom:9px; flex-shrink:0;
+  backdrop-filter:blur(12px);
+  box-shadow:inset 0 1px 0 var(--shine-top);
+  transition:background .3s,border-color .3s,color .3s;
+}
+.robot-speech::after {
+  content:''; position:absolute; bottom:-6px; left:50%; transform:translateX(-50%);
+  border-left:5px solid transparent; border-right:5px solid transparent;
+  border-top:6px solid var(--speech-bg);
+  transition:border-top-color .3s;
+}
+
+.robot-body { position:relative; display:flex; flex-direction:column; align-items:center; }
+.robot-glow {
+  position:absolute; width:88px;height:88px;
+  background:radial-gradient(circle,var(--robot-glow),transparent 70%);
+  border-radius:50%; top:40%; left:50%; transform:translate(-50%,-50%);
+  animation:pulse-glow 3.5s ease-in-out infinite; pointer-events:none;
+  transition:background .3s;
+}
+.robot-svg {
+  width:80px; height:auto; position:relative; z-index:1;
+  animation:robot-float 4s ease-in-out infinite;
+}
+[data-theme="dark"] .robot-svg {
+  filter:drop-shadow(0 5px 18px rgba(0,0,0,.5)) drop-shadow(0 0 12px rgba(78,205,196,.12));
+}
+[data-theme="light"] .robot-svg {
+  filter:drop-shadow(0 5px 18px rgba(0,0,0,.15)) drop-shadow(0 0 8px rgba(10,173,164,.12));
+}
+
+.robot-status { display:flex; align-items:center; gap:4px; margin-top:5px; }
+.status-dot { width:5px;height:5px; background:var(--green); border-radius:50%; animation:blink 2.2s ease-in-out infinite; }
+.status-label { font-size:8px; color:var(--text3); font-weight:500; transition:color .3s; }
+
+.voice-btn {
+  width:100%; height:28px; margin-top:7px;
+  background:rgba(78,205,196,.09); border:1px solid rgba(78,205,196,.2);
+  border-radius:9px; display:flex; align-items:center; justify-content:center; gap:4px;
+  cursor:pointer; flex-shrink:0; transition:background .2s;
+}
+[data-theme="light"] .voice-btn { background:rgba(10,173,164,.07); border-color:rgba(10,173,164,.18); }
+.voice-btn:hover { background:rgba(78,205,196,.15); }
+[data-theme="light"] .voice-btn:hover { background:rgba(10,173,164,.13); }
+.sound-wave { display:flex; align-items:center; gap:1.5px; }
+.wave-bar { width:1.5px; border-radius:2px; background:var(--cyan); animation:wave 1.2s ease-in-out infinite; }
+.wave-bar:nth-child(1){ height:3px; } .wave-bar:nth-child(2){ height:6px;animation-delay:.1s; }
+.wave-bar:nth-child(3){ height:9px;animation-delay:.2s; } .wave-bar:nth-child(4){ height:6px;animation-delay:.3s; }
+.wave-bar:nth-child(5){ height:3px;animation-delay:.4s; }
+.voice-label { font-size:8px; font-weight:600; color:var(--cyan); }
+
+/* Chat input */
+.chat-area { padding:8px 16px 22px; flex-shrink:0; }
+.chat-input-wrap {
+  background:var(--input-bg); border:1px solid var(--b1);
+  border-radius:22px; display:flex; align-items:center; padding:10px 8px 10px 16px; gap:8px;
+  backdrop-filter:blur(20px); box-shadow:inset 0 1px 0 var(--shine-top); transition:border-color .2s,background .3s;
+}
+.chat-input-wrap:focus-within { border-color:rgba(78,205,196,.30); }
+[data-theme="light"] .chat-input-wrap:focus-within { border-color:rgba(10,173,164,.28); }
+.chat-input { flex:1; background:transparent; border:none; outline:none; color:var(--text); font-family:'Be Vietnam Pro',sans-serif; font-size:12.5px; transition:color .3s; }
+.chat-input::placeholder { color:var(--text3); }
+.chat-send {
+  width:32px;height:32px; background:linear-gradient(135deg,var(--cyan),var(--cyan2));
+  border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  box-shadow:0 2px 10px rgba(78,205,196,.25); flex-shrink:0;
+}
+.chat-send svg { width:13px;height:13px; fill:#fff; }
+
+/* ── Animations ── */
+@keyframes robot-float  { 0%,100%{transform:translateY(0)}  50%{transform:translateY(-7px)} }
+@keyframes pulse-glow   { 0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.5} 50%{transform:translate(-50%,-50%) scale(1.5);opacity:.12} }
+@keyframes blink        { 0%,100%{opacity:1} 50%{opacity:.2} }
+@keyframes wave         { 0%,100%{transform:scaleY(.3)} 50%{transform:scaleY(1)} }
+@keyframes fadeSlide    { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+@keyframes eye-blink    { 0%,88%,100%{transform:scaleY(1)} 94%{transform:scaleY(.06)} }
+.r-eye-l { animation:eye-blink 4.8s ease-in-out infinite;      transform-origin:center; }
+.r-eye-r { animation:eye-blink 4.8s ease-in-out infinite .15s; transform-origin:center; }
+@keyframes ant-pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+.r-ant { animation:ant-pulse 2.2s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="island">
+    <div class="island-cam"></div><div class="island-dot"></div><div class="island-cam"></div>
+  </div>
+
+  <!-- Theme toggle -->
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+    <svg id="theme-icon" width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Sun icon (shown in dark mode) -->
+      <circle cx="10" cy="10" r="4"/>
+      <line x1="10" y1="2" x2="10" y2="4"/><line x1="10" y1="16" x2="10" y2="18"/>
+      <line x1="2" y1="10" x2="4" y2="10"/><line x1="16" y1="10" x2="18" y2="10"/>
+      <line x1="4.3" y1="4.3" x2="5.7" y2="5.7"/><line x1="14.3" y1="14.3" x2="15.7" y2="15.7"/>
+      <line x1="14.3" y1="4.3" x2="15.7" y2="5.7"/><line x1="4.3" y1="14.3" x2="5.7" y2="15.7"/>
+    </svg>
+  </button>
+
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <div class="status-icons">
+      <svg class="s-icon" width="16" height="12" viewBox="0 0 16 12" fill="currentColor">
+        <rect x="0" y="6" width="3" height="6" rx="1"/><rect x="4.5" y="4" width="3" height="8" rx="1"/>
+        <rect x="9" y="1.5" width="3" height="10.5" rx="1"/><rect x="13.5" y="0" width="2.5" height="12" rx="1" opacity=".3"/>
+      </svg>
+      <svg class="s-icon" width="15" height="12" viewBox="0 0 16 12" fill="currentColor">
+        <path d="M8 2C10.5 2 12.8 3.1 14.3 4.9L15.5 3.6C13.7 1.4 11 0 8 0S2.3 1.4.5 3.6L1.7 4.9C3.2 3.1 5.5 2 8 2Z"/>
+        <path d="M8 5C9.7 5 11.2 5.7 12.3 6.9L13.5 5.6C12.1 4.1 10.1 3 8 3S3.9 4.1 2.5 5.6L3.7 6.9C4.8 5.7 6.3 5 8 5Z"/>
+        <circle cx="8" cy="10" r="2"/>
+      </svg>
+      <div class="battery"><div class="battery-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="app-header">
+    <div>
+      <div class="app-title">Lịch Số AI</div>
+      <div class="app-subtitle">Trợ lý vạn niên thông minh</div>
+    </div>
+    <div class="date-pill">
+      <div class="date-solar">Thứ Bảy, 21/03/2026</div>
+      <div class="date-lunar">月 23 tháng 2 Bính Ngọ</div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-content">
+
+    <!-- LEFT: Note panel -->
+    <div class="note-panel">
+      <div class="note-header">
+        <span class="note-title">Ghi chú &amp; Nhắc việc</span>
+        <div class="note-add">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="var(--text2)" stroke-width="1.6" stroke-linecap="round">
+            <line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="5" x2="9" y2="5"/>
+          </svg>
+        </div>
+      </div>
+      <div class="note-body">
+
+        <!-- Row 1 -->
+        <div class="note-row">
+          <div class="row-icon-wrap"><div class="row-icon ic-cal">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="16" height="14" rx="3"/><line x1="6" y1="2" x2="6" y2="6"/><line x1="14" y1="2" x2="14" y2="6"/>
+              <line x1="2" y1="9" x2="18" y2="9"/>
+              <circle cx="7" cy="13" r=".9" fill="currentColor" stroke="none"/>
+              <circle cx="10" cy="13" r=".9" fill="currentColor" stroke="none"/>
+              <circle cx="13" cy="13" r=".9" fill="currentColor" stroke="none"/>
+            </svg>
+          </div></div>
+          <div class="row-text">
+            <div class="row-title">Ngày hôm nay</div>
+            <div class="row-body">Ngày tốt: Xuất hành, ký kết hợp đồng, khai trương. Giờ Thìn (7–9h) cát tường.</div>
+            <div class="row-foot"><span class="row-time">Vừa cập nhật</span><span class="row-tag t-lich">LỊCH</span></div>
+          </div>
+          <div class="row-chev"><svg width="5" height="9" viewBox="0 0 5 9" fill="none" stroke="var(--chev-c)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 4,4.5 1,8"/></svg></div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="note-row">
+          <div class="row-icon-wrap"><div class="row-icon ic-bell">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 2.5a6 6 0 0 1 6 6c0 3 1 4.5 1.8 5.5H2.2C3 13 4 11.5 4 8.5a6 6 0 0 1 6-6z"/>
+              <path d="M8.5 17.5a1.5 1.5 0 0 0 3 0"/>
+            </svg>
+          </div></div>
+          <div class="row-text">
+            <div class="row-title">Nhắc việc</div>
+            <div class="row-body">14:00 – Họp team dự án Zbase Portal. Chuẩn bị slide demo v2.0.</div>
+            <div class="row-foot"><span class="row-time">Còn 2 tiếng</span><span class="row-tag t-viec">VIỆC</span></div>
+          </div>
+          <div class="row-chev"><svg width="5" height="9" viewBox="0 0 5 9" fill="none" stroke="var(--chev-c)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 4,4.5 1,8"/></svg></div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="note-row">
+          <div class="row-icon-wrap"><div class="row-icon ic-note">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/>
+              <polyline points="13,2 13,8 19,8" stroke-width="1.4"/>
+              <line x1="6" y1="11" x2="14" y2="11"/><line x1="6" y1="14" x2="11" y2="14"/>
+            </svg>
+          </div></div>
+          <div class="row-text">
+            <div class="row-title">Ghi nhớ</div>
+            <div class="row-body">Gọi điện cho đối tác trước cuối tuần. Kiểm tra hợp đồng Q1/2026.</div>
+            <div class="row-foot"><span class="row-time">Hôm qua</span><span class="row-tag t-note">NOTE</span></div>
+          </div>
+          <div class="row-chev"><svg width="5" height="9" viewBox="0 0 5 9" fill="none" stroke="var(--chev-c)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 4,4.5 1,8"/></svg></div>
+        </div>
+
+        <!-- Row 4 -->
+        <div class="note-row">
+          <div class="row-icon-wrap"><div class="row-icon ic-leaf">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 3s-4 0-8 4-5 9-5 9 5-1 9-5 4-8 4-8z"/>
+              <line x1="3" y1="17" x2="8.5" y2="11.5"/>
+            </svg>
+          </div></div>
+          <div class="row-text">
+            <div class="row-title">Tiết khí</div>
+            <div class="row-body">Xuân Phân 21/03 – ngày đêm bằng nhau. Thích hợp bắt đầu dự án mới.</div>
+            <div class="row-foot"><span class="row-time">Tiết khí hiện tại</span><span class="row-tag t-lich">LỊCH</span></div>
+          </div>
+          <div class="row-chev"><svg width="5" height="9" viewBox="0 0 5 9" fill="none" stroke="var(--chev-c)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 4,4.5 1,8"/></svg></div>
+        </div>
+
+        <!-- Row 5 -->
+        <div class="note-row">
+          <div class="row-icon-wrap"><div class="row-icon ic-flag">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="2" x2="4" y2="18"/>
+              <path d="M4 4c4-2 8 2 12 0v9c-4 2-8-2-12 0"/>
+            </svg>
+          </div></div>
+          <div class="row-text">
+            <div class="row-title">Mục tiêu</div>
+            <div class="row-body">Hoàn thiện Lịch Số v1.2 trước 31/03. Gửi bản demo cho khách hàng.</div>
+            <div class="row-foot"><span class="row-time">Deadline tuần này</span><span class="row-tag t-viec">VIỆC</span></div>
+          </div>
+          <div class="row-chev"><svg width="5" height="9" viewBox="0 0 5 9" fill="none" stroke="var(--chev-c)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,1 4,4.5 1,8"/></svg></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TOP-RIGHT: Robot -->
+    <div class="robot-cell">
+      <div class="robot-speech">Hỏi tôi về lịch âm,<br>ngày tốt, nhắc việc</div>
+      <div class="robot-body">
+        <div class="robot-glow"></div>
+        <svg class="robot-svg" viewBox="0 0 100 128" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="shadow" x="-25%" y="-10%" width="150%" height="140%">
+              <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="rgba(0,0,0,0.28)"/>
+            </filter>
+            <filter id="eye-glow">
+              <feGaussianBlur stdDeviation="1.5" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <linearGradient id="wg" x1="20%" y1="0%" x2="80%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="100%" stop-color="#d4dae8"/>
+            </linearGradient>
+            <linearGradient id="wg2" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#f0f3f8"/>
+              <stop offset="100%" stop-color="#c8d0df"/>
+            </linearGradient>
+            <linearGradient id="visor" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#b8c4d4"/>
+              <stop offset="100%" stop-color="#9aaabf"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Antenna L -->
+          <line class="r-ant" x1="33" y1="17" x2="27" y2="6" stroke="#c0c8d6" stroke-width="2" stroke-linecap="round"/>
+          <circle class="r-ant" cx="26" cy="4.5" r="3.5" fill="#eaeff7" stroke="#c0c8d6" stroke-width="1"/>
+          <!-- Antenna R -->
+          <line class="r-ant" x1="67" y1="17" x2="73" y2="6" stroke="#c0c8d6" stroke-width="2" stroke-linecap="round"/>
+          <circle class="r-ant" cx="74" cy="4.5" r="3.5" fill="#eaeff7" stroke="#c0c8d6" stroke-width="1"/>
+
+          <!-- HEAD — big rounded oval -->
+          <ellipse cx="50" cy="34" rx="30" ry="26" fill="url(#wg)" filter="url(#shadow)"/>
+          <!-- head highlight -->
+          <ellipse cx="43" cy="23" rx="12" ry="5.5" fill="rgba(255,255,255,0.6)" transform="rotate(-14,43,23)"/>
+
+          <!-- VISOR panel -->
+          <ellipse cx="50" cy="36" rx="22" ry="15" fill="url(#visor)"/>
+          <ellipse cx="50" cy="37" rx="19" ry="12.5" fill="rgba(20,30,50,0.3)"/>
+
+          <!-- Eye L -->
+          <g class="r-eye-l">
+            <ellipse cx="39" cy="36" rx="8" ry="9" fill="#141e30"/>
+            <ellipse cx="39" cy="36" rx="6.2" ry="7.2" fill="#4ecdc4" opacity=".92" filter="url(#eye-glow)"/>
+            <ellipse cx="39" cy="34.2" rx="2.8" ry="3.2" fill="rgba(255,255,255,.9)"/>
+            <ellipse cx="40.5" cy="32.8" rx="1.1" ry="1.1" fill="rgba(255,255,255,.65)"/>
+          </g>
+          <!-- Eye R -->
+          <g class="r-eye-r">
+            <ellipse cx="61" cy="36" rx="8" ry="9" fill="#141e30"/>
+            <ellipse cx="61" cy="36" rx="6.2" ry="7.2" fill="#38bdf8" opacity=".92" filter="url(#eye-glow)"/>
+            <ellipse cx="61" cy="34.2" rx="2.8" ry="3.2" fill="rgba(255,255,255,.9)"/>
+            <ellipse cx="62.5" cy="32.8" rx="1.1" ry="1.1" fill="rgba(255,255,255,.65)"/>
+          </g>
+
+          <!-- Neck -->
+          <rect x="43" y="58" width="14" height="8" rx="4" fill="#dde3ef"/>
+
+          <!-- BODY — wide rounded shield -->
+          <path d="M16 68 Q14 92 22 106 Q30 120 50 124 Q70 120 78 106 Q86 92 84 68 Q84 63 50 61 Q16 63 16 68Z"
+                fill="url(#wg2)" filter="url(#shadow)"/>
+          <!-- body highlight -->
+          <ellipse cx="38" cy="67" rx="14" ry="5" fill="rgba(255,255,255,.52)" transform="rotate(-10,38,67)"/>
+
+          <!-- Arms — rounded bumps -->
+          <ellipse cx="10" cy="83" rx="7" ry="10.5" fill="url(#wg2)" filter="url(#shadow)"/>
+          <ellipse cx="90" cy="83" rx="7" ry="10.5" fill="url(#wg2)" filter="url(#shadow)"/>
+          <!-- arm highlights -->
+          <ellipse cx="8" cy="78" rx="3" ry="4" fill="rgba(255,255,255,.45)" transform="rotate(-8,8,78)"/>
+          <ellipse cx="92" cy="78" rx="3" ry="4" fill="rgba(255,255,255,.45)" transform="rotate(8,92,78)"/>
+
+          <!-- Chest mini-screen -->
+          <rect x="35" y="76" width="30" height="22" rx="7" fill="rgba(180,196,220,.22)"/>
+          <line x1="38" y1="82" x2="56" y2="82" stroke="rgba(78,205,196,.55)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="38" y1="87" x2="50" y2="87" stroke="rgba(56,189,248,.42)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="38" y1="92" x2="53" y2="92" stroke="rgba(245,200,66,.35)" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="60" cy="87" r="3" fill="rgba(52,211,153,.55)"/>
+        </svg>
+
+        <div class="robot-status">
+          <span class="status-dot"></span>
+          <span class="status-label">Sẵn sàng</span>
+        </div>
+        <div class="voice-btn">
+          <svg width="9" height="11" viewBox="0 0 10 13" fill="none" stroke="var(--cyan)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="1" width="4" height="7" rx="2"/>
+            <path d="M1 7c0 2.2 1.8 4 4 4s4-1.8 4-4"/>
+            <line x1="5" y1="11" x2="5" y2="13"/>
+          </svg>
+          <div class="sound-wave">
+            <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+            <div class="wave-bar"></div><div class="wave-bar"></div>
+          </div>
+          <span class="voice-label">Nói</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM-RIGHT: Note extension -->
+    <div class="note-ext">
+      <div class="ext-card">
+        <div class="ext-icon ic-sun">
+          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="var(--ic-cal-c)" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="10" cy="10" r="4"/>
+            <line x1="10" y1="2" x2="10" y2="4"/><line x1="10" y1="16" x2="10" y2="18"/>
+            <line x1="2" y1="10" x2="4" y2="10"/><line x1="16" y1="10" x2="18" y2="10"/>
+            <line x1="4.3" y1="4.3" x2="5.7" y2="5.7"/><line x1="14.3" y1="14.3" x2="15.7" y2="15.7"/>
+            <line x1="14.3" y1="4.3" x2="15.7" y2="5.7"/><line x1="4.3" y1="14.3" x2="5.7" y2="15.7"/>
+          </svg>
+        </div>
+        <div><div class="ext-title">Giờ tốt</div><div class="ext-body">Thìn 7–9h<br>Ngọ 11–13h</div></div>
+      </div>
+      <div class="ext-card">
+        <div class="ext-icon ic-warn">
+          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="var(--ic-bell-c)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 2L2 17h16L10 2z"/><line x1="10" y1="9" x2="10" y2="13"/>
+            <circle cx="10" cy="15.5" r=".8" fill="var(--ic-bell-c)" stroke="none"/>
+          </svg>
+        </div>
+        <div><div class="ext-title">Tránh giờ</div><div class="ext-body">Tuất 19–21h</div></div>
+      </div>
+      <div class="ext-card">
+        <div class="ext-icon ic-dir">
+          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="var(--ic-cal-c)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="10" cy="10" r="8"/>
+            <polygon points="10,4 12.5,10 10,8.5 7.5,10" fill="var(--ic-cal-c)" stroke="none"/>
+            <polygon points="10,16 7.5,10 10,11.5 12.5,10" fill="var(--ic-cal-c)" opacity=".3" stroke="none"/>
+          </svg>
+        </div>
+        <div><div class="ext-title">Hướng xuất</div><div class="ext-body">Đông cát tường</div></div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+
+  <!-- Chat -->
+  <div class="chat-area">
+    <div class="chat-input-wrap">
+      <input class="chat-input" type="text" placeholder="Hỏi lịch, đặt nhắc việc...">
+      <div class="chat-send">
+        <svg viewBox="0 0 24 24"><path d="M2 21L23 12 2 3v7l15 2-15 2v7z"/></svg>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+
+  // Swap icon: sun in dark mode → moon in light mode
+  const icon = document.getElementById('theme-icon');
+  if (isDark) {
+    // Light mode → show moon icon
+    icon.innerHTML = `
+      <path d="M17.5 12a7.5 7.5 0 0 1-9-9 7.5 7.5 0 1 0 9 9z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    `;
+  } else {
+    // Dark mode → show sun icon
+    icon.innerHTML = `
+      <circle cx="10" cy="10" r="4"/>
+      <line x1="10" y1="2" x2="10" y2="4"/><line x1="10" y1="16" x2="10" y2="18"/>
+      <line x1="2" y1="10" x2="4" y2="10"/><line x1="16" y1="10" x2="18" y2="10"/>
+      <line x1="4.3" y1="4.3" x2="5.7" y2="5.7"/><line x1="14.3" y1="14.3" x2="15.7" y2="15.7"/>
+      <line x1="14.3" y1="4.3" x2="15.7" y2="5.7"/><line x1="4.3" y1="14.3" x2="5.7" y2="15.7"/>
+    `;
+  }
+
+  // Update phone border for light mode
+  const phone = document.querySelector('.phone');
+  if (isDark) {
+    document.body.style.background = '#c8cdd8';
+  } else {
+    document.body.style.background = '#1a1d26';
+  }
+}
+</script>
+</body>
+</html>

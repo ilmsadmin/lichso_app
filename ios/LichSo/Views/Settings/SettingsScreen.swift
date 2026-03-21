@@ -12,7 +12,7 @@ struct SettingsScreen: View {
                 // Header
                 Text("Cài đặt")
                     .font(.system(size: 22, weight: .bold, design: .serif))
-                    .foregroundColor(c.gold2)
+                    .foregroundStyle(c.brandGradient)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 14)
 
@@ -196,9 +196,11 @@ struct SettingsToggleRow: View {
             Toggle("", isOn: $isOn)
                 .labelsHidden()
                 .tint(c.teal)
+                .accessibilityLabel(title)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -459,17 +461,20 @@ struct PrivacyPolicyView: View {
     let privacyText = """
     CHÍNH SÁCH BẢO MẬT — LỊCH SỐ
 
+    Xem phiên bản đầy đủ tại: https://lichso.vn/privacy-policy
+
     1. Thông tin thu thập
     Ứng dụng Lịch Số không thu thập thông tin cá nhân của bạn. Tất cả dữ liệu (ghi chú, nhắc nhở, việc làm) được lưu trữ cục bộ trên thiết bị của bạn.
 
     2. Quyền truy cập
-    Ứng dụng có thể yêu cầu quyền gửi thông báo để nhắc nhở lịch âm và giờ hoàng đạo. Chúng tôi không bao giờ đọc lịch hệ thống hay danh bạ của bạn.
+    • Thông báo: Nhắc nhở lịch âm và giờ hoàng đạo
+    Chúng tôi không bao giờ đọc lịch hệ thống hay danh bạ của bạn.
 
     3. AI Chat
-    Tin nhắn chat với AI được xử lý qua Google Gemini API. Vui lòng không chia sẻ thông tin cá nhân nhạy cảm trong chat. Xem thêm: https://policies.google.com/privacy
+    Tin nhắn chat với AI được xử lý qua Google Gemini API. Nội dung chat được lưu cục bộ trên thiết bị. Khi gửi tin nhắn, nội dung được truyền đến API để xử lý và không được lưu trữ bởi chúng tôi. Vui lòng không chia sẻ thông tin cá nhân nhạy cảm trong chat. Xem thêm: https://policies.google.com/privacy
 
     4. Dữ liệu lưu trữ
-    Tất cả công việc, ghi chú và nhắc nhở chỉ được lưu trong bộ nhớ máy. Chúng tôi không có máy chủ thu thập dữ liệu của bạn.
+    Tất cả công việc, ghi chú, nhắc nhở và tin nhắn chat chỉ được lưu trong bộ nhớ thiết bị. Chúng tôi không có máy chủ thu thập dữ liệu của bạn. Bạn có thể xoá toàn bộ dữ liệu bất cứ lúc nào trong Cài đặt.
 
     5. Quyền trẻ em
     Ứng dụng không hướng đến trẻ em dưới 13 tuổi và không thu thập thông tin của trẻ em.

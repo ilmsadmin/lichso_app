@@ -33,8 +33,6 @@
     </array>
     <key>NSUserNotificationsUsageDescription</key>
     <string>Lịch Số cần quyền thông báo để nhắc nhở lịch âm và giờ hoàng đạo</string>
-    <key>OpenRouterAPIKey</key>
-    <string>REMOVED_API_KEY</string>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>

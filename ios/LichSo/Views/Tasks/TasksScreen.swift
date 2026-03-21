@@ -12,8 +12,7 @@ struct InteractiveRowModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         ZStack(alignment: .trailing) {
-            // ── Delete background ──
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 14)
                 .fill(Color.red.opacity(min(Double(abs(offset) / deleteReveal), 1) * 0.85))
                 .overlay(alignment: .trailing) {
                     Image(systemName: abs(offset) > 20 ? "trash.fill" : "trash")
@@ -25,7 +24,6 @@ struct InteractiveRowModifier: ViewModifier {
                         .animation(.spring(response: 0.2), value: offset)
                 }
 
-            // ── Main content ──
             content
                 .offset(x: offset)
                 .simultaneousGesture(
@@ -46,7 +44,6 @@ struct InteractiveRowModifier: ViewModifier {
                         .onEnded { val in
                             isDragging = false
                             if offset <= -deleteThreshold {
-                                // snap fully then trigger confirm
                                 withAnimation(.spring(response: 0.25)) { offset = -deleteReveal }
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                                     withAnimation(.spring(response: 0.3)) { offset = 0 }
@@ -59,6 +56,8 @@ struct InteractiveRowModifier: ViewModifier {
                 )
         }
         .clipped()
+        .accessibilityAction(named: "Chỉnh sửa") { onEdit() }
+        .accessibilityAction(named: "Xoá") { onDeleteRequest() }
     }
 }
 
@@ -68,10 +67,11 @@ extension View {
     }
 }
 
-// MARK: - Tasks Screen
+// MARK: - Tasks Screen (Modern Redesign)
 struct TasksScreen: View {
     @ObservedObject var viewModel: TasksViewModel
     @Environment(\.lichSoColors) var c
+    @Environment(\.dismiss) var dismiss
 
     @State private var showSheet = false
     @State private var editingTask: TaskItem? = nil
@@ -82,130 +82,201 @@ struct TasksScreen: View {
     @State private var deleteTabType: TasksViewModel.TaskTab = .tasks
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            VStack(spacing: 0) {
-                // ─── Header ───
-                HStack {
-                    Text("Ghi chú & Việc làm")
-                        .font(.system(size: 22, weight: .bold, design: .serif))
-                        .foregroundColor(c.gold2)
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 14)
+        NavigationView {
+            ZStack {
+                c.bg.ignoresSafeArea()
 
-                // ─── Stats ───
-                HStack(spacing: 8) {
-                    StatCard(value: "\(viewModel.tasks.filter { !$0.isDone }.count)", label: "Việc chưa xong", color: c.teal2)
-                    StatCard(value: "\(viewModel.reminders.filter { $0.isActive }.count)", label: "Nhắc nhở", color: c.gold2)
-                    StatCard(value: "\(viewModel.notes.count)", label: "Ghi chú", color: c.textSecondary)
-                }
-                .padding(.horizontal, 20)
+                VStack(spacing: 0) {
+                    // ─── Stats Row ───
+                    HStack(spacing: 8) {
+                        ModernStatCard(
+                            icon: "checkmark.square",
+                            value: "\(viewModel.tasks.filter { !$0.isDone }.count)",
+                            label: "Việc cần làm",
+                            color: c.cyan
+                        )
+                        ModernStatCard(
+                            icon: "bell.fill",
+                            value: "\(viewModel.reminders.filter { $0.isActive }.count)",
+                            label: "Nhắc nhở",
+                            color: c.gold
+                        )
+                        ModernStatCard(
+                            icon: "note.text",
+                            value: "\(viewModel.notes.count)",
+                            label: "Ghi chú",
+                            color: c.teal
+                        )
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
 
-                Spacer(minLength: 14)
+                    // ─── Tabs ───
+                    ModernTabBar(selectedTab: $viewModel.selectedTab)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 10)
 
-                // ─── Tabs ───
-                HStack(spacing: 4) {
-                    TabButton(title: "Việc làm", icon: "checkmark.square", isSelected: viewModel.selectedTab == .tasks) { viewModel.selectedTab = .tasks }
-                    TabButton(title: "Ghi chú", icon: "note.text", isSelected: viewModel.selectedTab == .notes) { viewModel.selectedTab = .notes }
-                    TabButton(title: "Nhắc nhở", icon: "bell", isSelected: viewModel.selectedTab == .reminders) { viewModel.selectedTab = .reminders }
-                }
-                .padding(.horizontal, 20)
-
-                Spacer(minLength: 10)
-
-                ScrollView {
-                    VStack(spacing: 0) {
-                        switch viewModel.selectedTab {
-                        case .tasks:
-                            TaskListContent(tasks: viewModel.tasks, viewModel: viewModel,
-                                onEdit: { t in editingTask = t; showSheet = true },
-                                onDeleteRequest: { id in deleteTarget = id; deleteTabType = .tasks; showDeleteConfirm = true })
-                        case .notes:
-                            NoteListContent(notes: viewModel.notes,
-                                onEdit: { n in editingNote = n; showSheet = true },
-                                onDeleteRequest: { id in deleteTarget = id; deleteTabType = .notes; showDeleteConfirm = true })
-                        case .reminders:
-                            ReminderListContent(reminders: viewModel.reminders, viewModel: viewModel,
-                                onEdit: { r in editingReminder = r; showSheet = true },
-                                onDeleteRequest: { id in deleteTarget = id; deleteTabType = .reminders; showDeleteConfirm = true })
+                    // ─── Content ───
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            switch viewModel.selectedTab {
+                            case .tasks:
+                                ModernTaskListContent(
+                                    tasks: viewModel.tasks,
+                                    viewModel: viewModel,
+                                    onEdit: { t in editingTask = t; showSheet = true },
+                                    onDeleteRequest: { id in deleteTarget = id; deleteTabType = .tasks; showDeleteConfirm = true }
+                                )
+                            case .notes:
+                                ModernNoteListContent(
+                                    notes: viewModel.notes,
+                                    onEdit: { n in editingNote = n; showSheet = true },
+                                    onDeleteRequest: { id in deleteTarget = id; deleteTabType = .notes; showDeleteConfirm = true }
+                                )
+                            case .reminders:
+                                ModernReminderListContent(
+                                    reminders: viewModel.reminders,
+                                    viewModel: viewModel,
+                                    onEdit: { r in editingReminder = r; showSheet = true },
+                                    onDeleteRequest: { id in deleteTarget = id; deleteTabType = .reminders; showDeleteConfirm = true }
+                                )
+                            }
+                            Spacer(minLength: 16)
                         }
-                        Spacer(minLength: 100)
                     }
-                }
-            }
-            .background(c.bg.ignoresSafeArea())
 
-            // ─── FAB ───
-            Button(action: { editingTask = nil; editingNote = nil; editingReminder = nil; showSheet = true }) {
-                Image(systemName: "plus")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(c.isDark ? Color(hex: 0x1A1500) : .white)
-                    .frame(width: 52, height: 52)
-                    .background(c.gold)
-                    .clipShape(Circle())
-                    .shadow(color: c.gold.opacity(0.4), radius: 8, x: 0, y: 4)
+                    // ─── Bottom Quick Action Bar ───
+                    QuickActionBar(
+                        viewModel: viewModel,
+                        onAddTap: { editingTask = nil; editingNote = nil; editingReminder = nil; showSheet = true }
+                    )
+                }
             }
-            .padding(.trailing, 20)
-            .padding(.bottom, 24)
-        }
-        .sheet(isPresented: $showSheet, onDismiss: { editingTask = nil; editingNote = nil; editingReminder = nil }) {
-            TaskEditSheet(viewModel: viewModel, editingTask: editingTask, editingNote: editingNote, editingReminder: editingReminder)
-                .environment(\.lichSoColors, c)
-        }
-        .confirmationDialog("Xác nhận xoá", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("Xoá", role: .destructive) {
-                guard let id = deleteTarget else { return }
-                withAnimation {
-                    switch deleteTabType {
-                    case .tasks: viewModel.deleteTask(id)
-                    case .notes: viewModel.deleteNote(id)
-                    case .reminders: viewModel.deleteReminder(id)
+            .navigationTitle("Ghi chú & Việc làm")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(c.textTertiary)
+                            .symbolRenderingMode(.hierarchical)
                     }
                 }
             }
-            Button("Huỷ", role: .cancel) {}
-        } message: {
-            Text("Hành động này không thể hoàn tác.")
+            .sheet(isPresented: $showSheet, onDismiss: { editingTask = nil; editingNote = nil; editingReminder = nil }) {
+                TaskEditSheet(viewModel: viewModel, editingTask: editingTask, editingNote: editingNote, editingReminder: editingReminder)
+                    .environment(\.lichSoColors, c)
+            }
+            .confirmationDialog("Xác nhận xoá", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+                Button("Xoá", role: .destructive) {
+                    guard let id = deleteTarget else { return }
+                    withAnimation {
+                        switch deleteTabType {
+                        case .tasks: viewModel.deleteTask(id)
+                        case .notes: viewModel.deleteNote(id)
+                        case .reminders: viewModel.deleteReminder(id)
+                        }
+                    }
+                }
+                Button("Huỷ", role: .cancel) {}
+            } message: {
+                Text("Hành động này không thể hoàn tác.")
+            }
         }
     }
 }
 
-// MARK: - Stat Card
-struct StatCard: View {
+// MARK: - Modern Stat Card
+struct ModernStatCard: View {
+    let icon: String
     let value: String
     let label: String
     let color: Color
     @Environment(\.lichSoColors) var c
+
     var body: some View {
-        VStack(spacing: 2) {
-            Text(value).font(.system(size: 22, weight: .bold)).foregroundColor(color)
-            Text(label).font(.system(size: 10)).foregroundColor(c.textTertiary).multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.8)
+        VStack(spacing: 6) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(color)
+                Text(value)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(color)
+            }
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(c.textTertiary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
-        .frame(maxWidth: .infinity).padding(.vertical, 10)
-        .background(c.bg2).clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(c.border, lineWidth: 1))
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(color.opacity(0.06))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(color.opacity(0.15), lineWidth: 1)
+                )
+        )
     }
 }
 
-// MARK: - Tab Button
-struct TabButton: View {
+// MARK: - Modern Tab Bar
+struct ModernTabBar: View {
+    @Binding var selectedTab: TasksViewModel.TaskTab
+    @Environment(\.lichSoColors) var c
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ModernTabItem(title: "Việc làm", icon: "checkmark.square", isSelected: selectedTab == .tasks, color: c.cyan) {
+                selectedTab = .tasks
+            }
+            ModernTabItem(title: "Ghi chú", icon: "note.text", isSelected: selectedTab == .notes, color: c.teal) {
+                selectedTab = .notes
+            }
+            ModernTabItem(title: "Nhắc nhở", icon: "bell", isSelected: selectedTab == .reminders, color: c.gold) {
+                selectedTab = .reminders
+            }
+        }
+        .padding(3)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(c.surface.opacity(0.5))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(c.border, lineWidth: 1)
+                )
+        )
+    }
+}
+
+struct ModernTabItem: View {
     let title: String
     let icon: String
     let isSelected: Bool
+    let color: Color
     let action: () -> Void
     @Environment(\.lichSoColors) var c
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 5) {
-                Image(systemName: icon).font(.system(size: 11))
-                Text(title).font(.system(size: 12, weight: isSelected ? .semibold : .medium))
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .semibold))
+                Text(title)
+                    .font(.system(size: 12, weight: isSelected ? .bold : .medium))
             }
-            .foregroundColor(isSelected ? c.gold2 : c.textTertiary)
-            .frame(maxWidth: .infinity).padding(.vertical, 7)
-            .background(isSelected ? c.goldDim : c.bg2)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(isSelected ? c.gold.opacity(0.3) : c.border, lineWidth: 1))
+            .foregroundColor(isSelected ? color : c.textTertiary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isSelected ? color.opacity(0.12) : Color.clear)
+            )
         }
     }
 }
@@ -228,12 +299,12 @@ struct GestureHintBar: View {
             Spacer()
         }
         .padding(.horizontal, 4)
-        .padding(.bottom, 2)
+        .padding(.bottom, 6)
     }
 }
 
-// MARK: - Task List
-struct TaskListContent: View {
+// MARK: - Modern Task List
+struct ModernTaskListContent: View {
     let tasks: [TaskItem]
     let viewModel: TasksViewModel
     let onEdit: (TaskItem) -> Void
@@ -246,33 +317,47 @@ struct TaskListContent: View {
     var body: some View {
         VStack(spacing: 8) {
             GestureHintBar()
-            ForEach(pending) { t in TaskRow(task: t, viewModel: viewModel, onEdit: onEdit, onDeleteRequest: onDeleteRequest) }
-            if !done.isEmpty && !pending.isEmpty {
-                HStack {
-                    Rectangle().fill(c.border).frame(height: 1)
-                    Text("Đã xong (\(done.count))").font(.system(size: 11)).foregroundColor(c.textQuaternary).fixedSize()
-                    Rectangle().fill(c.border).frame(height: 1)
-                }
-                .padding(.horizontal, 20).padding(.vertical, 4)
+
+            if pending.isEmpty && done.isEmpty {
+                TasksEmptyState(icon: "checkmark.circle", title: "Chưa có việc nào", subtitle: "Thêm việc cần làm bằng nút + bên dưới")
             }
-            ForEach(done) { t in TaskRow(task: t, viewModel: viewModel, onEdit: onEdit, onDeleteRequest: onDeleteRequest) }
+
+            ForEach(pending) { t in
+                ModernTaskRow(task: t, viewModel: viewModel, onEdit: onEdit, onDeleteRequest: onDeleteRequest)
+            }
+
+            if !done.isEmpty && !pending.isEmpty {
+                HStack(spacing: 8) {
+                    Rectangle().fill(c.borderSubtle).frame(height: 1)
+                    Text("Đã xong (\(done.count))")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(c.textQuaternary)
+                        .fixedSize()
+                    Rectangle().fill(c.borderSubtle).frame(height: 1)
+                }
+                .padding(.vertical, 6)
+            }
+
+            ForEach(done) { t in
+                ModernTaskRow(task: t, viewModel: viewModel, onEdit: onEdit, onDeleteRequest: onDeleteRequest)
+            }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 16)
     }
 }
 
-struct TaskRow: View {
+struct ModernTaskRow: View {
     let task: TaskItem
     let viewModel: TasksViewModel
     let onEdit: (TaskItem) -> Void
     let onDeleteRequest: (UUID) -> Void
     @Environment(\.lichSoColors) var c
 
-    private var priorityInfo: (String, Color) {
+    private var priorityInfo: (String, Color, String) {
         switch task.priority {
-        case 2: return ("Cao", c.red2)
-        case 1: return ("TB", c.gold2)
-        default: return ("Thấp", c.textTertiary)
+        case 2: return ("Cao", c.red2, "exclamationmark.triangle.fill")
+        case 1: return ("TB", c.gold, "minus.circle.fill")
+        default: return ("Thấp", c.textTertiary, "arrow.down.circle")
         }
     }
 
@@ -284,67 +369,104 @@ struct TaskRow: View {
         if days < 0 { return "Quá hạn \(abs(days))d" }
         if days == 0 { return "Hôm nay" }
         if days == 1 { return "Ngày mai" }
-        let f = DateFormatter(); f.dateFormat = "dd/MM"; return "HH: \(f.string(from: d))"
+        let f = DateFormatter(); f.dateFormat = "dd/MM"; return f.string(from: d)
     }
 
     private var isOverdue: Bool { guard let d = task.deadline, !task.isDone else { return false }; return d < Date() }
 
     var body: some View {
         HStack(spacing: 12) {
-            Button(action: { viewModel.toggleTask(task.id) }) {
-                Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 22))
-                    .foregroundColor(task.isDone ? c.teal : c.textTertiary)
+            // Checkbox
+            Button(action: { withAnimation(.spring(response: 0.3)) { viewModel.toggleTask(task.id) } }) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(task.isDone ? c.teal.opacity(0.15) : Color.clear)
+                        .frame(width: 24, height: 24)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(task.isDone ? c.teal : c.textQuaternary, lineWidth: 1.5)
+                        )
+                    if task.isDone {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(c.teal)
+                    }
+                }
             }
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(task.title)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(task.isDone ? c.textTertiary : c.textPrimary)
                     .strikethrough(task.isDone, color: c.textTertiary)
+
                 HStack(spacing: 6) {
-                    let (pLabel, pColor) = priorityInfo
-                    Text(pLabel).font(.system(size: 10, weight: .semibold)).foregroundColor(pColor)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(pColor.opacity(0.12)).clipShape(Capsule())
+                    let (pLabel, pColor, pIcon) = priorityInfo
+                    HStack(spacing: 3) {
+                        Image(systemName: pIcon).font(.system(size: 8))
+                        Text(pLabel).font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundColor(pColor)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(pColor.opacity(0.1))
+                    .clipShape(Capsule())
+
                     if let dl = deadlineText {
                         HStack(spacing: 3) {
                             Image(systemName: "calendar.badge.clock").font(.system(size: 9))
-                            Text(dl).font(.system(size: 10))
+                            Text(dl).font(.system(size: 10, weight: .medium))
                         }
                         .foregroundColor(isOverdue ? c.red2 : c.textTertiary)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background((isOverdue ? c.red : c.surface).opacity(0.15)).clipShape(Capsule())
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background((isOverdue ? c.red : c.surface).opacity(0.12))
+                        .clipShape(Capsule())
                     }
                 }
             }
             Spacer()
         }
-        .padding(.horizontal, 13).padding(.vertical, 11)
-        .background(c.bg2).clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(isOverdue ? c.red.opacity(0.3) : c.border, lineWidth: 1))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(c.panelBg)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(isOverdue ? c.red.opacity(0.3) : c.border, lineWidth: 1)
+                )
+        )
         .interactiveRow(onEdit: { onEdit(task) }, onDeleteRequest: { onDeleteRequest(task.id) })
     }
 }
 
-// MARK: - Note List
-struct NoteListContent: View {
+// MARK: - Modern Note List
+struct ModernNoteListContent: View {
     let notes: [NoteItem]
     let onEdit: (NoteItem) -> Void
     let onDeleteRequest: (UUID) -> Void
+    @Environment(\.lichSoColors) var c
+
     var body: some View {
         VStack(spacing: 8) {
             GestureHintBar()
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+
+            if notes.isEmpty {
+                TasksEmptyState(icon: "note.text", title: "Chưa có ghi chú", subtitle: "Tạo ghi chú mới bằng nút + bên dưới")
+            }
+
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                 ForEach(notes) { n in
-                    NoteCard(note: n, onEdit: { onEdit(n) }, onDeleteRequest: { onDeleteRequest(n.id) })
+                    ModernNoteCard(note: n, onEdit: { onEdit(n) }, onDeleteRequest: { onDeleteRequest(n.id) })
                 }
             }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 16)
     }
 }
 
-struct NoteCard: View {
+struct ModernNoteCard: View {
     let note: NoteItem
     let onEdit: () -> Void
     let onDeleteRequest: () -> Void
@@ -359,31 +481,57 @@ struct NoteCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Circle().fill(noteColor).frame(width: 8, height: 8)
+        VStack(alignment: .leading, spacing: 8) {
+            // Color bar at top
+            HStack(spacing: 0) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(noteColor)
+                    .frame(width: 30, height: 3)
                 Spacer()
                 Menu {
                     Button { onEdit() } label: { Label("Sửa", systemImage: "pencil") }
                     Button(role: .destructive) { onDeleteRequest() } label: { Label("Xoá", systemImage: "trash") }
                 } label: {
-                    Image(systemName: "ellipsis").font(.system(size: 13)).foregroundColor(c.textTertiary).padding(4)
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 13))
+                        .foregroundColor(c.textTertiary)
+                        .frame(width: 24, height: 24)
                 }
             }
-            Text(note.title).font(.system(size: 13, weight: .semibold)).foregroundColor(c.textPrimary).lineLimit(2)
-            Text(note.content).font(.system(size: 11)).foregroundColor(c.textSecondary).lineLimit(5)
+
+            Text(note.title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(c.textPrimary)
+                .lineLimit(2)
+
+            Text(note.content)
+                .font(.system(size: 11))
+                .foregroundColor(c.textSecondary)
+                .lineLimit(4)
+
             Spacer(minLength: 0)
-            Text(note.createdAt.formatted(date: .abbreviated, time: .omitted)).font(.system(size: 9)).foregroundColor(c.textQuaternary)
+
+            Text(note.createdAt.formatted(date: .abbreviated, time: .omitted))
+                .font(.system(size: 9, weight: .medium))
+                .foregroundColor(c.textQuaternary)
         }
-        .padding(12).frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
-        .background(c.bg2).clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(noteColor.opacity(0.35), lineWidth: 1.5))
+        .padding(12)
+        .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(c.panelBg)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(noteColor.opacity(0.25), lineWidth: 1.5)
+                )
+                .shadow(color: c.isDark ? Color.black.opacity(0.15) : Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+        )
         .interactiveRow(onEdit: { onEdit() }, onDeleteRequest: { onDeleteRequest() })
     }
 }
 
-// MARK: - Reminder List
-struct ReminderListContent: View {
+// MARK: - Modern Reminder List
+struct ModernReminderListContent: View {
     let reminders: [ReminderItem]
     let viewModel: TasksViewModel
     let onEdit: (ReminderItem) -> Void
@@ -391,15 +539,20 @@ struct ReminderListContent: View {
     var body: some View {
         VStack(spacing: 8) {
             GestureHintBar()
+
+            if reminders.isEmpty {
+                TasksEmptyState(icon: "bell", title: "Chưa có nhắc nhở", subtitle: "Tạo nhắc nhở mới bằng nút + bên dưới")
+            }
+
             ForEach(reminders) { r in
-                ReminderRow(reminder: r, viewModel: viewModel, onEdit: onEdit, onDeleteRequest: onDeleteRequest)
+                ModernReminderRow(reminder: r, viewModel: viewModel, onEdit: onEdit, onDeleteRequest: onDeleteRequest)
             }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 16)
     }
 }
 
-struct ReminderRow: View {
+struct ModernReminderRow: View {
     let reminder: ReminderItem
     let viewModel: TasksViewModel
     let onEdit: (ReminderItem) -> Void
@@ -413,31 +566,288 @@ struct ReminderRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
+            // Icon
             ZStack {
-                Circle().fill(reminder.isActive ? c.gold.opacity(0.12) : c.surface).frame(width: 38, height: 38)
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(reminder.isActive ? c.gold.opacity(0.1) : c.surface.opacity(0.5))
+                    .frame(width: 42, height: 42)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(reminder.isActive ? c.gold.opacity(0.2) : c.border, lineWidth: 1)
+                    )
                 Image(systemName: reminder.isActive ? "bell.fill" : "bell.slash")
-                    .font(.system(size: 15)).foregroundColor(reminder.isActive ? c.gold2 : c.textTertiary)
+                    .font(.system(size: 16))
+                    .foregroundColor(reminder.isActive ? c.gold : c.textTertiary)
             }
-            VStack(alignment: .leading, spacing: 3) {
-                Text(reminder.title).font(.system(size: 13, weight: .medium))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(reminder.title)
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(reminder.isActive ? c.textPrimary : c.textTertiary)
                 HStack(spacing: 4) {
                     Image(systemName: "clock").font(.system(size: 10))
-                    Text(timeString).font(.system(size: 11))
+                    Text(timeString).font(.system(size: 11, weight: .medium))
                 }
                 .foregroundColor(isPast ? c.red2 : c.textTertiary)
                 if !reminder.note.isEmpty {
-                    Text(reminder.note).font(.system(size: 11)).foregroundColor(c.textTertiary).lineLimit(1)
+                    Text(reminder.note)
+                        .font(.system(size: 11))
+                        .foregroundColor(c.textTertiary)
+                        .lineLimit(1)
                 }
             }
             Spacer()
             Toggle("", isOn: .init(get: { reminder.isActive }, set: { _ in viewModel.toggleReminder(reminder.id) }))
-                .labelsHidden().tint(c.teal)
+                .labelsHidden()
+                .tint(c.cyan)
         }
-        .padding(.horizontal, 13).padding(.vertical, 11)
-        .background(c.bg2).clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(isPast ? c.red.opacity(0.25) : c.border, lineWidth: 1))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(c.panelBg)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(isPast ? c.red.opacity(0.25) : c.border, lineWidth: 1)
+                )
+        )
         .interactiveRow(onEdit: { onEdit(reminder) }, onDeleteRequest: { onDeleteRequest(reminder.id) })
+    }
+}
+
+// MARK: - Quick Action Bar (Bottom)
+struct QuickActionBar: View {
+    @ObservedObject var viewModel: TasksViewModel
+    let onAddTap: () -> Void
+    @Environment(\.lichSoColors) var c
+
+    private var pendingCount: Int { viewModel.tasks.filter { !$0.isDone }.count }
+    private var doneCount: Int { viewModel.tasks.filter { $0.isDone }.count }
+    private var activeReminders: Int { viewModel.reminders.filter { $0.isActive }.count }
+    private var overdueCount: Int {
+        viewModel.tasks.filter { !$0.isDone && ($0.deadline ?? .distantFuture) < Date() }.count
+    }
+    private var nextDeadline: TaskItem? {
+        viewModel.tasks
+            .filter { !$0.isDone && $0.deadline != nil && $0.deadline! > Date() }
+            .sorted { ($0.deadline ?? .distantFuture) < ($1.deadline ?? .distantFuture) }
+            .first
+    }
+
+    private var summaryText: String {
+        switch viewModel.selectedTab {
+        case .tasks:
+            if overdueCount > 0 {
+                return "⚠️ \(overdueCount) việc quá hạn cần xử lý!"
+            } else if pendingCount == 0 && doneCount > 0 {
+                return "🎉 Tuyệt vời! Đã hoàn thành tất cả."
+            } else if let next = nextDeadline, let dl = next.deadline {
+                let days = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: Date()), to: Calendar.current.startOfDay(for: dl)).day ?? 0
+                if days == 0 { return "⏰ \"\(next.title)\" hết hạn hôm nay!" }
+                if days == 1 { return "📌 \"\(next.title)\" hết hạn ngày mai" }
+                return "📅 Sắp tới: \"\(next.title)\" – còn \(days) ngày"
+            } else if pendingCount > 0 {
+                return "📋 Bạn có \(pendingCount) việc cần làm"
+            } else {
+                return "✨ Thêm việc mới để bắt đầu!"
+            }
+        case .notes:
+            let count = viewModel.notes.count
+            if count == 0 { return "📝 Ghi lại ý tưởng, ngày tốt, ghi chú quan trọng" }
+            return "📝 \(count) ghi chú · Chạm + để thêm mới"
+        case .reminders:
+            if activeReminders == 0 { return "🔔 Tạo nhắc nhở để không bỏ lỡ ngày quan trọng" }
+            return "🔔 \(activeReminders) nhắc nhở đang hoạt động"
+        }
+    }
+
+    private var summaryIcon: String {
+        switch viewModel.selectedTab {
+        case .tasks: return overdueCount > 0 ? "exclamationmark.triangle.fill" : "chart.bar.fill"
+        case .notes: return "lightbulb.fill"
+        case .reminders: return "bell.badge.fill"
+        }
+    }
+
+    private var summaryColor: Color {
+        switch viewModel.selectedTab {
+        case .tasks: return overdueCount > 0 ? c.red2 : c.cyan
+        case .notes: return c.teal
+        case .reminders: return c.gold
+        }
+    }
+
+    private var progressValue: Double {
+        let total = pendingCount + doneCount
+        guard total > 0 else { return 0 }
+        return Double(doneCount) / Double(total)
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // ─── Summary Card ───
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: summaryIcon)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(summaryColor)
+                    Text(summaryText)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(c.textPrimary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                // Progress bar for tasks tab
+                if viewModel.selectedTab == .tasks && (pendingCount + doneCount) > 0 {
+                    HStack(spacing: 8) {
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(c.surface)
+                                    .frame(height: 5)
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [c.teal, c.cyan],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .frame(width: geo.size.width * progressValue, height: 5)
+                                    .animation(.spring(response: 0.4), value: progressValue)
+                            }
+                        }
+                        .frame(height: 5)
+                        Text("\(doneCount)/\(pendingCount + doneCount)")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(c.textTertiary)
+                            .monospacedDigit()
+                    }
+                }
+
+                // Quick action chips
+                HStack(spacing: 6) {
+                    QuickChip(icon: quickChipIcon, label: quickChipLabel, color: summaryColor, action: onAddTap)
+
+                    if viewModel.selectedTab == .tasks && doneCount > 0 {
+                        QuickChip(
+                            icon: "trash.circle",
+                            label: "Xoá đã xong",
+                            color: c.textTertiary,
+                            action: {
+                                withAnimation {
+                                    let doneIds = viewModel.tasks.filter { $0.isDone }.map { $0.id }
+                                    doneIds.forEach { viewModel.deleteTask($0) }
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // ─── FAB ───
+            Button(action: onAddTap) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(colors: [c.cyan, c.cyan2], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        )
+                        .frame(width: 50, height: 50)
+                        .shadow(color: c.cyan.opacity(0.3), radius: 8, x: 0, y: 3)
+                    Image(systemName: "plus")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+            }
+            .accessibilityLabel(quickChipLabel)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            Rectangle()
+                .fill(c.bg)
+                .overlay(alignment: .top) {
+                    Rectangle()
+                        .fill(c.border.opacity(0.5))
+                        .frame(height: 0.5)
+                }
+                .shadow(color: c.isDark ? Color.black.opacity(0.2) : Color.black.opacity(0.05), radius: 8, x: 0, y: -4)
+        )
+    }
+
+    private var quickChipIcon: String {
+        switch viewModel.selectedTab {
+        case .tasks: return "plus.square"
+        case .notes: return "plus.rectangle.on.rectangle"
+        case .reminders: return "bell.badge.plus"
+        }
+    }
+
+    private var quickChipLabel: String {
+        switch viewModel.selectedTab {
+        case .tasks: return "Thêm việc"
+        case .notes: return "Ghi chú mới"
+        case .reminders: return "Nhắc nhở mới"
+        }
+    }
+}
+
+// MARK: - Quick Chip Button
+struct QuickChip: View {
+    let icon: String
+    let label: String
+    let color: Color
+    let action: () -> Void
+    @Environment(\.lichSoColors) var c
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .semibold))
+                Text(label)
+                    .font(.system(size: 10, weight: .semibold))
+            }
+            .foregroundColor(color)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                Capsule()
+                    .fill(color.opacity(0.1))
+                    .overlay(
+                        Capsule()
+                            .stroke(color.opacity(0.2), lineWidth: 0.5)
+                    )
+            )
+        }
+        .accessibilityLabel(label)
+    }
+}
+
+// MARK: - Empty State
+struct TasksEmptyState: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    @Environment(\.lichSoColors) var c
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 32, weight: .light))
+                .foregroundColor(c.textQuaternary)
+            Text(title)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(c.textTertiary)
+            Text(subtitle)
+                .font(.system(size: 12))
+                .foregroundColor(c.textQuaternary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
     }
 }
 
@@ -509,7 +919,7 @@ struct TaskEditSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(isEditing ? "Cập nhật" : "Lưu") { save() }
                         .fontWeight(.semibold)
-                        .foregroundColor(isValid ? c.gold2 : c.textQuaternary)
+                        .foregroundColor(isValid ? c.cyan : c.textQuaternary)
                         .disabled(!isValid)
                 }
             }
@@ -526,7 +936,7 @@ struct TaskEditSheet: View {
             FormSection(title: "ĐỘ ƯU TIÊN") {
                 HStack(spacing: 8) {
                     ForEach([("Thấp", 0), ("Bình thường", 1), ("Cao", 2)], id: \.0) { label, val in
-                        let color: Color = val == 2 ? c.red2 : val == 1 ? c.gold2 : c.textTertiary
+                        let color: Color = val == 2 ? c.red2 : val == 1 ? c.gold : c.textTertiary
                         Button { taskPriority = val } label: {
                             HStack(spacing: 6) {
                                 Circle().fill(color).frame(width: 8, height: 8)
@@ -534,9 +944,9 @@ struct TaskEditSheet: View {
                             }
                             .foregroundColor(taskPriority == val ? color : c.textTertiary)
                             .frame(maxWidth: .infinity).padding(.vertical, 10)
-                            .background(taskPriority == val ? color.opacity(0.12) : c.bg2)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(taskPriority == val ? color.opacity(0.4) : c.border, lineWidth: 1))
+                            .background(taskPriority == val ? color.opacity(0.12) : c.panelBg)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(taskPriority == val ? color.opacity(0.4) : c.border, lineWidth: 1))
                         }
                     }
                 }
@@ -544,21 +954,21 @@ struct TaskEditSheet: View {
             FormSection(title: "DEADLINE") {
                 VStack(spacing: 0) {
                     HStack {
-                        Image(systemName: "calendar.badge.clock").font(.system(size: 15)).foregroundColor(c.teal).frame(width: 24)
+                        Image(systemName: "calendar.badge.clock").font(.system(size: 15)).foregroundColor(c.cyan).frame(width: 24)
                         Text("Đặt deadline").font(.system(size: 14)).foregroundColor(c.textPrimary)
                         Spacer()
-                        Toggle("", isOn: $hasDeadline).labelsHidden().tint(c.teal)
+                        Toggle("", isOn: $hasDeadline).labelsHidden().tint(c.cyan)
                     }
                     .padding(.horizontal, 14).padding(.vertical, 12)
                     if hasDeadline {
                         Divider().overlay(c.border).padding(.horizontal, 14)
                         DatePicker("", selection: $taskDeadline, in: Date()..., displayedComponents: [.date, .hourAndMinute])
-                            .labelsHidden().datePickerStyle(.graphical).tint(c.teal)
+                            .labelsHidden().datePickerStyle(.graphical).tint(c.cyan)
                             .padding(.horizontal, 8).padding(.bottom, 8)
                     }
                 }
-                .background(c.bg2).clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(c.border, lineWidth: 1))
+                .background(c.panelBg).clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(c.border, lineWidth: 1))
             }
         }
     }
@@ -580,8 +990,8 @@ struct TaskEditSheet: View {
                         .frame(minHeight: 130).padding(.horizontal, 12).padding(.vertical, 8)
                         .scrollContentBackground(.hidden)
                 }
-                .background(c.bg2).clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(c.border, lineWidth: 1))
+                .background(c.panelBg).clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(c.border, lineWidth: 1))
             }
             FormSection(title: "MÀU SẮC") {
                 HStack(spacing: 10) {
@@ -603,8 +1013,8 @@ struct TaskEditSheet: View {
                     }
                 }
                 .padding(.horizontal, 14).padding(.vertical, 12)
-                .background(c.bg2).clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(c.border, lineWidth: 1))
+                .background(c.panelBg).clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(c.border, lineWidth: 1))
             }
         }
     }
@@ -620,10 +1030,10 @@ struct TaskEditSheet: View {
             }
             FormSection(title: "THỜI GIAN") {
                 DatePicker("", selection: $reminderTime, displayedComponents: [.date, .hourAndMinute])
-                    .labelsHidden().datePickerStyle(.graphical).tint(c.teal)
+                    .labelsHidden().datePickerStyle(.graphical).tint(c.cyan)
                     .padding(.horizontal, 8).padding(.vertical, 8)
-                    .background(c.bg2).clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(c.border, lineWidth: 1))
+                    .background(c.panelBg).clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(c.border, lineWidth: 1))
             }
         }
     }
@@ -685,11 +1095,11 @@ struct SheetTextField: View {
     @Environment(\.lichSoColors) var c
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: icon).font(.system(size: 15)).foregroundColor(c.teal).frame(width: 24)
+            Image(systemName: icon).font(.system(size: 15)).foregroundColor(c.cyan).frame(width: 24)
             TextField(placeholder, text: $text).font(.system(size: 14)).foregroundColor(c.textPrimary)
         }
         .padding(.horizontal, 14).padding(.vertical, 13)
-        .background(c.bg2).clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(c.border, lineWidth: 1))
+        .background(c.panelBg).clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(c.border, lineWidth: 1))
     }
 }
