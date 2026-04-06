@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.LichSo" parent="android:Theme.Material.NoActionBar">
-        <item name="android:statusBarColor">#FF0F0E0C</item>
-        <item name="android:navigationBarColor">#FF181610</item>
-        <item name="android:windowBackground">#FF0F0E0C</item>
+    <style name="Theme.LichSo" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">#FFFFFBF5</item>
+        <item name="android:windowBackground">#FFFFFBF5</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <!-- Splash theme: red background, no logo — shown briefly while app loads -->
+    <style name="Theme.LichSo.Splash" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#B71C1C</item>
+        <item name="android:navigationBarColor">#8B0000</item>
+        <item name="android:windowBackground">@color/splash_background</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

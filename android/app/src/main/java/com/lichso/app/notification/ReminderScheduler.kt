@@ -4,7 +4,6 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import com.lichso.app.data.local.entity.ReminderEntity
 
 /**
@@ -42,26 +41,12 @@ class ReminderScheduler(private val context: Context) {
 
         val pi = buildPendingIntent(reminder)
 
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                !alarmManager.canScheduleExactAlarms()
-            ) {
-                // Fallback: inexact alarm
-                alarmManager.setAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    nextTrigger,
-                    pi
-                )
-            } else {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    nextTrigger,
-                    pi
-                )
-            }
-        } catch (_: SecurityException) {
-            alarmManager.set(AlarmManager.RTC_WAKEUP, nextTrigger, pi)
-        }
+        // Sử dụng inexact alarm — không cần quyền SCHEDULE_EXACT_ALARM
+        alarmManager.setAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            nextTrigger,
+            pi
+        )
     }
 
     fun cancel(reminderId: Long) {

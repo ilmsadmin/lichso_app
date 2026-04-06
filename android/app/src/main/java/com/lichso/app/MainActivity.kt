@@ -4,29 +4,89 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.datastore.preferences.core.edit
 import com.lichso.app.ui.LichSoMainScreen
+import com.lichso.app.ui.screen.onboarding.OnboardingScreen
 import com.lichso.app.ui.screen.settings.SettingsKeys
 import com.lichso.app.ui.screen.settings.settingsDataStore
+import com.lichso.app.ui.screen.splash.SplashScreen
 import com.lichso.app.ui.theme.LichSoTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+
+private enum class AppScreen { SPLASH, ONBOARDING, MAIN }
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Switch from splash theme (red background) to normal theme
+        setTheme(R.style.Theme_LichSo)
         enableEdgeToEdge()
         setContent {
-            val darkMode by settingsDataStore.data
-                .map { it[SettingsKeys.DARK_MODE] ?: true }
-                .collectAsState(initial = true)
+            val context = LocalContext.current
+            val coroutineScope = rememberCoroutineScope()
+
+            val themeMode by context.settingsDataStore.data
+                .map { it[SettingsKeys.THEME_MODE] ?: "system" }
+                .collectAsState(initial = "system")
+
+            val systemDark = isSystemInDarkTheme()
+            val darkMode = when (themeMode) {
+                "dark" -> true
+                "light" -> false
+                else -> systemDark
+            }
+
+            // Track which screen to show
+            var currentScreen by remember { mutableStateOf(AppScreen.SPLASH) }
+
+            // Read onboarding state once on first composition
+            var onboardingCompleted by remember { mutableStateOf<Boolean?>(null) }
+            LaunchedEffect(Unit) {
+                val prefs = context.settingsDataStore.data.first()
+                onboardingCompleted = prefs[SettingsKeys.ONBOARDING_COMPLETED] ?: false
+            }
 
             LichSoTheme(darkTheme = darkMode) {
-                LichSoMainScreen(modifier = Modifier.fillMaxSize())
+                when (currentScreen) {
+                    AppScreen.SPLASH -> {
+                        SplashScreen(
+                            onSplashFinished = {
+                                currentScreen = if (onboardingCompleted == true) {
+                                    AppScreen.MAIN
+                                } else {
+                                    AppScreen.ONBOARDING
+                                }
+                            }
+                        )
+                    }
+
+                    AppScreen.ONBOARDING -> {
+                        OnboardingScreen(
+                            onFinish = {
+                                // Mark onboarding as completed
+                                coroutineScope.launch {
+                                    context.settingsDataStore.edit { prefs ->
+                                        prefs[SettingsKeys.ONBOARDING_COMPLETED] = true
+                                    }
+                                }
+                                currentScreen = AppScreen.MAIN
+                            }
+                        )
+                    }
+
+                    AppScreen.MAIN -> {
+                        LichSoMainScreen(modifier = Modifier.fillMaxSize())
+                    }
+                }
             }
         }
     }

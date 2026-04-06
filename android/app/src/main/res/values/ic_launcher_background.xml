@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Background tối huyền bí, đồng bộ với tone màu icon -->
-    <color name="ic_launcher_background">#1A1008</color>
+    <!-- Background đỏ cho icon app -->
+    <color name="ic_launcher_background">#D32F2F</color>
 </resources>

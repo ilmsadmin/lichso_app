@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
- * Reschedule tất cả reminders đang enabled sau khi device reboot.
+ * Reschedule tất cả reminders và workers đang enabled sau khi device reboot.
  */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -23,11 +23,30 @@ class BootReceiver : BroadcastReceiver() {
             try {
                 val prefs = context.settingsDataStore.data.first()
                 val notifyEnabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
+                val gioDaiCatEnabled = prefs[SettingsKeys.GIO_DAI_CAT] ?: false
+                val festivalReminderEnabled = prefs[SettingsKeys.FESTIVAL_REMINDER] ?: true
+                val reminderHour = prefs[SettingsKeys.REMINDER_HOUR] ?: 7
+                val reminderMinute = prefs[SettingsKeys.REMINDER_MINUTE] ?: 0
+
                 if (notifyEnabled) {
+                    // Reschedule individual task reminders
                     val db = LichSoDatabase.getInstance(context)
                     val reminders = db.reminderDao().getEnabledReminders().first()
                     val scheduler = ReminderScheduler(context)
                     reminders.forEach { scheduler.schedule(it) }
+
+                    // Reschedule daily notification worker
+                    DailyNotificationWorker.schedule(context, reminderHour, reminderMinute)
+                }
+
+                // Reschedule giờ đại cát worker
+                if (gioDaiCatEnabled) {
+                    GioDaiCatWorker.schedule(context, reminderHour, reminderMinute)
+                }
+
+                // Reschedule festival reminder worker
+                if (festivalReminderEnabled) {
+                    FestivalReminderWorker.schedule(context)
                 }
             } finally {
                 pendingResult.finish()

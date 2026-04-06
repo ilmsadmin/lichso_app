@@ -6,6 +6,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -14,161 +15,512 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lichso.app.domain.model.*
+import com.lichso.app.ui.screen.home.HomeUiState
 import com.lichso.app.ui.screen.home.HomeViewModel
 import com.lichso.app.ui.theme.*
+import com.lichso.app.ui.components.AppTopBar
+import com.lichso.app.ui.components.HeaderIconButton
+import com.lichso.app.ui.components.LichSoDialog
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
-fun CalendarScreen(viewModel: HomeViewModel = hiltViewModel()) {
+fun CalendarScreen(
+    onGoodDaysClick: () -> Unit = {},
+    onSearchClick: () -> Unit = {},
+    onMenuClick: () -> Unit = {},
+    viewModel: HomeViewModel = hiltViewModel()
+) {
     val c = LichSoThemeColors.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    // Track which day's detail overlay is shown
     var showDayDetail by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(c.bg)
-                .verticalScroll(rememberScrollState())
-        ) {
-        // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                "Lịch Tháng",
-                style = TextStyle(
-                    fontFamily = FontFamily.Serif,
-                    fontSize = 22.sp,
-                    color = c.gold2,
-                    letterSpacing = 0.3.sp
-                )
-            )
-            // Today button
-            Box(
-                modifier = Modifier
-                    .background(c.goldDim, RoundedCornerShape(20.dp))
-                    .border(1.dp, c.gold.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
-                    .clip(RoundedCornerShape(20.dp))
-                    .clickable { viewModel.goToToday() }
-                    .padding(horizontal = 12.dp, vertical = 5.dp)
-            ) {
-                Text(
-                    "Hôm nay",
-                    style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = c.gold2)
-                )
-            }
+    // Day Actions ViewModel (bookmark, note, reminder)
+    val dayActionsViewModel: DayActionsViewModel = hiltViewModel()
+    val dayActionsState by dayActionsViewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // Toast feedback
+    LaunchedEffect(dayActionsState.toastMessage) {
+        dayActionsState.toastMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            dayActionsViewModel.consumeToast()
         }
+    }
 
-        // Month Navigation
-        MonthNavigation(
-            month = uiState.currentMonth,
-            year = uiState.currentYear,
-            onPrev = viewModel::prevMonth,
-            onNext = viewModel::nextMonth
-        )
+    // Load month bookmarks when month changes
+    LaunchedEffect(uiState.currentMonth, uiState.currentYear) {
+        dayActionsViewModel.loadMonthBookmarks(uiState.currentMonth, uiState.currentYear)
+    }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Calendar Grid
-        CalendarGrid(
-            days = uiState.calendarDays,
-            selectedDate = uiState.selectedDate,
-            showLunarBadge = uiState.showLunarBadge,
+    Box(modifier = Modifier.fillMaxSize()) {
+        // ═══ CALENDAR VIEW (always composed, hidden when detail shown) ═══
+        CalendarContent(
+            uiState = uiState,
+            viewModel = viewModel,
+            monthBookmarks = dayActionsState.monthBookmarks,
+            onGoodDaysClick = onGoodDaysClick,
+            onSearchClick = onSearchClick,
+            onMenuClick = onMenuClick,
             onDayClick = { day ->
                 viewModel.selectDay(day.solarDay, day.solarMonth, day.solarYear)
+                dayActionsViewModel.selectDate(day.solarDay, day.solarMonth, day.solarYear)
                 showDayDetail = true
             }
         )
 
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // Selected day info
-        uiState.dayInfo?.let { info ->
-            SectionLabel(text = "THÔNG TIN NGÀY ${info.solar.dd}/${info.solar.mm}")
-            Spacer(modifier = Modifier.height(7.dp))
-            ActivityGrid(info = info)
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // Events
-        if (uiState.upcomingEvents.isNotEmpty()) {
-            SectionLabel(text = "SỰ KIỆN SẮP TỚI")
-            Spacer(modifier = Modifier.height(7.dp))
-            EventList(events = uiState.upcomingEvents)
-        }
-
-        Spacer(modifier = Modifier.height(96.dp))
-        }
-
-        // ═══ Day Detail Overlay ═══
+        // ═══ FULL-SCREEN DAY DETAIL (slide up) ═══
         AnimatedVisibility(
             visible = showDayDetail && uiState.dayInfo != null,
-            enter = fadeIn(animationSpec = tween(200)) + slideInVertically(
-                initialOffsetY = { it / 4 },
-                animationSpec = tween(300, easing = EaseOutCubic)
-            ),
-            exit = fadeOut(animationSpec = tween(150)) + slideOutVertically(
-                targetOffsetY = { it / 4 },
-                animationSpec = tween(200)
-            )
+            enter = slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = tween(350, easing = FastOutSlowInEasing)
+            ) + fadeIn(animationSpec = tween(250)),
+            exit = slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = tween(300, easing = FastOutSlowInEasing)
+            ) + fadeOut(animationSpec = tween(200))
         ) {
             uiState.dayInfo?.let { info ->
-                DayDetailOverlay(
+                DayDetailScreen(
                     dayInfo = info,
-                    onDismiss = { showDayDetail = false }
+                    onBackClick = { showDayDetail = false },
+                    onShareClick = { /* TODO */ },
+                    onBookmarkClick = { dayActionsViewModel.toggleBookmark() },
+                    onAskAiClick = { /* TODO: navigate to AI chat */ },
+                    isBookmarked = dayActionsState.isBookmarked,
+                    onAddNoteClick = { dayActionsViewModel.showAddNoteForDay() },
+                    onAddReminderClick = { dayActionsViewModel.showAddReminderForDay() },
+                    onBookmarkLongClick = { dayActionsViewModel.showBookmarkLabel() },
+                    dayNotes = dayActionsState.dayNotes,
+                    dayTasks = dayActionsState.dayTasks,
+                    dayReminders = dayActionsState.dayReminders
                 )
             }
         }
     }
+
+    // ═══ DAY ACTION DIALOGS ═══
+
+    if (dayActionsState.showBookmarkLabelDialog) {
+        BookmarkLabelDialog(
+            day = dayActionsState.selectedDay,
+            month = dayActionsState.selectedMonth,
+            year = dayActionsState.selectedYear,
+            existingLabel = dayActionsState.currentBookmark?.label ?: "",
+            onSave = { label -> dayActionsViewModel.bookmarkWithLabel(label) },
+            onDismiss = { dayActionsViewModel.hideBookmarkLabel() }
+        )
+    }
+
+    // ═══ FULL-SCREEN NOTE/REMINDER EDIT (consistent with TasksScreen3) ═══
+    val showNoteOrReminderEdit = dayActionsState.showAddNoteDialog || dayActionsState.showAddReminderDialog
+
+    if (showNoteOrReminderEdit) {
+        val editInitialType = if (dayActionsState.showAddNoteDialog)
+            com.lichso.app.ui.screen.tasks.EditItemType.NOTE
+        else
+            com.lichso.app.ui.screen.tasks.EditItemType.REMIND
+
+        // Build attached date from current day info
+        val attachedDate = com.lichso.app.ui.screen.tasks.AttachedDate(
+            day = dayActionsState.selectedDay,
+            month = dayActionsState.selectedMonth,
+            year = dayActionsState.selectedYear,
+            lunarInfo = uiState.dayInfo?.let {
+                "${it.lunar.day}/${it.lunar.month} Âm lịch"
+            } ?: "",
+            holiday = uiState.dayInfo?.let {
+                it.lunarHoliday ?: it.solarHoliday ?: ""
+            } ?: ""
+        )
+
+        Box(modifier = Modifier.fillMaxSize()) {
+            com.lichso.app.ui.screen.tasks.NoteTaskEditScreen(
+                initialType = editInitialType,
+                attachedDate = attachedDate,
+                onBackClick = {
+                    dayActionsViewModel.hideAddNote()
+                    dayActionsViewModel.hideAddReminder()
+                },
+                onSaveNote = { note ->
+                    dayActionsViewModel.addNoteForDay(note.title, note.content, note.colorIndex)
+                },
+                onSaveTask = { task ->
+                    // Tasks are also supported from here
+                    dayActionsViewModel.addNoteForDay(task.title, task.description, 0)
+                },
+                onSaveReminder = { reminder ->
+                    val cal = java.util.Calendar.getInstance()
+                    cal.timeInMillis = reminder.triggerTime
+                    dayActionsViewModel.addReminderForDay(
+                        reminder.title,
+                        cal.get(java.util.Calendar.HOUR_OF_DAY),
+                        cal.get(java.util.Calendar.MINUTE),
+                        reminder.repeatType
+                    )
+                },
+                onDelete = {
+                    dayActionsViewModel.hideAddNote()
+                    dayActionsViewModel.hideAddReminder()
+                }
+            )
+        }
+    }
 }
 
-// ═══ Month Navigation ═══
+@Composable
+private fun CalendarContent(
+    uiState: HomeUiState,
+    viewModel: HomeViewModel,
+    monthBookmarks: List<com.lichso.app.data.local.entity.BookmarkEntity> = emptyList(),
+    onGoodDaysClick: () -> Unit = {},
+    onSearchClick: () -> Unit = {},
+    onMenuClick: () -> Unit = {},
+    onDayClick: (CalendarDay) -> Unit
+) {
+    val c = LichSoThemeColors.current
+    var showSearchDialog by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(c.bg)
+    ) {
+        // ═══ TOP BAR ═══
+        AppTopBar(
+            title = "Lịch tháng",
+            subtitle = "Âm lịch · ${uiState.dayInfo?.yearCanChi ?: ""}",
+            onBackClick = onMenuClick,
+            leadingIcon = Icons.Filled.Menu,
+            actions = {
+                HeaderIconButton(
+                    icon = Icons.Filled.Search,
+                    contentDescription = "Tìm kiếm",
+                    onClick = { onSearchClick() }
+                )
+                HeaderIconButton(
+                    icon = Icons.Filled.EventAvailable,
+                    contentDescription = "Ngày tốt",
+                    onClick = onGoodDaysClick
+                )
+            }
+        )
+
+        // ═══ MONTH SELECTOR ═══
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = { viewModel.prevMonth() },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(Icons.Filled.ChevronLeft, contentDescription = "Tháng trước", tint = c.textPrimary, modifier = Modifier.size(20.dp))
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "Tháng ${uiState.currentMonth}, ${uiState.currentYear}",
+                    style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = c.primary)
+                )
+                Text(
+                    "Tháng ${uiState.dayInfo?.lunar?.month ?: ""} Âm lịch",
+                    style = TextStyle(fontSize = 11.sp, color = c.textTertiary)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            IconButton(
+                onClick = { viewModel.nextMonth() },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(Icons.Filled.ChevronRight, contentDescription = "Tháng sau", tint = c.textPrimary, modifier = Modifier.size(20.dp))
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // ═══ CALENDAR GRID ═══
+        CalendarGrid(
+            days = uiState.calendarDays,
+            selectedDate = uiState.selectedDate,
+            showLunarBadge = uiState.showLunarBadge,
+            showHoangDao = uiState.showHoangDao,
+            weekStartSunday = uiState.weekStartSunday,
+            bookmarkedDays = monthBookmarks.map { it.solarDay to it.solarMonth }.toSet(),
+            onDayClick = onDayClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(horizontal = 16.dp)
+        )
+
+        // ═══ SELECTED DAY DETAIL PANEL (inline, matching HTML) ═══
+        uiState.dayInfo?.let { info ->
+            SelectedDayDetailPanel(
+                dayInfo = info,
+                upcomingEvents = uiState.upcomingEvents,
+                onTap = {
+                    // Find the matching CalendarDay for current selection to trigger full detail
+                    val matchingDay = uiState.calendarDays.find {
+                        it.solarDay == uiState.selectedDate.dayOfMonth &&
+                        it.solarMonth == uiState.selectedDate.monthValue &&
+                        it.solarYear == uiState.selectedDate.year &&
+                        it.isCurrentMonth
+                    }
+                    matchingDay?.let { onDayClick(it) }
+                }
+            )
+        }
+    }
+
+    // ═══ SEARCH / JUMP DATE DIALOG ═══
+    if (showSearchDialog) {
+        JumpToDateDialog(
+            currentYear = uiState.currentYear,
+            currentMonth = uiState.currentMonth,
+            onDismiss = { showSearchDialog = false },
+            onConfirm = { year, month, day ->
+                viewModel.goToDate(year, month, day)
+                showSearchDialog = false
+            }
+        )
+    }
+}
+
+// ═══ Jump to Date Dialog ═══
 
 @Composable
-private fun MonthNavigation(month: Int, year: Int, onPrev: () -> Unit, onNext: () -> Unit) {
+private fun JumpToDateDialog(
+    currentYear: Int,
+    currentMonth: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (year: Int, month: Int, day: Int) -> Unit
+) {
     val c = LichSoThemeColors.current
+    var dayText by remember { mutableStateOf("") }
+    var monthText by remember { mutableStateOf("$currentMonth") }
+    var yearText by remember { mutableStateOf("$currentYear") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    LichSoDialog(
+        onDismiss = onDismiss,
+        title = "Đi đến ngày",
+        icon = Icons.Filled.Search,
+        iconTint = c.primary,
+        iconBgColor = c.primary.copy(alpha = 0.12f),
+        confirmText = "Đi đến",
+        confirmColor = c.primary,
+        onConfirm = {
+            val year = yearText.toIntOrNull()
+            val month = monthText.toIntOrNull()
+            val day = dayText.toIntOrNull()
+            when {
+                year == null || year < 1900 || year > 2100 -> errorMessage = "Năm không hợp lệ (1900-2100)"
+                month == null || month < 1 || month > 12 -> errorMessage = "Tháng không hợp lệ (1-12)"
+                day == null || day < 1 || day > 31 -> errorMessage = "Ngày không hợp lệ"
+                else -> {
+                    try {
+                        java.time.LocalDate.of(year, month, day)
+                        onConfirm(year, month, day)
+                    } catch (_: Exception) {
+                        errorMessage = "Ngày không hợp lệ cho tháng $month/$year"
+                    }
+                }
+            }
+        },
+    ) {
+        Text(
+            "Nhập ngày muốn xem:",
+            style = TextStyle(fontSize = 14.sp, color = c.textTertiary)
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = dayText,
+                onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) { dayText = it; errorMessage = null } },
+                label = { Text("Ngày", fontSize = 12.sp) },
+                placeholder = { Text("1-31", fontSize = 13.sp) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+            )
+            OutlinedTextField(
+                value = monthText,
+                onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) { monthText = it; errorMessage = null } },
+                label = { Text("Tháng", fontSize = 12.sp) },
+                placeholder = { Text("1-12", fontSize = 13.sp) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+            )
+            OutlinedTextField(
+                value = yearText,
+                onValueChange = { if (it.length <= 4 && it.all { ch -> ch.isDigit() }) { yearText = it; errorMessage = null } },
+                label = { Text("Năm", fontSize = 12.sp) },
+                placeholder = { Text("2025", fontSize = 13.sp) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                modifier = Modifier.weight(1.2f),
+                textStyle = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+            )
+        }
+        errorMessage?.let {
+            Text(it, style = TextStyle(fontSize = 12.sp, color = Color(0xFFE53935)))
+        }
+    }
+}
+
+// ═══ Selected Day Detail Panel (inline, matches HTML day-detail) ═══
+
+@Composable
+private fun SelectedDayDetailPanel(
+    dayInfo: DayInfo,
+    upcomingEvents: List<UpcomingEvent>,
+    onTap: () -> Unit
+) {
+    val c = LichSoThemeColors.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onTap)
+            .drawBehind {
+                drawLine(
+                    color = Color(0xFFD8C2BF),
+                    start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                    end = androidx.compose.ui.geometry.Offset(size.width, 0f),
+                    strokeWidth = 1.dp.toPx()
+                )
+            }
+            .padding(horizontal = 20.dp, vertical = 16.dp)
+    ) {
+        // Header: Date + Lunar
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "${dayInfo.dayOfWeek}, ${"%02d".format(dayInfo.solar.dd)}/${"%02d".format(dayInfo.solar.mm)}/${dayInfo.solar.yy}",
+                style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = c.textPrimary)
+            )
+            Text(
+                "${if (dayInfo.isRam) "Rằm" else if (dayInfo.isMung1) "Mùng 1" else "Mùng ${dayInfo.lunar.day}"}/${dayInfo.lunar.month} Âm",
+                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = c.primary)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Detail items
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Hoang dao / xau day rating item
+            val rating = dayInfo.dayRating
+            if (rating.label.isNotEmpty()) {
+                val isGood = rating.label == "Rất tốt" || rating.label == "Tốt"
+                val itemColor = if (isGood) Color(0xFF2E7D32) else Color(0xFFE65100)
+                val icon = if (isGood) Icons.Filled.Verified else Icons.Filled.Warning
+                val activitiesHint = if (dayInfo.activities.nenLam.isNotEmpty()) {
+                    " — ${dayInfo.activities.nenLam.take(2).joinToString(", ")}"
+                } else ""
+                DetailChip(
+                    icon = icon,
+                    text = "Ngày ${rating.label}$activitiesHint",
+                    color = itemColor
+                )
+            }
+
+            // Holidays (solar or lunar)
+            dayInfo.solarHoliday?.let { holiday ->
+                DetailChip(
+                    icon = Icons.Filled.Celebration,
+                    text = holiday,
+                    color = Color(0xFFE65100)
+                )
+            }
+            dayInfo.lunarHoliday?.let { holiday ->
+                DetailChip(
+                    icon = Icons.Filled.Celebration,
+                    text = holiday,
+                    color = Color(0xFFE65100)
+                )
+            }
+
+            // Nearby upcoming events (from the upcoming events list)
+            val nearbyEvent = upcomingEvents.firstOrNull { it.timeLabel != "Hôm nay" }
+            nearbyEvent?.let { event ->
+                DetailChip(
+                    icon = Icons.Filled.HistoryEdu,
+                    text = "Gần ${event.title} (${event.timeLabel})",
+                    color = Color(0xFF1565C0)
+                )
+            }
+
+            // If nothing to show, display can chi
+            if (rating.label.isEmpty() && dayInfo.solarHoliday == null && dayInfo.lunarHoliday == null && nearbyEvent == null) {
+                DetailChip(
+                    icon = Icons.Filled.Info,
+                    text = "Ngày ${dayInfo.dayCanChi} · ${dayInfo.trucNgay.name}",
+                    color = c.outline
+                )
+            }
+        }
+
+        // Hint to see full detail
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            "Nhấn để xem chi tiết ›",
+            style = TextStyle(fontSize = 11.sp, color = c.textTertiary),
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.End
+        )
+    }
+}
+
+@Composable
+private fun DetailChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    color: Color
+) {
+    val c = LichSoThemeColors.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .background(c.surfaceContainer, RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        IconButton(
-            onClick = onPrev,
-            modifier = Modifier.size(30.dp)
-        ) {
-            Icon(Icons.Default.ChevronLeft, contentDescription = "Tháng trước", tint = c.textSecondary, modifier = Modifier.size(18.dp))
-        }
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
         Text(
-            text = "Tháng $month · $year",
-            style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = c.textPrimary)
+            text,
+            style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = color),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
-        IconButton(
-            onClick = onNext,
-            modifier = Modifier.size(30.dp)
-        ) {
-            Icon(Icons.Default.ChevronRight, contentDescription = "Tháng sau", tint = c.textSecondary, modifier = Modifier.size(18.dp))
-        }
     }
 }
 
@@ -179,36 +531,39 @@ private fun CalendarGrid(
     days: List<CalendarDay>,
     selectedDate: java.time.LocalDate,
     showLunarBadge: Boolean,
-    onDayClick: (CalendarDay) -> Unit
+    showHoangDao: Boolean,
+    weekStartSunday: Boolean,
+    bookmarkedDays: Set<Pair<Int, Int>> = emptySet(),
+    onDayClick: (CalendarDay) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val c = LichSoThemeColors.current
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .background(c.bg2, RoundedCornerShape(16.dp))
-            .border(1.dp, c.border, RoundedCornerShape(16.dp))
-            .padding(bottom = 7.dp)
-    ) {
-        val weekDays = listOf("CN" to true, "T2" to false, "T3" to false, "T4" to false, "T5" to false, "T6" to false, "T7" to false)
+
+    Column(modifier = modifier) {
+        // Weekday header — adapts to week start setting
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 5.dp)
+                .padding(bottom = 8.dp)
         ) {
-            weekDays.forEachIndexed { index, (label, isSunday) ->
+            val weekDays = if (weekStartSunday) {
+                listOf("CN", "T2", "T3", "T4", "T5", "T6", "T7")
+            } else {
+                listOf("T2", "T3", "T4", "T5", "T6", "T7", "CN")
+            }
+            weekDays.forEachIndexed { index, label ->
+                val isWeekend = if (weekStartSunday) {
+                    index == 0 || index == 6  // CN, T7
+                } else {
+                    index >= 5  // T7, CN
+                }
                 Text(
                     text = label,
                     style = TextStyle(
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = when {
-                            isSunday -> c.red2
-                            index == 6 -> c.teal2
-                            else -> c.textTertiary
-                        },
-                        textAlign = TextAlign.Center,
-                        letterSpacing = 0.5.sp
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isWeekend) c.primary else c.outline,
+                        textAlign = TextAlign.Center
                     ),
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center
@@ -216,12 +571,11 @@ private fun CalendarGrid(
             }
         }
 
+        // Day cells grid
         val rows = days.chunked(7)
         rows.forEach { week ->
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 week.forEach { day ->
@@ -235,6 +589,8 @@ private fun CalendarGrid(
                         day = day,
                         isSelected = isSelected,
                         showLunarBadge = showLunarBadge,
+                        showHoangDao = showHoangDao,
+                        isBookmarked = (day.solarDay to day.solarMonth) in bookmarkedDays,
                         onClick = { if (day.isCurrentMonth) onDayClick(day) },
                         modifier = Modifier.weight(1f)
                     )
@@ -252,23 +608,23 @@ private fun DayCell(
     day: CalendarDay,
     isSelected: Boolean,
     showLunarBadge: Boolean,
+    showHoangDao: Boolean,
+    isBookmarked: Boolean = false,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val c = LichSoThemeColors.current
     val bgColor = when {
-        day.isToday -> c.goldDim
-        isSelected -> c.tealDim
+        day.isToday -> c.primary
+        isSelected -> c.primaryContainer
         else -> Color.Transparent
     }
-    val borderColor = if (isSelected) c.teal.copy(alpha = 0.3f) else Color.Transparent
 
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(9.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(bgColor)
-            .then(if (isSelected) Modifier.border(1.dp, borderColor, RoundedCornerShape(9.dp)) else Modifier)
             .clickable(enabled = day.isCurrentMonth, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -277,151 +633,88 @@ private fun DayCell(
             modifier = Modifier.padding(1.dp)
         ) {
             val textColor = when {
-                !day.isCurrentMonth -> c.textPrimary.copy(alpha = 0.28f)
-                day.isToday -> c.gold2
-                day.isHoliday || day.isSunday -> c.red2
-                isSelected -> c.teal2
-                day.isSaturday -> c.teal2
+                day.isToday -> Color.White
+                !day.isCurrentMonth -> c.outlineVariant
+                day.isHoliday || day.isSunday -> c.primary
+                isSelected -> c.primary
+                day.isSaturday -> c.primary
                 else -> c.textPrimary
             }
-            val fontWeight = if (day.isToday || isSelected) FontWeight.Bold else FontWeight.Medium
+            val fontWeight = when {
+                day.isToday -> FontWeight.Bold
+                day.isHoliday -> FontWeight.Bold
+                isSelected -> FontWeight.SemiBold
+                else -> FontWeight.SemiBold
+            }
 
             Text(
                 text = "${day.solarDay}",
-                style = TextStyle(fontSize = 14.sp, fontWeight = fontWeight, color = textColor, lineHeight = 14.sp)
+                style = TextStyle(fontSize = 16.sp, fontWeight = fontWeight, color = textColor, lineHeight = 16.sp)
             )
             if (showLunarBadge) {
                 Text(
                     text = day.lunarDisplayText,
-                    style = TextStyle(fontSize = 9.sp, color = if (day.isCurrentMonth) c.textTertiary else c.textTertiary.copy(alpha = 0.28f), lineHeight = 9.sp)
+                    style = TextStyle(
+                        fontSize = 9.sp,
+                        color = if (day.isToday) Color.White.copy(alpha = 0.7f)
+                        else if (day.isCurrentMonth) c.outline
+                        else c.outlineVariant,
+                        lineHeight = 9.sp
+                    )
                 )
             }
         }
 
-        if (day.isToday) {
+        // Hoang dao day rating indicator
+        if (showHoangDao && day.isCurrentMonth && day.dayRatingLabel.isNotEmpty()) {
+            val ratingColor = when (day.dayRatingLabel) {
+                "Rất tốt" -> c.goodGreen
+                "Tốt" -> c.gold
+                "Xấu" -> Color(0xFFE53935)
+                else -> Color.Transparent // "Trung bình" — no indicator
+            }
+            if (ratingColor != Color.Transparent) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(top = 4.dp, start = 4.dp)
+                        .size(6.dp)
+                        .background(ratingColor, CircleShape)
+                )
+            }
+        }
+
+        // Green dot for good day
+        if (day.hasEvent && day.isCurrentMonth && !day.isToday) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 4.dp, end = 4.dp)
+                    .size(6.dp)
+                    .background(c.goodGreen, CircleShape)
+            )
+        }
+
+        // Event dot
+        if (day.isHoliday && day.isCurrentMonth) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 2.dp)
+                    .padding(bottom = 4.dp)
                     .size(4.dp)
                     .background(c.gold, CircleShape)
             )
         }
 
-        if (day.hasEvent && day.isCurrentMonth) {
+        // Bookmark indicator
+        if (isBookmarked && day.isCurrentMonth) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 3.dp, end = 5.dp)
-                    .size(4.dp)
-                    .background(c.teal2, CircleShape)
+                    .align(Alignment.TopCenter)
+                    .padding(top = 1.dp)
+                    .size(5.dp)
+                    .background(Color(0xFFC62828), CircleShape)
             )
-        }
-    }
-}
-
-// ═══ Info Sections ═══
-
-@Composable
-private fun SectionLabel(text: String) {
-    val c = LichSoThemeColors.current
-    Text(
-        text = text,
-        style = TextStyle(
-            fontSize = 10.5.sp,
-            fontWeight = FontWeight.Bold,
-            color = c.textTertiary,
-            letterSpacing = 1.sp
-        ),
-        modifier = Modifier.padding(horizontal = 20.dp)
-    )
-}
-
-@Composable
-private fun ActivityGrid(info: DayInfo) {
-    val c = LichSoThemeColors.current
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ActivityCard("Nên làm", Icons.Outlined.CheckCircle, c.teal2, info.activities.nenLam, c.teal2, Modifier.weight(1f))
-            ActivityCard("Không nên", Icons.Outlined.Cancel, c.red2, info.activities.khongNen, c.red2, Modifier.weight(1f))
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ActivityCard(
-                "Giờ hoàng đạo", Icons.Outlined.Star, c.gold2,
-                info.gioHoangDao.map { "${it.name} (${it.time})" },
-                c.gold2, Modifier.weight(1f)
-            )
-            ActivityCard(
-                "Hướng tốt", Icons.Outlined.Explore, c.gold2,
-                listOf("Thần tài: ${info.huong.thanTai}", "Hỷ thần: ${info.huong.hyThan}", "Hung thần: ${info.huong.hungThan}"),
-                c.gold2, Modifier.weight(1f), specialLastItemRed = true
-            )
-        }
-    }
-}
-
-@Composable
-private fun ActivityCard(
-    title: String, icon: ImageVector, titleColor: Color,
-    items: List<String>, itemColor: Color,
-    modifier: Modifier = Modifier, specialLastItemRed: Boolean = false
-) {
-    val c = LichSoThemeColors.current
-    Column(
-        modifier = modifier
-            .background(c.bg2, RoundedCornerShape(10.dp))
-            .border(1.dp, c.border, RoundedCornerShape(10.dp))
-            .padding(11.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(icon, contentDescription = null, tint = titleColor, modifier = Modifier.size(14.dp))
-            Text(title.uppercase(), style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Bold, color = titleColor, letterSpacing = 0.8.sp))
-        }
-        Spacer(modifier = Modifier.height(6.dp))
-        items.forEachIndexed { index, item ->
-            val color = if (specialLastItemRed && index == items.size - 1) c.red2 else itemColor
-            Text("• $item", style = TextStyle(fontFamily = FontFamily.Serif, fontSize = 12.sp, color = color, lineHeight = 18.sp))
-        }
-    }
-}
-
-@Composable
-private fun EventList(events: List<UpcomingEvent>) {
-    val c = LichSoThemeColors.current
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(7.dp)
-    ) {
-        events.forEach { event ->
-            val (dotColor, tagBg, tagColor) = when (event.colorType) {
-                EventColor.GOLD -> Triple(c.gold, c.goldDim, c.gold)
-                EventColor.TEAL -> Triple(c.teal, c.tealDim, c.teal2)
-                EventColor.RED -> Triple(c.red, c.red.copy(alpha = 0.12f), c.red2)
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth()
-                    .background(c.bg2, RoundedCornerShape(10.dp))
-                    .border(1.dp, c.border, RoundedCornerShape(10.dp))
-                    .padding(horizontal = 13.dp, vertical = 11.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(11.dp)
-            ) {
-                Box(modifier = Modifier.size(8.dp).background(dotColor, CircleShape))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(event.title, style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = c.textPrimary))
-                    Text(event.timeLabel, style = TextStyle(fontSize = 11.sp, color = c.textTertiary), modifier = Modifier.padding(top = 2.dp))
-                }
-                Box(
-                    modifier = Modifier.background(tagBg, RoundedCornerShape(20.dp)).padding(horizontal = 8.dp, vertical = 2.dp)
-                ) {
-                    Text(event.tag, style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = tagColor))
-                }
-            }
         }
     }
 }

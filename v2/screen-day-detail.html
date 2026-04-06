@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lịch Vạn Niên - Chi tiết ngày</title>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --md-sys-color-primary: #B71C1C;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #FFDAD6;
+            --md-sys-color-on-primary-container: #410002;
+            --md-sys-color-secondary: #C6A300;
+            --md-sys-color-secondary-container: #FFF0B3;
+            --md-sys-color-surface: #FFFBF5;
+            --md-sys-color-on-surface: #1C1B1F;
+            --md-sys-color-surface-variant: #F5DDD8;
+            --md-sys-color-on-surface-variant: #534340;
+            --md-sys-color-surface-container: #FFF8F0;
+            --md-sys-color-surface-container-high: #FFF0E8;
+            --md-sys-color-outline: #857371;
+            --md-sys-color-outline-variant: #D8C2BF;
+            --gold-accent: #D4A017;
+            --deep-red: #8B0000;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body { font-family:'Google Sans',system-ui,sans-serif; background:#1a1a1a; overflow:hidden; height:100vh; width:100vw; display:flex; justify-content:center; align-items:center; }
+        .phone-frame { width:393px; height:852px; border-radius:44px; overflow:hidden; position:relative; background:var(--md-sys-color-surface); box-shadow:0 0 0 3px #2a2a2a,0 0 0 6px #1a1a1a,0 20px 60px rgba(0,0,0,0.5); }
+        .dynamic-island { position:absolute; top:10px; left:50%; transform:translateX(-50%); width:126px; height:36px; background:#000; border-radius:20px; z-index:200; }
+        .status-bar { position:absolute; top:0; left:0; right:0; height:54px; display:flex; justify-content:space-between; align-items:center; padding:12px 32px 0; z-index:100; color:var(--md-sys-color-on-primary); }
+        .status-bar .time { font-size:15px; font-weight:600; }
+        .status-bar .icons { display:flex; gap:6px; }
+        .status-bar .icons span { font-size:17px; }
+        .screen { width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+
+        /* HERO HEADER */
+        .detail-hero {
+            background: linear-gradient(135deg, var(--md-sys-color-primary) 0%, #D32F2F 50%, var(--deep-red) 100%);
+            padding: 60px 24px 24px;
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+        .detail-hero::before { content:''; position:absolute; top:-40px; right:-20px; width:180px; height:180px; background:radial-gradient(circle,rgba(255,215,0,0.1) 0%,transparent 70%); border-radius:50%; }
+        .detail-hero::after { content:''; position:absolute; bottom:-30px; left:-30px; width:140px; height:140px; background:radial-gradient(circle,rgba(255,255,255,0.05) 0%,transparent 70%); border-radius:50%; }
+
+        .detail-nav { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; position:relative; z-index:1; }
+        .nav-btn { width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.12); border:none; color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+        .nav-btn:active { background:rgba(255,255,255,0.25); }
+        .nav-actions { display:flex; gap:6px; }
+
+        .hero-date-big { font-size:80px; font-weight:700; color:#fff; line-height:1; position:relative; z-index:1; }
+        .hero-weekday { font-size:18px; color:rgba(255,255,255,0.85); font-weight:500; margin-top:4px; letter-spacing:1px; }
+        .hero-month-year { font-size:14px; color:rgba(255,255,255,0.6); margin-top:2px; }
+
+        .hero-lunar-row { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:12px; }
+        .hero-lunar-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:16px; background:rgba(255,255,255,0.15); backdrop-filter:blur(8px); }
+        .hero-lunar-chip .lunar-emoji { font-size:16px; }
+        .hero-lunar-chip .lunar-text { font-size:13px; color:rgba(255,255,255,0.95); font-weight:500; }
+        .hero-quality-chip { display:inline-flex; align-items:center; gap:4px; padding:5px 12px; border-radius:12px; font-size:11px; font-weight:700; }
+        .hero-quality-chip.good { background:rgba(76,175,80,0.25); color:#A5D6A7; }
+        .hero-quality-chip.bad { background:rgba(244,67,54,0.25); color:#EF9A9A; }
+
+        /* CONTENT */
+        .detail-content { flex:1; overflow-y:auto; padding:16px 16px 0; }
+
+        /* INFO GRID */
+        .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+        .info-card { padding:14px; border-radius:16px; background:var(--md-sys-color-surface-container); border:1px solid var(--md-sys-color-outline-variant); }
+        .info-card-label { font-size:11px; color:var(--md-sys-color-outline); font-weight:500; margin-bottom:4px; display:flex; align-items:center; gap:4px; }
+        .info-card-label .material-symbols-rounded { font-size:14px; }
+        .info-card-value { font-size:14px; font-weight:700; color:var(--md-sys-color-on-surface); }
+        .info-card-value.good { color:#2E7D32; }
+        .info-card-value.primary { color:var(--md-sys-color-primary); }
+
+        /* SECTION */
+        .section-title { font-size:13px; font-weight:700; color:var(--md-sys-color-on-surface); margin:16px 4px 10px; display:flex; align-items:center; gap:6px; }
+        .section-title .material-symbols-rounded { font-size:18px; color:var(--md-sys-color-primary); }
+
+        /* GOOD HOURS */
+        .hours-grid { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+        .hour-chip { padding:8px 12px; border-radius:12px; font-size:12px; font-weight:600; text-align:center; border:1px solid var(--md-sys-color-outline-variant); background:var(--md-sys-color-surface-container); color:var(--md-sys-color-on-surface); min-width:72px; }
+        .hour-chip.good { background:#E8F5E9; border-color:#81C784; color:#2E7D32; }
+        .hour-chip.bad { background:#FFEBEE; border-color:#EF9A9A; color:#C62828; }
+        .hour-chip .hour-name { font-size:11px; font-weight:700; }
+        .hour-chip .hour-time { font-size:10px; font-weight:400; opacity:0.7; margin-top:1px; }
+
+        /* ACTIVITY LIST */
+        .activity-section { margin-bottom:16px; }
+        .activity-group-title { font-size:12px; font-weight:600; color:#2E7D32; margin:0 4px 8px; display:flex; align-items:center; gap:4px; }
+        .activity-group-title.avoid { color:#C62828; }
+        .activity-group-title .material-symbols-rounded { font-size:16px; }
+        .activity-tags { display:flex; flex-wrap:wrap; gap:6px; padding:0 4px; margin-bottom:12px; }
+        .activity-tag { padding:6px 12px; border-radius:10px; font-size:12px; font-weight:500; display:flex; align-items:center; gap:4px; }
+        .activity-tag.good { background:#E8F5E9; color:#2E7D32; border:1px solid #C8E6C9; }
+        .activity-tag.avoid { background:#FFF3E0; color:#E65100; border:1px solid #FFCC80; }
+        .activity-tag .material-symbols-rounded { font-size:14px; }
+
+        /* EVENT CARD */
+        .event-card { display:flex; align-items:flex-start; gap:12px; padding:14px 16px; border-radius:16px; background:var(--md-sys-color-surface-container); border:1px solid var(--md-sys-color-outline-variant); margin-bottom:10px; }
+        .event-card-icon { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .event-card-icon.holiday { background:#FFF3E0; color:#E65100; }
+        .event-card-icon.history { background:#E8F5E9; color:#2E7D32; }
+        .event-card-icon.note { background:#E3F2FD; color:#1565C0; }
+        .event-card-icon .material-symbols-rounded { font-size:22px; }
+        .event-card-info { flex:1; }
+        .event-card-title { font-size:14px; font-weight:600; color:var(--md-sys-color-on-surface); }
+        .event-card-desc { font-size:12px; color:var(--md-sys-color-on-surface-variant); margin-top:2px; line-height:1.4; }
+
+        /* QUOTE */
+        .quote-card { padding:16px 20px; border-radius:16px; background:linear-gradient(135deg, #FFF8E1, #FFFDE7); border:1px solid #FFE082; text-align:center; margin-bottom:16px; }
+        .quote-card .quote-text { font-family:'Noto Serif',serif; font-size:14px; font-style:italic; color:var(--md-sys-color-on-surface-variant); line-height:1.5; }
+        .quote-card .quote-text::before { content:'"'; font-size:24px; color:var(--gold-accent); font-family:'Dancing Script',cursive; }
+        .quote-card .quote-text::after { content:'"'; font-size:24px; color:var(--gold-accent); font-family:'Dancing Script',cursive; }
+        .quote-card .quote-author { font-size:11px; color:var(--md-sys-color-outline); margin-top:6px; font-weight:500; }
+
+        /* ASK AI */
+        .ask-ai-btn {
+            display:flex; align-items:center; justify-content:center; gap:8px;
+            width:100%; padding:14px; border-radius:16px;
+            background:linear-gradient(135deg, var(--md-sys-color-primary), #C62828);
+            color:#fff; border:none; font-size:14px; font-weight:600;
+            cursor:pointer; margin-bottom:20px; transition:transform 0.15s;
+        }
+        .ask-ai-btn:active { transform:scale(0.98); }
+        .ask-ai-btn .material-symbols-rounded { font-size:20px; color:var(--gold-accent); }
+
+        ::-webkit-scrollbar { display:none; }
+    </style>
+</head>
+<body>
+<div class="phone-frame">
+    <div class="dynamic-island"></div>
+    <div class="status-bar">
+        <span class="time">9:41</span>
+        <div class="icons">
+            <span class="material-symbols-rounded" style="font-size:15px">signal_cellular_alt</span>
+            <span class="material-symbols-rounded" style="font-size:15px">wifi</span>
+            <span class="material-symbols-rounded" style="font-size:15px">battery_full</span>
+        </div>
+    </div>
+
+    <div class="screen">
+        <!-- HERO -->
+        <div class="detail-hero">
+            <div class="detail-nav">
+                <button class="nav-btn"><span class="material-symbols-rounded">arrow_back</span></button>
+                <div class="nav-actions">
+                    <button class="nav-btn"><span class="material-symbols-rounded">bookmark_border</span></button>
+                    <button class="nav-btn"><span class="material-symbols-rounded">share</span></button>
+                </div>
+            </div>
+            <div class="hero-date-big">08</div>
+            <div class="hero-weekday">Thứ Tư</div>
+            <div class="hero-month-year">Tháng 4, 2026</div>
+            <div class="hero-lunar-row">
+                <div class="hero-lunar-chip">
+                    <span class="lunar-emoji">🌙</span>
+                    <span class="lunar-text">11 tháng 3 Âm · Quý Mùi</span>
+                </div>
+                <div class="hero-quality-chip good">✦ Hoàng Đạo</div>
+            </div>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="detail-content">
+            <!-- INFO GRID -->
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-card-label"><span class="material-symbols-rounded">auto_awesome</span>Can chi</div>
+                    <div class="info-card-value primary">Ngày Quý Mùi</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-label"><span class="material-symbols-rounded">star</span>Trực</div>
+                    <div class="info-card-value good">Trực Khai</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-label"><span class="material-symbols-rounded">shield</span>Sao tốt</div>
+                    <div class="info-card-value good">Thiên Đức, Nguyệt Đức</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-label"><span class="material-symbols-rounded">explore</span>Hướng tốt</div>
+                    <div class="info-card-value">Đông Nam ↗</div>
+                </div>
+            </div>
+
+            <!-- GOOD HOURS -->
+            <div class="section-title">
+                <span class="material-symbols-rounded">schedule</span>
+                Giờ hoàng đạo
+            </div>
+            <div class="hours-grid">
+                <div class="hour-chip good">
+                    <div class="hour-name">Tý</div>
+                    <div class="hour-time">23h - 1h</div>
+                </div>
+                <div class="hour-chip">
+                    <div class="hour-name">Sửu</div>
+                    <div class="hour-time">1h - 3h</div>
+                </div>
+                <div class="hour-chip good">
+                    <div class="hour-name">Dần</div>
+                    <div class="hour-time">3h - 5h</div>
+                </div>
+                <div class="hour-chip good">
+                    <div class="hour-name">Mão</div>
+                    <div class="hour-time">5h - 7h</div>
+                </div>
+                <div class="hour-chip bad">
+                    <div class="hour-name">Thìn</div>
+                    <div class="hour-time">7h - 9h</div>
+                </div>
+                <div class="hour-chip good">
+                    <div class="hour-name">Tỵ</div>
+                    <div class="hour-time">9h - 11h</div>
+                </div>
+                <div class="hour-chip bad">
+                    <div class="hour-name">Ngọ</div>
+                    <div class="hour-time">11h - 13h</div>
+                </div>
+                <div class="hour-chip">
+                    <div class="hour-name">Mùi</div>
+                    <div class="hour-time">13h - 15h</div>
+                </div>
+                <div class="hour-chip good">
+                    <div class="hour-name">Thân</div>
+                    <div class="hour-time">15h - 17h</div>
+                </div>
+                <div class="hour-chip">
+                    <div class="hour-name">Dậu</div>
+                    <div class="hour-time">17h - 19h</div>
+                </div>
+                <div class="hour-chip good">
+                    <div class="hour-name">Tuất</div>
+                    <div class="hour-time">19h - 21h</div>
+                </div>
+                <div class="hour-chip bad">
+                    <div class="hour-name">Hợi</div>
+                    <div class="hour-time">21h - 23h</div>
+                </div>
+            </div>
+
+            <!-- ACTIVITIES -->
+            <div class="section-title">
+                <span class="material-symbols-rounded">checklist</span>
+                Việc nên / kỵ
+            </div>
+            <div class="activity-section">
+                <div class="activity-group-title"><span class="material-symbols-rounded">check_circle</span>Việc nên làm</div>
+                <div class="activity-tags">
+                    <div class="activity-tag good"><span class="material-symbols-rounded">store</span>Khai trương</div>
+                    <div class="activity-tag good"><span class="material-symbols-rounded">flight_takeoff</span>Xuất hành</div>
+                    <div class="activity-tag good"><span class="material-symbols-rounded">favorite</span>Cưới hỏi</div>
+                    <div class="activity-tag good"><span class="material-symbols-rounded">real_estate_agent</span>Ký kết</div>
+                    <div class="activity-tag good"><span class="material-symbols-rounded">home</span>Nhập trạch</div>
+                    <div class="activity-tag good"><span class="material-symbols-rounded">local_shipping</span>Giao dịch</div>
+                </div>
+                <div class="activity-group-title avoid"><span class="material-symbols-rounded">cancel</span>Việc nên tránh</div>
+                <div class="activity-tags">
+                    <div class="activity-tag avoid"><span class="material-symbols-rounded">gavel</span>Kiện tụng</div>
+                    <div class="activity-tag avoid"><span class="material-symbols-rounded">construction</span>Đào đất</div>
+                    <div class="activity-tag avoid"><span class="material-symbols-rounded">water_drop</span>Đào giếng</div>
+                </div>
+            </div>
+
+            <!-- EVENTS -->
+            <div class="section-title">
+                <span class="material-symbols-rounded">event</span>
+                Sự kiện & Ghi chú
+            </div>
+            <div class="event-card">
+                <div class="event-card-icon holiday">
+                    <span class="material-symbols-rounded">celebration</span>
+                </div>
+                <div class="event-card-info">
+                    <div class="event-card-title">Gần Giỗ Tổ Hùng Vương</div>
+                    <div class="event-card-desc">Ngày 10/3 Âm lịch — còn 2 ngày nữa. Ngày nghỉ lễ chính thức.</div>
+                </div>
+            </div>
+            <div class="event-card">
+                <div class="event-card-icon history">
+                    <span class="material-symbols-rounded">history_edu</span>
+                </div>
+                <div class="event-card-info">
+                    <div class="event-card-title">Ngày này năm xưa</div>
+                    <div class="event-card-desc">08/04/1975 — Chiến dịch Xuân Lộc, một trong những trận chiến cuối cùng của chiến tranh Việt Nam.</div>
+                </div>
+            </div>
+
+            <!-- QUOTE -->
+            <div class="quote-card">
+                <p class="quote-text">Thuận vợ thuận chồng, tát Biển Đông cũng cạn</p>
+                <p class="quote-author">— Tục ngữ Việt Nam</p>
+            </div>
+
+            <!-- ASK AI -->
+            <button class="ask-ai-btn" onclick="window.location.href='screen-ai-chat-day.html'">
+                <span class="material-symbols-rounded">auto_awesome</span>
+                Hỏi AI về ngày này
+            </button>
+        </div>
+    </div>
+</div>
+</body>
+</html>

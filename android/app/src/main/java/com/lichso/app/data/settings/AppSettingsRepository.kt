@@ -27,4 +27,44 @@ class AppSettingsRepository @Inject constructor(
     /** Thông báo giờ đại cát có bật không */
     val gioDaiCatEnabled: Flow<Boolean> =
         context.settingsDataStore.data.map { it[SettingsKeys.GIO_DAI_CAT] ?: false }
+
+    /** Chế độ giao diện: "light", "dark", "system" */
+    val themeMode: Flow<String> =
+        context.settingsDataStore.data.map { it[SettingsKeys.THEME_MODE] ?: "system" }
+
+    /** Hiển thị ngày lễ / sự kiện */
+    val festivalEnabled: Flow<Boolean> =
+        context.settingsDataStore.data.map { it[SettingsKeys.FESTIVAL_ENABLED] ?: true }
+
+    /** Hiển thị câu danh ngôn mỗi ngày */
+    val quoteEnabled: Flow<Boolean> =
+        context.settingsDataStore.data.map { it[SettingsKeys.QUOTE_ENABLED] ?: true }
+
+    /** Nhắc nhở ngày lễ */
+    val festivalReminderEnabled: Flow<Boolean> =
+        context.settingsDataStore.data.map { it[SettingsKeys.FESTIVAL_REMINDER] ?: true }
+
+    /** Đơn vị nhiệt độ (°C / °F) */
+    val tempUnit: Flow<String> =
+        context.settingsDataStore.data.map { it[SettingsKeys.TEMP_UNIT] ?: "°C" }
+
+    /** Tên vị trí */
+    val locationName: Flow<String> =
+        context.settingsDataStore.data.map { it[SettingsKeys.LOCATION_NAME] ?: "Hà Nội" }
+
+    /** Giờ nhắc nhở */
+    val reminderHour: Flow<Int> =
+        context.settingsDataStore.data.map { it[SettingsKeys.REMINDER_HOUR] ?: 7 }
+
+    /** Phút nhắc nhở */
+    val reminderMinute: Flow<Int> =
+        context.settingsDataStore.data.map { it[SettingsKeys.REMINDER_MINUTE] ?: 0 }
+
+    /** Ngày bắt đầu tuần */
+    val weekStart: Flow<String> =
+        context.settingsDataStore.data.map { it[SettingsKeys.WEEK_START] ?: "Thứ Hai" }
+
+    /** Ngôn ngữ */
+    val language: Flow<String> =
+        context.settingsDataStore.data.map { it[SettingsKeys.LANGUAGE] ?: "Tiếng Việt" }
 }

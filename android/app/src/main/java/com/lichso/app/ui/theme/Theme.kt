@@ -15,14 +15,14 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
 private val LichSoDarkColorScheme = darkColorScheme(
-    primary = DarkColors.gold,
-    onPrimary = DarkColors.bg,
-    primaryContainer = DarkColors.goldDim,
-    onPrimaryContainer = DarkColors.gold2,
-    secondary = DarkColors.teal,
-    onSecondary = DarkColors.bg,
-    secondaryContainer = DarkColors.tealDim,
-    onSecondaryContainer = DarkColors.teal2,
+    primary = Color(0xFFB71C1C),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFDAD6),
+    onPrimaryContainer = Color(0xFF410002),
+    secondary = Color(0xFFD4A017),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFFFF0B3),
+    onSecondaryContainer = Color(0xFF3E2E00),
     error = DarkColors.red,
     onError = DarkColors.textPrimary,
     errorContainer = DarkColors.red2,
@@ -37,14 +37,16 @@ private val LichSoDarkColorScheme = darkColorScheme(
 )
 
 private val LichSoLightColorScheme = lightColorScheme(
-    primary = LightColors.gold,
+    primary = Color(0xFFB71C1C),
     onPrimary = Color.White,
-    primaryContainer = LightColors.goldDim,
-    onPrimaryContainer = LightColors.gold2,
-    secondary = LightColors.teal,
+    primaryContainer = Color(0xFFFFDAD6),
+    onPrimaryContainer = Color(0xFF410002),
+    secondary = Color(0xFFC6A300),
     onSecondary = Color.White,
-    secondaryContainer = LightColors.tealDim,
-    onSecondaryContainer = LightColors.teal2,
+    secondaryContainer = Color(0xFFFFF0B3),
+    onSecondaryContainer = Color(0xFF3E2E00),
+    tertiary = Color(0xFF006C4C),
+    onTertiary = Color.White,
     error = LightColors.red,
     onError = Color.White,
     errorContainer = LightColors.red2,
@@ -54,13 +56,13 @@ private val LichSoLightColorScheme = lightColorScheme(
     onSurface = LightColors.textPrimary,
     surfaceVariant = LightColors.bg3,
     onSurfaceVariant = LightColors.textSecondary,
-    outline = LightColors.border,
-    outlineVariant = LightColors.textQuaternary,
+    outline = Color(0xFF857371),
+    outlineVariant = Color(0xFFD8C2BF),
 )
 
 @Composable
 fun LichSoTheme(
-    darkTheme: Boolean = true,
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colors = if (darkTheme) DarkColors else LightColors
@@ -72,9 +74,9 @@ fun LichSoTheme(
             val window = (view.context as Activity).window
             val insetsController = WindowCompat.getInsetsController(window, view)
             @Suppress("DEPRECATION")
-            window.statusBarColor = colors.bg.toArgb()
+            window.statusBarColor = Color.Transparent.toArgb()
             @Suppress("DEPRECATION")
-            window.navigationBarColor = colors.bg2.toArgb()
+            window.navigationBarColor = colors.bg.toArgb()
             insetsController.isAppearanceLightStatusBars = !darkTheme
             insetsController.isAppearanceLightNavigationBars = !darkTheme
         }

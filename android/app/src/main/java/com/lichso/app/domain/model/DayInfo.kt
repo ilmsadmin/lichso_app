@@ -78,7 +78,8 @@ data class CalendarDay(
     val isSaturday: Boolean,
     val isHoliday: Boolean,
     val hasEvent: Boolean,
-    val lunarDisplayText: String // "15" or "1/2" for first day of lunar month
+    val lunarDisplayText: String, // "15" or "1/2" for first day of lunar month
+    val dayRatingLabel: String = "" // "Rất tốt", "Tốt", "Trung bình", "Xấu"
 )
 
 /**

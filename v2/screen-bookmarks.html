@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lịch Vạn Niên - Ngày đã lưu</title>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --md-sys-color-primary: #B71C1C;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #FFDAD6;
+            --md-sys-color-on-primary-container: #410002;
+            --md-sys-color-secondary: #C6A300;
+            --md-sys-color-on-secondary: #FFFFFF;
+            --md-sys-color-secondary-container: #FFF0B3;
+            --md-sys-color-surface: #FFFBF5;
+            --md-sys-color-on-surface: #1C1B1F;
+            --md-sys-color-surface-variant: #F5DDD8;
+            --md-sys-color-on-surface-variant: #534340;
+            --md-sys-color-surface-container: #FFF8F0;
+            --md-sys-color-surface-container-high: #FFF0E8;
+            --md-sys-color-outline: #857371;
+            --md-sys-color-outline-variant: #D8C2BF;
+            --gold-accent: #D4A017;
+            --deep-red: #8B0000;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body { font-family:'Google Sans',system-ui,sans-serif; background:#1a1a1a; overflow:hidden; height:100vh; width:100vw; display:flex; justify-content:center; align-items:center; }
+        .phone-frame { width:393px; height:852px; border-radius:44px; overflow:hidden; position:relative; background:var(--md-sys-color-surface); box-shadow:0 0 0 3px #2a2a2a,0 0 0 6px #1a1a1a,0 20px 60px rgba(0,0,0,0.5); }
+        .dynamic-island { position:absolute; top:10px; left:50%; transform:translateX(-50%); width:126px; height:36px; background:#000; border-radius:20px; z-index:200; }
+        .status-bar { position:absolute; top:0; left:0; right:0; height:54px; display:flex; justify-content:space-between; align-items:center; padding:12px 32px 0; z-index:100; color:var(--md-sys-color-on-primary); }
+        .status-bar .time { font-size:15px; font-weight:600; }
+        .status-bar .icons { display:flex; gap:6px; }
+        .status-bar .icons span { font-size:17px; }
+        .screen { width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+
+        /* ===== HEADER ===== */
+        .bm-header {
+            background: linear-gradient(135deg, var(--deep-red) 0%, var(--md-sys-color-primary) 50%, #D32F2F 100%);
+            padding: 60px 24px 22px;
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .bm-header::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            right: -20px;
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, rgba(212,160,23,0.12) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .bm-header::after {
+            content: '💾';
+            position: absolute;
+            top: 62px;
+            right: 22px;
+            font-size: 52px;
+            opacity: 0.1;
+        }
+        .header-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+            z-index: 1;
+        }
+        .back-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            border: none;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .back-btn:active { background: rgba(255,255,255,0.24); }
+        .header-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+            flex: 1;
+        }
+        .header-action {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            border: none;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .header-action:active { background: rgba(255,255,255,0.24); }
+        .header-subtitle {
+            font-size: 12px;
+            color: rgba(255,255,255,0.65);
+            margin-left: 52px;
+            margin-top: 3px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== STATS ROW ===== */
+        .stats-row {
+            display: flex;
+            gap: 8px;
+            padding: 14px 16px 6px;
+            flex-shrink: 0;
+        }
+        .stat-card {
+            flex: 1;
+            padding: 12px 8px;
+            border-radius: 16px;
+            background: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .stat-card:active { background: var(--md-sys-color-surface-variant); }
+        .stat-card.active {
+            background: var(--md-sys-color-primary-container);
+            border-color: var(--md-sys-color-primary);
+        }
+        .stat-icon {
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+        .stat-val {
+            font-size: 22px;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--md-sys-color-primary);
+        }
+        .stat-card.active .stat-val { color: var(--md-sys-color-on-primary-container); }
+        .stat-lbl {
+            font-size: 9px;
+            font-weight: 600;
+            color: var(--md-sys-color-outline);
+            margin-top: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        /* ===== FILTER CHIPS ===== */
+        .chip-scroll {
+            display: flex;
+            gap: 8px;
+            padding: 10px 16px;
+            overflow-x: auto;
+            flex-shrink: 0;
+        }
+        .filter-chip {
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            border: 1.5px solid var(--md-sys-color-outline-variant);
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface-variant);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .filter-chip:active { background: var(--md-sys-color-surface-variant); }
+        .filter-chip.active {
+            background: var(--md-sys-color-primary);
+            color: #fff;
+            border-color: var(--md-sys-color-primary);
+        }
+        .filter-chip .material-symbols-rounded { font-size: 16px; }
+        .filter-chip .emoji { font-size: 13px; }
+        .filter-chip .count {
+            background: rgba(255,255,255,0.25);
+            padding: 1px 6px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        .filter-chip.active .count {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* ===== SEARCH ===== */
+        .search-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 2px 16px 8px;
+            flex-shrink: 0;
+        }
+        .search-box {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 14px;
+            background: var(--md-sys-color-surface-container);
+            border: 1.5px solid var(--md-sys-color-outline-variant);
+            transition: border-color 0.2s;
+        }
+        .search-box:focus-within { border-color: var(--md-sys-color-primary); }
+        .search-box .material-symbols-rounded { font-size: 20px; color: var(--md-sys-color-outline); }
+        .search-box input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            font-family: inherit;
+            color: var(--md-sys-color-on-surface);
+            outline: none;
+        }
+        .search-box input::placeholder { color: var(--md-sys-color-outline); }
+        .sort-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            border: 1.5px solid var(--md-sys-color-outline-variant);
+            background: var(--md-sys-color-surface-container);
+            color: var(--md-sys-color-on-surface-variant);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .sort-btn:active { background: var(--md-sys-color-surface-variant); }
+
+        /* ===== BOOKMARK LIST ===== */
+        .bm-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 16px 100px;
+        }
+
+        /* Section Divider */
+        .sec-div {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 12px 4px 10px;
+        }
+        .sec-div-text {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--md-sys-color-outline);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .sec-div-line {
+            flex: 1;
+            height: 1px;
+            background: var(--md-sys-color-outline-variant);
+        }
+
+        /* ===== BOOKMARK CARD ===== */
+        .bm-card {
+            display: flex;
+            gap: 14px;
+            padding: 16px;
+            margin-bottom: 10px;
+            border-radius: 20px;
+            background: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .bm-card:active { background: var(--md-sys-color-surface-variant); transform: scale(0.98); }
+
+        /* Left color strip */
+        .bm-strip {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 4px;
+        }
+        .bm-strip.s-red { background: var(--md-sys-color-primary); }
+        .bm-strip.s-gold { background: var(--gold-accent); }
+        .bm-strip.s-green { background: #2E7D32; }
+        .bm-strip.s-blue { background: #1565C0; }
+        .bm-strip.s-purple { background: #7B1FA2; }
+        .bm-strip.s-orange { background: #E65100; }
+
+        /* Date badge */
+        .bm-date-badge {
+            width: 56px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 4px;
+            border-radius: 14px;
+            background: var(--md-sys-color-primary-container);
+            position: relative;
+        }
+        .bm-date-badge.good-day {
+            background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
+        }
+        .bm-date-badge.bad-day {
+            background: linear-gradient(135deg, #FFEBEE, #FFCDD2);
+        }
+        .bm-date-badge.holiday {
+            background: linear-gradient(135deg, #FFF3E0, #FFE0B2);
+        }
+        .bm-date-day {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--md-sys-color-primary);
+            line-height: 1;
+        }
+        .bm-date-badge.good-day .bm-date-day { color: #2E7D32; }
+        .bm-date-badge.bad-day .bm-date-day { color: #C62828; }
+        .bm-date-badge.holiday .bm-date-day { color: #E65100; }
+        .bm-date-month {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--md-sys-color-on-primary-container);
+            margin-top: 1px;
+        }
+        .bm-date-weekday {
+            font-size: 8px;
+            font-weight: 600;
+            color: var(--md-sys-color-outline);
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+        .bm-quality-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            position: absolute;
+            top: 6px;
+            right: 6px;
+        }
+        .bm-quality-dot.good { background: #4CAF50; }
+        .bm-quality-dot.bad { background: #F44336; }
+        .bm-quality-dot.neutral { background: #FFC107; }
+
+        /* Card content */
+        .bm-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .bm-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--md-sys-color-on-surface);
+            line-height: 1.3;
+        }
+        .bm-lunar {
+            font-size: 11px;
+            color: var(--md-sys-color-on-surface-variant);
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .bm-lunar .material-symbols-rounded { font-size: 13px; color: var(--gold-accent); }
+        .bm-note {
+            font-size: 12px;
+            color: var(--md-sys-color-on-surface-variant);
+            margin-top: 5px;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .bm-tags {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .bm-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .bm-tag .material-symbols-rounded { font-size: 11px; }
+        .bm-tag.t-good { background: #E8F5E9; color: #2E7D32; }
+        .bm-tag.t-holiday { background: #FFF3E0; color: #E65100; }
+        .bm-tag.t-wedding { background: #FCE4EC; color: #C2185B; }
+        .bm-tag.t-business { background: #E3F2FD; color: #1565C0; }
+        .bm-tag.t-memorial { background: #F3E5F5; color: #7B1FA2; }
+        .bm-tag.t-travel { background: #E0F7FA; color: #00838F; }
+        .bm-tag.t-health { background: #F1F8E9; color: #558B2F; }
+        .bm-tag.t-canchi { background: rgba(183,28,28,0.08); color: var(--md-sys-color-primary); }
+
+        /* Right actions */
+        .bm-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: space-between;
+            flex-shrink: 0;
+            gap: 6px;
+        }
+        .bm-time {
+            font-size: 10px;
+            color: var(--md-sys-color-outline);
+            white-space: nowrap;
+        }
+        .bm-bookmark-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--gold-accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .bm-bookmark-icon:active { background: rgba(212,160,23,0.12); }
+        .bm-bookmark-icon .material-symbols-rounded { font-size: 20px; }
+        .bm-arrow { color: var(--md-sys-color-outline-variant); }
+
+        /* ===== FEATURED / UPCOMING CARD ===== */
+        .featured-saved {
+            margin: 4px 0 10px;
+            padding: 16px 18px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #FFF8E1, #FFECB3);
+            border: 1.5px solid #FFE082;
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .featured-saved:active { transform: scale(0.98); }
+        .featured-saved-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--gold-accent), #B8860B);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            flex-shrink: 0;
+            color: #fff;
+        }
+        .featured-saved-info { flex: 1; }
+        .featured-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: #E65100;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .featured-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--md-sys-color-on-surface);
+            margin-top: 2px;
+            line-height: 1.3;
+        }
+        .featured-desc {
+            font-size: 11px;
+            color: var(--md-sys-color-on-surface-variant);
+            margin-top: 3px;
+        }
+        .featured-countdown {
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .countdown-num {
+            font-size: 28px;
+            font-weight: 700;
+            color: #E65100;
+            line-height: 1;
+        }
+        .countdown-lbl {
+            font-size: 9px;
+            color: #E65100;
+            font-weight: 500;
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 40px;
+            text-align: center;
+        }
+        .empty-state.show { display: flex; }
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--md-sys-color-surface-container-high);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        .empty-icon .material-symbols-rounded {
+            font-size: 36px;
+            color: var(--md-sys-color-outline);
+        }
+        .empty-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--md-sys-color-on-surface);
+            margin-bottom: 6px;
+        }
+        .empty-desc {
+            font-size: 13px;
+            color: var(--md-sys-color-outline);
+            line-height: 1.5;
+        }
+        .empty-btn {
+            margin-top: 20px;
+            padding: 12px 28px;
+            border-radius: 24px;
+            background: var(--md-sys-color-primary);
+            color: #fff;
+            border: none;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .empty-btn:active { opacity: 0.85; transform: scale(0.96); }
+        .empty-btn .material-symbols-rounded { font-size: 18px; }
+
+        /* ===== FAB ===== */
+        .fab {
+            position: absolute;
+            bottom: 28px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--md-sys-color-primary), #C62828);
+            color: #fff;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(183,28,28,0.35);
+            transition: all 0.2s;
+            z-index: 10;
+        }
+        .fab:active { transform: scale(0.92); }
+        .fab .material-symbols-rounded { font-size: 26px; }
+
+        /* ===== BOTTOM SHEET OVERLAY ===== */
+        .sheet-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 300;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .sheet-overlay.open { opacity: 1; pointer-events: all; }
+
+        .bottom-sheet {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            background: var(--md-sys-color-surface);
+            border-radius: 28px 28px 0 0;
+            padding: 12px 24px 40px;
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 301;
+            max-height: 60%;
+        }
+        .sheet-overlay.open .bottom-sheet { transform: translateY(0); }
+
+        .sheet-handle {
+            width: 36px;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--md-sys-color-outline-variant);
+            margin: 0 auto 16px;
+        }
+        .sheet-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--md-sys-color-on-surface);
+            margin-bottom: 16px;
+        }
+        .sheet-option {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 12px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: var(--md-sys-color-on-surface);
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .sheet-option:active { background: var(--md-sys-color-surface-variant); }
+        .sheet-option .material-symbols-rounded {
+            font-size: 22px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        .sheet-option.danger { color: #C62828; }
+        .sheet-option.danger .material-symbols-rounded { color: #C62828; }
+        .sheet-divider {
+            height: 1px;
+            background: var(--md-sys-color-outline-variant);
+            margin: 4px 12px;
+        }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-in { animation: fadeInUp 0.4s ease-out forwards; }
+        .delay-1 { animation-delay: 0.05s; opacity: 0; }
+        .delay-2 { animation-delay: 0.1s; opacity: 0; }
+        .delay-3 { animation-delay: 0.15s; opacity: 0; }
+        .delay-4 { animation-delay: 0.2s; opacity: 0; }
+        .delay-5 { animation-delay: 0.25s; opacity: 0; }
+
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+<div class="phone-frame">
+    <div class="dynamic-island"></div>
+    <div class="status-bar">
+        <span class="time">9:41</span>
+        <div class="icons">
+            <span class="material-symbols-rounded" style="font-size:15px">signal_cellular_alt</span>
+            <span class="material-symbols-rounded" style="font-size:15px">wifi</span>
+            <span class="material-symbols-rounded" style="font-size:15px">battery_full</span>
+        </div>
+    </div>
+
+    <div class="screen">
+
+        <!-- ===== HEADER ===== -->
+        <div class="bm-header">
+            <div class="header-row">
+                <button class="back-btn" onclick="history.back()">
+                    <span class="material-symbols-rounded">arrow_back</span>
+                </button>
+                <div class="header-title">Ngày đã lưu</div>
+                <button class="header-action" id="sortToggle">
+                    <span class="material-symbols-rounded">swap_vert</span>
+                </button>
+                <button class="header-action" onclick="openSheet()">
+                    <span class="material-symbols-rounded">more_vert</span>
+                </button>
+            </div>
+            <div class="header-subtitle">12 ngày đã lưu · 3 sắp tới</div>
+        </div>
+
+        <!-- ===== STATS ===== -->
+        <div class="stats-row">
+            <div class="stat-card active" onclick="filterStat(this, 'all')">
+                <div class="stat-icon">📅</div>
+                <div class="stat-val">12</div>
+                <div class="stat-lbl">Tất cả</div>
+            </div>
+            <div class="stat-card" onclick="filterStat(this, 'good')">
+                <div class="stat-icon">✨</div>
+                <div class="stat-val" style="color:#2E7D32">5</div>
+                <div class="stat-lbl">Ngày tốt</div>
+            </div>
+            <div class="stat-card" onclick="filterStat(this, 'holiday')">
+                <div class="stat-icon">🎉</div>
+                <div class="stat-val" style="color:#E65100">4</div>
+                <div class="stat-lbl">Lễ / Giỗ</div>
+            </div>
+            <div class="stat-card" onclick="filterStat(this, 'personal')">
+                <div class="stat-icon">💼</div>
+                <div class="stat-val" style="color:#1565C0">3</div>
+                <div class="stat-lbl">Cá nhân</div>
+            </div>
+        </div>
+
+        <!-- ===== FILTER CHIPS ===== -->
+        <div class="chip-scroll">
+            <button class="filter-chip active" onclick="filterChip(this)">
+                <span class="material-symbols-rounded">bookmarks</span>
+                Tất cả
+                <span class="count">12</span>
+            </button>
+            <button class="filter-chip" onclick="filterChip(this)">
+                <span class="emoji">💒</span>
+                Cưới hỏi
+            </button>
+            <button class="filter-chip" onclick="filterChip(this)">
+                <span class="emoji">🏢</span>
+                Kinh doanh
+            </button>
+            <button class="filter-chip" onclick="filterChip(this)">
+                <span class="emoji">🕯️</span>
+                Giỗ chạp
+            </button>
+            <button class="filter-chip" onclick="filterChip(this)">
+                <span class="emoji">✈️</span>
+                Du lịch
+            </button>
+            <button class="filter-chip" onclick="filterChip(this)">
+                <span class="emoji">🏥</span>
+                Sức khỏe
+            </button>
+        </div>
+
+        <!-- ===== SEARCH ===== -->
+        <div class="search-row">
+            <div class="search-box">
+                <span class="material-symbols-rounded">search</span>
+                <input placeholder="Tìm ngày đã lưu..." id="searchInput">
+            </div>
+            <button class="sort-btn" onclick="openSheet()">
+                <span class="material-symbols-rounded">tune</span>
+            </button>
+        </div>
+
+        <!-- ===== BOOKMARK LIST ===== -->
+        <div class="bm-list" id="bmList">
+
+            <!-- FEATURED: Next upcoming saved day -->
+            <div class="featured-saved animate-in">
+                <div class="featured-saved-icon">
+                    <span class="material-symbols-rounded">celebration</span>
+                </div>
+                <div class="featured-saved-info">
+                    <div class="featured-label">⏰ Sắp tới gần nhất</div>
+                    <div class="featured-title">Giỗ Tổ Hùng Vương</div>
+                    <div class="featured-desc">10/04 · 10/3 Âm lịch · Nghỉ lễ</div>
+                </div>
+                <div class="featured-countdown">
+                    <div class="countdown-num">4</div>
+                    <div class="countdown-lbl">ngày nữa</div>
+                </div>
+            </div>
+
+            <!-- SECTION: Sắp tới -->
+            <div class="sec-div">
+                <span class="sec-div-text">📌 Sắp tới</span>
+                <div class="sec-div-line"></div>
+            </div>
+
+            <!-- Card 1: Giỗ Tổ -->
+            <div class="bm-card animate-in delay-1" onclick="location.href='screen-day-detail.html'">
+                <div class="bm-strip s-orange"></div>
+                <div class="bm-date-badge holiday">
+                    <div class="bm-quality-dot good"></div>
+                    <div class="bm-date-day">10</div>
+                    <div class="bm-date-month">Th4</div>
+                    <div class="bm-date-weekday">Thứ 6</div>
+                </div>
+                <div class="bm-content">
+                    <div class="bm-title">Giỗ Tổ Hùng Vương</div>
+                    <div class="bm-lunar">
+                        <span class="material-symbols-rounded">dark_mode</span>
+                        10/3 Âm lịch · Năm Bính Ngọ
+                    </div>
+                    <div class="bm-note">Ngày nghỉ lễ chính thức. Chuẩn bị lễ vật cúng tại gia — hương, hoa, trầu cau, bánh chưng.</div>
+                    <div class="bm-tags">
+                        <span class="bm-tag t-holiday"><span class="material-symbols-rounded">celebration</span>Nghỉ lễ</span>
+                        <span class="bm-tag t-good"><span class="material-symbols-rounded">star</span>Hoàng Đạo</span>
+                    </div>
+                </div>
+                <div class="bm-right">
+                    <span class="bm-time">Còn 4 ngày</span>
+                    <button class="bm-bookmark-icon"><span class="material-symbols-rounded">bookmark</span></button>
+                </div>
+            </div>
+
+            <!-- Card 2: Rằm tháng 3 -->
+            <div class="bm-card animate-in delay-2">
+                <div class="bm-strip s-gold"></div>
+                <div class="bm-date-badge good-day">
+                    <div class="bm-quality-dot good"></div>
+                    <div class="bm-date-day">12</div>
+                    <div class="bm-date-month">Th4</div>
+                    <div class="bm-date-weekday">CN</div>
+                </div>
+                <div class="bm-content">
+                    <div class="bm-title">Rằm tháng 3 Âm lịch</div>
+                    <div class="bm-lunar">
+                        <span class="material-symbols-rounded">dark_mode</span>
+                        15/3 Âm lịch · Ngày Giáp Thân
+                    </div>
+                    <div class="bm-note">Cúng rằm tháng 3. Mua sắm lễ vật: hương, hoa, xôi, gà.</div>
+                    <div class="bm-tags">
+                        <span class="bm-tag t-memorial"><span class="material-symbols-rounded">local_fire_department</span>Cúng rằm</span>
+                        <span class="bm-tag t-canchi">Giáp Thân</span>
+                    </div>
+                </div>
+                <div class="bm-right">
+                    <span class="bm-time">Còn 6 ngày</span>
+                    <button class="bm-bookmark-icon"><span class="material-symbols-rounded">bookmark</span></button>
+                </div>
+            </div>
+
+            <!-- Card 3: Ngày cưới -->
+            <div class="bm-card animate-in delay-3">
+                <div class="bm-strip s-purple"></div>
+                <div class="bm-date-badge good-day">
+                    <div class="bm-quality-dot good"></div>
+                    <div class="bm-date-day">12</div>
+                    <div class="bm-date-month">Th5</div>
+                    <div class="bm-date-weekday">Thứ 3</div>
+                </div>
+                <div class="bm-content">
+                    <div class="bm-title">Ngày cưới — Hoàng Đạo</div>
+                    <div class="bm-lunar">
+                        <span class="material-symbols-rounded">dark_mode</span>
+                        16/4 Âm lịch · Thiên Đức
+                    </div>
+                    <div class="bm-note">AI phong thủy xác nhận: hợp tuổi Canh Thân. Giờ đón dâu tốt: 7h-9h (giờ Thìn).</div>
+                    <div class="bm-tags">
+                        <span class="bm-tag t-wedding"><span class="material-symbols-rounded">favorite</span>Cưới hỏi</span>
+                        <span class="bm-tag t-good"><span class="material-symbols-rounded">auto_awesome</span>Thiên Đức</span>
+                    </div>
+                </div>
+                <div class="bm-right">
+                    <span class="bm-time">Còn 36 ngày</span>
+                    <button class="bm-bookmark-icon"><span class="material-symbols-rounded">bookmark</span></button>
+                </div>
+            </div>
+
+            <!-- SECTION: Tháng 4 -->
+            <div class="sec-div">
+                <span class="sec-div-text">Tháng 4 / 2026</span>
+                <div class="sec-div-line"></div>
+            </div>
+
+            <!-- Card 4: Khai trương -->
+            <div class="bm-card animate-in delay-4">
+                <div class="bm-strip s-blue"></div>
+                <div class="bm-date-badge good-day">
+                    <div class="bm-quality-dot good"></div>
+                    <div class="bm-date-day">08</div>
+                    <div class="bm-date-month">Th4</div>
+                    <div class="bm-date-weekday">Thứ 4</div>
+                </div>
+                <div class="bm-content">
+                    <div class="bm-title">Khai trương cửa hàng</div>
+                    <div class="bm-lunar">
+                        <span class="material-symbols-rounded">dark_mode</span>
+                        8/3 Âm lịch · Ngày Canh Thìn
+                    </div>
+                    <div class="bm-note">Hướng tốt: Đông Nam. Giờ khai trương: 8h-10h sáng. Đã check với AI phong thủy.</div>
+                    <div class="bm-tags">
+                        <span class="bm-tag t-business"><span class="material-symbols-rounded">store</span>Khai trương</span>
+                        <span class="bm-tag t-good"><span class="material-symbols-rounded">star</span>Hoàng Đạo</span>
+                    </div>
+                </div>
+                <div class="bm-right">
+                    <span class="bm-time">Còn 2 ngày</span>
+                    <button class="bm-bookmark-icon"><span class="material-symbols-rounded">bookmark</span></button>
+                </div>
+            </div>
+
+            <!-- Card 5: Giải phóng miền Nam -->
+            <div class="bm-card animate-in delay-5">
+                <div class="bm-strip s-red"></div>
+                <div class="bm-date-badge holiday">
+                    <div class="bm-quality-dot neutral"></div>
+                    <div class="bm-date-day">30</div>
+                    <div class="bm-date-month">Th4</div>
+                    <div class="bm-date-weekday">Thứ 5</div>
+                </div>
+                <div class="bm-content">
+                    <div class="bm-title">Ngày Giải phóng miền Nam</div>
+                    <div class="bm-lunar">
+                        <span class="material-symbols-rounded">dark_mode</span>
+                        3/4 Âm lịch
+                    </div>
+                    <div class="bm-note">Nghỉ lễ 30/4 - 1/5. Lên kế hoạch du lịch gia đình.</div>
+                    <div class="bm-tags">
+                        <span class="bm-tag t-holiday"><span class="material-symbols-rounded">flag</span>Quốc lễ</span>
+                        <span class="bm-tag t-travel"><span class="material-symbols-rounded">flight</span>Du lịch</span>
+                    </div>
+                </div>
+                <div class="bm-right">
+                    <span class="bm-time">Còn 24 ngày</span>
+                    <button class="bm-bookmark-icon"><span class="material-symbols-rounded">bookmark</span></button>
+                </div>
+            </div>
+
+            <!-- SECTION: Đã qua -->
+            <div class="sec-div">
+                <span class="sec-div-text">✅ Đã qua</span>
+                <div class="sec-div-line"></div>
+            </div>
+
+            <!-- Card 6: Past - Tết Thanh Minh -->
+            <div class="bm-card" style="opacity:0.65;">
+                <div class="bm-strip s-gold"></div>
+                <div class="bm-date-badge">
+                    <div class="bm-date-day">04</div>
+                    <div class="bm-date-month">Th4</div>
+                    <div class="bm-date-weekday">Thứ 7</div>
+                </div>
+                <div class="bm-content">
+                    <div class="bm-title">Tết Thanh Minh</div>
+                    <div class="bm-lunar">
+                        <span class="material-symbols-rounded">dark_mode</span>
+                        6/3 Âm lịch · Tảo mộ
+                    </div>
+                    <div class="bm-tags">
+                        <span class="bm-tag t-memorial"><span class="material-symbols-rounded">park</span>Tảo mộ</span>
+                    </div>
+                </div>
+                <div class="bm-right">
+                    <span class="bm-time">2 ngày trước</span>
+                    <button class="bm-bookmark-icon"><span class="material-symbols-rounded">bookmark</span></button>
+                </div>
+            </div>
+
+            <!-- Card 7: Past - Khám sức khỏe -->
+            <div class="bm-card" style="opacity:0.65;">
+                <div class="bm-strip s-green"></div>
+                <div class="bm-date-badge">
+                    <div class="bm-date-day">01</div>
+                    <div class="bm-date-month">Th4</div>
+                    <div class="bm-date-weekday">Thứ 4</div>
+                </div>
+                <div class="bm-content">
+                    <div class="bm-title">Khám sức khỏe định kỳ</div>
+                    <div class="bm-lunar">
+                        <span class="material-symbols-rounded">dark_mode</span>
+                        3/3 Âm lịch
+                    </div>
+                    <div class="bm-tags">
+                        <span class="bm-tag t-health"><span class="material-symbols-rounded">health_and_safety</span>Sức khỏe</span>
+                    </div>
+                </div>
+                <div class="bm-right">
+                    <span class="bm-time">5 ngày trước</span>
+                    <button class="bm-bookmark-icon"><span class="material-symbols-rounded">bookmark</span></button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- EMPTY STATE (hidden by default) -->
+        <div class="empty-state" id="emptyState">
+            <div class="empty-icon">
+                <span class="material-symbols-rounded">bookmark_border</span>
+            </div>
+            <div class="empty-title">Chưa có ngày nào được lưu</div>
+            <div class="empty-desc">Lưu những ngày quan trọng khi xem chi tiết ngày trên lịch để dễ dàng tra cứu lại</div>
+            <button class="empty-btn" onclick="location.href='screen-calendar.html'">
+                <span class="material-symbols-rounded">calendar_month</span>
+                Xem lịch
+            </button>
+        </div>
+
+        <!-- FAB: Add bookmark -->
+        <button class="fab" onclick="location.href='screen-calendar.html'">
+            <span class="material-symbols-rounded">bookmark_add</span>
+        </button>
+    </div>
+
+    <!-- ===== BOTTOM SHEET: More Options ===== -->
+    <div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()">
+            <div class="sheet-handle"></div>
+            <div class="sheet-title">Tùy chọn</div>
+            
+            <div class="sheet-option" onclick="closeSheet()">
+                <span class="material-symbols-rounded">swap_vert</span>
+                Sắp xếp theo ngày
+            </div>
+            <div class="sheet-option" onclick="closeSheet()">
+                <span class="material-symbols-rounded">sort_by_alpha</span>
+                Sắp xếp theo tên
+            </div>
+            <div class="sheet-option" onclick="closeSheet()">
+                <span class="material-symbols-rounded">label</span>
+                Sắp xếp theo nhãn
+            </div>
+            
+            <div class="sheet-divider"></div>
+            
+            <div class="sheet-option" onclick="closeSheet()">
+                <span class="material-symbols-rounded">file_download</span>
+                Xuất danh sách (CSV)
+            </div>
+            <div class="sheet-option" onclick="closeSheet()">
+                <span class="material-symbols-rounded">share</span>
+                Chia sẻ
+            </div>
+            
+            <div class="sheet-divider"></div>
+            
+            <div class="sheet-option danger" onclick="closeSheet()">
+                <span class="material-symbols-rounded">delete_sweep</span>
+                Xóa ngày đã qua
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Filter chip toggle
+    function filterChip(el) {
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    // Stat card toggle
+    function filterStat(el, type) {
+        document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    // Bottom sheet
+    function openSheet() {
+        document.getElementById('sheetOverlay').classList.add('open');
+    }
+    function closeSheet() {
+        document.getElementById('sheetOverlay').classList.remove('open');
+    }
+
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        const cards = document.querySelectorAll('.bm-card');
+        const sections = document.querySelectorAll('.sec-div');
+        const featured = document.querySelector('.featured-saved');
+        
+        if (query.length === 0) {
+            cards.forEach(c => c.style.display = '');
+            sections.forEach(s => s.style.display = '');
+            if (featured) featured.style.display = '';
+            return;
+        }
+
+        if (featured) featured.style.display = 'none';
+        sections.forEach(s => s.style.display = 'none');
+
+        cards.forEach(card => {
+            const text = card.textContent.toLowerCase();
+            card.style.display = text.includes(query) ? '' : 'none';
+        });
+    });
+
+    // Swipe to dismiss bookmark (simple)
+    let touchStartX = 0;
+    document.querySelectorAll('.bm-card').forEach(card => {
+        card.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        }, { passive: true });
+        card.addEventListener('touchmove', (e) => {
+            const dx = e.touches[0].clientX - touchStartX;
+            if (dx < -20) {
+                card.style.transform = `translateX(${Math.max(dx, -80)}px)`;
+                card.style.transition = 'none';
+            }
+        }, { passive: true });
+        card.addEventListener('touchend', (e) => {
+            const rect = card.getBoundingClientRect();
+            card.style.transition = 'transform 0.3s ease';
+            card.style.transform = '';
+        });
+    });
+
+    // Sort toggle
+    let sortAsc = true;
+    document.getElementById('sortToggle').addEventListener('click', function() {
+        sortAsc = !sortAsc;
+        this.querySelector('.material-symbols-rounded').textContent = sortAsc ? 'swap_vert' : 'north';
+    });
+</script>
+</body>
+</html>

@@ -26,4 +26,10 @@ interface TaskDao {
 
     @Query("UPDATE tasks SET isDone = :isDone, updatedAt = :updatedAt WHERE id = :id")
     suspend fun toggleDone(id: Long, isDone: Boolean, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM tasks ORDER BY createdAt DESC")
+    suspend fun getAllTasksOnce(): List<TaskEntity>
+
+    @Query("DELETE FROM tasks")
+    suspend fun deleteAll()
 }

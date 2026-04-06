@@ -2,6 +2,7 @@ package com.lichso.app.ui.screen.tasks
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
 import com.lichso.app.data.ai.AiTaskService
 import com.lichso.app.data.ai.AiTemplates
 import com.lichso.app.data.local.dao.NoteDao
@@ -10,7 +11,9 @@ import com.lichso.app.data.local.dao.TaskDao
 import com.lichso.app.data.local.entity.NoteEntity
 import com.lichso.app.data.local.entity.ReminderEntity
 import com.lichso.app.data.local.entity.TaskEntity
+import com.lichso.app.notification.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -44,6 +47,7 @@ data class TasksUiState(
 
 @HiltViewModel
 class TasksViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val taskDao: TaskDao,
     private val noteDao: NoteDao,
     private val reminderDao: ReminderDao,
@@ -52,6 +56,8 @@ class TasksViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(TasksUiState())
     val uiState: StateFlow<TasksUiState> = _uiState.asStateFlow()
+
+    private val reminderScheduler = ReminderScheduler(context)
 
     init {
         viewModelScope.launch {
@@ -84,6 +90,11 @@ class TasksViewModel @Inject constructor(
                 )
             )
         }
+    }
+
+    fun insertTask(task: TaskEntity) {
+        if (task.title.isBlank()) return
+        viewModelScope.launch { taskDao.insert(task) }
     }
 
     fun updateTask(task: TaskEntity) {
@@ -138,6 +149,11 @@ class TasksViewModel @Inject constructor(
         }
     }
 
+    fun insertNote(note: NoteEntity) {
+        if (note.title.isBlank()) return
+        viewModelScope.launch { noteDao.insert(note) }
+    }
+
     fun updateNote(note: NoteEntity) {
         viewModelScope.launch {
             noteDao.update(note.copy(updatedAt = System.currentTimeMillis()))
@@ -176,21 +192,38 @@ class TasksViewModel @Inject constructor(
     fun addReminder(title: String, triggerTime: Long, repeatType: Int) {
         if (title.isBlank()) return
         viewModelScope.launch {
-            reminderDao.insert(
-                ReminderEntity(title = title, triggerTime = triggerTime, repeatType = repeatType)
-            )
+            val entity = ReminderEntity(title = title, triggerTime = triggerTime, repeatType = repeatType)
+            val id = reminderDao.insert(entity)
+            // Schedule alarm notification
+            reminderScheduler.schedule(entity.copy(id = id))
+        }
+    }
+
+    fun insertReminder(reminder: ReminderEntity) {
+        if (reminder.title.isBlank()) return
+        viewModelScope.launch {
+            val id = reminderDao.insert(reminder)
+            reminderScheduler.schedule(reminder.copy(id = id))
         }
     }
 
     fun updateReminder(reminder: ReminderEntity) {
         viewModelScope.launch {
             reminderDao.update(reminder)
+            // Reschedule with updated time/settings
+            reminderScheduler.schedule(reminder)
         }
     }
 
     fun toggleReminder(reminder: ReminderEntity) {
         viewModelScope.launch {
-            reminderDao.toggleEnabled(reminder.id, !reminder.isEnabled)
+            val newEnabled = !reminder.isEnabled
+            reminderDao.toggleEnabled(reminder.id, newEnabled)
+            if (newEnabled) {
+                reminderScheduler.schedule(reminder.copy(isEnabled = true))
+            } else {
+                reminderScheduler.cancel(reminder.id)
+            }
         }
     }
 
@@ -200,13 +233,17 @@ class TasksViewModel @Inject constructor(
 
     fun confirmDeleteReminder() {
         val reminder = _uiState.value.deletingReminder ?: return
-        viewModelScope.launch { reminderDao.delete(reminder) }
+        viewModelScope.launch {
+            reminderDao.delete(reminder)
+            reminderScheduler.cancel(reminder.id)
+        }
         _uiState.update { it.copy(deletingReminder = null) }
     }
 
     fun deleteReminder(reminder: ReminderEntity) {
         viewModelScope.launch {
             reminderDao.delete(reminder)
+            reminderScheduler.cancel(reminder.id)
         }
     }
 
@@ -220,6 +257,19 @@ class TasksViewModel @Inject constructor(
 
     fun dismissEditReminder() {
         _uiState.update { it.copy(editingReminder = null) }
+    }
+
+    fun dismissAllEditing() {
+        _uiState.update {
+            it.copy(
+                showAddTaskDialog = false,
+                showAddNoteDialog = false,
+                showAddReminderDialog = false,
+                editingTask = null,
+                editingNote = null,
+                editingReminder = null
+            )
+        }
     }
 
     // ---- Helpers ----
@@ -287,13 +337,13 @@ class TasksViewModel @Inject constructor(
                         }
                         result.items.filter { it.type == "reminder" }.forEach { item ->
                             val triggerTime = parseTimeToMillis(item.time)
-                            reminderDao.insert(
-                                ReminderEntity(
+                            val entity = ReminderEntity(
                                     title = item.title,
                                     triggerTime = triggerTime,
                                     repeatType = item.repeatType
                                 )
-                            )
+                            val id = reminderDao.insert(entity)
+                            reminderScheduler.schedule(entity.copy(id = id))
                         }
                     }
                     "create_note" -> {
@@ -310,13 +360,13 @@ class TasksViewModel @Inject constructor(
                     "create_reminder" -> {
                         result.items.forEach { item ->
                             val triggerTime = parseTimeToMillis(item.time)
-                            reminderDao.insert(
-                                ReminderEntity(
+                            val entity = ReminderEntity(
                                     title = item.title,
                                     triggerTime = triggerTime,
                                     repeatType = item.repeatType
                                 )
-                            )
+                            val id = reminderDao.insert(entity)
+                            reminderScheduler.schedule(entity.copy(id = id))
                         }
                     }
                     "delete_task" -> {
@@ -340,7 +390,10 @@ class TasksViewModel @Inject constructor(
                             val keyword = item.title.lowercase()
                             _uiState.value.reminders.find { r ->
                                 r.title.lowercase().contains(keyword)
-                            }?.let { found -> reminderDao.delete(found) }
+                            }?.let { found ->
+                                reminderDao.delete(found)
+                                reminderScheduler.cancel(found.id)
+                            }
                         }
                     }
                     "edit_task" -> {
@@ -386,7 +439,9 @@ class TasksViewModel @Inject constructor(
                                     cal.set(Calendar.HOUR_OF_DAY, parts[0].toInt().coerceIn(0, 23))
                                     cal.set(Calendar.MINUTE, parts.getOrElse(1) { "0" }.toInt().coerceIn(0, 59))
                                 }
-                                reminderDao.update(found.copy(triggerTime = cal.timeInMillis))
+                                val updated = found.copy(triggerTime = cal.timeInMillis)
+                                reminderDao.update(updated)
+                                reminderScheduler.schedule(updated)
                             }
                         }
                     }

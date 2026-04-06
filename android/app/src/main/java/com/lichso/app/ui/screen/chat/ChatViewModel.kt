@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.chat
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lichso.app.data.ai.AiTaskService
@@ -15,7 +16,11 @@ import com.lichso.app.data.local.entity.TaskEntity
 import com.lichso.app.data.remote.ChatMessage
 import com.lichso.app.data.remote.OpenRouterApi
 import com.lichso.app.domain.DayInfoProvider
+import com.lichso.app.notification.ReminderScheduler
+import com.lichso.app.ui.screen.profile.ProfileKeys
+import com.lichso.app.ui.screen.settings.settingsDataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -24,13 +29,50 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import javax.inject.Inject
 
+/**
+ * Thông tin profile tóm tắt để AI sử dụng.
+ */
+data class UserProfileSummary(
+    val displayName: String = "",
+    val gender: String = "",
+    val birthDay: Int = 0,
+    val birthMonth: Int = 0,
+    val birthYear: Int = 0,
+    val birthHour: Int = -1,
+    val birthMinute: Int = -1,
+    val lunarBirthDay: Int = 0,
+    val lunarBirthMonth: Int = 0,
+    val lunarBirthYear: Int = 0,
+    val lunarLeap: Int = 0,
+    val yearCanChi: String = "",
+    val menh: String = "",
+    val nguHanh: String = "",
+    val conGiap: String = "",
+    val cung: String = ""
+) {
+    /** Profile được coi là đầy đủ khi có tên + ngày sinh + giới tính */
+    val isComplete: Boolean
+        get() = displayName.isNotBlank() && displayName != "Người dùng"
+                && birthDay > 0 && birthMonth > 0 && birthYear > 0
+
+    /** Danh sách các trường còn thiếu */
+    val missingFields: List<String>
+        get() = buildList {
+            if (displayName.isBlank() || displayName == "Người dùng") add("Tên hiển thị")
+            if (birthDay <= 0 || birthMonth <= 0 || birthYear <= 0) add("Ngày tháng năm sinh")
+            if (gender.isBlank()) add("Giới tính")
+        }
+}
+
 data class ChatUiState(
     val messages: List<ChatMessageEntity> = emptyList(),
-    val isTyping: Boolean = false
+    val isTyping: Boolean = false,
+    val profileSummary: UserProfileSummary = UserProfileSummary()
 )
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val chatMessageDao: ChatMessageDao,
     private val dayInfoProvider: DayInfoProvider,
     private val openRouterApi: OpenRouterApi,
@@ -41,10 +83,59 @@ class ChatViewModel @Inject constructor(
     private val reminderDao: ReminderDao
 ) : ViewModel() {
 
+    private val dataStore = context.settingsDataStore
+
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
     init {
+        // Collect profile data from DataStore
+        viewModelScope.launch {
+            dataStore.data.collect { prefs ->
+                val name = prefs[ProfileKeys.DISPLAY_NAME] ?: "Người dùng"
+                val gender = prefs[ProfileKeys.GENDER] ?: ""
+                val bDay = prefs[ProfileKeys.BIRTH_DAY] ?: 0
+                val bMonth = prefs[ProfileKeys.BIRTH_MONTH] ?: 0
+                val bYear = prefs[ProfileKeys.BIRTH_YEAR] ?: 0
+                val bHour = prefs[ProfileKeys.BIRTH_HOUR] ?: -1
+                val bMin = prefs[ProfileKeys.BIRTH_MINUTE] ?: -1
+
+                // Tính toán thông tin phong thủy nếu có ngày sinh
+                val summary = if (bYear > 0 && bMonth > 0 && bDay > 0) {
+                    try {
+                        val lunar = com.lichso.app.util.LunarCalendarUtil.convertSolar2Lunar(bDay, bMonth, bYear)
+                        val lunarYear = lunar.lunarYear
+                        val yearCanChi = com.lichso.app.util.CanChiCalculator.getYearCanChi(lunarYear)
+                        val chiIndex = (lunarYear + 8) % 12
+                        val conGiapNames = listOf("Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi")
+                        val conGiap = conGiapNames[chiIndex]
+
+                        UserProfileSummary(
+                            displayName = name,
+                            gender = gender,
+                            birthDay = bDay,
+                            birthMonth = bMonth,
+                            birthYear = bYear,
+                            birthHour = bHour,
+                            birthMinute = bMin,
+                            lunarBirthDay = lunar.lunarDay,
+                            lunarBirthMonth = lunar.lunarMonth,
+                            lunarBirthYear = lunar.lunarYear,
+                            lunarLeap = lunar.lunarLeap,
+                            yearCanChi = yearCanChi,
+                            conGiap = conGiap
+                        )
+                    } catch (_: Exception) {
+                        UserProfileSummary(displayName = name, gender = gender, birthDay = bDay, birthMonth = bMonth, birthYear = bYear, birthHour = bHour, birthMinute = bMin)
+                    }
+                } else {
+                    UserProfileSummary(displayName = name, gender = gender, birthDay = bDay, birthMonth = bMonth, birthYear = bYear, birthHour = bHour, birthMinute = bMin)
+                }
+
+                _uiState.update { it.copy(profileSummary = summary) }
+            }
+        }
+
         viewModelScope.launch {
             chatMessageDao.getAllMessages().collect { messages ->
                 _uiState.update { it.copy(messages = messages) }
@@ -65,12 +156,19 @@ class ChatViewModel @Inject constructor(
         val userName = aiMemoryStore.getUserName()
         val aiName = aiMemoryStore.getAiName()
         val i = ChatIcons
+        val profile = _uiState.value.profileSummary
 
         val selfName = aiName ?: "Lịch Số AI"
 
-        return if (userName != null) {
+        return if (profile.isComplete) {
+            "Chào ${profile.displayName}! Tôi là $selfName — trợ lý phong thủy & lịch vạn niên của bạn.\n\n" +
+                    "Tôi đã có thông tin cá nhân của bạn (tuổi ${profile.yearCanChi}, con giáp ${profile.conGiap}). " +
+                    "Mọi phân tích phong thủy sẽ được cá nhân hóa theo tuổi & mệnh của bạn.\n\n" +
+                    "Bạn muốn hỏi gì hôm nay?"
+        } else if (userName != null) {
             "Chào $userName! Tôi là $selfName — trợ lý phong thủy & lịch vạn niên của bạn.\n\n" +
-                    "Rất vui được gặp lại! Bạn muốn hỏi gì hôm nay?"
+                    "${i.ARROW} Để tôi phân tích chính xác hơn (tử vi, hợp tuổi, hướng xuất hành...), hãy cập nhật hồ sơ cá nhân nhé!\n\n" +
+                    "Bạn muốn hỏi gì hôm nay?"
         } else {
             "Xin chào! Tôi là $selfName — trợ lý phong thủy & lịch vạn niên thông minh.\n\n" +
                     "Tôi được hỗ trợ bởi AI tiên tiến, có thể giúp bạn:\n" +
@@ -80,7 +178,7 @@ class ChatViewModel @Inject constructor(
                     "${i.ARROW} Tạo/sửa/xoá task, ghi chú, nhắc nhở\n" +
                     "${i.ARROW} Thống kê & báo cáo tình trạng công việc\n" +
                     "${i.ARROW} Giải đáp phong thủy chi tiết\n\n" +
-                    "Bạn có thể cho tôi biết tên bạn, và tôi sẽ ghi nhớ nhé!"
+                    "${i.SPARKLE} Hãy cập nhật hồ sơ cá nhân (tên, ngày sinh, giới tính) để tôi phân tích phong thủy chính xác theo tuổi & mệnh của bạn!"
         }
     }
 
@@ -159,6 +257,7 @@ class ChatViewModel @Inject constructor(
 
             val contextInfo = buildTodayContext()
             val memoryContext = aiMemoryStore.getMemoryContext()
+            val profileContext = buildProfileContext()
 
             val history = _uiState.value.messages.takeLast(10).map { msg ->
                 ChatMessage(
@@ -171,6 +270,7 @@ class ChatViewModel @Inject constructor(
                 userMessage = text.trim(),
                 contextInfo = contextInfo,
                 memoryContext = memoryContext,
+                profileContext = profileContext,
                 history = history
             )
 
@@ -240,13 +340,13 @@ class ChatViewModel @Inject constructor(
                             cal.set(Calendar.SECOND, 0)
                         } catch (_: Exception) { }
                     }
-                    reminderDao.insert(
-                        ReminderEntity(
+                    val entity = ReminderEntity(
                             title = item.title,
                             triggerTime = cal.timeInMillis,
                             repeatType = item.repeatType
                         )
-                    )
+                    val id = reminderDao.insert(entity)
+                    ReminderScheduler(context).schedule(entity.copy(id = id))
                 }
                 "date_query" -> {
                     // Date queries don't create anything — message only
@@ -290,6 +390,7 @@ class ChatViewModel @Inject constructor(
                             r.title.lowercase().contains(keyword)
                         }?.let { found ->
                             reminderDao.delete(found)
+                            ReminderScheduler(context).cancel(found.id)
                         }
                     } catch (_: Exception) {}
                 }
@@ -549,7 +650,7 @@ class ChatViewModel @Inject constructor(
                 val pendingTasks = tasks.count { !it.isDone }
                 val doneTasks = tasks.count { it.isDone }
                 sb.appendLine()
-                sb.appendLine("=== THÔNG TIN CÁ NHÂN CỦA NGƯỜI DÙNG ===")
+                sb.appendLine("=== THÔNG TIN TASK/GHI CHÚ ===")
                 sb.appendLine("Tổng task: ${tasks.size} (xong: $doneTasks, chưa xong: $pendingTasks)")
                 sb.appendLine("Tổng ghi chú: ${notes.size}")
                 sb.appendLine("Tổng nhắc nhở: ${reminders.size} (đang bật: ${reminders.count { it.isEnabled }})")
@@ -570,6 +671,35 @@ class ChatViewModel @Inject constructor(
         } catch (e: Exception) {
             ""
         }
+    }
+
+    private fun buildProfileContext(): String {
+        val profile = _uiState.value.profileSummary
+        val sb = StringBuilder()
+        sb.appendLine("=== THÔNG TIN CÁ NHÂN NGƯỜI DÙNG (BẮT BUỘC SỬ DỤNG, TUYỆT ĐỐI KHÔNG HỎI LẠI) ===")
+        if (profile.displayName.isNotBlank() && profile.displayName != "Người dùng") {
+            sb.appendLine("Tên: ${profile.displayName}")
+        }
+        if (profile.gender.isNotBlank()) {
+            sb.appendLine("Giới tính: ${profile.gender}")
+        }
+        if (profile.birthYear > 0 && profile.birthMonth > 0 && profile.birthDay > 0) {
+            sb.appendLine("Ngày sinh dương lịch: ${profile.birthDay}/${profile.birthMonth}/${profile.birthYear}")
+        }
+        if (profile.lunarBirthYear > 0 && profile.lunarBirthMonth > 0 && profile.lunarBirthDay > 0) {
+            val leapNote = if (profile.lunarLeap != 0) " (tháng nhuận)" else ""
+            sb.appendLine("Ngày sinh âm lịch: ${profile.lunarBirthDay}/${profile.lunarBirthMonth}/${profile.lunarBirthYear}$leapNote")
+        }
+        if (profile.birthHour >= 0 && profile.birthMinute >= 0) {
+            sb.appendLine("Giờ sinh: ${profile.birthHour}h${String.format("%02d", profile.birthMinute)}")
+        }
+        if (profile.yearCanChi.isNotBlank()) sb.appendLine("Tuổi Can Chi: ${profile.yearCanChi}")
+        if (profile.conGiap.isNotBlank()) sb.appendLine("Con giáp: ${profile.conGiap}")
+        if (profile.menh.isNotBlank()) sb.appendLine("Mệnh: ${profile.menh}")
+        if (profile.nguHanh.isNotBlank()) sb.appendLine("Ngũ hành nạp âm: ${profile.nguHanh}")
+        if (profile.cung.isNotBlank()) sb.appendLine("Cung: ${profile.cung}")
+        sb.appendLine("→ Tất cả thông tin trên đã được người dùng cung cấp. SỬ DỤNG TRỰC TIẾP, KHÔNG HỎI LẠI.")
+        return sb.toString().trim()
     }
 
     private fun generateLocalResponse(query: String): String {
@@ -597,6 +727,12 @@ class ChatViewModel @Inject constructor(
                 sb.appendLine("${i.CLOCK} Giờ hoàng đạo: ${info.gioHoangDao.take(3).joinToString(", ") { "${it.name} (${it.time})" }}")
                 sb.appendLine("${i.COMPASS} Hướng Thần Tài: ${info.huong.thanTai}")
                 sb.appendLine("${i.JOY} Hướng Hỷ Thần: ${info.huong.hyThan}")
+                sb.appendLine()
+                sb.appendLine("~~~gợi ý")
+                sb.appendLine("📌 Giờ hoàng đạo hôm nay")
+                sb.appendLine("📌 Xem tử vi hôm nay")
+                sb.appendLine("📌 Ngày mai thế nào")
+                sb.appendLine("~~~")
                 sb.toString().trim()
             }
 
@@ -607,6 +743,12 @@ class ChatViewModel @Inject constructor(
                 sb.appendLine("${i.CANCHI} Ngày: ${info.dayCanChi}")
                 sb.appendLine()
                 info.gioHoangDao.forEach { sb.appendLine("   ${i.SPARKLE} ${it.name} (${it.time})") }
+                sb.appendLine()
+                sb.appendLine("~~~gợi ý")
+                sb.appendLine("📌 Hướng xuất hành tốt hôm nay")
+                sb.appendLine("📌 Ngày mai giờ nào tốt")
+                sb.appendLine("📌 Đánh giá tổng quan ngày")
+                sb.appendLine("~~~")
                 sb.toString().trim()
             }
 
@@ -618,6 +760,12 @@ class ChatViewModel @Inject constructor(
                 sb.appendLine("${i.FORTUNE} Thần Tài: ${info.huong.thanTai}")
                 sb.appendLine("${i.JOY} Hỷ Thần: ${info.huong.hyThan}")
                 sb.appendLine("${i.WARNING} Hắc Thần (tránh): ${info.huong.hungThan}")
+                sb.appendLine()
+                sb.appendLine("~~~gợi ý")
+                sb.appendLine("📌 Giờ hoàng đạo hôm nay")
+                sb.appendLine("📌 Hướng nhà hợp mệnh tôi")
+                sb.appendLine("📌 Can chi hôm nay")
+                sb.appendLine("~~~")
                 sb.toString().trim()
             }
 
@@ -629,6 +777,228 @@ class ChatViewModel @Inject constructor(
                 sb.appendLine("${i.CALENDAR} Tháng: ${info.monthCanChi}")
                 sb.appendLine("${i.INFO} Ngày: ${info.dayCanChi}")
                 sb.appendLine("${i.CLOCK} Giờ hiện tại: ${info.hourCanChi}")
+                sb.appendLine()
+                sb.appendLine("~~~gợi ý")
+                sb.appendLine("📌 Phân tích bát tự tứ trụ của tôi")
+                sb.appendLine("📌 Ngũ hành ngày hôm nay")
+                sb.appendLine("📌 Giờ hoàng đạo hôm nay")
+                sb.appendLine("~~~")
+                sb.toString().trim()
+            }
+
+            // ── Bát tự / Tứ trụ ──
+            q.contains("bát tự") || q.contains("bat tu") || q.contains("tứ trụ") || q.contains("tu tru") || q.contains("4 trụ") -> {
+                val profile = _uiState.value.profileSummary
+                val sb = StringBuilder()
+                if (profile.isComplete && profile.birthYear > 0) {
+                    sb.appendLine("${i.SPARKLE} BÁT TỰ TỨ TRỤ — ${profile.displayName}")
+                    sb.appendLine()
+                    sb.appendLine("${i.CALENDAR} Ngày sinh: ${profile.birthDay}/${profile.birthMonth}/${profile.birthYear}")
+                    if (profile.birthHour >= 0) sb.appendLine("${i.CLOCK} Giờ sinh: ${profile.birthHour}h${profile.birthMinute}")
+                    sb.appendLine("${i.CANCHI} Năm: ${profile.yearCanChi}")
+                    if (profile.menh.isNotBlank()) sb.appendLine("${i.STAR} Mệnh: ${profile.menh}")
+                    if (profile.nguHanh.isNotBlank()) sb.appendLine("${i.INFO} Ngũ hành nạp âm: ${profile.nguHanh}")
+                    if (profile.conGiap.isNotBlank()) sb.appendLine("${i.FORTUNE} Con giáp: ${profile.conGiap}")
+                    sb.appendLine()
+                    sb.appendLine("${i.INFO} Để xem phân tích bát tự chi tiết (thiên can, địa chi, tàng can, dụng thần...), hãy kết nối AI trực tuyến.")
+                } else {
+                    sb.appendLine("${i.SPARKLE} BÁT TỰ TỨ TRỤ")
+                    sb.appendLine()
+                    sb.appendLine("${i.WARNING} Để phân tích bát tự, tôi cần biết thêm:")
+                    if (profile.birthYear <= 0) sb.appendLine("${i.ARROW} Ngày sinh dương lịch (ngày/tháng/năm)")
+                    if (profile.birthHour < 0) sb.appendLine("${i.ARROW} Giờ sinh (quan trọng — xác định trụ Giờ)")
+                    if (profile.gender.isBlank()) sb.appendLine("${i.ARROW} Giới tính (ảnh hưởng đại vận)")
+                    sb.appendLine()
+                    sb.appendLine("${i.INFO} Hãy cập nhật hồ sơ cá nhân hoặc cho tôi biết ngày giờ sinh của bạn!")
+                }
+                sb.appendLine()
+                sb.appendLine("~~~gợi ý")
+                sb.appendLine("📌 Xem vận hạn năm nay")
+                sb.appendLine("📌 Phân tích ngũ hành của tôi")
+                sb.appendLine("📌 Xem hợp tuổi vợ chồng")
+                sb.appendLine("~~~")
+                sb.toString().trim()
+            }
+
+            // ── Tử vi ──
+            q.contains("tử vi") || q.contains("tu vi") || q.contains("lá số") || q.contains("la so") -> {
+                val profile = _uiState.value.profileSummary
+                val sb = StringBuilder()
+                sb.appendLine("${i.STAR} TỬ VI")
+                sb.appendLine()
+                if (profile.isComplete && profile.birthYear > 0) {
+                    sb.appendLine("${i.CALENDAR} ${profile.displayName} — sinh ${profile.birthDay}/${profile.birthMonth}/${profile.birthYear}")
+                    if (profile.yearCanChi.isNotBlank()) sb.appendLine("${i.CANCHI} Tuổi: ${profile.yearCanChi}")
+                    if (profile.conGiap.isNotBlank()) sb.appendLine("${i.FORTUNE} Con giáp: ${profile.conGiap}")
+                    if (profile.menh.isNotBlank()) sb.appendLine("${i.SPARKLE} Mệnh: ${profile.menh}")
+                    if (profile.cung.isNotBlank()) sb.appendLine("${i.INFO} Cung: ${profile.cung}")
+                    sb.appendLine()
+                    sb.appendLine("${i.INFO} Để xem tử vi trọn bộ 12 cung (Mệnh, Thân, Quan Lộc, Tài Bạch, Phu Thê...), hãy kết nối AI trực tuyến để phân tích chi tiết.")
+                } else {
+                    sb.appendLine("${i.WARNING} Để lập lá số tử vi, tôi cần biết thêm:")
+                    if (profile.birthYear <= 0) sb.appendLine("${i.ARROW} Ngày sinh dương lịch đầy đủ")
+                    if (profile.birthHour < 0) sb.appendLine("${i.ARROW} Giờ sinh chính xác")
+                    if (profile.gender.isBlank()) sb.appendLine("${i.ARROW} Giới tính")
+                    sb.appendLine()
+                    sb.appendLine("${i.INFO} Hãy cập nhật hồ sơ cá nhân để tôi phân tích tử vi cho bạn!")
+                }
+                sb.appendLine()
+                sb.appendLine("~~~gợi ý")
+                sb.appendLine("📌 Vận hạn năm nay của tôi")
+                sb.appendLine("📌 Phân tích bát tự tứ trụ")
+                sb.appendLine("📌 Con giáp năm nay vận thế sao")
+                sb.appendLine("~~~")
+                sb.toString().trim()
+            }
+
+            // ── Vận mệnh / Vận hạn / Lưu niên ──
+            q.contains("vận mệnh") || q.contains("van menh") || q.contains("vận hạn") || q.contains("van han") ||
+            q.contains("lưu niên") || q.contains("luu nien") || q.contains("đại vận") || q.contains("dai van") ||
+            q.contains("vận năm") || q.contains("van nam") || q.contains("năm nay") && (q.contains("vận") || q.contains("sao")) -> {
+                val profile = _uiState.value.profileSummary
+                val sb = StringBuilder()
+                sb.appendLine("${i.SPARKLE} VẬN HẠN ${today.year}")
+                sb.appendLine()
+                if (profile.isComplete && profile.birthYear > 0) {
+                    val tuoi = today.year - profile.birthYear
+                    sb.appendLine("${i.CALENDAR} ${profile.displayName} — $tuoi tuổi")
+                    if (profile.yearCanChi.isNotBlank()) sb.appendLine("${i.CANCHI} Tuổi: ${profile.yearCanChi}")
+                    if (profile.conGiap.isNotBlank()) sb.appendLine("${i.FORTUNE} Con giáp: ${profile.conGiap}")
+                    if (profile.menh.isNotBlank()) sb.appendLine("${i.STAR} Mệnh: ${profile.menh}")
+                    sb.appendLine()
+                    sb.appendLine("${i.INFO} Kết nối AI trực tuyến để xem phân tích vận hạn chi tiết: đại vận, tiểu vận, lưu niên ${today.year}, sao chiếu mệnh, cát hung...")
+                } else {
+                    sb.appendLine("${i.WARNING} Để phân tích vận hạn, tôi cần biết ngày giờ sinh của bạn.")
+                    sb.appendLine("${i.ARROW} Hãy cập nhật hồ sơ cá nhân!")
+                }
+                sb.appendLine()
+                sb.appendLine("~~~gợi ý")
+                sb.appendLine("📌 Phân tích bát tự tứ trụ")
+                sb.appendLine("📌 Tử vi năm nay chi tiết")
+                sb.appendLine("📌 Hướng xuất hành tốt hôm nay")
+                sb.appendLine("~~~")
+                sb.toString().trim()
+            }
+
+            // ── Ngũ hành ──
+            q.contains("ngũ hành") || q.contains("ngu hanh") || q.contains("kim mộc") || q.contains("thủy hỏa") || q.contains("mệnh") && !q.contains("vận") -> {
+                val profile = _uiState.value.profileSummary
+                val sb = StringBuilder()
+                sb.appendLine("${i.SPARKLE} NGŨ HÀNH & MỆNH")
+                sb.appendLine()
+                if (profile.isComplete && profile.birthYear > 0) {
+                    sb.appendLine("${i.CALENDAR} ${profile.displayName}")
+                    if (profile.yearCanChi.isNotBlank()) sb.appendLine("${i.CANCHI} Tuổi: ${profile.yearCanChi}")
+                    if (profile.menh.isNotBlank()) sb.appendLine("${i.STAR} Mệnh: ${profile.menh}")
+                    if (profile.nguHanh.isNotBlank()) sb.appendLine("${i.INFO} Ngũ hành nạp âm: ${profile.nguHanh}")
+                    sb.appendLine()
+                    sb.appendLine("${i.INFO} Kết nối AI trực tuyến để xem chi tiết: hợp/kỵ màu sắc, hướng, số, nghề nghiệp phù hợp với mệnh...")
+                } else {
+                    sb.appendLine("${i.WARNING} Để phân tích ngũ hành, tôi cần biết năm sinh của bạn.")
+                    sb.appendLine("${i.ARROW} Hãy cập nhật hồ sơ cá nhân!")
+                }
+                sb.appendLine()
+                sb.appendLine("~~~gợi ý")
+                sb.appendLine("📌 Màu sắc hợp mệnh của tôi")
+                sb.appendLine("📌 Hướng nhà tốt theo mệnh")
+                sb.appendLine("📌 Phân tích bát tự tứ trụ")
+                sb.appendLine("~~~")
+                sb.toString().trim()
+            }
+
+            // ── Hợp tuổi ──
+            q.contains("hợp tuổi") || q.contains("hop tuoi") || q.contains("xung tuổi") || q.contains("xung tuoi") ||
+            q.contains("tam hợp") || q.contains("lục hợp") || q.contains("tứ hành xung") -> {
+                val profile = _uiState.value.profileSummary
+                val sb = StringBuilder()
+                sb.appendLine("${i.JOY} HỢP TUỔI")
+                sb.appendLine()
+                if (profile.isComplete && profile.conGiap.isNotBlank()) {
+                    sb.appendLine("${i.CALENDAR} ${profile.displayName} — tuổi ${profile.yearCanChi}")
+                    sb.appendLine("${i.FORTUNE} Con giáp: ${profile.conGiap}")
+                    sb.appendLine()
+                    sb.appendLine("${i.INFO} Kết nối AI trực tuyến để phân tích hợp tuổi chi tiết: tam hợp, lục hợp, tứ hành xung, hợp vợ chồng, hợp làm ăn...")
+                } else {
+                    sb.appendLine("${i.WARNING} Để xem hợp tuổi, tôi cần biết năm sinh của bạn.")
+                    sb.appendLine("${i.ARROW} Hãy cập nhật hồ sơ cá nhân!")
+                    sb.appendLine()
+                    sb.appendLine("${i.INFO} Bạn cũng có thể hỏi: \"Tuổi Tý hợp với tuổi nào?\"")
+                }
+                sb.appendLine()
+                sb.appendLine("~~~gợi ý")
+                sb.appendLine("📌 Xem tử vi hôm nay")
+                sb.appendLine("📌 Ngày cưới tốt tháng này")
+                sb.appendLine("📌 Phân tích ngũ hành vợ chồng")
+                sb.appendLine("~~~")
+                sb.toString().trim()
+            }
+
+            // ── Con giáp / 12 con giáp ──
+            q.contains("con giáp") || q.contains("con giap") || q.contains("12 con") || q.contains("tuổi tý") || q.contains("tuổi sửu") ||
+            q.contains("tuổi dần") || q.contains("tuổi mão") || q.contains("tuổi thìn") || q.contains("tuổi tỵ") ||
+            q.contains("tuổi ngọ") || q.contains("tuổi mùi") || q.contains("tuổi thân") || q.contains("tuổi dậu") ||
+            q.contains("tuổi tuất") || q.contains("tuổi hợi") -> {
+                val profile = _uiState.value.profileSummary
+                val sb = StringBuilder()
+                sb.appendLine("${i.FORTUNE} VẬN THẾ CON GIÁP ${today.year}")
+                sb.appendLine()
+                if (profile.conGiap.isNotBlank()) {
+                    sb.appendLine("${i.STAR} Con giáp: ${profile.conGiap}")
+                    if (profile.yearCanChi.isNotBlank()) sb.appendLine("${i.CANCHI} Tuổi: ${profile.yearCanChi}")
+                }
+                sb.appendLine()
+                sb.appendLine("${i.INFO} Kết nối AI trực tuyến để xem vận thế ${today.year} chi tiết: tài lộc, sự nghiệp, tình duyên, sức khỏe, quý nhân...")
+                sb.appendLine()
+                sb.appendLine("~~~gợi ý")
+                sb.appendLine("📌 Vận hạn năm nay chi tiết")
+                sb.appendLine("📌 Hợp tuổi của tôi")
+                sb.appendLine("📌 Tử vi tháng này")
+                sb.appendLine("~~~")
+                sb.toString().trim()
+            }
+
+            // ── Phong thủy nhà / hướng nhà ──
+            q.contains("phong thủy nhà") || q.contains("phong thuy nha") || q.contains("hướng nhà") || q.contains("huong nha") ||
+            q.contains("bàn thờ") || q.contains("ban tho") || q.contains("phòng ngủ") || q.contains("phong ngu") -> {
+                val profile = _uiState.value.profileSummary
+                val sb = StringBuilder()
+                sb.appendLine("${i.COMPASS} PHONG THỦY NHÀ CỬA")
+                sb.appendLine()
+                if (profile.menh.isNotBlank()) {
+                    sb.appendLine("${i.STAR} Mệnh: ${profile.menh}")
+                    sb.appendLine()
+                    sb.appendLine("${i.INFO} Kết nối AI trực tuyến để được tư vấn chi tiết: hướng nhà tốt, vị trí bàn thờ, phòng ngủ, bếp theo mệnh ${profile.menh}...")
+                } else {
+                    sb.appendLine("${i.WARNING} Cần biết mệnh của bạn để tư vấn phong thủy chính xác.")
+                    sb.appendLine("${i.ARROW} Hãy cập nhật hồ sơ cá nhân (ngày sinh)!")
+                }
+                sb.appendLine()
+                sb.appendLine("~~~gợi ý")
+                sb.appendLine("📌 Hướng bàn làm việc theo mệnh")
+                sb.appendLine("📌 Màu sơn nhà hợp mệnh")
+                sb.appendLine("📌 Ngày tốt động thổ tháng này")
+                sb.appendLine("~~~")
+                sb.toString().trim()
+            }
+
+            // ── Đặt tên / chọn tên ──
+            q.contains("đặt tên") || q.contains("dat ten") || q.contains("chọn tên") || q.contains("chon ten") ||
+            q.contains("tên con") || q.contains("ten con") || q.contains("tên đẹp") -> {
+                val sb = StringBuilder()
+                sb.appendLine("${i.SPARKLE} GỢI Ý ĐẶT TÊN")
+                sb.appendLine()
+                sb.appendLine("${i.INFO} Để gợi ý tên phù hợp, tôi cần biết:")
+                sb.appendLine("${i.ARROW} Năm sinh của bé (hoặc năm dự sinh)")
+                sb.appendLine("${i.ARROW} Giới tính")
+                sb.appendLine("${i.ARROW} Họ của gia đình")
+                sb.appendLine()
+                sb.appendLine("${i.INFO} Kết nối AI trực tuyến để được gợi ý tên đẹp theo ngũ hành, mệnh, ý nghĩa và phong thủy.")
+                sb.appendLine()
+                sb.appendLine("~~~gợi ý")
+                sb.appendLine("📌 Ngũ hành mệnh năm nay")
+                sb.appendLine("📌 Xem hợp tuổi bố mẹ - con")
+                sb.appendLine("📌 Ngày tốt đầy tháng bé")
+                sb.appendLine("~~~")
                 sb.toString().trim()
             }
 
@@ -727,6 +1097,12 @@ class ChatViewModel @Inject constructor(
                 sb.appendLine()
                 sb.appendLine("${i.COMPASS} Hướng Hỷ Thần: ${info.huong.hyThan}")
                 sb.appendLine("${i.CLOCK} Giờ tốt: ${info.gioHoangDao.take(3).joinToString(", ") { "${it.name} (${it.time})" }}")
+                sb.appendLine()
+                sb.appendLine("~~~gợi ý")
+                sb.appendLine("📌 Xem hợp tuổi vợ chồng")
+                sb.appendLine("📌 Ngày cưới tốt tháng sau")
+                sb.appendLine("📌 Hướng rước dâu tốt")
+                sb.appendLine("~~~")
                 sb.toString().trim()
             }
 
@@ -742,6 +1118,12 @@ class ChatViewModel @Inject constructor(
                 }
                 sb.appendLine("${i.FORTUNE} Hướng Thần Tài: ${info.huong.thanTai}")
                 sb.appendLine("${i.CLOCK} Giờ hoàng đạo: ${info.gioHoangDao.take(3).joinToString(", ") { "${it.name} (${it.time})" }}")
+                sb.appendLine()
+                sb.appendLine("~~~gợi ý")
+                sb.appendLine("📌 Hướng Thần Tài hôm nay")
+                sb.appendLine("📌 Ngày khai trương tốt tháng này")
+                sb.appendLine("📌 Phong thủy cửa hàng theo mệnh")
+                sb.appendLine("~~~")
                 sb.toString().trim()
             }
 
@@ -758,6 +1140,12 @@ class ChatViewModel @Inject constructor(
                 sb.appendLine("${i.CANCHI} Trực: ${info.trucNgay.name} (${info.trucNgay.rating})")
                 sb.appendLine("${i.STAR} Sao: ${info.saoChieu.name} (${info.saoChieu.rating})")
                 sb.appendLine("${i.COMPASS} Tránh hướng: ${info.huong.hungThan}")
+                sb.appendLine()
+                sb.appendLine("~~~gợi ý")
+                sb.appendLine("📌 Phong thủy nhà theo mệnh")
+                sb.appendLine("📌 Hướng nhà tốt cho tuổi tôi")
+                sb.appendLine("📌 Ngày nhập trạch tốt")
+                sb.appendLine("~~~")
                 sb.toString().trim()
             }
 
@@ -811,9 +1199,15 @@ class ChatViewModel @Inject constructor(
                 "${i.ARROW} Ngày tốt/xấu hôm nay\n" +
                 "${i.ARROW} Giờ hoàng đạo, hướng xuất hành\n" +
                 "${i.ARROW} Can chi, tiết khí\n" +
+                "${i.ARROW} Bát tự, tử vi, vận mệnh\n" +
+                "${i.ARROW} Hợp tuổi, ngũ hành, phong thủy\n" +
                 "${i.ARROW} Ngày cưới hỏi, khai trương\n" +
                 "${i.ARROW} Tạo task, ghi chú, nhắc nhở\n\n" +
-                "Hãy thử hỏi: \"Hôm nay ngày tốt không?\""
+                "~~~gợi ý\n" +
+                "📌 Xem tử vi hôm nay\n" +
+                "📌 Phân tích bát tự của tôi\n" +
+                "📌 Vận hạn năm nay\n" +
+                "~~~"
             }
 
             // ── Cảm ơn ──
@@ -865,6 +1259,12 @@ class ChatViewModel @Inject constructor(
                 sb.appendLine("${i.ARROW} Tạo task/ghi chú/nhắc nhở")
                 sb.appendLine("${i.ARROW} Xem ngày cụ thể: \"ngày 25/12\"")
                 sb.appendLine("${i.ARROW} Gõ \"giúp\" để xem tất cả chức năng")
+                sb.appendLine()
+                sb.appendLine("~~~gợi ý")
+                sb.appendLine("📌 Hôm nay ngày tốt không")
+                sb.appendLine("📌 Phân tích bát tự của tôi")
+                sb.appendLine("📌 Xem tử vi hôm nay")
+                sb.appendLine("~~~")
                 sb.toString().trim()
             }
         }

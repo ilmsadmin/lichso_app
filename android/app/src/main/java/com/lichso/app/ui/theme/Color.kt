@@ -4,8 +4,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 
 // ══════════════════════════════════════════
-// LỊCH SỐ — Design System Colors
-// Dual Theme — Dark (Premium Gold) & Light
+// LỊCH SỐ — Design System Colors v2
+// Vietnamese Red & Gold — Material 3
 // ══════════════════════════════════════════
 
 /**
@@ -40,6 +40,19 @@ data class LichSoColors(
     val noteGreen: Color,
     val noteRed: Color,
     val isDark: Boolean,
+    // v2 Material 3 additions
+    val primary: Color,
+    val onPrimary: Color,
+    val primaryContainer: Color,
+    val onPrimaryContainer: Color,
+    val surfaceContainer: Color,
+    val surfaceContainerHigh: Color,
+    val outline: Color,
+    val outlineVariant: Color,
+    val deepRed: Color,
+    val goodGreen: Color,
+    val badRed: Color,
+    val neutralAmber: Color,
 )
 
 // ── Dark palette ──
@@ -70,39 +83,63 @@ val DarkColors = LichSoColors(
     noteGreen = Color(0xFF78C47A),
     noteRed = Color(0xFFE87070),
     isDark = true,
+    primary = Color(0xFFB71C1C),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFDAD6),
+    onPrimaryContainer = Color(0xFF410002),
+    surfaceContainer = Color(0xFF2A2720),
+    surfaceContainerHigh = Color(0xFF363228),
+    outline = Color(0xFF857371),
+    outlineVariant = Color(0xFF534340),
+    deepRed = Color(0xFF8B0000),
+    goodGreen = Color(0xFF4CAF50),
+    badRed = Color(0xFFC62828),
+    neutralAmber = Color(0xFFF57F17),
 )
 
-// ── Light palette ──
+// ── Light palette (Vietnamese Red & Gold — Material 3) ──
 val LightColors = LichSoColors(
-    bg = Color(0xFFF8F6F1),
-    bg2 = Color(0xFFFFFFFF),
-    bg3 = Color(0xFFF0EDE6),
-    bg4 = Color(0xFFE8E4DB),
-    surface = Color(0xFFEAE6DD),
-    surface2 = Color(0xFFDDD8CD),
-    border = Color(0x1A8B7A4A),
-    gold = Color(0xFFC4A020),
-    gold2 = Color(0xFFAA8A10),
-    goldDim = Color(0x1EC4A020),
-    teal = Color(0xFF2E9A88),
-    teal2 = Color(0xFF1E8070),
-    tealDim = Color(0x1A2E9A88),
-    red = Color(0xFFC43D2B),
-    red2 = Color(0xFFD04838),
-    textPrimary = Color(0xFF1A1710),
-    textSecondary = Color(0xFF5C5340),
-    textTertiary = Color(0xFF8A7F68),
-    textQuaternary = Color(0xFFB8AE98),
-    noteGold = Color(0xFFC4A020),
-    noteTeal = Color(0xFF2E9A88),
-    noteOrange = Color(0xFFCC7B3A),
-    notePurple = Color(0xFF7B5EB0),
-    noteGreen = Color(0xFF4A9C4E),
-    noteRed = Color(0xFFCC4040),
+    bg = Color(0xFFFFFBF5),
+    bg2 = Color(0xFFFFF8F0),
+    bg3 = Color(0xFFF5DDD8),
+    bg4 = Color(0xFFFFF0E8),
+    surface = Color(0xFFFFF8F0),
+    surface2 = Color(0xFFF5DDD8),
+    border = Color(0x22D8C2BF),
+    gold = Color(0xFFD4A017),
+    gold2 = Color(0xFFC6A300),
+    goldDim = Color(0x1ED4A017),
+    teal = Color(0xFF006C4C),
+    teal2 = Color(0xFF006C4C),
+    tealDim = Color(0x1A006C4C),
+    red = Color(0xFFB71C1C),
+    red2 = Color(0xFFC62828),
+    textPrimary = Color(0xFF1C1B1F),
+    textSecondary = Color(0xFF534340),
+    textTertiary = Color(0xFF857371),
+    textQuaternary = Color(0xFFD8C2BF),
+    noteGold = Color(0xFFD4A017),
+    noteTeal = Color(0xFF006C4C),
+    noteOrange = Color(0xFFE65100),
+    notePurple = Color(0xFF7B1FA2),
+    noteGreen = Color(0xFF2E7D32),
+    noteRed = Color(0xFFC62828),
     isDark = false,
+    primary = Color(0xFFB71C1C),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFDAD6),
+    onPrimaryContainer = Color(0xFF410002),
+    surfaceContainer = Color(0xFFFFF8F0),
+    surfaceContainerHigh = Color(0xFFFFF0E8),
+    outline = Color(0xFF857371),
+    outlineVariant = Color(0xFFD8C2BF),
+    deepRed = Color(0xFF8B0000),
+    goodGreen = Color(0xFF2E7D32),
+    badRed = Color(0xFFC62828),
+    neutralAmber = Color(0xFFF57F17),
 )
 
-val LocalLichSoColors = staticCompositionLocalOf { DarkColors }
+val LocalLichSoColors = staticCompositionLocalOf { LightColors }
 
 /**
  * Convenience accessor – use `LichSoThemeColors.current` anywhere in a @Composable.
@@ -116,31 +153,31 @@ object LichSoThemeColors {
 
 // ══════════════════════════════════════════
 // Legacy top-level vals for backward compat
-// These reference the DARK palette directly.
+// Now reference LIGHT palette as default.
 // Prefer LichSoThemeColors.current in new code.
 // ══════════════════════════════════════════
-val Bg = DarkColors.bg
-val Bg2 = DarkColors.bg2
-val Bg3 = DarkColors.bg3
-val Bg4 = DarkColors.bg4
-val Surface = DarkColors.surface
-val Surface2 = DarkColors.surface2
-val Border = DarkColors.border
-val Gold = DarkColors.gold
-val Gold2 = DarkColors.gold2
-val GoldDim = DarkColors.goldDim
-val Teal = DarkColors.teal
-val Teal2 = DarkColors.teal2
-val TealDim = DarkColors.tealDim
-val Red = DarkColors.red
-val Red2 = DarkColors.red2
-val TextPrimary = DarkColors.textPrimary
-val TextSecondary = DarkColors.textSecondary
-val TextTertiary = DarkColors.textTertiary
-val TextQuaternary = DarkColors.textQuaternary
-val NoteGold = DarkColors.noteGold
-val NoteTeal = DarkColors.noteTeal
-val NoteOrange = DarkColors.noteOrange
-val NotePurple = DarkColors.notePurple
-val NoteGreen = DarkColors.noteGreen
-val NoteRed = DarkColors.noteRed
+val Bg = LightColors.bg
+val Bg2 = LightColors.bg2
+val Bg3 = LightColors.bg3
+val Bg4 = LightColors.bg4
+val Surface = LightColors.surface
+val Surface2 = LightColors.surface2
+val Border = LightColors.border
+val Gold = LightColors.gold
+val Gold2 = LightColors.gold2
+val GoldDim = LightColors.goldDim
+val Teal = LightColors.teal
+val Teal2 = LightColors.teal2
+val TealDim = LightColors.tealDim
+val Red = LightColors.red
+val Red2 = LightColors.red2
+val TextPrimary = LightColors.textPrimary
+val TextSecondary = LightColors.textSecondary
+val TextTertiary = LightColors.textTertiary
+val TextQuaternary = LightColors.textQuaternary
+val NoteGold = LightColors.noteGold
+val NoteTeal = LightColors.noteTeal
+val NoteOrange = LightColors.noteOrange
+val NotePurple = LightColors.notePurple
+val NoteGreen = LightColors.noteGreen
+val NoteRed = LightColors.noteRed

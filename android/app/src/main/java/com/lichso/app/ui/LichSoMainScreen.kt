@@ -1,432 +1,758 @@
 package com.lichso.app.ui
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.*
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.vector.*
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.roundToInt
+import com.lichso.app.ui.screen.bookmarks.BookmarksScreen
 import com.lichso.app.ui.screen.calendar.CalendarScreen
 import com.lichso.app.ui.screen.chat.AIChatScreen
+import com.lichso.app.ui.screen.familytree.FamilyTreeScreen
+import com.lichso.app.ui.screen.gooddays.GoodDaysScreen
+import com.lichso.app.ui.screen.history.ThisDayInHistoryScreen
 import com.lichso.app.ui.screen.home.HomeScreen
+import com.lichso.app.ui.screen.home.HomeViewModel
+import com.lichso.app.ui.screen.notifications.NotificationScreen
+import com.lichso.app.ui.screen.prayers.PrayersScreen
+import com.lichso.app.ui.screen.profile.ProfileScreen
+import com.lichso.app.ui.screen.search.SearchScreen
 import com.lichso.app.ui.screen.settings.SettingsScreen
-import com.lichso.app.ui.screen.tasks.TasksScreen2
-import com.lichso.app.ui.screen.templates.TemplatesScreen
+import com.lichso.app.ui.screen.tasks.TasksScreen3
+import com.lichso.app.R
 import com.lichso.app.ui.theme.*
+import androidx.compose.ui.res.painterResource
+import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LichSoMainScreen(modifier: Modifier = Modifier) {
     val c = LichSoThemeColors.current
     var currentRoute by remember { mutableStateOf("home") }
+    var prayerDetailShowing by remember { mutableStateOf(false) }
+    var initialPrayerId by remember { mutableStateOf<Int?>(null) }
+    val homeViewModel: HomeViewModel = hiltViewModel()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-    Box(modifier = modifier.fillMaxSize().background(c.bg)) {
-        var containerWidth by remember { mutableIntStateOf(0) }
-        var containerHeight by remember { mutableIntStateOf(0) }
+    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays") || prayerDetailShowing
 
+    val toggleDrawer: () -> Unit = {
+        scope.launch {
+            if (drawerState.isOpen) drawerState.close() else drawerState.open()
+        }
+    }
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = drawerState.isOpen,
+        drawerContent = {
+            DrawerMenuContent(
+                currentRoute = currentRoute,
+                onItemClick = { route ->
+                    scope.launch { drawerState.close() }
+                    currentRoute = route
+                }
+            )
+        }
+    ) {
+        Box(modifier = modifier.fillMaxSize().background(c.bg)) {
+        // Content area
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .then(if (currentRoute == "chat") Modifier else Modifier.padding(bottom = 80.dp))
-                .onGloballyPositioned { coords ->
-                    containerWidth = coords.size.width
-                    containerHeight = coords.size.height
-                }
+                .then(
+                    if (hideBottomBar) Modifier
+                    else Modifier.padding(bottom = 80.dp)
+                )
         ) {
             when (currentRoute) {
-                "home" -> HomeScreen(onSettingsClick = { currentRoute = "settings" })
-                "calendar" -> CalendarScreen()
-                "tasks" -> TasksScreen2()
-                "chat" -> AIChatScreen()
-                "templates" -> TemplatesScreen()
-                "settings" -> SettingsScreen()
-                else -> HomeScreen(onSettingsClick = { currentRoute = "settings" })
-            }
-        }
-
-        val density = LocalDensity.current
-        val fabSize = with(density) { 56.dp.toPx() }
-        val bottomNavHeight = with(density) { 80.dp.toPx() }
-        val fabPaddingEnd = with(density) { 18.dp.toPx() }
-        // Tăng padding từ 90.dp lên 110.dp để icon không bị menu lấp
-        val fabPaddingBottom = with(density) { 110.dp.toPx() }
-        
-        var fabOffsetX by remember { mutableFloatStateOf(-1f) }
-        var fabOffsetY by remember { mutableFloatStateOf(-1f) }
-
-        LaunchedEffect(containerWidth, containerHeight) {
-            if (containerWidth > 0 && containerHeight > 0 && fabOffsetX < 0f) {
-                fabOffsetX = containerWidth - fabSize - fabPaddingEnd
-                fabOffsetY = containerHeight + bottomNavHeight - fabSize - fabPaddingBottom
-            }
-        }
-
-        if (fabOffsetX >= 0f) {
-            AnimatedRobotFab(
-                modifier = Modifier
-                    .statusBarsPadding()
-                    .offset { IntOffset(fabOffsetX.roundToInt(), fabOffsetY.roundToInt()) }
-                    .size(56.dp)
-                    .pointerInput(Unit) {
-                        detectDragGestures { change, dragAmount ->
-                            change.consume()
-                            val maxX = containerWidth - fabSize
-                            val maxY = containerHeight + bottomNavHeight - fabSize
-                            fabOffsetX = (fabOffsetX + dragAmount.x).coerceIn(0f, maxX)
-                            fabOffsetY = (fabOffsetY + dragAmount.y).coerceIn(0f, maxY)
-                        }
+                "home" -> HomeScreen(
+                    onSettingsClick = { currentRoute = "settings" },
+                    onMenuClick = toggleDrawer,
+                    onProfileClick = { currentRoute = "profile" },
+                    onHistoryClick = { currentRoute = "history" },
+                    onNotificationClick = { currentRoute = "notifications" }
+                )
+                "calendar" -> CalendarScreen(
+                    onGoodDaysClick = { currentRoute = "gooddays" },
+                    onSearchClick = { currentRoute = "search" },
+                    onMenuClick = toggleDrawer
+                )
+                "gooddays" -> GoodDaysScreen(
+                    onBackClick = { currentRoute = "home" }
+                )
+                "prayers" -> PrayersScreen(
+                    onBackClick = { currentRoute = "home" },
+                    onMenuClick = toggleDrawer,
+                    onDetailVisibilityChanged = { prayerDetailShowing = it },
+                    initialPrayerId = initialPrayerId.also { initialPrayerId = null }
+                )
+                "profile" -> ProfileScreen(
+                    onSettingsClick = { currentRoute = "settings" },
+                    onFamilyTreeClick = { currentRoute = "familytree" },
+                    onBackClick = { currentRoute = "home" },
+                    onMenuClick = toggleDrawer,
+                    onTasksClick = { currentRoute = "tasks" },
+                    onBookmarksClick = { currentRoute = "bookmarks" }
+                )
+                "tasks" -> TasksScreen3(
+                    onBackClick = { currentRoute = "home" },
+                    onMenuClick = toggleDrawer
+                )
+                "notifications" -> NotificationScreen(
+                    onBackClick = { currentRoute = "home" }
+                )
+                "familytree" -> FamilyTreeScreen(
+                    onBackClick = { currentRoute = "profile" },
+                    onPrayersClick = { prayerId ->
+                        initialPrayerId = prayerId
+                        currentRoute = "prayers"
                     }
-                    .clip(CircleShape)
-                    .background(
-                        Brush.linearGradient(listOf(c.teal, Color(0xFF237A6A))),
-                        CircleShape
+                )
+                "history" -> ThisDayInHistoryScreen(onBackClick = { currentRoute = "home" })
+                "chat" -> AIChatScreen(
+                    onBackClick = { currentRoute = "home" },
+                    onNavigateToProfile = { currentRoute = "profile" }
+                )
+                "settings" -> SettingsScreen(onBackClick = { currentRoute = "home" })
+                "search" -> SearchScreen(
+                    onBackClick = { currentRoute = "calendar" },
+                    onDateSelected = { year, month, day ->
+                        homeViewModel.goToDate(year, month, day)
+                        currentRoute = "calendar"
+                    },
+                    onGoodDaysClick = { currentRoute = "gooddays" }
+                )
+                "bookmarks" -> BookmarksScreen(
+                    onBackClick = { currentRoute = "profile" },
+                    onDateSelected = { year, month, day ->
+                        homeViewModel.goToDate(year, month, day)
+                        currentRoute = "calendar"
+                    },
+                    onAddBookmark = { currentRoute = "calendar" }
+                )
+                else -> HomeScreen(
+                    onSettingsClick = { currentRoute = "settings" },
+                    onMenuClick = toggleDrawer,
+                    onHistoryClick = { currentRoute = "history" },
+                    onNotificationClick = { currentRoute = "notifications" }
+                )
+            }
+        }
+
+        // AI FAB — only show when bottom bar is visible
+        if (!hideBottomBar) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = 100.dp)
+            ) {
+                // Circle background + icon
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(listOf(c.primary, Color(0xFFC62828))),
+                            CircleShape
+                        )
+                        .clickable { currentRoute = "chat" },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.AutoAwesome,
+                        contentDescription = "AI Chat",
+                        tint = Color.White,
+                        modifier = Modifier.size(26.dp)
                     )
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { currentRoute = "chat" }
-                    .padding(12.dp)
+                }
+                // AI badge (outside the clipped circle)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 4.dp, y = (-4).dp)
+                        .background(c.gold, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        "AI",
+                        style = TextStyle(fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                    )
+                }
+            }
+        }
+
+        // Bottom Navigation Bar (Material 3 style)
+        if (!hideBottomBar) {
+            BottomNavBar(
+                currentRoute = currentRoute,
+                onRouteSelected = { currentRoute = it },
+                onCenterClick = {
+                    homeViewModel.goToToday()
+                    currentRoute = "home"
+                },
+                modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
+    }
+    } // end ModalNavigationDrawer
+}
 
-        BottomNavBar(
-            currentRoute = currentRoute,
-            onRouteSelected = { currentRoute = it },
-            modifier = Modifier.align(Alignment.BottomCenter)
+// ══════════════════════════════════════════
+// DRAWER MENU CONTENT (matching HTML design)
+// ══════════════════════════════════════════
+
+private data class DrawerMenuItem(
+    val route: String,
+    val title: String,
+    val icon: ImageVector,
+    val iconFilled: ImageVector = icon
+)
+
+@Composable
+private fun DrawerMenuContent(
+    currentRoute: String,
+    onItemClick: (String) -> Unit
+) {
+    val c = LichSoThemeColors.current
+
+    val mainItems = listOf(
+        DrawerMenuItem("home", "Trang chủ", Icons.Outlined.Today, Icons.Filled.Today),
+        DrawerMenuItem("calendar", "Lịch tháng", Icons.Outlined.CalendarMonth, Icons.Filled.CalendarMonth),
+        DrawerMenuItem("gooddays", "Ngày tốt / xấu", Icons.Outlined.EventAvailable, Icons.Filled.EventAvailable),
+        DrawerMenuItem("bookmarks", "Ngày đã lưu", Icons.Outlined.Bookmarks, Icons.Filled.Bookmarks),
+    )
+
+    val exploreItems = listOf(
+        DrawerMenuItem("history", "Ngày này năm xưa", Icons.Outlined.HistoryEdu, Icons.Filled.HistoryEdu),
+        DrawerMenuItem("familytree", "Cây gia phả", Icons.Outlined.AccountTree, Icons.Filled.AccountTree),
+        DrawerMenuItem("prayers", "Các bài văn khấn", Icons.Outlined.MenuBook, Icons.Filled.MenuBook),
+    )
+
+    val bottomItems = listOf(
+        DrawerMenuItem("settings", "Cài đặt", Icons.Outlined.Settings, Icons.Filled.Settings),
+    )
+
+    ModalDrawerSheet(
+        modifier = Modifier.width(300.dp),
+        drawerShape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp),
+        drawerContainerColor = c.bg
+    ) {
+        Column(
+            modifier = Modifier.fillMaxHeight()
+        ) {
+            // ── Drawer Header (Red Gradient) ──
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(c.primary, c.deepRed),
+                            start = Offset(0f, 0f),
+                            end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                        )
+                    )
+                    .statusBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 24.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // App logo
+                    Image(
+                        painter = painterResource(R.drawable.ic_launcher_foreground),
+                        contentDescription = "Lịch Số",
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(Color.White, CircleShape)
+                    )
+                    Column {
+                        Text(
+                            "Lịch Vạn Niên",
+                            style = TextStyle(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
+                            )
+                        )
+                        Text(
+                            "Việt Nam",
+                            style = TextStyle(
+                                fontSize = 12.sp,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                        )
+                    }
+                }
+            }
+
+            // ── Drawer Items ──
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                // Main navigation items
+                mainItems.forEach { item ->
+                    DrawerNavItem(
+                        item = item,
+                        isSelected = currentRoute == item.route,
+                        onClick = { onItemClick(item.route) }
+                    )
+                }
+
+                // Divider
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    color = c.outlineVariant
+                )
+
+                // Section title "Khám phá"
+                Text(
+                    "KHÁM PHÁ",
+                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
+                    style = TextStyle(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = c.textTertiary,
+                        letterSpacing = 1.sp
+                    )
+                )
+
+                // Explore items
+                exploreItems.forEach { item ->
+                    DrawerNavItem(
+                        item = item,
+                        isSelected = currentRoute == item.route,
+                        onClick = { onItemClick(item.route) }
+                    )
+                }
+
+                // Divider
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    color = c.outlineVariant
+                )
+
+                // Bottom items
+                bottomItems.forEach { item ->
+                    DrawerNavItem(
+                        item = item,
+                        isSelected = currentRoute == item.route,
+                        onClick = { onItemClick(item.route) }
+                    )
+                }
+
+                // Divider
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    color = c.outlineVariant
+                )
+
+                // Section title "Thông tin"
+                Text(
+                    "THÔNG TIN",
+                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
+                    style = TextStyle(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = c.textTertiary,
+                        letterSpacing = 1.sp
+                    )
+                )
+
+                // Info items
+                val context = LocalContext.current
+
+                DrawerActionItem(
+                    icon = Icons.Outlined.StarRate,
+                    title = "Đánh giá ứng dụng",
+                    c = c
+                ) {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.lichso.app"))
+                    context.startActivity(intent)
+                }
+
+                DrawerActionItem(
+                    icon = Icons.Outlined.Share,
+                    title = "Chia sẻ ứng dụng",
+                    c = c
+                ) {
+                    val sendIntent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        putExtra(Intent.EXTRA_TEXT, "Lịch Số - Lịch Vạn Niên, Cây Gia Phả, AI Tử Vi\nhttps://play.google.com/store/apps/details?id=com.lichso.app")
+                        type = "text/plain"
+                    }
+                    context.startActivity(Intent.createChooser(sendIntent, "Chia sẻ"))
+                }
+
+                DrawerActionItem(
+                    icon = Icons.Outlined.Policy,
+                    title = "Chính sách bảo mật",
+                    c = c
+                ) {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://apps.zenix.vn/privacy-policy"))
+                    context.startActivity(intent)
+                }
+            }
+
+            // ── Footer: "Lịch Số v... · Phát triển bởi Zenix Labs" ──
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 0.dp),
+                    color = c.outlineVariant
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                Image(
+                    painter = painterResource(id = R.drawable.ic_zenix_logo),
+                    contentDescription = "Zenix Labs",
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    "Lịch Số v${getVersionName(LocalContext.current)}",
+                    style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = c.textTertiary)
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(
+                        "Phát triển bởi",
+                        style = TextStyle(fontSize = 10.sp, color = c.textTertiary.copy(alpha = 0.7f))
+                    )
+                    Text(
+                        "Zenix Labs",
+                        style = TextStyle(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF42A5F5),
+                                    Color(0xFF26A69A),
+                                    Color(0xFF009688)
+                                )
+                            )
+                        )
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp).navigationBarsPadding())
+            }
+        }
+    }
+}
+
+@Composable
+private fun DrawerNavItem(
+    item: DrawerMenuItem,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val c = LichSoThemeColors.current
+
+    val backgroundColor = if (isSelected) c.primaryContainer else Color.Transparent
+    val contentColor = if (isSelected) c.onPrimaryContainer else c.textPrimary
+    val iconToUse = if (isSelected) item.iconFilled else item.icon
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(28.dp))
+            .background(backgroundColor)
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Icon(
+            iconToUse,
+            contentDescription = item.title,
+            tint = contentColor,
+            modifier = Modifier.size(24.dp)
+        )
+        Text(
+            item.title,
+            style = TextStyle(
+                fontSize = 14.sp,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                color = contentColor
+            )
         )
     }
 }
 
 @Composable
+private fun DrawerActionItem(
+    icon: ImageVector,
+    title: String,
+    c: LichSoColors,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(28.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Icon(
+            icon,
+            contentDescription = title,
+            tint = c.textSecondary,
+            modifier = Modifier.size(22.dp)
+        )
+        Text(
+            title,
+            style = TextStyle(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = c.textSecondary
+            )
+        )
+    }
+}
+
+private fun getVersionName(context: android.content.Context): String {
+    return try {
+        val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+        pInfo.versionName ?: "1.0"
+    } catch (e: Exception) {
+        "1.0"
+    }
+}
+
+// ══════════════════════════════════════════
+// BOTTOM NAV BAR
+// ══════════════════════════════════════════
+
+@Composable
 private fun BottomNavBar(
     currentRoute: String,
     onRouteSelected: (String) -> Unit,
+    onCenterClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val c = LichSoThemeColors.current
 
-    data class NavItem(val route: String, val title: String)
-
-    val items = listOf(
-        NavItem("home", "Trang chủ"),
-        NavItem("calendar", "Lịch"),
-        NavItem("tasks", "Công việc"),
-        NavItem("templates", "Template"),
+    data class NavItem(
+        val route: String,
+        val title: String,
+        val icon: ImageVector,
+        val iconFilled: ImageVector
     )
 
-    Column(
+    // Side items (2 left, 2 right — center is the raised home/daily button)
+    val leftItems = listOf(
+        NavItem("calendar", "Lịch tháng", Icons.Outlined.CalendarMonth, Icons.Filled.CalendarMonth),
+        NavItem("tasks", "Ghi chú", Icons.Outlined.EditNote, Icons.Filled.EditNote),
+    )
+    val rightItems = listOf(
+        NavItem("prayers", "Văn Khấn", Icons.Outlined.MenuBook, Icons.Filled.MenuBook),
+        NavItem("profile", "Cá nhân", Icons.Outlined.Person, Icons.Filled.Person),
+    )
+
+    val calendarDate = java.time.LocalDate.now().dayOfMonth.toString()
+    val isHomeSelected = currentRoute == "home"
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(c.bg2)
-            .drawBehind {
-                drawLine(
-                    color = c.border,
-                    start = Offset(0f, 0f),
-                    end = Offset(size.width, 0f),
-                    strokeWidth = 1f
-                )
-            }
+            .height(IntrinsicSize.Min)
     ) {
-        Box(
+        // Background bar
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp)
+                .align(Alignment.BottomCenter)
+                .background(c.bg)
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 6.dp),
+                    .fillMaxWidth()
+                    .height(72.dp)
+                    .padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                items.forEach { item ->
+                // Left items
+                leftItems.forEach { item ->
                     val isSelected = currentRoute == item.route
-                    val tint = if (isSelected) c.gold2 else c.textTertiary
-
+                    val tint = if (isSelected) c.primary else c.outline
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(20.dp))
                             .clickable { onRouteSelected(item.route) },
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(vertical = 8.dp)
+                            modifier = Modifier.padding(vertical = 6.dp)
                         ) {
-                            val iconPainter = when (item.route) {
-                                "home" -> rememberHomeIcon(tint)
-                                "calendar" -> rememberCalendarIcon(tint)
-                                "tasks" -> rememberTaskIcon(tint)
-                                "templates" -> rememberDocumentIcon(tint)
-                                else -> rememberHomeIcon(tint)
+                            Box(contentAlignment = Alignment.Center) {
+                                if (isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .width(56.dp)
+                                            .height(30.dp)
+                                            .background(c.primaryContainer, RoundedCornerShape(15.dp))
+                                    )
+                                }
+                                Icon(
+                                    if (isSelected) item.iconFilled else item.icon,
+                                    contentDescription = item.title,
+                                    tint = tint,
+                                    modifier = Modifier.size(26.dp)
+                                )
                             }
-                            Icon(
-                                painter = iconPainter,
-                                contentDescription = item.title,
-                                tint = tint,
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Spacer(modifier = Modifier.height(5.dp))
+                            Spacer(modifier = Modifier.height(3.dp))
                             Text(
                                 item.title,
                                 style = TextStyle(
-                                    fontSize = 11.sp,
+                                    fontSize = 10.sp,
                                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                                     color = tint
                                 )
                             )
                         }
+                    }
+                }
 
-                        if (isSelected) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .width(26.dp)
-                                    .height(3.dp)
-                                    .background(c.gold2, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))
+                // Center spacer for the raised button
+                Spacer(modifier = Modifier.weight(1.2f))
+
+                // Right items
+                rightItems.forEach { item ->
+                    val isSelected = currentRoute == item.route
+                    val tint = if (isSelected) c.primary else c.outline
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable { onRouteSelected(item.route) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(vertical = 6.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                if (isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .width(56.dp)
+                                            .height(30.dp)
+                                            .background(c.primaryContainer, RoundedCornerShape(15.dp))
+                                    )
+                                }
+                                Icon(
+                                    if (isSelected) item.iconFilled else item.icon,
+                                    contentDescription = item.title,
+                                    tint = tint,
+                                    modifier = Modifier.size(26.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(
+                                item.title,
+                                style = TextStyle(
+                                    fontSize = 10.sp,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                    color = tint
+                                )
                             )
                         }
                     }
                 }
             }
-        }
-        // Fills the system navigation bar area below the nav bar content
-        Spacer(modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-        )
-    }
-}
-
-private fun buildIcon(
-    name: String,
-    block: ImageVector.Builder.() -> Unit
-): ImageVector = ImageVector.Builder(
-    name = name,
-    defaultWidth = 24.dp,
-    defaultHeight = 24.dp,
-    viewportWidth = 24f,
-    viewportHeight = 24f
-).apply(block).build()
-
-@Composable
-private fun rememberHomeIcon(tint: Color): VectorPainter {
-    val icon = remember(tint) {
-        buildIcon("Home") {
-            addPath(
-                pathData = PathData {
-                    moveTo(3f, 12f); lineTo(12f, 3f); lineTo(21f, 12f)
-                },
-                stroke = SolidColor(tint),
-                strokeLineWidth = 2.2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round,
-            )
-            addPath(
-                pathData = PathData {
-                    moveTo(5f, 10f); verticalLineTo(20f)
-                    arcTo(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = false, 6f, 21f); horizontalLineTo(18f)
-                    arcTo(1f, 1f, 0f, isMoreThanHalf = false, isPositiveArc = false, 19f, 20f); verticalLineTo(10f)
-                },
-                stroke = SolidColor(tint),
-                strokeLineWidth = 2.0f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round,
+            // System navigation bar padding
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
             )
         }
-    }
-    return rememberVectorPainter(image = icon)
-}
 
-@Composable
-private fun rememberCalendarIcon(tint: Color): VectorPainter {
-    val icon = remember(tint) {
-        buildIcon("Calendar") {
-            addPath(
-                pathData = PathData {
-                    moveTo(5f, 4f); horizontalLineTo(19f)
-                    arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 21f, 6f); verticalLineTo(20f)
-                    arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 19f, 22f); horizontalLineTo(5f)
-                    arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 3f, 20f); verticalLineTo(6f)
-                    arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = true, 5f, 4f); close()
-                },
-                stroke = SolidColor(tint),
-                strokeLineWidth = 2.0f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round,
-            )
-        }
-    }
-    return rememberVectorPainter(image = icon)
-}
-
-@Composable
-private fun rememberTaskIcon(tint: Color): VectorPainter {
-    val icon = remember(tint) {
-        buildIcon("Task") {
-            addPath(
-                pathData = PathData {
-                    moveTo(9f, 11f); lineTo(12f, 14f); lineTo(22f, 4f)
-                },
-                stroke = SolidColor(tint),
-                strokeLineWidth = 2.2f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round,
-            )
-        }
-    }
-    return rememberVectorPainter(image = icon)
-}
-
-@Composable
-private fun rememberDocumentIcon(tint: Color): VectorPainter {
-    val icon = remember(tint) {
-        buildIcon("Document") {
-            addPath(
-                pathData = PathData {
-                    moveTo(14f, 2f); horizontalLineTo(6f)
-                    arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = false, 4f, 4f); verticalLineTo(20f)
-                    arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = false, 6f, 22f); horizontalLineTo(18f)
-                    arcTo(2f, 2f, 0f, isMoreThanHalf = false, isPositiveArc = false, 20f, 20f); verticalLineTo(8f); close()
-                },
-                stroke = SolidColor(tint),
-                strokeLineWidth = 2.0f,
-                strokeLineCap = StrokeCap.Round,
-                strokeLineJoin = StrokeJoin.Round,
-            )
-        }
-    }
-    return rememberVectorPainter(image = icon)
-}
-
-@Composable
-private fun AnimatedRobotFab(modifier: Modifier = Modifier) {
-    val infiniteTransition = rememberInfiniteTransition(label = "robot")
-    
-    val headTilt by infiniteTransition.animateFloat(
-        initialValue = -5f, targetValue = 5f,
-        animationSpec = infiniteRepeatable(tween(2500, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "headTilt"
-    )
-    
-    val blinkPhase by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = keyframes {
-                durationMillis = 3500
-                0f at 0
-                0f at 2800
-                1f at 2950 using LinearEasing
-                0f at 3100 using LinearEasing
-                0f at 3500
-            },
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "blink"
-    )
-
-    val antennaBounce by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = -1.5f,
-        animationSpec = infiniteRepeatable(tween(800, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "antennaBounce"
-    )
-
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val scale = minOf(w, h) / 24f
-        val strokeW = 1.8f * scale
-        val color = Color.White
-        
-        rotate(degrees = headTilt, pivot = Offset(w/2, h/2)) {
-            // 1. Thân/Đầu Robot
-            drawRoundRect(
-                color = color,
-                topLeft = Offset(5f * scale, 11f * scale),
-                size = Size(14f * scale, 10f * scale),
-                cornerRadius = CornerRadius(2.5f * scale),
-                style = Stroke(width = strokeW, cap = StrokeCap.Round, join = StrokeJoin.Round)
-            )
-
-            // 2. Anten (có nhún)
-            translate(top = antennaBounce * scale) {
-                drawLine(
-                    color = color,
-                    start = Offset(12f * scale, 11f * scale),
-                    end = Offset(12f * scale, 7f * scale),
-                    strokeWidth = strokeW,
-                    cap = StrokeCap.Round
-                )
-                drawCircle(
-                    color = color,
-                    radius = 2f * scale,
-                    center = Offset(12f * scale, 5.5f * scale),
-                    style = Stroke(width = strokeW)
-                )
-                drawCircle(
-                    color = color.copy(alpha = 0.8f),
-                    radius = 0.8f * scale,
-                    center = Offset(12f * scale, 5.5f * scale)
+        // ═══ RAISED CENTER HOME/DAILY BUTTON ═══
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = (-16).dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isHomeSelected)
+                            Brush.linearGradient(listOf(c.primary, Color(0xFFC62828)))
+                        else
+                            Brush.linearGradient(listOf(c.primary.copy(alpha = 0.85f), c.primary)),
+                        CircleShape
+                    )
+                    .border(
+                        3.dp,
+                        c.bg,
+                        CircleShape
+                    )
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { onCenterClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    calendarDate,
+                    style = TextStyle(
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
                 )
             }
-
-            // 3. Mắt (có hiệu ứng chớp)
-            val eyeH = 2.2f * scale * (1f - blinkPhase)
-            val eyeW = 2.5f * scale
-            val eyeY = 14.5f * scale - eyeH / 2f
-            
-            if (eyeH > 0.2f) {
-                drawRoundRect(color = color, topLeft = Offset(7.5f * scale, eyeY), size = Size(eyeW, eyeH), cornerRadius = CornerRadius(0.6f * scale))
-                drawRoundRect(color = color, topLeft = Offset(14f * scale, eyeY), size = Size(eyeW, eyeH), cornerRadius = CornerRadius(0.6f * scale))
-            } else {
-                drawLine(color = color, start = Offset(7.5f * scale, 14.5f * scale), end = Offset(10f * scale, 14.5f * scale), strokeWidth = strokeW * 0.8f, cap = StrokeCap.Round)
-                drawLine(color = color, start = Offset(14f * scale, 14.5f * scale), end = Offset(16.5f * scale, 14.5f * scale), strokeWidth = strokeW * 0.8f, cap = StrokeCap.Round)
-            }
-
-            // 4. Miệng cười
-            drawArc(
-                color = color,
-                startAngle = 10f,
-                sweepAngle = 160f,
-                useCenter = false,
-                topLeft = Offset(10f * scale, 16.5f * scale),
-                size = Size(4f * scale, 2.5f * scale),
-                style = Stroke(width = strokeW * 0.8f, cap = StrokeCap.Round)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                "Hôm nay",
+                style = TextStyle(
+                    fontSize = 10.sp,
+                    fontWeight = if (isHomeSelected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (isHomeSelected) c.primary else c.outline
+                )
             )
-
-            // 5. Tai robot
-            drawLine(color = color.copy(alpha = 0.8f), start = Offset(5f * scale, 15f * scale), end = Offset(3f * scale, 14f * scale), strokeWidth = strokeW * 0.8f, cap = StrokeCap.Round)
-            drawCircle(color = color.copy(alpha = 0.8f), radius = 0.8f * scale, center = Offset(2.5f * scale, 13.5f * scale))
-            drawLine(color = color.copy(alpha = 0.8f), start = Offset(19f * scale, 15f * scale), end = Offset(21f * scale, 14f * scale), strokeWidth = strokeW * 0.8f, cap = StrokeCap.Round)
-            drawCircle(color = color.copy(alpha = 0.8f), radius = 0.8f * scale, center = Offset(21.5f * scale, 13.5f * scale))
         }
     }
 }

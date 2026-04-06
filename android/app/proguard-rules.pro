@@ -33,6 +33,19 @@
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
 
+# ── OpenRouter AI API models ──
+-keep class com.lichso.app.data.remote.ChatMessage { *; }
+-keep class com.lichso.app.data.remote.OpenRouterRequest { *; }
+-keep class com.lichso.app.data.remote.OpenRouterResponse { *; }
+-keep class com.lichso.app.data.remote.OpenRouterResponse$Choice { *; }
+-keep class com.lichso.app.data.remote.OpenRouterResponse$MessageContent { *; }
+
+# ── Weather API models (Open-Meteo) ──
+-keep class com.lichso.app.data.remote.OpenMeteoResponse { *; }
+-keep class com.lichso.app.data.remote.OpenMeteoCurrent { *; }
+-keep class com.lichso.app.domain.model.WeatherInfo { *; }
+-keep class com.lichso.app.domain.model.LocationInfo { *; }
+
 # ── OkHttp / Okio ──
 -dontwarn okhttp3.**
 -dontwarn okio.**

@@ -1,6 +1,9 @@
 package com.lichso.app.ui.screen.home
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,349 +15,437 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.lichso.app.data.remote.WeatherState
 import com.lichso.app.domain.model.*
 import com.lichso.app.ui.theme.*
+import com.lichso.app.ui.components.AppTopBar
+import com.lichso.app.ui.components.CalendarPatternBackground
+import com.lichso.app.ui.components.HeaderIconButton
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 @Composable
 fun HomeScreen(
     onSettingsClick: () -> Unit = {},
+    onMenuClick: () -> Unit = {},
+    onProfileClick: () -> Unit = {},
+    onHistoryClick: () -> Unit = {},
+    onNotificationClick: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val c = LichSoThemeColors.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val coroutineScope = rememberCoroutineScope()
 
-    // Live clock
-    var currentTime by remember { mutableStateOf(LocalTime.now()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            currentTime = LocalTime.now()
-            delay(1000L)
-        }
-    }
+    // ── Weather detail sheet ──
+    var showWeatherSheet by remember { mutableStateOf(false) }
+
+    // ── Page flip state ──
+    // flipProgress: 0 = page flat (normal), → 1 = page fully flipped up (next day)
+    //                                        → -1 = page fully flipped down (prev day)
+    val flipProgress = remember { Animatable(0f) }
+    var isDragging by remember { mutableStateOf(false) }
+    var isAnimatingFlip by remember { mutableStateOf(false) }
+    val flipCommitThreshold = 0.2f  // 20% rotation = commit
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(c.bg)
-            .verticalScroll(rememberScrollState())
     ) {
-        // Decorative sparkle (top-left)
-        Box(modifier = Modifier.padding(start = 16.dp, top = 8.dp)) {
-            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = c.gold.copy(alpha = 0.35f), modifier = Modifier.size(14.dp))
-        }
-
         uiState.dayInfo?.let { info ->
-            // ═══ HERO DAY CARD — fills viewport ═══
-            DayHeroSection(
+            // ═══ RED GRADIENT HEADER ═══
+            RedHeader(
                 info = info,
+                weatherState = uiState.weatherState,
+                tempUnit = uiState.tempUnit,
+                onMenuClick = onMenuClick,
                 onSettingsClick = onSettingsClick,
-                onPrevDay = viewModel::prevDay,
-                onNextDay = viewModel::nextDay,
+                onProfileClick = onProfileClick,
+                onNotificationClick = onNotificationClick,
+                onWeatherRefresh = { viewModel.refreshWeather() },
+                onWeatherClick = { showWeatherSheet = true }
             )
 
-            // ═══ LIVE CLOCK ═══
-            LiveClockSection(
-                currentTime = currentTime,
-                gioHoangDao = info.gioHoangDao,
+            // ═══ TEAR LINE (perforation) ═══
+            TearLine()
+
+            // ═══ MINI WEEK STRIP ═══
+            MiniCalendarStrip(
+                selectedDate = uiState.selectedDate,
+                calendarDays = uiState.calendarDays,
+                weekStartSunday = uiState.weekStartSunday,
+                onDayClick = { day ->
+                    viewModel.selectDay(day.solarDay, day.solarMonth, day.solarYear)
+                }
             )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            // ═══ PAGE FLIP CALENDAR AREA ═══
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clipToBounds()
+                    .pointerInput(Unit) {
+                        detectVerticalDragGestures(
+                            onDragStart = {
+                                if (!isAnimatingFlip) isDragging = true
+                            },
+                            onDragEnd = {
+                                if (!isDragging) return@detectVerticalDragGestures
+                                isDragging = false
+                                val current = flipProgress.value
 
-            // ═══ TIẾT KHÍ ═══
-            TietKhiBar(tietKhi = info.tietKhi)
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // ═══ DAY ACTIVITIES ═══
-            SectionLabel(text = "THÔNG TIN NGÀY ${info.solar.dd}/${info.solar.mm}")
-            Spacer(modifier = Modifier.height(7.dp))
-            ActivityGrid(info = info)
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // ═══ EVENTS ═══
-            if (uiState.upcomingEvents.isNotEmpty()) {
-                SectionLabel(text = "SỰ KIỆN SẮP TỚI")
-                Spacer(modifier = Modifier.height(7.dp))
-                EventList(events = uiState.upcomingEvents)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp).navigationBarsPadding())
-    }
-}
-
-// ══════════════════════════════════════════
-// HERO DAY SECTION — Big date display matching screenshot
-// ══════════════════════════════════════════
-
-@Composable
-private fun DayHeroSection(
-    info: DayInfo,
-    onSettingsClick: () -> Unit,
-    onPrevDay: () -> Unit,
-    onNextDay: () -> Unit,
-) {
-    val c = LichSoThemeColors.current
-    val cardBg = if (c.isDark) {
-        Brush.verticalGradient(listOf(Color(0xFF1A1710), Color(0xFF1E1C14), c.bg))
-    } else {
-        Brush.verticalGradient(listOf(Color(0xFFFCFAF5), Color(0xFFF8F5ED), c.bg))
-    }
-    val cardBorder = if (c.isDark) Color(0x20E8C84A) else Color(0x18A08520)
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .background(brush = cardBg, shape = RoundedCornerShape(24.dp))
-            .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
-    ) {
-        // Settings gear top-right (no circle background)
-        IconButton(
-            onClick = onSettingsClick,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(12.dp)
-                .size(32.dp)
-        ) {
-            Icon(Icons.Outlined.Settings, contentDescription = "Cài đặt", tint = c.textTertiary, modifier = Modifier.size(18.dp))
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 24.dp, bottom = 28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // ── Big Solar Day Number ──
-            Text(
-                text = "${info.solar.dd}",
-                style = TextStyle(
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 96.sp,
-                    color = c.textPrimary,
-                    letterSpacing = (-3).sp,
-                    lineHeight = 96.sp,
-                )
-            )
-
-            // ── Day of Week ──
-            Text(
-                text = info.dayOfWeek.uppercase().split("").filter { it.isNotBlank() }.joinToString("  "),
-                style = TextStyle(
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = c.textTertiary,
-                    letterSpacing = 4.sp
-                )
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // ── Month · Year ──
-            Text(
-                text = "Tháng ${info.solar.mm} · ${info.solar.yy}",
-                style = TextStyle(
-                    fontFamily = FontFamily.Serif,
-                    fontSize = 18.sp,
-                    color = c.textSecondary,
-                )
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // ── Day Navigator: < ✦ > ──
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                if (kotlin.math.abs(current) >= flipCommitThreshold) {
+                                    // Commit flip
+                                    val goNext = current > 0
+                                    isAnimatingFlip = true
+                                    coroutineScope.launch {
+                                        // Animate page to fully flipped (90°)
+                                        flipProgress.animateTo(
+                                            if (goNext) 1f else -1f,
+                                            tween(300, easing = FastOutSlowInEasing)
+                                        )
+                                        // Change day
+                                        if (goNext) viewModel.nextDay() else viewModel.prevDay()
+                                        // Snap new page to "coming from other side" then animate flat
+                                        flipProgress.snapTo(if (goNext) -0.3f else 0.3f)
+                                        flipProgress.animateTo(
+                                            0f,
+                                            spring(dampingRatio = 0.75f, stiffness = 200f)
+                                        )
+                                        isAnimatingFlip = false
+                                    }
+                                } else {
+                                    // Snap back
+                                    isAnimatingFlip = true
+                                    coroutineScope.launch {
+                                        flipProgress.animateTo(
+                                            0f,
+                                            spring(dampingRatio = 0.6f, stiffness = 400f)
+                                        )
+                                        isAnimatingFlip = false
+                                    }
+                                }
+                            },
+                            onDragCancel = {
+                                isDragging = false
+                                coroutineScope.launch {
+                                    flipProgress.animateTo(0f, spring(stiffness = 400f))
+                                }
+                            },
+                            onVerticalDrag = { change, dragAmount ->
+                                if (isDragging && !isAnimatingFlip) {
+                                    change.consume()
+                                    // Swipe up (negative dragAmount) → positive flipProgress (next day)
+                                    // Swipe down (positive dragAmount) → negative flipProgress (prev day)
+                                    val delta = -dragAmount / 600f
+                                    val newVal = (flipProgress.value + delta).coerceIn(-1f, 1f)
+                                    coroutineScope.launch {
+                                        flipProgress.snapTo(newVal)
+                                    }
+                                }
+                            }
+                        )
+                    }
             ) {
-                IconButton(
-                    onClick = onPrevDay,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(Icons.Default.ChevronLeft, null, tint = c.textTertiary, modifier = Modifier.size(20.dp))
-                }
+                val progress = flipProgress.value
+                val absProgress = kotlin.math.abs(progress)
 
-                // Decorative line with diamond
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.width(180.dp)
-                ) {
-                    Box(modifier = Modifier.weight(1f).height(1.dp).background(c.border))
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Icon(Icons.Default.StarOutline, null, tint = c.gold.copy(alpha = 0.6f), modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Box(modifier = Modifier.weight(1f).height(1.dp).background(c.border))
-                }
-
-                IconButton(
-                    onClick = onNextDay,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(Icons.Default.ChevronRight, null, tint = c.textTertiary, modifier = Modifier.size(20.dp))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // ═══ LUNAR SECTION ═══
-            Text(
-                "Â M   L Ị C H",
-                style = TextStyle(
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = c.textTertiary,
-                    letterSpacing = 3.sp
-                )
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Big lunar day
-            Text(
-                text = "${info.lunar.day}",
-                style = TextStyle(
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 52.sp,
-                    color = c.teal,
-                    letterSpacing = (-2).sp,
-                    lineHeight = 52.sp,
-                )
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Lunar month + year Can Chi
-            Text(
-                text = "${info.lunar.monthName} · Năm ${info.yearCanChi}",
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    color = c.textSecondary
-                )
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // ── Can Chi Chips ──
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(horizontal = 20.dp)
-            ) {
-                CanChiChip(info.dayCanChi, c.red2, c.red.copy(alpha = 0.12f), c.red.copy(alpha = 0.3f))
-                CanChiChip(info.monthCanChi, c.textSecondary, c.surface, c.border)
-                CanChiChip(info.yearCanChi.takeLast(info.yearCanChi.length.coerceAtMost(6)), c.textSecondary, c.surface, c.border)
-            }
-
-            // ── Holiday / special day ──
-            val holiday = info.solarHoliday ?: info.lunarHoliday
-            if (holiday != null) {
-                Spacer(modifier = Modifier.height(14.dp))
+                // ── LAYER 1: Next page (revealed behind) ──
                 Box(
                     modifier = Modifier
-                        .background(c.goldDim, RoundedCornerShape(20.dp))
-                        .border(1.dp, c.gold.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
-                        .padding(horizontal = 14.dp, vertical = 5.dp)
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            // Slightly scaled down, scales up as page flips
+                            val s = 0.92f + (0.08f * absProgress.coerceAtMost(1f))
+                            scaleX = s
+                            scaleY = s
+                            alpha = absProgress.coerceIn(0f, 1f)
+                        }
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    // Shadow/hint of next page
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Icon(Icons.Outlined.Celebration, contentDescription = null, tint = c.gold2, modifier = Modifier.size(14.dp))
-                        Text(
-                            holiday,
-                            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium, color = c.gold2)
+                        Icon(
+                            if (progress > 0) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = c.primary.copy(alpha = 0.2f),
+                            modifier = Modifier.size(48.dp)
                         )
+                        Text(
+                            if (progress > 0) "Ngày tiếp theo" else "Ngày trước đó",
+                            style = TextStyle(fontSize = 13.sp, color = c.textTertiary.copy(alpha = 0.5f))
+                        )
+                    }
+                }
+
+                // ── LAYER 2: Current page (flips like a book page) ──
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            // cameraDistance for realistic 3D perspective
+                            cameraDistance = 12f * density
+
+                            // Rotate around top edge (page flips upward when swiping up)
+                            rotationX = progress * -90f
+
+                            // Pivot at top edge for "swipe up = flip up" feel
+                            transformOrigin = if (progress >= 0)
+                                TransformOrigin(0.5f, 0f)  // top edge pivot
+                            else
+                                TransformOrigin(0.5f, 1f)  // bottom edge pivot
+
+                            // Fade page as it flips past ~45°
+                            alpha = (1f - absProgress * 1.2f).coerceIn(0f, 1f)
+
+                            // Slight elevation shadow while lifting
+                            shadowElevation = absProgress * 16f
+                        }
+                        // Gradient shadow overlay on the page as it flips
+                        .drawWithContent {
+                            drawContent()
+                            // Darken as page curls away
+                            if (absProgress > 0.05f) {
+                                drawRect(
+                                    color = Color.Black.copy(alpha = absProgress * 0.3f),
+                                    size = size
+                                )
+                            }
+                        }
+                        .background(c.bg)
+                ) {
+                    // ═══ HOA VĂN NỀN & VIỀN TỜ LỊCH ═══
+                    CalendarPatternBackground(
+                        day = info.solar.dd,
+                        month = info.solar.mm,
+                        year = info.solar.yy
+                    )
+
+                    // ═══ NỘI DUNG CHÍNH ═══
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // ═══ BIG DATE DISPLAY ═══
+                        BigDateSection(info = info)
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // ═══ SWIPE HINT ═══
+                        SwipeHint()
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // ═══ QUOTE SECTION ═══
+                        if (uiState.showQuote) {
+                            QuoteSection()
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+
+                        // ═══ EVENT CHIPS ═══
+                        EventChips(
+                            info = info,
+                            showFestival = uiState.showFestival,
+                            onHistoryClick = onHistoryClick
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
             }
         }
     }
-}
 
-@Composable
-private fun CanChiChip(text: String, textColor: Color, bgColor: Color, borderColor: Color) {
-    Box(
-        modifier = Modifier
-            .background(bgColor, RoundedCornerShape(20.dp))
-            .border(1.dp, borderColor, RoundedCornerShape(20.dp))
-            .padding(horizontal = 14.dp, vertical = 5.dp)
-    ) {
-        Text(text, style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textColor))
+    // ═══ WEATHER DETAIL BOTTOM SHEET ═══
+    if (showWeatherSheet) {
+        val ws = uiState.weatherState
+        if (ws is WeatherState.Success) {
+            WeatherDetailSheet(
+                weather = ws.weather,
+                tempUnit = uiState.tempUnit,
+                onDismiss = { showWeatherSheet = false },
+                onRefresh = {
+                    viewModel.refreshWeather()
+                },
+                onCityChange = { cityName ->
+                    viewModel.changeCity(cityName)
+                }
+            )
+        } else {
+            showWeatherSheet = false
+        }
     }
 }
 
 // ══════════════════════════════════════════
-// LIVE CLOCK SECTION
+// SWIPE HINT INDICATOR
 // ══════════════════════════════════════════
 
 @Composable
-private fun LiveClockSection(
-    currentTime: LocalTime,
-    gioHoangDao: List<GioHoangDaoInfo>,
+private fun SwipeHint() {
+    val c = LichSoThemeColors.current
+    val infiniteTransition = rememberInfiniteTransition(label = "swipeHint")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 0.5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "hintAlpha"
+    )
+    val offsetY by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "hintOffset"
+    )
+
+    Row(
+        modifier = Modifier
+            .graphicsLayer {
+                this.alpha = alpha
+                translationY = offsetY
+            },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(
+            Icons.Filled.SwipeVertical,
+            contentDescription = null,
+            tint = c.textTertiary,
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            "Vuốt để lật lịch",
+            style = TextStyle(fontSize = 10.sp, color = c.textTertiary)
+        )
+    }
+}
+
+// ══════════════════════════════════════════
+// RED GRADIENT HEADER (matching index.html)
+// ══════════════════════════════════════════
+
+@Composable
+private fun RedHeader(
+    info: DayInfo,
+    weatherState: WeatherState,
+    tempUnit: String = "°C",
+    onMenuClick: () -> Unit = {},
+    onSettingsClick: () -> Unit,
+    onProfileClick: () -> Unit = {},
+    onNotificationClick: () -> Unit = {},
+    onWeatherRefresh: () -> Unit = {},
+    onWeatherClick: () -> Unit = {}
 ) {
     val c = LichSoThemeColors.current
-    val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm:ss") }
+    val colors = listOf(c.primary, Color(0xFFD32F2F), c.deepRed)
 
-    // Determine current Giờ
-    val currentHour = currentTime.hour
-    val gioName = getGioName(currentHour)
-    val isHoangDao = gioHoangDao.any { it.name == gioName }
-
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(
+                Brush.linearGradient(
+                    colors = colors,
+                    start = Offset(0f, 0f),
+                    end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                )
+            )
+            .statusBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
-        // Big clock
-        Text(
-            text = currentTime.format(timeFormatter),
-            style = TextStyle(
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.Bold,
-                fontSize = 36.sp,
-                color = c.textPrimary,
-                letterSpacing = 2.sp,
-            )
-        )
+        Column {
+            // ── Row 1: Menu | Weather chip | Notification ──
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                HeaderIconButton(
+                    icon = Icons.Filled.Menu,
+                    contentDescription = "Menu",
+                    onClick = onMenuClick
+                )
 
-        Spacer(modifier = Modifier.height(4.dp))
+                WeatherChip(
+                    weatherState = weatherState,
+                    tempUnit = tempUnit,
+                    onRefresh = onWeatherRefresh,
+                    onClick = onWeatherClick
+                )
 
-        // Giờ label
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                "Giờ $gioName",
-                style = TextStyle(fontSize = 13.sp, color = c.textSecondary)
-            )
-            if (isHoangDao) {
-                Text("·", style = TextStyle(color = c.textTertiary))
-                Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = c.teal2, modifier = Modifier.size(13.dp))
+                HeaderIconButton(
+                    icon = Icons.Outlined.Notifications,
+                    contentDescription = "Notifications",
+                    onClick = onNotificationClick
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // ── Row 2: Year + Month + Weekday (year-month-row from HTML) ──
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Year — small, semi-transparent
                 Text(
-                    "Hoàng Đạo",
+                    "${info.solar.yy}",
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White.copy(alpha = 0.7f),
+                        letterSpacing = 1.sp
+                    )
+                )
+                // Month — bold, prominent
+                Text(
+                    "Tháng ${info.solar.mm}",
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
+                )
+                // Weekday — lighter
+                Text(
+                    "• ${info.dayOfWeek}",
                     style = TextStyle(
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = c.teal2,
+                        fontWeight = FontWeight.Normal,
+                        color = Color.White.copy(alpha = 0.6f),
+                        letterSpacing = 0.5.sp
                     )
                 )
             }
@@ -362,164 +453,418 @@ private fun LiveClockSection(
     }
 }
 
-private fun getGioName(hour: Int): String = when (hour) {
-    23, 0 -> "Tý"
-    1, 2 -> "Sửu"
-    3, 4 -> "Dần"
-    5, 6 -> "Mão"
-    7, 8 -> "Thìn"
-    9, 10 -> "Tỵ"
-    11, 12 -> "Ngọ"
-    13, 14 -> "Mùi"
-    15, 16 -> "Thân"
-    17, 18 -> "Dậu"
-    19, 20 -> "Tuất"
-    21, 22 -> "Hợi"
-    else -> ""
-}
-
 // ══════════════════════════════════════════
-// TIẾT KHÍ BAR
+// WEATHER CHIP (hiển thị thời tiết thật)
 // ══════════════════════════════════════════
 
 @Composable
-private fun TietKhiBar(tietKhi: TietKhiInfo) {
-    val c = LichSoThemeColors.current
-    val barBg = if (c.isDark) {
-        Brush.horizontalGradient(colors = listOf(Color(0x12E8C84A), Color(0x05E8C84A)))
-    } else {
-        Brush.horizontalGradient(colors = listOf(Color(0x14C4A020), Color(0x06C4A020)))
-    }
-    val barBorder = if (c.isDark) Color(0x29E8C84A) else Color(0x22C4A020)
-
+private fun WeatherChip(
+    weatherState: WeatherState,
+    tempUnit: String = "°C",
+    onRefresh: () -> Unit = {},
+    onClick: () -> Unit = {}
+) {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .background(brush = barBg, shape = RoundedCornerShape(10.dp))
-            .border(1.dp, barBorder, RoundedCornerShape(10.dp))
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Icon(Icons.Outlined.WbSunny, contentDescription = null, tint = c.teal.copy(alpha = 0.8f), modifier = Modifier.size(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            val text = if (tietKhi.daysUntilNext == 0) {
-                "Hôm nay: ${tietKhi.currentName ?: ""}"
-            } else {
-                "Tiết khí: ${tietKhi.nextName ?: ""} — ${tietKhi.nextDd ?: ""}/${tietKhi.nextMm ?: ""} (còn ${tietKhi.daysUntilNext} ngày)"
+            .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .clickable {
+                when (weatherState) {
+                    is WeatherState.Success -> onClick()
+                    is WeatherState.Error -> onRefresh()
+                    else -> {}
+                }
             }
-            Text(text = text, style = TextStyle(fontSize = 12.sp, color = c.textSecondary))
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        when (weatherState) {
+            is WeatherState.Loading -> {
+                // Loading shimmer
+                Icon(
+                    Icons.Filled.WbSunny,
+                    contentDescription = null,
+                    tint = Color(0xFFFFD54F).copy(alpha = 0.5f),
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    "...",
+                    style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.6f))
+                )
+            }
+
+            is WeatherState.Success -> {
+                val weather = weatherState.weather
+                val displayTemp = if (tempUnit == "°F") {
+                    (weather.temperature * 9 / 5 + 32).toInt()
+                } else {
+                    weather.temperature.toInt()
+                }
+                Text(
+                    weather.icon,
+                    style = TextStyle(fontSize = 18.sp)
+                )
+                Text(
+                    "${displayTemp}${tempUnit}",
+                    style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                )
+                Text(
+                    weather.cityName,
+                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color.White)
+                )
+            }
+
+            is WeatherState.Error -> {
+                Icon(
+                    Icons.Filled.CloudOff,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.6f),
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    "Thử lại",
+                    style = TextStyle(fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f))
+                )
+            }
         }
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = c.textTertiary, modifier = Modifier.size(14.dp))
     }
 }
 
 // ══════════════════════════════════════════
-// SECTION LABEL
+// TEAR LINE (dashed perforation)
 // ══════════════════════════════════════════
 
 @Composable
-private fun SectionLabel(text: String) {
+private fun TearLine() {
     val c = LichSoThemeColors.current
-    Text(
-        text = text,
-        style = TextStyle(fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = c.textTertiary, letterSpacing = 1.sp),
-        modifier = Modifier.padding(horizontal = 20.dp)
+    val dashColor = c.outlineVariant
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(3.dp)
+            .drawBehind {
+                val dashWidth = 8.dp.toPx()
+                val gapWidth = 6.dp.toPx()
+                drawLine(
+                    color = dashColor,
+                    start = Offset(0f, size.height / 2),
+                    end = Offset(size.width, size.height / 2),
+                    strokeWidth = 2f,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(dashWidth, gapWidth), 0f)
+                )
+            }
     )
 }
 
 // ══════════════════════════════════════════
-// ACTIVITY GRID
+// MINI CALENDAR WEEK STRIP
 // ══════════════════════════════════════════
 
 @Composable
-private fun ActivityGrid(info: DayInfo) {
-    val c = LichSoThemeColors.current
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ActivityCard("Nên làm", Icons.Outlined.CheckCircle, c.teal2, info.activities.nenLam, c.teal2, Modifier.weight(1f))
-            ActivityCard("Không nên", Icons.Outlined.Cancel, c.red2, info.activities.khongNen, c.red2, Modifier.weight(1f))
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ActivityCard(
-                "Giờ hoàng đạo", Icons.Outlined.Star, c.gold2,
-                info.gioHoangDao.map { "${it.name} (${it.time})" },
-                c.gold2, Modifier.weight(1f)
-            )
-            ActivityCard(
-                "Hướng tốt", Icons.Outlined.Explore, c.gold2,
-                listOf("Thần tài: ${info.huong.thanTai}", "Hỷ thần: ${info.huong.hyThan}", "Hung thần: ${info.huong.hungThan}"),
-                c.gold2, Modifier.weight(1f), specialLastItemRed = true
-            )
-        }
-    }
-}
-
-@Composable
-private fun ActivityCard(
-    title: String, icon: ImageVector, titleColor: Color,
-    items: List<String>, itemColor: Color,
-    modifier: Modifier = Modifier, specialLastItemRed: Boolean = false
+private fun MiniCalendarStrip(
+    selectedDate: java.time.LocalDate,
+    calendarDays: List<CalendarDay>,
+    weekStartSunday: Boolean = false,
+    onDayClick: (CalendarDay) -> Unit
 ) {
     val c = LichSoThemeColors.current
-    Column(
-        modifier = modifier
-            .background(c.bg2, RoundedCornerShape(10.dp))
-            .border(1.dp, c.border, RoundedCornerShape(10.dp))
-            .padding(11.dp)
+
+    // Get the week containing the selected date, respecting week start setting
+    val dayOfWeek = selectedDate.dayOfWeek.value // 1=Mon..7=Sun
+    val weekStart = if (weekStartSunday) {
+        // Sunday start: offset from Sunday
+        val offset = dayOfWeek % 7 // Sun=0, Mon=1..Sat=6
+        selectedDate.minusDays(offset.toLong())
+    } else {
+        // Monday start (default)
+        selectedDate.minusDays((dayOfWeek - 1).toLong())
+    }
+
+    val weekDayLabels = if (weekStartSunday) {
+        listOf("CN", "T2", "T3", "T4", "T5", "T6", "T7")
+    } else {
+        listOf("T2", "T3", "T4", "T5", "T6", "T7", "CN")
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.Center
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(icon, contentDescription = null, tint = titleColor, modifier = Modifier.size(14.dp))
-            Text(title.uppercase(), style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Bold, color = titleColor, letterSpacing = 0.8.sp))
-        }
-        Spacer(modifier = Modifier.height(6.dp))
-        items.forEachIndexed { index, item ->
-            val color = if (specialLastItemRed && index == items.size - 1) c.red2 else itemColor
-            Text("• $item", style = TextStyle(fontFamily = FontFamily.Serif, fontSize = 12.sp, color = color, lineHeight = 18.sp))
+        (0..6).forEach { i ->
+            val date = weekStart.plusDays(i.toLong())
+            val isToday = date == java.time.LocalDate.now()
+            val isSelected = date == selectedDate
+            val isWeekend = if (weekStartSunday) {
+                i == 0 || i == 6  // CN at 0, T7 at 6
+            } else {
+                i >= 5  // T7 at 5, CN at 6
+            }
+            val lunarText = calendarDays.find {
+                it.solarDay == date.dayOfMonth && it.solarMonth == date.monthValue && it.solarYear == date.year
+            }?.lunarDisplayText ?: ""
+
+            Column(
+                modifier = Modifier
+                    .width(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        if (isToday) c.primary
+                        else Color.Transparent
+                    )
+                    .clickable {
+                        val matchDay = calendarDays.find {
+                            it.solarDay == date.dayOfMonth && it.solarMonth == date.monthValue && it.solarYear == date.year
+                        }
+                        matchDay?.let { onDayClick(it) }
+                    }
+                    .padding(vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    weekDayLabels[i],
+                    style = TextStyle(
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isToday) Color.White.copy(alpha = 0.8f)
+                        else c.textTertiary
+                    )
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    "${date.dayOfMonth}",
+                    style = TextStyle(
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = when {
+                            isToday -> Color.White
+                            isWeekend -> c.primary
+                            else -> c.textPrimary
+                        }
+                    )
+                )
+                Text(
+                    lunarText,
+                    style = TextStyle(
+                        fontSize = 8.sp,
+                        color = if (isToday) Color.White.copy(alpha = 0.7f)
+                        else c.outline
+                    )
+                )
+            }
         }
     }
 }
 
 // ══════════════════════════════════════════
-// EVENT LIST
+// BIG DATE DISPLAY (matching index.html)
 // ══════════════════════════════════════════
 
 @Composable
-private fun EventList(events: List<UpcomingEvent>) {
+private fun BigDateSection(info: DayInfo) {
+    val c = LichSoThemeColors.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Big solar date number
+        Text(
+            text = "%02d".format(info.solar.dd),
+            style = TextStyle(
+                fontFamily = FontFamily.Serif,
+                fontWeight = FontWeight.Bold,
+                fontSize = 140.sp,
+                color = c.primary,
+                lineHeight = 140.sp,
+                letterSpacing = (-2).sp
+            )
+        )
+
+        // Decorative gold line under date
+        Box(
+            modifier = Modifier
+                .width(80.dp)
+                .height(3.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(Color.Transparent, c.gold, Color.Transparent)
+                    ),
+                    RoundedCornerShape(2.dp)
+                )
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Weekday label
+        Text(
+            text = info.dayOfWeek.uppercase(),
+            style = TextStyle(
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Medium,
+                color = c.textPrimary,
+                letterSpacing = 1.sp
+            )
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Lunar date info card
+        Row(
+            modifier = Modifier
+                .background(c.surfaceContainer, RoundedCornerShape(16.dp))
+                .border(1.dp, c.outlineVariant, RoundedCornerShape(16.dp))
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Moon icon
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(
+                        Brush.linearGradient(listOf(Color(0xFFFFF9C4), Color(0xFFFFD54F))),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("🌙", style = TextStyle(fontSize = 18.sp))
+            }
+
+            Column {
+                Text(
+                    "Mùng ${info.lunar.day} tháng ${info.lunar.month}",
+                    style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = c.textPrimary)
+                )
+                Text(
+                    "Năm ${info.yearCanChi}",
+                    style = TextStyle(fontSize = 12.sp, color = c.textTertiary)
+                )
+            }
+
+            Text(
+                "Ngày ${info.dayCanChi}",
+                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = c.deepRed)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Day quality indicator
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            val isGood = !info.activities.isXauDay
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(if (isGood) c.goodGreen else c.badRed, CircleShape)
+            )
+            Text(
+                text = if (isGood) "Ngày Hoàng Đạo ✦" else "Ngày Hắc Đạo",
+                style = TextStyle(
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isGood) c.goodGreen else c.badRed
+                )
+            )
+        }
+    }
+}
+
+// ══════════════════════════════════════════
+// QUOTE SECTION
+// ══════════════════════════════════════════
+
+@Composable
+private fun QuoteSection() {
     val c = LichSoThemeColors.current
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(7.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        events.forEach { event ->
-            val (dotColor, tagBg, tagColor) = when (event.colorType) {
-                EventColor.GOLD -> Triple(c.gold, c.goldDim, c.gold)
-                EventColor.TEAL -> Triple(c.teal, c.tealDim, c.teal2)
-                EventColor.RED -> Triple(c.red, c.red.copy(alpha = 0.12f), c.red2)
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth()
-                    .background(c.bg2, RoundedCornerShape(10.dp))
-                    .border(1.dp, c.border, RoundedCornerShape(10.dp))
-                    .padding(horizontal = 13.dp, vertical = 11.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(11.dp)
-            ) {
-                Box(modifier = Modifier.size(8.dp).background(dotColor, CircleShape))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(event.title, style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = c.textPrimary))
-                    Text(event.timeLabel, style = TextStyle(fontSize = 11.sp, color = c.textTertiary), modifier = Modifier.padding(top = 2.dp))
-                }
-                Box(
-                    modifier = Modifier.background(tagBg, RoundedCornerShape(20.dp)).padding(horizontal = 8.dp, vertical = 2.dp)
-                ) {
-                    Text(event.tag, style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = tagColor))
-                }
-            }
+        Text(
+            text = "\u201C Có chí thì nên, có công mài sắt có ngày nên kim \u201D",
+            style = TextStyle(
+                fontFamily = FontFamily.Serif,
+                fontSize = 14.sp,
+                fontStyle = FontStyle.Italic,
+                color = c.textTertiary,
+                textAlign = TextAlign.Center,
+                lineHeight = 21.sp
+            )
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            "— Tục ngữ Việt Nam",
+            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = c.outline)
+        )
+    }
+}
+
+// ══════════════════════════════════════════
+// EVENT CHIPS
+// ══════════════════════════════════════════
+
+@Composable
+private fun EventChips(info: DayInfo, showFestival: Boolean = true, onHistoryClick: () -> Unit = {}) {
+    val c = LichSoThemeColors.current
+    val holiday = info.solarHoliday ?: info.lunarHoliday
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        if (showFestival && holiday != null) {
+            EventChip(
+                icon = Icons.Filled.Celebration,
+                text = holiday,
+                bgColor = Color(0xFFFFF3E0),
+                textColor = Color(0xFFE65100),
+                borderColor = Color(0xFFFFB74D)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
         }
+        EventChip(
+            icon = Icons.Filled.HistoryEdu,
+            text = "Ngày này năm xưa",
+            bgColor = Color(0xFFE8F5E9),
+            textColor = Color(0xFF2E7D32),
+            borderColor = Color(0xFF81C784),
+            onClick = onHistoryClick
+        )
+    }
+}
+
+@Composable
+private fun EventChip(
+    icon: ImageVector,
+    text: String,
+    bgColor: Color,
+    textColor: Color,
+    borderColor: Color,
+    onClick: () -> Unit = {}
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(bgColor, RoundedCornerShape(8.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(icon, contentDescription = null, tint = textColor, modifier = Modifier.size(14.dp))
+        Text(text, style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = textColor))
     }
 }

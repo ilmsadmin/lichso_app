@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import com.lichso.app.data.auth.AuthRepository
 import com.lichso.app.data.auth.UserInfo
 import com.lichso.app.data.local.LichSoDatabase
+import com.lichso.app.notification.DailyNotificationWorker
+import com.lichso.app.notification.FestivalReminderWorker
 import com.lichso.app.notification.GioDaiCatWorker
 import com.lichso.app.notification.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,6 +23,7 @@ import javax.inject.Inject
 val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "lichso_settings")
 
 object SettingsKeys {
+    val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     val NOTIFY_ENABLED = booleanPreferencesKey("notify_enabled")
     val LUNAR_BADGE = booleanPreferencesKey("lunar_badge")
     val GIO_DAI_CAT = booleanPreferencesKey("gio_dai_cat")
@@ -28,6 +31,14 @@ object SettingsKeys {
     val LANGUAGE = stringPreferencesKey("language")
     val CALENDAR_STYLE = stringPreferencesKey("calendar_style")
     val WEEK_START = stringPreferencesKey("week_start")
+    val THEME_MODE = stringPreferencesKey("theme_mode") // "light", "dark", "system"
+    val FESTIVAL_ENABLED = booleanPreferencesKey("festival_enabled")
+    val QUOTE_ENABLED = booleanPreferencesKey("quote_enabled")
+    val FESTIVAL_REMINDER = booleanPreferencesKey("festival_reminder")
+    val REMINDER_HOUR = intPreferencesKey("reminder_hour")
+    val REMINDER_MINUTE = intPreferencesKey("reminder_minute")
+    val TEMP_UNIT = stringPreferencesKey("temp_unit")
+    val LOCATION_NAME = stringPreferencesKey("location_name")
 }
 
 data class SettingsUiState(
@@ -40,7 +51,14 @@ data class SettingsUiState(
     val notifyEnabled: Boolean = true,
     val lunarBadgeEnabled: Boolean = true,
     val gioDaiCatEnabled: Boolean = false,
-    val darkModeEnabled: Boolean = true,
+    val themeMode: String = "system", // "light", "dark", "system"
+    val festivalEnabled: Boolean = true,
+    val quoteEnabled: Boolean = true,
+    val festivalReminderEnabled: Boolean = true,
+    val reminderHour: Int = 7,
+    val reminderMinute: Int = 0,
+    val tempUnit: String = "°C",
+    val locationName: String = "Hà Nội",
     val language: String = "Tiếng Việt",
     val calendarStyle: String = "Lưới tháng",
     val weekStart: String = "Thứ Hai",
@@ -51,6 +69,10 @@ data class SettingsUiState(
     val showWeekStartDialog: Boolean = false,
     val showClearCacheDialog: Boolean = false,
     val showPrivacyPolicyDialog: Boolean = false,
+    val showTempUnitDialog: Boolean = false,
+    val showLocationDialog: Boolean = false,
+    val showTimePickerDialog: Boolean = false,
+    val showThemeModeDialog: Boolean = false,
     // Feedback
     val toastMessage: String? = null,
 )
@@ -75,7 +97,14 @@ class SettingsViewModel @Inject constructor(
                         notifyEnabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true,
                         lunarBadgeEnabled = prefs[SettingsKeys.LUNAR_BADGE] ?: true,
                         gioDaiCatEnabled = prefs[SettingsKeys.GIO_DAI_CAT] ?: false,
-                        darkModeEnabled = prefs[SettingsKeys.DARK_MODE] ?: true,
+                        themeMode = prefs[SettingsKeys.THEME_MODE] ?: "system",
+                        festivalEnabled = prefs[SettingsKeys.FESTIVAL_ENABLED] ?: true,
+                        quoteEnabled = prefs[SettingsKeys.QUOTE_ENABLED] ?: true,
+                        festivalReminderEnabled = prefs[SettingsKeys.FESTIVAL_REMINDER] ?: true,
+                        reminderHour = prefs[SettingsKeys.REMINDER_HOUR] ?: 7,
+                        reminderMinute = prefs[SettingsKeys.REMINDER_MINUTE] ?: 0,
+                        tempUnit = prefs[SettingsKeys.TEMP_UNIT] ?: "°C",
+                        locationName = prefs[SettingsKeys.LOCATION_NAME] ?: "Hà Nội",
                         language = prefs[SettingsKeys.LANGUAGE] ?: "Tiếng Việt",
                         calendarStyle = prefs[SettingsKeys.CALENDAR_STYLE] ?: "Lưới tháng",
                         weekStart = prefs[SettingsKeys.WEEK_START] ?: "Thứ Hai"
@@ -127,10 +156,15 @@ class SettingsViewModel @Inject constructor(
             if (value) {
                 // Reschedule tất cả reminders đang enabled
                 db.reminderDao().getEnabledReminders().first().forEach { scheduler.schedule(it) }
+                // Schedule daily notification worker
+                val state = _uiState.value
+                DailyNotificationWorker.schedule(context, state.reminderHour, state.reminderMinute)
                 _uiState.update { it.copy(toastMessage = "Đã bật thông báo nhắc nhở") }
             } else {
                 // Huỷ tất cả alarms
                 db.reminderDao().getAllReminders().first().forEach { scheduler.cancel(it.id) }
+                // Cancel daily notification worker
+                DailyNotificationWorker.cancel(context)
                 _uiState.update { it.copy(toastMessage = "Đã tắt thông báo nhắc nhở") }
             }
         }
@@ -146,15 +180,94 @@ class SettingsViewModel @Inject constructor(
     fun setGioDaiCat(value: Boolean) {
         savePref(SettingsKeys.GIO_DAI_CAT, value)
         if (value) {
-            GioDaiCatWorker.schedule(context)
-            _uiState.update { it.copy(toastMessage = "Sẽ nhận thông báo giờ hoàng đạo lúc 6h sáng") }
+            val state = _uiState.value
+            GioDaiCatWorker.schedule(context, state.reminderHour, state.reminderMinute)
+            _uiState.update { it.copy(toastMessage = "Sẽ nhận thông báo giờ hoàng đạo mỗi ngày") }
         } else {
             GioDaiCatWorker.cancel(context)
             _uiState.update { it.copy(toastMessage = "Đã tắt thông báo giờ hoàng đạo") }
         }
     }
 
-    fun setDarkMode(value: Boolean) = savePref(SettingsKeys.DARK_MODE, value)
+    fun setThemeMode(value: String) {
+        savePrefString(SettingsKeys.THEME_MODE, value)
+        val label = when (value) {
+            "light" -> "Sáng"
+            "dark" -> "Tối"
+            else -> "Theo hệ thống"
+        }
+        _uiState.update {
+            it.copy(showThemeModeDialog = false, toastMessage = "Giao diện: $label")
+        }
+    }
+
+    fun setFestivalEnabled(value: Boolean) {
+        savePref(SettingsKeys.FESTIVAL_ENABLED, value)
+        _uiState.update {
+            it.copy(toastMessage = if (value) "Đã bật hiển thị ngày lễ" else "Đã tắt hiển thị ngày lễ")
+        }
+    }
+
+    fun setQuoteEnabled(value: Boolean) {
+        savePref(SettingsKeys.QUOTE_ENABLED, value)
+        _uiState.update {
+            it.copy(toastMessage = if (value) "Đã bật câu danh ngôn" else "Đã tắt câu danh ngôn")
+        }
+    }
+
+    fun setFestivalReminder(value: Boolean) {
+        savePref(SettingsKeys.FESTIVAL_REMINDER, value)
+        if (value) {
+            FestivalReminderWorker.schedule(context)
+            _uiState.update { it.copy(toastMessage = "Đã bật nhắc ngày lễ") }
+        } else {
+            FestivalReminderWorker.cancel(context)
+            _uiState.update { it.copy(toastMessage = "Đã tắt nhắc ngày lễ") }
+        }
+    }
+
+    fun setReminderTime(hour: Int, minute: Int) {
+        viewModelScope.launch {
+            dataStore.edit {
+                it[SettingsKeys.REMINDER_HOUR] = hour
+                it[SettingsKeys.REMINDER_MINUTE] = minute
+            }
+        }
+        // Reschedule daily notification worker with the new time
+        if (_uiState.value.notifyEnabled) {
+            DailyNotificationWorker.schedule(context, hour, minute)
+        }
+        // Also reschedule giờ đại cát with updated time if enabled
+        if (_uiState.value.gioDaiCatEnabled) {
+            GioDaiCatWorker.schedule(context, hour, minute)
+        }
+        _uiState.update {
+            it.copy(
+                showTimePickerDialog = false,
+                toastMessage = "Đã đặt giờ nhắc nhở: ${String.format("%02d:%02d", hour, minute)}"
+            )
+        }
+    }
+
+    fun setTempUnit(value: String) {
+        savePrefString(SettingsKeys.TEMP_UNIT, value)
+        _uiState.update {
+            it.copy(
+                showTempUnitDialog = false,
+                toastMessage = "Đã chuyển sang $value"
+            )
+        }
+    }
+
+    fun setLocationName(value: String) {
+        savePrefString(SettingsKeys.LOCATION_NAME, value)
+        _uiState.update {
+            it.copy(
+                showLocationDialog = false,
+                toastMessage = "Đã chọn vị trí: $value"
+            )
+        }
+    }
 
     fun setLanguage(value: String) {
         savePrefString(SettingsKeys.LANGUAGE, value)
@@ -168,7 +281,12 @@ class SettingsViewModel @Inject constructor(
 
     fun setWeekStart(value: String) {
         savePrefString(SettingsKeys.WEEK_START, value)
-        _uiState.update { it.copy(showWeekStartDialog = false) }
+        _uiState.update {
+            it.copy(
+                showWeekStartDialog = false,
+                toastMessage = "Ngày bắt đầu tuần: $value"
+            )
+        }
     }
 
     // ═══ Dialog visibility ═══
@@ -181,6 +299,14 @@ class SettingsViewModel @Inject constructor(
     fun hideWeekStartDialog() = _uiState.update { it.copy(showWeekStartDialog = false) }
     fun showClearCacheDialog() = _uiState.update { it.copy(showClearCacheDialog = true) }
     fun hideClearCacheDialog() = _uiState.update { it.copy(showClearCacheDialog = false) }
+    fun showTempUnitDialog() = _uiState.update { it.copy(showTempUnitDialog = true) }
+    fun hideTempUnitDialog() = _uiState.update { it.copy(showTempUnitDialog = false) }
+    fun showLocationDialog() = _uiState.update { it.copy(showLocationDialog = true) }
+    fun hideLocationDialog() = _uiState.update { it.copy(showLocationDialog = false) }
+    fun showTimePickerDialog() = _uiState.update { it.copy(showTimePickerDialog = true) }
+    fun hideTimePickerDialog() = _uiState.update { it.copy(showTimePickerDialog = false) }
+    fun showThemeModeDialog() = _uiState.update { it.copy(showThemeModeDialog = true) }
+    fun hideThemeModeDialog() = _uiState.update { it.copy(showThemeModeDialog = false) }
 
     // ═══ Cache ═══
 
@@ -254,6 +380,12 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun savePrefString(key: Preferences.Key<String>, value: String) {
+        viewModelScope.launch {
+            dataStore.edit { it[key] = value }
+        }
+    }
+
+    private fun savePrefInt(key: Preferences.Key<Int>, value: Int) {
         viewModelScope.launch {
             dataStore.edit { it[key] = value }
         }

@@ -40,13 +40,13 @@ class GioDaiCatWorker(
         const val WORK_NAME = "gio_dai_cat_daily"
 
         /**
-         * Lên lịch worker chạy hàng ngày lúc ~6h sáng.
+         * Lên lịch worker chạy hàng ngày vào giờ được cấu hình (mặc định 6h sáng).
          */
-        fun schedule(context: Context) {
+        fun schedule(context: Context, hour: Int = 6, minute: Int = 0) {
             val now = java.util.Calendar.getInstance()
             val target = java.util.Calendar.getInstance().apply {
-                set(java.util.Calendar.HOUR_OF_DAY, 6)
-                set(java.util.Calendar.MINUTE, 0)
+                set(java.util.Calendar.HOUR_OF_DAY, hour)
+                set(java.util.Calendar.MINUTE, minute)
                 set(java.util.Calendar.SECOND, 0)
                 if (before(now)) add(java.util.Calendar.DATE, 1)
             }

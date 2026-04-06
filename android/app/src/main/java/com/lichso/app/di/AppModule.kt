@@ -2,6 +2,7 @@ package com.lichso.app.di
 
 import android.content.Context
 import androidx.room.Room
+import com.lichso.app.data.local.FamilyTreeRepository
 import com.lichso.app.data.local.LichSoDatabase
 import com.lichso.app.data.local.dao.*
 import com.lichso.app.data.settings.AppSettingsRepository
@@ -37,6 +38,37 @@ object AppModule {
 
     @Provides
     fun provideChatMessageDao(db: LichSoDatabase): ChatMessageDao = db.chatMessageDao()
+
+    @Provides
+    fun provideBookmarkDao(db: LichSoDatabase): BookmarkDao = db.bookmarkDao()
+
+    @Provides
+    fun provideNotificationDao(db: LichSoDatabase): NotificationDao = db.notificationDao()
+
+    @Provides
+    fun provideFamilyMemberDao(db: LichSoDatabase): FamilyMemberDao = db.familyMemberDao()
+
+    @Provides
+    fun provideMemorialDayDao(db: LichSoDatabase): MemorialDayDao = db.memorialDayDao()
+
+    @Provides
+    fun provideMemorialChecklistDao(db: LichSoDatabase): MemorialChecklistDao = db.memorialChecklistDao()
+
+    @Provides
+    fun provideFamilySettingsDao(db: LichSoDatabase): FamilySettingsDao = db.familySettingsDao()
+
+    @Provides
+    fun provideMemberPhotoDao(db: LichSoDatabase): MemberPhotoDao = db.memberPhotoDao()
+
+    @Provides
+    @Singleton
+    fun provideFamilyTreeRepository(
+        memberDao: FamilyMemberDao,
+        memorialDao: MemorialDayDao,
+        checklistDao: MemorialChecklistDao,
+        settingsDao: FamilySettingsDao,
+        photoDao: MemberPhotoDao,
+    ): FamilyTreeRepository = FamilyTreeRepository(memberDao, memorialDao, checklistDao, settingsDao, photoDao)
 
     @Provides
     @Singleton

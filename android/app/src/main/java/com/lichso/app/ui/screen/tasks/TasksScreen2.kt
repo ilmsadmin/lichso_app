@@ -28,14 +28,18 @@ import com.lichso.app.data.ai.AiTemplates
 import com.lichso.app.data.local.entity.NoteEntity
 import com.lichso.app.data.local.entity.ReminderEntity
 import com.lichso.app.data.local.entity.TaskEntity
+import com.lichso.app.data.local.entity.BookmarkEntity
+import com.lichso.app.ui.screen.calendar.DayActionsViewModel
 import com.lichso.app.ui.theme.*
 import java.util.Calendar
 
-enum class TaskTab2 { TASKS, NOTES, REMINDERS }
+enum class TaskTab2 { TASKS, NOTES, REMINDERS, BOOKMARKS }
 
 @Composable
 fun TasksScreen2(viewModel: TasksViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val dayActionsViewModel: DayActionsViewModel = hiltViewModel()
+    val dayActionsState by dayActionsViewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableStateOf(TaskTab2.TASKS) }
     val c = LichSoThemeColors.current
     var aiInput by remember { mutableStateOf("") }
@@ -51,7 +55,7 @@ fun TasksScreen2(viewModel: TasksViewModel = hiltViewModel()) {
     }
 
     Box(modifier = Modifier.fillMaxSize().background(c.bg)) {
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Column(modifier = Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState())) {
             // Header
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
@@ -137,6 +141,7 @@ fun TasksScreen2(viewModel: TasksViewModel = hiltViewModel()) {
                 StatCard2("${state.taskCount}", "Việc cần làm", c.teal2, Modifier.weight(1f))
                 StatCard2("${state.reminderCount}", "Nhắc nhở", c.gold2, Modifier.weight(1f))
                 StatCard2("${state.noteCount}", "Ghi chú", c.textSecondary, Modifier.weight(1f))
+                StatCard2("${dayActionsState.bookmarkCount}", "Đánh dấu", Color(0xFFC62828), Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -146,6 +151,7 @@ fun TasksScreen2(viewModel: TasksViewModel = hiltViewModel()) {
                 TabBtn2("Việc làm", "◈", selectedTab == TaskTab2.TASKS, Modifier.weight(1f)) { selectedTab = TaskTab2.TASKS }
                 TabBtn2("Ghi chú", "◇", selectedTab == TaskTab2.NOTES, Modifier.weight(1f)) { selectedTab = TaskTab2.NOTES }
                 TabBtn2("Nhắc nhở", "◷", selectedTab == TaskTab2.REMINDERS, Modifier.weight(1f)) { selectedTab = TaskTab2.REMINDERS }
+                TabBtn2("Đánh dấu", "★", selectedTab == TaskTab2.BOOKMARKS, Modifier.weight(1f)) { selectedTab = TaskTab2.BOOKMARKS }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -154,25 +160,29 @@ fun TasksScreen2(viewModel: TasksViewModel = hiltViewModel()) {
                 TaskTab2.TASKS -> TaskListContent2(state.tasks, viewModel)
                 TaskTab2.NOTES -> NoteListContent2(state.notes, viewModel)
                 TaskTab2.REMINDERS -> ReminderListContent2(state.reminders, viewModel)
+                TaskTab2.BOOKMARKS -> BookmarkListContent(dayActionsState.allBookmarks, dayActionsViewModel)
             }
 
             Spacer(modifier = Modifier.height(96.dp))
         }
 
         // FAB
-        FloatingActionButton(
-            onClick = {
-                when (selectedTab) {
-                    TaskTab2.TASKS -> viewModel.showAddTask(true)
-                    TaskTab2.NOTES -> viewModel.showAddNote(true)
-                    TaskTab2.REMINDERS -> viewModel.showAddReminder(true)
-                }
-            },
-            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = 96.dp),
-            containerColor = c.gold,
-            shape = CircleShape
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Thêm", tint = Color(0xFF1A1500))
+        if (selectedTab != TaskTab2.BOOKMARKS) {
+            FloatingActionButton(
+                onClick = {
+                    when (selectedTab) {
+                        TaskTab2.TASKS -> viewModel.showAddTask(true)
+                        TaskTab2.NOTES -> viewModel.showAddNote(true)
+                        TaskTab2.REMINDERS -> viewModel.showAddReminder(true)
+                        else -> {}
+                    }
+                },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = 96.dp),
+                containerColor = c.gold,
+                shape = CircleShape
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Thêm", tint = Color(0xFF1A1500))
+            }
         }
     }
 
@@ -471,6 +481,83 @@ private fun getRepeatLabel(repeatType: Int): String = when (repeatType) {
     3 -> "Hàng tháng"
     4 -> "Hàng tháng (âm)"
     else -> "Một lần"
+}
+
+@Composable
+private fun BookmarkListContent(bookmarks: List<BookmarkEntity>, viewModel: DayActionsViewModel) {
+    val c = LichSoThemeColors.current
+    if (bookmarks.isEmpty()) {
+        EmptyState2("★", "Chưa có ngày nào được đánh dấu", "Vào chi tiết ngày trong lịch để đánh dấu")
+    } else {
+        SectionLabel2("NGÀY ĐÃ ĐÁNH DẤU · ${bookmarks.size}")
+        Spacer(modifier = Modifier.height(7.dp))
+        Column(modifier = Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            bookmarks.forEach { bookmark -> BookmarkRow(bookmark, viewModel) }
+        }
+    }
+}
+
+@Composable
+private fun BookmarkRow(bookmark: BookmarkEntity, viewModel: DayActionsViewModel) {
+    val c = LichSoThemeColors.current
+    val dateStr = "${"%02d".format(bookmark.solarDay)}/${"%02d".format(bookmark.solarMonth)}/${bookmark.solarYear}"
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(c.bg2, RoundedCornerShape(10.dp))
+            .border(1.dp, c.border, RoundedCornerShape(10.dp))
+            .padding(horizontal = 13.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(11.dp)
+    ) {
+        // Bookmark icon
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(Color(0xFFFFEBEE), RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Filled.Bookmark,
+                contentDescription = null,
+                tint = Color(0xFFC62828),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                bookmark.label.ifEmpty { dateStr },
+                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = c.textPrimary),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                dateStr,
+                style = TextStyle(fontSize = 11.sp, color = c.textTertiary),
+                modifier = Modifier.padding(top = 2.dp)
+            )
+            if (bookmark.note.isNotBlank()) {
+                Text(
+                    bookmark.note,
+                    style = TextStyle(fontSize = 11.sp, color = c.textSecondary),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 1.dp)
+                )
+            }
+        }
+
+        Icon(
+            Icons.Outlined.Close,
+            contentDescription = "Xoá",
+            tint = c.textQuaternary,
+            modifier = Modifier
+                .size(16.dp)
+                .clickable { viewModel.removeBookmark(bookmark) }
+        )
+    }
 }
 
 @Composable

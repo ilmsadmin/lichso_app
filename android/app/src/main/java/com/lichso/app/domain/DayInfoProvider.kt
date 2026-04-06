@@ -73,11 +73,20 @@ class DayInfoProvider @Inject constructor() {
         )
     }
 
-    fun getCalendarDays(year: Int, month: Int): List<CalendarDay> {
+    fun getCalendarDays(year: Int, month: Int, weekStartSunday: Boolean = false): List<CalendarDay> {
         // month is 1-indexed
         val today = LocalDate.now()
         val firstDay = LocalDate.of(year, month, 1)
-        val dayOfWeekFirst = firstDay.dayOfWeek.value % 7 // 0=Sun, 1=Mon..6=Sat
+
+        // dayOfWeek.value: 1=Mon..7=Sun
+        val offset = if (weekStartSunday) {
+            // Sunday start: Sun=0, Mon=1 .. Sat=6
+            firstDay.dayOfWeek.value % 7
+        } else {
+            // Monday start: Mon=0, Tue=1 .. Sun=6
+            firstDay.dayOfWeek.value - 1
+        }
+
         val daysInMonth = firstDay.lengthOfMonth()
         val prevMonth = firstDay.minusMonths(1)
         val daysInPrevMonth = prevMonth.lengthOfMonth()
@@ -85,7 +94,7 @@ class DayInfoProvider @Inject constructor() {
         val days = mutableListOf<CalendarDay>()
 
         // Previous month days
-        for (i in dayOfWeekFirst - 1 downTo 0) {
+        for (i in offset - 1 downTo 0) {
             val d = daysInPrevMonth - i
             val pm = prevMonth.monthValue
             val py = prevMonth.year
@@ -113,6 +122,13 @@ class DayInfoProvider @Inject constructor() {
             val lHol = HolidayUtil.getLunarHoliday(lunar.lunarDay, lunar.lunarMonth)
             val hasEvent = lunar.lunarDay == 1 || lunar.lunarDay == 15 || sHol != null || lHol != null
 
+            // Compute day rating for hoang dao marking
+            val jd = LunarCalendarUtil.jdFromDate(d, month, year)
+            val trucNgay = TrucNgayCalculator.getTrucNgay(jd, lunar.lunarMonth)
+            val saoChieu = SaoChieuCalculator.getSaoChieu(jd)
+            val activities = DayActivityCalculator.getDayActivities(jd, lunar.lunarDay, lunar.lunarMonth)
+            val rating = calculateDayRating(trucNgay, saoChieu, activities)
+
             days.add(
                 CalendarDay(
                     solarDay = d, solarMonth = month, solarYear = year,
@@ -123,13 +139,14 @@ class DayInfoProvider @Inject constructor() {
                     isSaturday = dow.value == 6,
                     isHoliday = sHol != null || lHol != null,
                     hasEvent = hasEvent,
-                    lunarDisplayText = lunStr
+                    lunarDisplayText = lunStr,
+                    dayRatingLabel = rating.label
                 )
             )
         }
 
         // Next month days
-        val totalCells = dayOfWeekFirst + daysInMonth
+        val totalCells = offset + daysInMonth
         val remaining = if (totalCells % 7 == 0) 0 else 7 - (totalCells % 7)
         val nextMonth = firstDay.plusMonths(1)
         for (d in 1..remaining) {

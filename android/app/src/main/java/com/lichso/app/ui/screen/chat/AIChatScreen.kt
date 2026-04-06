@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.chat
 
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -9,10 +10,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.automirrored.outlined.EventNote
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.automirrored.outlined.NoteAdd
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -20,28 +19,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.withStyle
@@ -51,18 +42,28 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lichso.app.data.local.entity.ChatMessageEntity
 import com.lichso.app.ui.theme.*
+import com.lichso.app.ui.components.AppTopBar
+import com.lichso.app.ui.components.HeaderIconButton
+import com.lichso.app.ui.components.LichSoConfirmDialog
+
+// ══════════════════════════════════════════════════════════
+// AI Chat Screen — Material 3, matching screen-ai-chat.html
+// ══════════════════════════════════════════════════════════
 
 @Composable
-fun AIChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
+fun AIChatScreen(
+    onBackClick: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {},
+    viewModel: ChatViewModel = hiltViewModel()
+) {
     val c = LichSoThemeColors.current
-    val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var inputText by remember { mutableStateOf(TextFieldValue("")) }
     val listState = rememberLazyListState()
     var showClearDialog by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
-    // Auto-scroll to bottom
+    // Auto-scroll to bottom when new messages arrive
     LaunchedEffect(state.messages.size, state.isTyping) {
         if (state.messages.isNotEmpty()) {
             listState.animateScrollToItem(state.messages.size - 1 + if (state.isTyping) 1 else 0)
@@ -71,629 +72,1173 @@ fun AIChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
 
     // Clear chat confirmation dialog
     if (showClearDialog) {
-        AlertDialog(
-            onDismissRequest = { showClearDialog = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.clearChat()
-                    showClearDialog = false
-                }) { Text("Xoá", color = c.red) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) { Text("Huỷ", color = c.textSecondary) }
-            },
-            title = { Text("Xoá lịch sử chat?", color = c.textPrimary) },
-            text = { Text("Tất cả tin nhắn sẽ bị xoá và không thể khôi phục.", color = c.textSecondary) },
-            containerColor = c.bg2,
-            shape = RoundedCornerShape(16.dp)
+        LichSoConfirmDialog(
+            onDismiss = { showClearDialog = false },
+            onConfirm = { viewModel.clearChat(); showClearDialog = false },
+            title = "Xoá lịch sử chat?",
+            message = "Tất cả tin nhắn sẽ bị xoá và không thể khôi phục.",
+            icon = Icons.Filled.DeleteForever,
+            iconTint = Color(0xFFD32F2F),
+            iconBgColor = Color(0xFFFFEBEE),
+            confirmText = "Xoá",
+            confirmColor = Color(0xFFD32F2F),
         )
     }
 
     val density = LocalDensity.current
     val imeBottom = WindowInsets.ime.getBottom(density)
-    val navBarBottom = WindowInsets.navigationBars.getBottom(density)
-    val navBarPadding = with(density) { 80.dp.toPx() } + navBarBottom  // content nav bar + system nav bar
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(c.bg)
-            .then(
-                if (imeBottom > 0) {
-                    // Keyboard is visible: use imePadding only, no bottom nav padding
-                    Modifier.imePadding()
-                } else {
-                    // Keyboard hidden: add bottom nav padding (content bar + system nav bar)
-                    Modifier.padding(bottom = with(density) { navBarPadding.toDp() })
-                }
-            )
+            .then(if (imeBottom > 0) Modifier.imePadding() else Modifier)
     ) {
-        // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .background(
-                            Brush.linearGradient(listOf(c.gold, c.teal)),
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AnimatedRobotMini(
-                        color = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                Column {
-                    Text(
-                        "Lịch Số AI",
-                        style = TextStyle(fontFamily = FontFamily.Serif, fontSize = 18.sp, color = c.gold2)
-                    )
-                    Text(
-                        "Trợ lý phong thuỷ thông minh",
-                        style = TextStyle(fontSize = 10.5.sp, color = c.textTertiary)
-                    )
-                }
-            }
-            IconButton(
-                onClick = { showClearDialog = true },
-                modifier = Modifier.size(34.dp)
-            ) {
-                Icon(Icons.Outlined.DeleteOutline, contentDescription = "Xoá chat", tint = c.textSecondary, modifier = Modifier.size(18.dp))
-            }
+        // ═══ AI HEADER — Red gradient with gold radial accent ═══
+        AiChatHeader(
+            onBackClick = onBackClick,
+            onClearClick = { showClearDialog = true }
+        )
+
+        // ═══ SUGGESTION CHIPS ═══
+        SuggestionChipsRow(viewModel = viewModel)
+
+        // ═══ PROFILE COMPLETION BANNER ═══
+        val profileSummary = state.profileSummary
+        if (!profileSummary.isComplete) {
+            ProfileCompletionBanner(
+                missingFields = profileSummary.missingFields,
+                onNavigateToProfile = onNavigateToProfile
+            )
         }
 
-        // Messages list
+        // ═══ CHAT MESSAGES ═══
         LazyColumn(
             state = listState,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(bottom = 8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 8.dp)
         ) {
             items(state.messages, key = { it.id }) { message ->
                 ChatBubble(message = message, viewModel = viewModel)
             }
             if (state.isTyping) {
-                item { TypingIndicator() }
+                item(key = "typing") { TypingIndicator() }
             }
         }
 
-        // Quick topics — 2 rows: Phong thuỷ + Quản lý
-        QuickTopicRow { topic ->
-            inputText = TextFieldValue("")
-            viewModel.sendMessage(topic)
-        }
-        QuickActionRow { prompt ->
-            // Always fill input box for user to review/edit before sending
-            inputText = TextFieldValue(
-                text = prompt,
-                selection = androidx.compose.ui.text.TextRange(prompt.length)
-            )
-            focusRequester.requestFocus()
-        }
-
-        // Input bar
+        // ═══ INPUT BAR ═══
         ChatInputBar(
-            textFieldValue = inputText,
-            onTextChange = { inputText = it },
+            inputText = inputText,
+            onInputChange = { inputText = it },
+            isTyping = state.isTyping,
+            focusRequester = focusRequester,
             onSend = {
                 if (inputText.text.isNotBlank()) {
                     viewModel.sendMessage(inputText.text)
                     inputText = TextFieldValue("")
-                    focusRequester.requestFocus()
                 }
-            },
-            isEnabled = !state.isTyping,
-            focusRequester = focusRequester
+            }
         )
     }
 }
+
+// ──────────────────────────────────────────────────────────
+// AI HEADER
+// ──────────────────────────────────────────────────────────
+
+@Composable
+private fun AiChatHeader(onBackClick: () -> Unit, onClearClick: () -> Unit) {
+    val c = LichSoThemeColors.current
+
+    AppTopBar(
+        title = "Phong Thuỷ AI",
+        subtitle = "Đang trực tuyến",
+        onBackClick = onBackClick,
+        actions = {
+            // AI Avatar
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color.White.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Filled.AutoAwesome,
+                    contentDescription = null,
+                    tint = Color(0xFFD4A017),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            HeaderIconButton(
+                icon = Icons.Filled.DeleteOutline,
+                contentDescription = "Xoá lịch sử",
+                onClick = onClearClick
+            )
+        }
+    )
+}
+
+// ──────────────────────────────────────────────────────────
+// SUGGESTION CHIPS
+// ──────────────────────────────────────────────────────────
+
+@Composable
+private fun SuggestionChipsRow(viewModel: ChatViewModel) {
+    val c = LichSoThemeColors.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(c.bg)
+            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp)
+    ) {
+        Text(
+            "GỢI Ý HỎI",
+            style = TextStyle(
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = c.outline,
+                letterSpacing = 0.5.sp
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.horizontalScroll(rememberScrollState())
+        ) {
+            SuggestionChip(Icons.Filled.Stars, "Tử vi hôm nay") {
+                viewModel.sendMessage("Xem tử vi hôm nay")
+            }
+            SuggestionChip(Icons.Filled.AutoAwesome, "Phân tích bát tự") {
+                viewModel.sendMessage("Phân tích bát tự tứ trụ của tôi")
+            }
+            SuggestionChip(Icons.Filled.TrendingUp, "Vận hạn năm nay") {
+                viewModel.sendMessage("Xem vận hạn năm nay của tôi")
+            }
+            SuggestionChip(Icons.Filled.Favorite, "Xem hợp tuổi") {
+                viewModel.sendMessage("Xem hợp tuổi vợ chồng")
+            }
+            SuggestionChip(Icons.Filled.Palette, "Ngũ hành & mệnh") {
+                viewModel.sendMessage("Phân tích ngũ hành và mệnh của tôi")
+            }
+            SuggestionChip(Icons.Filled.Pets, "Con giáp năm nay") {
+                viewModel.sendMessage("Vận thế con giáp của tôi năm nay")
+            }
+            SuggestionChip(Icons.Filled.Home, "Phong thủy nhà") {
+                viewModel.sendMessage("Tư vấn phong thủy nhà cửa theo tuổi")
+            }
+            SuggestionChip(Icons.Filled.Store, "Giờ khai trương") {
+                viewModel.sendMessage("Giờ tốt khai trương hôm nay")
+            }
+            SuggestionChip(Icons.Filled.Favorite, "Ngày cưới tốt") {
+                viewModel.sendMessage("Tìm ngày cưới tốt tháng này")
+            }
+            SuggestionChip(Icons.Filled.ChildCare, "Đặt tên con") {
+                viewModel.sendMessage("Gợi ý tên đẹp cho con theo ngũ hành")
+            }
+        }
+    }
+}
+
+@Composable
+private fun SuggestionChip(icon: ImageVector, text: String, onClick: () -> Unit) {
+    val c = LichSoThemeColors.current
+    Row(
+        modifier = Modifier
+            .background(c.surfaceContainerHigh, RoundedCornerShape(20.dp))
+            .border(1.dp, c.outlineVariant, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(icon, contentDescription = null, tint = c.textPrimary, modifier = Modifier.size(14.dp))
+        Text(
+            text,
+            style = TextStyle(
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = c.textPrimary
+            )
+        )
+    }
+}
+
+// ──────────────────────────────────────────────────────────
+// PROFILE COMPLETION BANNER
+// ──────────────────────────────────────────────────────────
+
+@Composable
+private fun ProfileCompletionBanner(
+    missingFields: List<String>,
+    onNavigateToProfile: () -> Unit
+) {
+    val c = LichSoThemeColors.current
+    var dismissed by remember { mutableStateOf(false) }
+
+    if (dismissed) return
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFFFFF3E0), // warm amber-50
+                        Color(0xFFFFE0B2)  // amber-100
+                    )
+                ),
+                RoundedCornerShape(16.dp)
+            )
+            .border(
+                1.dp,
+                Color(0xFFFFB74D).copy(alpha = 0.5f),
+                RoundedCornerShape(16.dp)
+            )
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top
+        ) {
+            // Icon
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color(0xFFFF9800).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Filled.Person,
+                    contentDescription = null,
+                    tint = Color(0xFFE65100),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Hoàn tất hồ sơ cá nhân",
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF4E342E)
+                    )
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "Để AI có thể phân tích tử vi, phong thủy chính xác theo tuổi & mệnh của bạn, hãy cập nhật thông tin cá nhân.",
+                    style = TextStyle(
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp,
+                        color = Color(0xFF5D4037)
+                    )
+                )
+                if (missingFields.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        "Còn thiếu: ${missingFields.joinToString(", ")}",
+                        style = TextStyle(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFFBF360C)
+                        )
+                    )
+                }
+            }
+
+            // Dismiss button
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .clickable { dismissed = true },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Filled.Close,
+                    contentDescription = "Đóng",
+                    tint = Color(0xFF8D6E63),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Navigate to profile button
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Color(0xFFFF8F00),
+                    RoundedCornerShape(12.dp)
+                )
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(onClick = onNavigateToProfile)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Filled.Edit,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "Cập nhật hồ sơ ngay",
+                style = TextStyle(
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+            )
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────
+// INPUT BAR
+// ──────────────────────────────────────────────────────────
+
+@Composable
+private fun ChatInputBar(
+    inputText: TextFieldValue,
+    onInputChange: (TextFieldValue) -> Unit,
+    isTyping: Boolean,
+    focusRequester: FocusRequester,
+    onSend: () -> Unit
+) {
+    val c = LichSoThemeColors.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(c.bg)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .navigationBarsPadding(),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        OutlinedTextField(
+            value = inputText,
+            onValueChange = onInputChange,
+            placeholder = {
+                Text(
+                    "Hỏi AI về tử vi, ngày tốt...",
+                    style = TextStyle(fontSize = 14.sp, color = c.outline)
+                )
+            },
+            modifier = Modifier
+                .weight(1f)
+                .focusRequester(focusRequester),
+            shape = RoundedCornerShape(24.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = c.primary,
+                unfocusedBorderColor = c.outlineVariant,
+                focusedContainerColor = c.surfaceContainer,
+                unfocusedContainerColor = c.surfaceContainer,
+                cursorColor = c.primary
+            ),
+            textStyle = TextStyle(fontSize = 14.sp, color = c.textPrimary),
+            singleLine = false,
+            maxLines = 4
+        )
+
+        // Send button with enabled/disabled state
+        val sendEnabled = !isTyping && inputText.text.isNotBlank()
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(
+                    if (sendEnabled) c.primary else c.primary.copy(alpha = 0.4f),
+                    CircleShape
+                )
+                .clickable(enabled = sendEnabled, onClick = onSend),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.Send,
+                contentDescription = "Gửi",
+                tint = Color.White,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────
+// CHAT BUBBLE  — Rich content rendering
+// ──────────────────────────────────────────────────────────
+
+/**
+ * Content blocks parsed from AI response text.
+ */
+private sealed class ContentBlock {
+    data class TextBlock(val text: String) : ContentBlock()
+    data class ResultCard(val rows: List<Pair<String, String>>) : ContentBlock()
+    data class Header(val text: String) : ContentBlock()
+    data class BulletList(val items: List<String>) : ContentBlock()
+}
+
+// ── Regex patterns ──
+
+// Unicode icon characters used by local responses
+private val LOCAL_ICONS = setOf(
+    '◈', '☽', '◷', '✦', '⊕', '◎', '⊛', '❖', '⟡', '▪', '▫', '△', '◇', '·', '›'
+)
+
+/** Local-format key:value (icon + label + colon + value) */
+private val localKvRegex = Regex("""^[◈☽◷✦⊕◎⊛❖⟡▪▫△◇·›]\s*(.+?)\s*[:：]\s*(.+)$""")
+
+/**
+ * Plain key:value — format yêu cầu từ system prompt.
+ * Matches: "Label ngắn: Value gì đó"
+ * Không match nếu bắt đầu bằng - (bullet) hoặc # (heading) hoặc | (table).
+ */
+private val plainKvRegex = Regex("""^(?!\s*[-#|*⚠️►▶])\s*(.{2,40}?)\s*[:：]\s*(.+)$""")
+
+/**
+ * Label-only line: "Nên làm:" or "Không nên:" — key with colon but no value.
+ * These become Headers when followed by bullet items.
+ */
+private val labelOnlyRegex = Regex("""^(?!\s*[-#|*⚠️►▶])\s*(.{2,30}?)\s*[:：]\s*$""")
+
+/** Words that ONLY appear at the start of normal sentences — not domain KV keys */
+private val sentenceStartWords = setOf(
+    "xin", "chào", "tôi", "bạn", "nhìn", "tuy", "vì", "vậy",
+    "nói", "dựa", "khi", "nếu", "còn", "đây", "đó",
+    "vui", "rất", "khá", "cũng", "và", "hoặc", "nhưng", "tức",
+    "để", "cho", "về", "trên", "dưới", "trong", "ngoài",
+    "however", "but", "note", "please", "the", "this", "that", "for"
+)
+
+/** Check if a plain kv match is really a key:value (not a regular sentence with colon) */
+private fun isLikelyKvLine(key: String, value: String): Boolean {
+    val keyLower = key.trim().lowercase()
+    val keyWords = keyLower.split(Regex("\\s+"))
+    // Key should be short (1-5 words)
+    if (keyWords.size > 5) return false
+    // Key should not start with common sentence-start words (NOT domain terms)
+    if (keyWords.firstOrNull() in sentenceStartWords) return false
+    // Key should not contain common sentence patterns
+    if (keyLower.contains(" là ") || keyLower.contains(" có ") || keyLower.contains(" và ")) return false
+    // Value should not be empty
+    if (value.isBlank()) return false
+    // Key that is all-lowercase long phrase → probably a sentence
+    if (keyLower.length > 25 && keyLower == key.trim()) return false
+    return true
+}
+
+/** Markdown table row: | col | col | ... */
+private val mdTableRowRegex = Regex("""^\|(.+\|)+\s*$""")
+/** Markdown table separator: |---|---| */
+private val mdTableSepRegex = Regex("""^\|[\s:]*-+[\s:]*(\|[\s:]*-+[\s:]*)+\|?\s*$""")
+/** Markdown heading ## */
+private val mdHeadingRegex = Regex("""^#{1,4}\s+(.+)$""")
+/** Standalone bold line: **Title** (used as section header by Gemini) */
+private val mdBoldLineRegex = Regex("""^\*\*(.+?)\*\*\s*$""")
+/** Markdown bullet: - item or * item or • item  (not ** bold) */
+private val mdBulletRegex = Regex("""^[\s]*[-*•]\s+(.+)$""")
+
+/** Regex to extract follow-up suggestions block: ~~~gợi ý ... ~~~ */
+private val followUpBlockRegex = Regex("""~~~gợi ý\s*\n([\s\S]*?)~~~""")
+/** Each suggestion line: 📌 Text */
+private val followUpItemRegex = Regex("""📌\s*(.+)""")
+
+/**
+ * Extract follow-up suggestions from AI response and return (cleanedContent, suggestions).
+ */
+private fun extractFollowUpSuggestions(content: String): Pair<String, List<String>> {
+    val match = followUpBlockRegex.find(content) ?: return content to emptyList()
+    val suggestionsBlock = match.groupValues[1]
+    val suggestions = followUpItemRegex.findAll(suggestionsBlock)
+        .map { it.groupValues[1].trim() }
+        .filter { it.isNotBlank() }
+        .toList()
+    val cleanedContent = content.replace(match.value, "").trimEnd()
+    return cleanedContent to suggestions
+}
+
+private fun isLocalIconLine(line: String): Boolean {
+    val trimmed = line.trimStart()
+    return trimmed.isNotEmpty() && trimmed.first() in LOCAL_ICONS
+}
+
+/**
+ * Parse raw AI response into structured content blocks.
+ *
+ * Priority order for each line:
+ * 1. Empty → flush
+ * 2. Markdown table separator → skip
+ * 3. Markdown table row → ResultCard
+ * 4. Markdown heading → Header
+ * 5. Markdown bullet → BulletList
+ * 6. Local icon key:value → ResultCard
+ * 7. Local icon header/bullet → Header or BulletList
+ * 8. Plain key:value (from new system prompt format) → ResultCard
+ * 9. Separator → flush
+ * 10. Regular text → TextBlock
+ */
+private fun parseContentBlocks(raw: String): List<ContentBlock> {
+    val lines = raw.lines()
+    val blocks = mutableListOf<ContentBlock>()
+    val textBuffer = StringBuilder()
+    val cardRows = mutableListOf<Pair<String, String>>()
+    val bulletBuffer = mutableListOf<String>()
+
+    fun flushText() {
+        val t = textBuffer.toString().trim()
+        if (t.isNotEmpty()) blocks.add(ContentBlock.TextBlock(t))
+        textBuffer.clear()
+    }
+
+    fun flushCard() {
+        if (cardRows.isNotEmpty()) {
+            blocks.add(ContentBlock.ResultCard(cardRows.toList()))
+            cardRows.clear()
+        }
+    }
+
+    fun flushBullets() {
+        if (bulletBuffer.isNotEmpty()) {
+            blocks.add(ContentBlock.BulletList(bulletBuffer.toList()))
+            bulletBuffer.clear()
+        }
+    }
+
+    fun flushAll() { flushBullets(); flushCard(); flushText() }
+
+    var i = 0
+    while (i < lines.size) {
+        val trimmed = lines[i].trim()
+
+        // ── 1. Empty line ──
+        if (trimmed.isEmpty()) {
+            flushBullets()
+            flushCard()
+            if (textBuffer.isNotEmpty()) textBuffer.appendLine()
+            i++; continue
+        }
+
+        // ── 2. Markdown table separator ──
+        if (mdTableSepRegex.matches(trimmed)) { i++; continue }
+
+        // ── 3. Markdown table row ──
+        if (mdTableRowRegex.matches(trimmed)) {
+            flushBullets(); flushText()
+            val cells = trimmed.split("|").map { it.trim() }.filter { it.isNotEmpty() }
+            if (cells.size == 2) {
+                cardRows.add(stripMd(cells[0]) to stripMd(cells[1]))
+            } else if (cells.size > 2) {
+                flushCard()
+                textBuffer.appendLine(cells.joinToString("  ·  ") { stripMd(it) })
+            }
+            i++; continue
+        }
+
+        // ── 4. Markdown heading (## Title) ──
+        val headingMatch = mdHeadingRegex.matchEntire(trimmed)
+        if (headingMatch != null) {
+            flushAll()
+            blocks.add(ContentBlock.Header(stripMd(headingMatch.groupValues[1])))
+            i++; continue
+        }
+
+        // ── 4b. Standalone bold line (**Title**) → Header ──
+        val boldLineMatch = mdBoldLineRegex.matchEntire(trimmed)
+        if (boldLineMatch != null) {
+            flushAll()
+            blocks.add(ContentBlock.Header(boldLineMatch.groupValues[1].trim()))
+            i++; continue
+        }
+
+        // ── 5. Markdown bullet (not **bold line) ──
+        val bulletMatch = mdBulletRegex.matchEntire(trimmed)
+        if (bulletMatch != null && !trimmed.trimStart().startsWith("**")) {
+            flushCard(); flushText()
+            bulletBuffer.add(stripMd(bulletMatch.groupValues[1]))
+            i++; continue
+        }
+
+        // ── 6. Local icon key:value ──
+        val localKvMatch = localKvRegex.matchEntire(trimmed)
+        if (localKvMatch != null) {
+            flushBullets(); flushText()
+            cardRows.add(localKvMatch.groupValues[1].trim() to localKvMatch.groupValues[2].trim())
+            i++; continue
+        }
+
+        // ── 7. Local icon line (header or bullet) ──
+        if (isLocalIconLine(trimmed)) {
+            val content = trimmed.dropWhile { it in LOCAL_ICONS || it.isWhitespace() }
+            val isAllCapsHeader = content.length >= 4 && content.all { ch ->
+                ch.isUpperCase() || ch.isWhitespace() || !ch.isLetter()
+            }
+            if (isAllCapsHeader) {
+                flushAll()
+                blocks.add(ContentBlock.Header(trimmed))
+            } else {
+                flushCard(); flushText()
+                bulletBuffer.add(trimmed)
+            }
+            i++; continue
+        }
+
+        // ── 8. Label-only line "Nên làm:" (key + colon, no value) → Header ──
+        val labelOnlyMatch = labelOnlyRegex.matchEntire(trimmed)
+        if (labelOnlyMatch != null) {
+            flushAll()
+            blocks.add(ContentBlock.Header(labelOnlyMatch.groupValues[1].trim()))
+            i++; continue
+        }
+
+        // ── 9. Plain key:value (new format from system prompt) ──
+        val plainKvMatch = plainKvRegex.matchEntire(trimmed)
+        if (plainKvMatch != null) {
+            val key = stripMd(plainKvMatch.groupValues[1])
+            val value = stripMd(plainKvMatch.groupValues[2])
+            if (isLikelyKvLine(key, value)) {
+                flushBullets(); flushText()
+                cardRows.add(key to value)
+                i++; continue
+            }
+        }
+
+        // ── 10. Separator lines ──
+        if (trimmed == "──" || trimmed == "─" || trimmed == "---" || trimmed == "***" || trimmed == "⚠️") {
+            flushAll()
+            i++; continue
+        }
+
+        // ── 11. Regular text ──
+        flushBullets(); flushCard()
+        if (textBuffer.isNotEmpty() && textBuffer.last() != '\n') textBuffer.appendLine()
+        textBuffer.append(trimmed)
+        i++
+    }
+
+    flushAll()
+    return blocks
+}
+
+/** Strip markdown inline formatting: **bold**, *italic*, `code` */
+private fun stripMd(text: String): String {
+    return text
+        .replace(Regex("""\*\*\*(.+?)\*\*\*"""), "$1")
+        .replace(Regex("""\*\*(.+?)\*\*"""), "$1")
+        .replace(Regex("""\*(.+?)\*"""), "$1")
+        .replace(Regex("""`(.+?)`"""), "$1")
+}
+
+// ──────────────────────────────────────────────────────────
+// CHAT BUBBLE
+// ──────────────────────────────────────────────────────────
 
 @Composable
 private fun ChatBubble(message: ChatMessageEntity, viewModel: ChatViewModel) {
     val c = LichSoThemeColors.current
     val isUser = message.isUser
-    val bubbleBg = if (isUser) {
-        if (c.isDark) Color(0xFF1A2A25) else Color(0xFFE4F5F0)
-    } else c.bg2
-    val bubbleBorder = if (isUser) {
-        Color(0x334ABEAA)
-    } else c.border
+
+    // Extract follow-up suggestions for AI messages
+    val (cleanContent, followUpSuggestions) = remember(message.content) {
+        if (!isUser) extractFollowUpSuggestions(message.content)
+        else message.content to emptyList()
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
-        Box(
+        val bubbleShape = RoundedCornerShape(
+            topStart = 20.dp, topEnd = 20.dp,
+            bottomStart = if (isUser) 20.dp else 6.dp,
+            bottomEnd = if (isUser) 6.dp else 20.dp
+        )
+
+        Column(
             modifier = Modifier
-                .widthIn(max = 300.dp)
+                .widthIn(max = 320.dp)
                 .background(
-                    bubbleBg,
-                    RoundedCornerShape(
-                        topStart = 14.dp, topEnd = 14.dp,
-                        bottomStart = if (isUser) 14.dp else 4.dp,
-                        bottomEnd = if (isUser) 4.dp else 14.dp
-                    )
+                    if (isUser) c.primary else c.surfaceContainer,
+                    bubbleShape
                 )
-                .border(
-                    1.dp, bubbleBorder,
-                    RoundedCornerShape(
-                        topStart = 14.dp, topEnd = 14.dp,
-                        bottomStart = if (isUser) 14.dp else 4.dp,
-                        bottomEnd = if (isUser) 4.dp else 14.dp
-                    )
-                )
-                .padding(12.dp)
+                .padding(14.dp)
         ) {
-            Column {
-                StyledChatText(
-                    text = message.content,
-                    isUser = isUser
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+            if (isUser) {
+                // ── USER BUBBLE ──
                 Text(
-                    text = viewModel.formatTime(message.timestamp),
-                    style = TextStyle(fontSize = 9.5.sp, color = c.textQuaternary),
-                    modifier = Modifier.align(Alignment.End)
+                    text = message.content,
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        lineHeight = 21.sp,
+                        color = Color.White
+                    )
                 )
+            } else {
+                // ── AI BUBBLE ── with rich formatting
+                // Header: sparkle icon + "Phân tích AI"
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.AutoAwesome,
+                        contentDescription = null,
+                        tint = c.primary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        "Phân tích AI",
+                        style = TextStyle(
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = c.primary
+                        )
+                    )
+                }
+
+                // Parse content into rich blocks (use cleaned content without suggestion block)
+                val blocks = remember(cleanContent) { parseContentBlocks(cleanContent) }
+
+                blocks.forEach { block ->
+                    when (block) {
+                        is ContentBlock.Header -> {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = block.text,
+                                style = TextStyle(
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    lineHeight = 22.sp,
+                                    color = c.textPrimary
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+
+                        is ContentBlock.TextBlock -> {
+                            Text(
+                                text = parseInlineMarkdown(block.text, c),
+                                style = TextStyle(
+                                    fontSize = 14.sp,
+                                    lineHeight = 21.sp,
+                                    color = c.textPrimary
+                                )
+                            )
+                        }
+
+                        is ContentBlock.ResultCard -> {
+                            ResultCardView(rows = block.rows)
+                        }
+
+                        is ContentBlock.BulletList -> {
+                            BulletListView(items = block.items)
+                        }
+                    }
+                }
+            }
+
+            // Timestamp
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = viewModel.formatTime(message.timestamp),
+                style = TextStyle(
+                    fontSize = 9.5.sp,
+                    color = if (isUser) Color.White.copy(alpha = 0.6f) else c.outline
+                ),
+                modifier = Modifier.align(Alignment.End)
+            )
+        }
+
+        // ── FOLLOW-UP SUGGESTIONS ── (below AI bubble)
+        if (!isUser && followUpSuggestions.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            FollowUpSuggestionsRow(
+                suggestions = followUpSuggestions,
+                onSuggestionClick = { viewModel.sendMessage(it) }
+            )
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────
+// FOLLOW-UP SUGGESTIONS — Clickable chips after AI response
+// ──────────────────────────────────────────────────────────
+
+@Composable
+private fun FollowUpSuggestionsRow(
+    suggestions: List<String>,
+    onSuggestionClick: (String) -> Unit
+) {
+    val c = LichSoThemeColors.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            "Hỏi tiếp:",
+            style = TextStyle(
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = c.outline,
+                letterSpacing = 0.3.sp
+            )
+        )
+        suggestions.forEach { suggestion ->
+            Row(
+                modifier = Modifier
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                c.surfaceContainerHigh,
+                                c.surfaceContainer
+                            )
+                        ),
+                        RoundedCornerShape(16.dp)
+                    )
+                    .border(1.dp, c.outlineVariant, RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { onSuggestionClick(suggestion) }
+                    .padding(horizontal = 14.dp, vertical = 9.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    Icons.Filled.TouchApp,
+                    contentDescription = null,
+                    tint = c.primary,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    suggestion,
+                    style = TextStyle(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = c.primary
+                    ),
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────
+// RESULT CARD — Structured key-value rows
+// ──────────────────────────────────────────────────────────
+
+@Composable
+private fun ResultCardView(rows: List<Pair<String, String>>) {
+    val c = LichSoThemeColors.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+            .background(c.surfaceContainerHigh, RoundedCornerShape(16.dp))
+            .border(1.dp, c.outlineVariant, RoundedCornerShape(16.dp))
+            .padding(14.dp)
+    ) {
+        rows.forEachIndexed { index, (label, value) ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = label,
+                    style = TextStyle(
+                        fontSize = 12.sp,
+                        color = c.textSecondary
+                    ),
+                    modifier = Modifier.weight(0.4f, fill = false)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = value,
+                    style = TextStyle(
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = getValueColor(value, c)
+                    ),
+                    modifier = Modifier.weight(0.6f)
+                )
+            }
+            if (index < rows.lastIndex) {
+                HorizontalDivider(
+                    color = c.outlineVariant,
+                    thickness = 0.5.dp
+                )
+            }
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────
+// BULLET LIST
+// ──────────────────────────────────────────────────────────
+
+@Composable
+private fun BulletListView(items: List<String>) {
+    val c = LichSoThemeColors.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        items.forEach { item ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = "•",
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        color = c.textSecondary
+                    ),
+                    modifier = Modifier.padding(top = 1.dp)
+                )
+                // If bullet item has "key: value" format, bold the key
+                val colonIdx = item.indexOf(':')
+                val bulletText = if (colonIdx in 1..35) {
+                    val key = item.substring(0, colonIdx)
+                    val value = item.substring(colonIdx + 1).trim()
+                    // Only bold-key if key is short and value is non-empty
+                    if (value.isNotEmpty() && key.split(" ").size <= 5) {
+                        buildAnnotatedString {
+                            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) {
+                                append(key)
+                            }
+                            append(": ")
+                            val kwColor = getValueColor(value, c)
+                            if (kwColor != c.textPrimary) {
+                                withStyle(SpanStyle(color = kwColor)) { append(value) }
+                            } else {
+                                append(value)
+                            }
+                        }
+                    } else {
+                        parseInlineMarkdown(item, c)
+                    }
+                } else {
+                    parseInlineMarkdown(item, c)
+                }
+                Text(
+                    text = bulletText,
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        color = c.textPrimary
+                    )
+                )
+            }
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────
+// VALUE COLOR — green/red/primary for result card values
+// ──────────────────────────────────────────────────────────
+
+private fun getValueColor(value: String, c: LichSoColors): Color {
+    val lower = value.lowercase()
+    return when {
+        lower.contains("hoàng đạo") || lower.contains("rất hợp") || lower.contains("rất tốt") ||
+        lower.contains("phù hợp") || lower.contains("✓") || lower.contains("★★★") ||
+        lower.contains("✅") || lower.contains("hoàn thành") ||
+        lower.contains("tốt") && !lower.contains("không") -> c.goodGreen
+
+        lower.contains("xấu") || lower.contains("không nên") || lower.contains("hắc đạo") ||
+        lower.contains("phạm") || lower.contains("xung") || lower.contains("✗") ||
+        lower.contains("tránh") || lower.contains("không phù hợp") -> c.badRed
+
+        lower.contains("giờ") && (lower.contains("h-") || lower.contains("h)") || lower.contains(":")) -> c.primary
+
+        else -> c.textPrimary
+    }
+}
+
+// ──────────────────────────────────────────────────────────
+// INLINE MARKDOWN PARSER → AnnotatedString
+// Handles: **bold**, *italic*, ***bold italic***, `code`
+// Also applies keyword-based coloring for Vietnamese terms.
+// ──────────────────────────────────────────────────────────
+
+/**
+ * Inline token types for markdown parsing.
+ */
+private sealed class InlineToken {
+    data class Plain(val text: String) : InlineToken()
+    data class Bold(val text: String) : InlineToken()
+    data class Italic(val text: String) : InlineToken()
+    data class BoldItalic(val text: String) : InlineToken()
+    data class Code(val text: String) : InlineToken()
+}
+
+/**
+ * Parse inline markdown to AnnotatedString with proper styling.
+ */
+@Composable
+private fun parseInlineMarkdown(text: String, c: LichSoColors): AnnotatedString {
+    // Tokenize: find all **bold**, *italic*, ***both***, `code` spans
+    val tokens = tokenizeInlineMarkdown(text)
+
+    return buildAnnotatedString {
+        for (token in tokens) {
+            when (token) {
+                is InlineToken.BoldItalic -> {
+                    val style = SpanStyle(
+                        fontWeight = FontWeight.Bold,
+                        fontStyle = FontStyle.Italic,
+                        color = getKeywordColor(token.text, c) ?: Color.Unspecified
+                    )
+                    withStyle(style) { append(token.text) }
+                }
+                is InlineToken.Bold -> {
+                    val style = SpanStyle(
+                        fontWeight = FontWeight.Bold,
+                        color = getKeywordColor(token.text, c) ?: Color.Unspecified
+                    )
+                    withStyle(style) { append(token.text) }
+                }
+                is InlineToken.Italic -> {
+                    val style = SpanStyle(
+                        fontStyle = FontStyle.Italic,
+                        color = getKeywordColor(token.text, c) ?: Color.Unspecified
+                    )
+                    withStyle(style) { append(token.text) }
+                }
+                is InlineToken.Code -> {
+                    withStyle(SpanStyle(
+                        fontWeight = FontWeight.Medium,
+                        background = c.surfaceContainerHigh,
+                        color = c.primary
+                    )) { append(token.text) }
+                }
+                is InlineToken.Plain -> {
+                    val kwColor = getKeywordColor(token.text, c)
+                    if (kwColor != null) {
+                        withStyle(SpanStyle(color = kwColor, fontWeight = FontWeight.SemiBold)) {
+                            append(token.text)
+                        }
+                    } else {
+                        append(token.text)
+                    }
+                }
             }
         }
     }
 }
 
 /**
- * Render nội dung chat với các symbol icon được tô màu đồng bộ.
- *
- * Các ký tự symbol trong ChatIcons sẽ được highlight bằng màu gold/teal
- * tạo cảm giác sang trọng, cổ điển phương Đông.
+ * Tokenize text into inline markdown tokens.
+ * Order matters: check *** before **, check ** before *.
  */
-@Composable
-private fun StyledChatText(text: String, isUser: Boolean) {
-    val c = LichSoThemeColors.current
-    val baseColor = if (isUser) c.teal2 else c.textPrimary
-    val accentColor = if (isUser) c.teal else c.gold2
-    val dimColor = if (isUser) c.teal2.copy(alpha = 0.7f) else c.textSecondary
+private fun tokenizeInlineMarkdown(text: String): List<InlineToken> {
+    val tokens = mutableListOf<InlineToken>()
+    // Combined regex: ***bold italic***, **bold**, *italic*, `code`
+    val regex = Regex("""\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`""")
 
-    // Symbols that should be highlighted with accent color
-    val accentSymbols = setOf(
-        ChatIcons.CALENDAR, ChatIcons.LUNAR, ChatIcons.CLOCK,
-        ChatIcons.STAR, ChatIcons.CANCHI, ChatIcons.COMPASS,
-        ChatIcons.FORTUNE, ChatIcons.JOY, ChatIcons.SPARKLE, ChatIcons.INFO
-    )
-    // Symbols for positive/check
-    val checkSymbols = setOf(ChatIcons.CHECK)
-    // Symbols for negative/warning
-    val warnSymbols = setOf(ChatIcons.WARNING, ChatIcons.CROSS)
-
-    val annotated = buildStyledText(
-        text = text,
-        baseColor = baseColor,
-        accentColor = accentColor,
-        checkColor = c.teal,
-        warnColor = c.red2,
-        dimColor = dimColor,
-        accentSymbols = accentSymbols,
-        checkSymbols = checkSymbols,
-        warnSymbols = warnSymbols
-    )
-
-    Text(
-        text = annotated,
-        style = TextStyle(
-            fontSize = 13.sp,
-            lineHeight = 20.sp
-        )
-    )
+    var lastEnd = 0
+    for (match in regex.findAll(text)) {
+        if (match.range.first > lastEnd) {
+            tokens.add(InlineToken.Plain(text.substring(lastEnd, match.range.first)))
+        }
+        when {
+            match.groupValues[1].isNotEmpty() -> tokens.add(InlineToken.BoldItalic(match.groupValues[1]))
+            match.groupValues[2].isNotEmpty() -> tokens.add(InlineToken.Bold(match.groupValues[2]))
+            match.groupValues[3].isNotEmpty() -> tokens.add(InlineToken.Italic(match.groupValues[3]))
+            match.groupValues[4].isNotEmpty() -> tokens.add(InlineToken.Code(match.groupValues[4]))
+        }
+        lastEnd = match.range.last + 1
+    }
+    if (lastEnd < text.length) {
+        tokens.add(InlineToken.Plain(text.substring(lastEnd)))
+    }
+    return tokens
 }
 
-@Composable
-private fun buildStyledText(
-    text: String,
-    baseColor: Color,
-    accentColor: Color,
-    checkColor: Color,
-    warnColor: Color,
-    dimColor: Color,
-    accentSymbols: Set<String>,
-    checkSymbols: Set<String>,
-    warnSymbols: Set<String>
-): AnnotatedString {
-    return remember(text, baseColor, accentColor) {
-        buildAnnotatedString {
-            var i = 0
-            while (i < text.length) {
-                val ch = text[i].toString()
-                when {
-                    ch in accentSymbols -> {
-                        withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.SemiBold)) {
-                            append(ch)
-                        }
-                    }
-                    ch in checkSymbols -> {
-                        withStyle(SpanStyle(color = checkColor, fontWeight = FontWeight.SemiBold)) {
-                            append(ch)
-                        }
-                    }
-                    ch in warnSymbols -> {
-                        withStyle(SpanStyle(color = warnColor, fontWeight = FontWeight.SemiBold)) {
-                            append(ch)
-                        }
-                    }
-                    ch == ChatIcons.ARROW -> {
-                        withStyle(SpanStyle(color = accentColor)) {
-                            append(ch)
-                        }
-                    }
-                    ch == ChatIcons.BULLET -> {
-                        withStyle(SpanStyle(color = dimColor)) {
-                            append(ch)
-                        }
-                    }
-                    else -> {
-                        withStyle(SpanStyle(color = baseColor)) {
-                            append(ch)
-                        }
-                    }
-                }
-                i++
-            }
-        }
+/**
+ * Returns a highlight color for Vietnamese feng-shui keywords, or null if none match.
+ */
+private fun getKeywordColor(text: String, c: LichSoColors): Color? {
+    val lower = text.lowercase()
+    return when {
+        lower.contains("rất tốt") || lower.contains("phù hợp") ||
+        lower.contains("hoàng đạo") || lower.contains("đại cát") ||
+        lower.contains("tốt lắm") -> c.goodGreen
+
+        lower.contains("ngày xấu") || lower.contains("không phù hợp") ||
+        lower.contains("hắc đạo") || lower.contains("đại hung") ||
+        lower.contains("kiêng kỵ") -> c.badRed
+
+        else -> null
     }
 }
+
+// ──────────────────────────────────────────────────────────
+// TYPING INDICATOR — 3 bouncing dots
+// ──────────────────────────────────────────────────────────
 
 @Composable
 private fun TypingIndicator() {
     val c = LichSoThemeColors.current
+    val infiniteTransition = rememberInfiniteTransition(label = "typing")
+
     Row(
         modifier = Modifier
-            .background(c.bg2, RoundedCornerShape(14.dp))
-            .border(1.dp, c.border, RoundedCornerShape(14.dp))
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .background(
+                c.surfaceContainer,
+                RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 6.dp, bottomEnd = 20.dp)
+            )
+            .padding(horizontal = 18.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        AnimatedRobotMini(color = c.teal, modifier = Modifier.size(16.dp))
-        Text("Đang suy nghĩ...", style = TextStyle(fontSize = 12.sp, color = c.textTertiary, fontWeight = FontWeight.Medium))
-        Text("•••", style = TextStyle(fontSize = 14.sp, color = c.gold, letterSpacing = 2.sp))
-    }
-}
-
-@Composable
-private fun QuickTopicRow(onTopicClick: (String) -> Unit) {
-    val c = LichSoThemeColors.current
-
-    data class QuickTopic(val icon: ImageVector, val text: String)
-
-    val topics = listOf(
-        QuickTopic(Icons.Outlined.CalendarToday, "Hôm nay ngày tốt không?"),
-        QuickTopic(Icons.Outlined.AccessTime, "Giờ hoàng đạo"),
-        QuickTopic(Icons.Outlined.Explore, "Hướng xuất hành"),
-        QuickTopic(Icons.Outlined.Favorite, "Ngày cưới hỏi"),
-        QuickTopic(Icons.Outlined.Store, "Khai trương"),
-        QuickTopic(Icons.Outlined.AutoAwesome, "Can chi hôm nay"),
-        QuickTopic(Icons.Outlined.WbSunny, "Tiết khí"),
-        QuickTopic(Icons.Outlined.Home, "Động thổ xây nhà"),
-        QuickTopic(Icons.Outlined.Assessment, "Thống kê"),
-        QuickTopic(Icons.AutoMirrored.Outlined.EventNote, "Kế hoạch ngày"),
-        QuickTopic(Icons.Outlined.Info, "Bạn giúp gì được?"),
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 3.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        topics.forEach { topic ->
-            Box(
-                modifier = Modifier
-                    .background(c.bg3, RoundedCornerShape(20.dp))
-                    .border(1.dp, c.border, RoundedCornerShape(20.dp))
-                    .clip(RoundedCornerShape(20.dp))
-                    .clickable { onTopicClick(topic.text) }
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    Icon(topic.icon, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(13.dp))
-                    Text(text = topic.text, style = TextStyle(fontSize = 11.sp, color = c.textSecondary), maxLines = 1)
-                }
-            }
-        }
-    }
-}
-
-/**
- * Row 2: Quick action prompts cho Task / Note / Reminder
- * Dùng Material Icons đồng bộ với QuickTopicRow
- */
-@Composable
-private fun QuickActionRow(onActionClick: (String) -> Unit) {
-    val c = LichSoThemeColors.current
-
-    data class QuickAction(val icon: ImageVector, val label: String, val prompt: String)
-
-    val actions = listOf(
-        QuickAction(Icons.AutoMirrored.Outlined.EventNote, "Kế hoạch ngày", "Tạo checklist kế hoạch ngày hôm nay gồm: kiểm tra email, họp team, hoàn thành task quan trọng, review, cập nhật tiến độ"),
-        QuickAction(Icons.AutoMirrored.Outlined.NoteAdd, "Ghi chú nhanh", "Ghi chú: "),
-        QuickAction(Icons.Outlined.Alarm, "Nhắc uống thuốc", "Nhắc tôi uống thuốc lúc 8h sáng hàng ngày"),
-        QuickAction(Icons.Outlined.ShoppingCart, "Đi chợ", "Tạo checklist đi chợ gồm: Rau xanh, Thịt/cá, Trái cây, Gia vị, Đồ uống"),
-        QuickAction(Icons.Outlined.FitnessCenter, "Lịch tập gym", "Tạo kế hoạch tập gym tuần này: Thứ 2 - Chest, Thứ 3 - Back, Thứ 4 - Nghỉ, Thứ 5 - Legs, Thứ 6 - Cardio"),
-        QuickAction(Icons.Outlined.LightMode, "Routine sáng", "Tạo nhắc nhở buổi sáng hàng ngày: 6:00 Thức dậy, 6:15 Tập thể dục, 7:00 Ăn sáng, 7:30 Đọc sách"),
-        QuickAction(Icons.AutoMirrored.Outlined.MenuBook, "Học tập", "Tạo kế hoạch học tập gồm: Đọc tài liệu, Làm bài tập, Ôn bài cũ, Ghi chú tóm tắt, Luyện đề"),
-        QuickAction(Icons.Outlined.Flight, "Du lịch", "Tạo checklist chuẩn bị du lịch: Đặt vé, Đặt khách sạn, Chuẩn bị hành lý, Đổi tiền, Mua bảo hiểm"),
-        QuickAction(Icons.Outlined.Cake, "Sinh nhật", "Tạo checklist sinh nhật: Đặt bánh, Mua đồ trang trí, Gửi lời mời, Chuẩn bị quà, Đặt nhà hàng"),
-        QuickAction(Icons.Outlined.AccountBalance, "Ngân sách tháng", "Ghi chú ngân sách tháng này: Thu nhập, Chi phí cố định, Ăn uống, Di chuyển, Giải trí, Tiết kiệm"),
-        QuickAction(Icons.Outlined.Assessment, "Thống kê", "Thống kê tổng hợp tất cả task, note, nhắc nhở"),
-        QuickAction(Icons.Outlined.CheckCircle, "Xong task", "Đánh dấu xong task: "),
-        QuickAction(Icons.Outlined.RemoveCircle, "Xoá task", "Xoá task: "),
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        actions.forEach { action ->
-            Box(
-                modifier = Modifier
-                    .background(
-                        if (c.isDark) Color(0xFF17221E) else Color(0xFFF2F8F6),
-                        RoundedCornerShape(20.dp)
-                    )
-                    .border(
-                        1.dp,
-                        if (c.isDark) Color(0xFF263832) else Color(0xFFD6EAE3),
-                        RoundedCornerShape(20.dp)
-                    )
-                    .clip(RoundedCornerShape(20.dp))
-                    .clickable { onActionClick(action.prompt) }
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    Icon(
-                        action.icon,
-                        contentDescription = null,
-                        tint = c.teal2,
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Text(
-                        text = action.label,
-                        style = TextStyle(fontSize = 11.sp, color = c.teal2),
-                        maxLines = 1
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ChatInputBar(
-    textFieldValue: TextFieldValue,
-    onTextChange: (TextFieldValue) -> Unit,
-    onSend: () -> Unit,
-    isEnabled: Boolean,
-    focusRequester: FocusRequester = FocusRequester()
-) {
-    val c = LichSoThemeColors.current
-    val text = textFieldValue.text
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(c.bg)
-            .padding(horizontal = 10.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .background(c.bg2, RoundedCornerShape(24.dp))
-                .border(1.dp, c.border, RoundedCornerShape(24.dp))
-        ) {
-            TextField(
-                value = textFieldValue,
-                onValueChange = onTextChange,
-                placeholder = {
-                    Text("Hỏi về phong thuỷ, ngày tốt...", style = TextStyle(fontSize = 13.sp, color = c.textQuaternary))
-                },
-                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-                enabled = isEnabled,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent,
-                    focusedTextColor = c.textPrimary,
-                    unfocusedTextColor = c.textPrimary,
-                    cursorColor = c.gold
+        repeat(3) { index ->
+            val offsetY by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = -6f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(700, easing = EaseInOutSine),
+                    repeatMode = RepeatMode.Reverse,
+                    initialStartOffset = StartOffset(index * 200)
                 ),
-                textStyle = TextStyle(fontSize = 13.sp),
-                singleLine = true
+                label = "dot$index"
             )
-        }
-
-        // Send button
-        IconButton(
-            onClick = onSend,
-            enabled = isEnabled && text.isNotBlank(),
-            modifier = Modifier
-                .size(40.dp)
-                .background(
-                    if (text.isNotBlank() && isEnabled)
-                        Brush.linearGradient(listOf(c.gold, c.teal))
-                    else
-                        Brush.linearGradient(listOf(c.surface, c.surface)),
-                    CircleShape
-                )
-        ) {
-            Icon(
-                Icons.AutoMirrored.Filled.Send,
-                contentDescription = "Gửi",
-                tint = if (text.isNotBlank() && isEnabled) {
-                    if (c.isDark) Color(0xFF1A1500) else Color.White
-                } else c.textQuaternary,
-                modifier = Modifier.size(18.dp)
+            val alpha by infiniteTransition.animateFloat(
+                initialValue = 0.4f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(700, easing = EaseInOutSine),
+                    repeatMode = RepeatMode.Reverse,
+                    initialStartOffset = StartOffset(index * 200)
+                ),
+                label = "alpha$index"
             )
-        }
-    }
-}
-
-/** Animated mini robot icon — same style as FAB robot, with blink + gentle tilt */
-@Composable
-private fun AnimatedRobotMini(
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "miniRobot")
-
-    val headTilt by infiniteTransition.animateFloat(
-        initialValue = -4f,
-        targetValue = 4f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "miniTilt"
-    )
-
-    val blinkPhase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = keyframes {
-                durationMillis = 3500
-                0f at 0
-                0f at 2800
-                1f at 2950 using LinearEasing
-                0f at 3100 using LinearEasing
-                0f at 3500
-            },
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "miniBlink"
-    )
-
-    val antennaGlow by infiniteTransition.animateFloat(
-        initialValue = 0.5f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "miniGlow"
-    )
-
-    val antennaBounce by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = -1.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "miniBounce"
-    )
-
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val cx = w / 2f
-        val cy = h / 2f
-        val scale = minOf(w, h) / 24f
-        val strokeW = 1.6f * scale
-
-        rotate(degrees = headTilt, pivot = Offset(cx, cy)) {
-            // Body
-            drawRoundRect(
-                color = color,
-                topLeft = Offset(5f * scale, 11f * scale),
-                size = Size(14f * scale, 10f * scale),
-                cornerRadius = CornerRadius(2f * scale),
-                style = Stroke(width = strokeW, cap = StrokeCap.Round, join = StrokeJoin.Round)
+            Box(
+                modifier = Modifier
+                    .offset(y = offsetY.dp)
+                    .size(8.dp)
+                    .background(c.outline.copy(alpha = alpha), CircleShape)
             )
-
-            // Antenna stick + ball
-            translate(top = antennaBounce * scale) {
-                drawLine(
-                    color = color,
-                    start = Offset(12f * scale, 11f * scale),
-                    end = Offset(12f * scale, 7f * scale),
-                    strokeWidth = strokeW,
-                    cap = StrokeCap.Round
-                )
-                val ballR = 2f * scale
-                // Glow
-                drawCircle(
-                    color = color.copy(alpha = antennaGlow * 0.3f),
-                    radius = ballR * 1.5f,
-                    center = Offset(12f * scale, 5f * scale)
-                )
-                drawCircle(
-                    color = color,
-                    radius = ballR,
-                    center = Offset(12f * scale, 5f * scale),
-                    style = Stroke(width = strokeW)
-                )
-                drawCircle(
-                    color = color.copy(alpha = antennaGlow),
-                    radius = ballR * 0.35f,
-                    center = Offset(12f * scale, 5f * scale)
-                )
-            }
-
-            // Eyes with blink
-            val eyeH = 2f * scale * (1f - blinkPhase)
-            val eyeW = 2.5f * scale
-            val eyeY = 14f * scale - eyeH / 2f
-
-            if (eyeH > 0.1f) {
-                drawRoundRect(color = color, topLeft = Offset(7f * scale, eyeY), size = Size(eyeW, eyeH), cornerRadius = CornerRadius(0.5f * scale))
-                drawRoundRect(color = color, topLeft = Offset(14.5f * scale, eyeY), size = Size(eyeW, eyeH), cornerRadius = CornerRadius(0.5f * scale))
-            } else {
-                drawLine(color = color, start = Offset(7f * scale, 14f * scale), end = Offset(9.5f * scale, 14f * scale), strokeWidth = strokeW * 0.8f, cap = StrokeCap.Round)
-                drawLine(color = color, start = Offset(14.5f * scale, 14f * scale), end = Offset(17f * scale, 14f * scale), strokeWidth = strokeW * 0.8f, cap = StrokeCap.Round)
-            }
-
-            // Smile
-            drawArc(
-                color = color,
-                startAngle = 20f,
-                sweepAngle = 140f,
-                useCenter = false,
-                topLeft = Offset(9.5f * scale, 16f * scale),
-                size = Size(5f * scale, 2.5f * scale),
-                style = Stroke(width = strokeW * 0.7f, cap = StrokeCap.Round)
-            )
-
-            // Ears
-            drawLine(color = color.copy(alpha = 0.7f), start = Offset(5f * scale, 14f * scale), end = Offset(3f * scale, 13f * scale), strokeWidth = strokeW * 0.8f, cap = StrokeCap.Round)
-            drawCircle(color = color.copy(alpha = 0.7f), radius = 0.7f * scale, center = Offset(2.5f * scale, 12.5f * scale))
-            drawLine(color = color.copy(alpha = 0.7f), start = Offset(19f * scale, 14f * scale), end = Offset(21f * scale, 13f * scale), strokeWidth = strokeW * 0.8f, cap = StrokeCap.Round)
-            drawCircle(color = color.copy(alpha = 0.7f), radius = 0.7f * scale, center = Offset(21.5f * scale, 12.5f * scale))
         }
     }
 }

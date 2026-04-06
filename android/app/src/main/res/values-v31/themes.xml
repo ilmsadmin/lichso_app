@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.LichSo" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">#FFFFFBF5</item>
+        <item name="android:windowBackground">#FFFFFBF5</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <!-- Splash theme for Android 12+: solid red, no icon -->
+    <style name="Theme.LichSo.Splash" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#B71C1C</item>
+        <item name="android:navigationBarColor">#8B0000</item>
+        <item name="android:windowBackground">@color/splash_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <!-- Android 12+ Splash Screen API -->
+        <item name="android:windowSplashScreenBackground">@color/splash_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+    </style>
+</resources>
