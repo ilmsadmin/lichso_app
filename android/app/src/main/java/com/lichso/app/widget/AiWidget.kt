@@ -85,7 +85,7 @@ class AiWidget : AppWidgetProvider() {
                 views.setTextViewText(R.id.tv_ai_advice, adviceText)
             }
 
-            // Tap to open app (to AI chat screen)
+            // Tap to open app (to AI chat screen) — attached to root for full-widget tap target
             val intent = Intent(context, MainActivity::class.java).apply {
                 action = "OPEN_AI_CHAT"
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -96,7 +96,7 @@ class AiWidget : AppWidgetProvider() {
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            views.setOnClickPendingIntent(R.id.tv_ai_date, pendingIntent)
+            views.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }

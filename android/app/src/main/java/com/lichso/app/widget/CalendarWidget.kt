@@ -109,14 +109,14 @@ class CalendarWidget : AppWidgetProvider() {
                 views.setTextColor(R.id.tv_day_rating, ratingColor)
             }
 
-            // Tap to open app
+            // Tap to open app — attached to root for full-widget tap target
             val pendingIntent = PendingIntent.getActivity(
                 context,
                 0,
                 Intent(context, MainActivity::class.java),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            views.setOnClickPendingIntent(R.id.tv_solar_day, pendingIntent)
+            views.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
