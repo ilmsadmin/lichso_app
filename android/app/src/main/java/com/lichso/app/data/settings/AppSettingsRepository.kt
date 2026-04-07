@@ -63,8 +63,4 @@ class AppSettingsRepository @Inject constructor(
     /** Ngày bắt đầu tuần */
     val weekStart: Flow<String> =
         context.settingsDataStore.data.map { it[SettingsKeys.WEEK_START] ?: "Thứ Hai" }
-
-    /** Ngôn ngữ */
-    val language: Flow<String> =
-        context.settingsDataStore.data.map { it[SettingsKeys.LANGUAGE] ?: "Tiếng Việt" }
 }

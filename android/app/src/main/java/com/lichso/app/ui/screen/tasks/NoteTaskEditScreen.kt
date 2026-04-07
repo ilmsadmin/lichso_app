@@ -182,6 +182,7 @@ fun NoteTaskEditScreen(
             .fillMaxSize()
             .background(c.bg)
             .statusBarsPadding()
+            .navigationBarsPadding()
             .imePadding()
     ) {
         // ═══ TOP BAR ═══
@@ -199,14 +200,6 @@ fun NoteTaskEditScreen(
                 style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = c.textPrimary),
                 modifier = Modifier.weight(1f)
             )
-
-            // Undo / Redo
-            IconButton(onClick = { /* TODO: undo */ }, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Undo, contentDescription = "Hoàn tác", tint = c.textSecondary, modifier = Modifier.size(22.dp))
-            }
-            IconButton(onClick = { /* TODO: redo */ }, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Redo, contentDescription = "Làm lại", tint = c.textSecondary, modifier = Modifier.size(22.dp))
-            }
 
             // Pin (note only)
             AnimatedVisibility(visible = selectedType == EditItemType.NOTE) {
@@ -1544,8 +1537,7 @@ private fun NoteColorToolbar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 6.dp)
-                .navigationBarsPadding(),
+                .padding(horizontal = 14.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {

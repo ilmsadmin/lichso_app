@@ -2,6 +2,7 @@ package com.lichso.app.ui.screen.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lichso.app.data.local.dao.NotificationDao
 import com.lichso.app.data.remote.WeatherRepository
 import com.lichso.app.data.remote.WeatherState
 import com.lichso.app.data.settings.AppSettingsRepository
@@ -35,7 +36,8 @@ data class HomeUiState(
     val showHoangDao: Boolean = false,
     val weekStartSunday: Boolean = false,
     val tempUnit: String = "°C",
-    val weatherState: WeatherState = WeatherState.Loading
+    val weatherState: WeatherState = WeatherState.Loading,
+    val notificationUnreadCount: Int = 0
 )
 
 @HiltViewModel
@@ -43,7 +45,8 @@ class HomeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val dayInfoProvider: DayInfoProvider,
     private val appSettings: AppSettingsRepository,
-    private val weatherRepository: WeatherRepository
+    private val weatherRepository: WeatherRepository,
+    private val notificationDao: NotificationDao
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -51,6 +54,10 @@ class HomeViewModel @Inject constructor(
 
     init {
         loadCurrentDate()
+        // Lắng nghe số thông báo chưa đọc
+        notificationDao.getUnreadCount()
+            .onEach { count -> _uiState.value = _uiState.value.copy(notificationUnreadCount = count) }
+            .launchIn(viewModelScope)
         // Lắng nghe thay đổi setting lịch âm
         appSettings.lunarBadgeEnabled
             .onEach { enabled -> _uiState.value = _uiState.value.copy(showLunarBadge = enabled) }

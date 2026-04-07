@@ -1,9 +1,12 @@
 package com.lichso.app.data.local
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.lichso.app.data.local.dao.*
 import com.lichso.app.data.local.entity.*
 
@@ -21,8 +24,8 @@ import com.lichso.app.data.local.entity.*
         FamilySettingsEntity::class,
         MemberPhotoEntity::class,
     ],
-    version = 9,
-    exportSchema = false
+    version = 10,
+    exportSchema = true
 )
 abstract class LichSoDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
@@ -38,7 +41,88 @@ abstract class LichSoDatabase : RoomDatabase() {
     abstract fun memberPhotoDao(): MemberPhotoDao
 
     companion object {
+        private const val TAG = "LichSoDatabase"
+
         @Volatile private var INSTANCE: LichSoDatabase? = null
+
+        /**
+         * Migration-safe database builder.
+         *
+         * For FUTURE schema changes:
+         * 1. Increment the version number above
+         * 2. Add a new Migration(oldVersion, newVersion) below
+         * 3. Add it to the .addMigrations() call
+         *
+         * Example:
+         *   val MIGRATION_9_10 = Migration(9, 10) {
+         *       it.execSQL("ALTER TABLE tasks ADD COLUMN category TEXT NOT NULL DEFAULT ''")
+         *   }
+         */
+
+        // Placeholder: no-op migration to establish the pattern.
+        // All existing users on version 9 will keep their data.
+
+        /**
+         * Migration 9→10: Multi-spouse support
+         * - Add spouseIds column (comma-separated, replaces single spouseId)
+         * - Add spouseOrder column (0=primary, 1=vợ cả, 2=vợ hai, ...)
+         * - Migrate existing spouseId data into spouseIds
+         * - Remove spouseId column (via table rebuild)
+         */
+        private val MIGRATION_9_10 = Migration(9, 10) { db ->
+            Log.d(TAG, "Running MIGRATION_9_10: Multi-spouse support")
+            // Add new columns
+            db.execSQL("ALTER TABLE family_members ADD COLUMN spouseIds TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE family_members ADD COLUMN spouseOrder INTEGER NOT NULL DEFAULT 0")
+            // Migrate existing spouseId → spouseIds
+            db.execSQL("UPDATE family_members SET spouseIds = spouseId WHERE spouseId IS NOT NULL AND spouseId != ''")
+            // Remove old spouseId column via table rebuild
+            db.execSQL("""
+                CREATE TABLE family_members_new (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    gender TEXT NOT NULL,
+                    generation INTEGER NOT NULL,
+                    birthYear INTEGER,
+                    deathYear INTEGER,
+                    birthDateLunar TEXT,
+                    deathDateLunar TEXT,
+                    canChi TEXT,
+                    menh TEXT,
+                    zodiacEmoji TEXT,
+                    menhEmoji TEXT,
+                    hanhEmoji TEXT,
+                    menhDetail TEXT,
+                    zodiacName TEXT,
+                    menhName TEXT,
+                    hometown TEXT,
+                    occupation TEXT,
+                    isSelf INTEGER NOT NULL DEFAULT 0,
+                    isElder INTEGER NOT NULL DEFAULT 0,
+                    emoji TEXT NOT NULL DEFAULT '👤',
+                    spouseIds TEXT NOT NULL DEFAULT '',
+                    spouseOrder INTEGER NOT NULL DEFAULT 0,
+                    parentIds TEXT NOT NULL DEFAULT '',
+                    note TEXT,
+                    avatarPath TEXT,
+                    createdAt INTEGER NOT NULL DEFAULT 0,
+                    updatedAt INTEGER NOT NULL DEFAULT 0
+                )
+            """.trimIndent())
+            db.execSQL("""
+                INSERT INTO family_members_new 
+                SELECT id, name, role, gender, generation, birthYear, deathYear,
+                       birthDateLunar, deathDateLunar, canChi, menh, zodiacEmoji, menhEmoji,
+                       hanhEmoji, menhDetail, zodiacName, menhName, hometown, occupation,
+                       isSelf, isElder, emoji, spouseIds, spouseOrder, parentIds,
+                       note, avatarPath, createdAt, updatedAt
+                FROM family_members
+            """.trimIndent())
+            db.execSQL("DROP TABLE family_members")
+            db.execSQL("ALTER TABLE family_members_new RENAME TO family_members")
+            Log.d(TAG, "MIGRATION_9_10 complete")
+        }
 
         fun getInstance(context: Context): LichSoDatabase =
             INSTANCE ?: synchronized(this) {
@@ -46,7 +130,16 @@ abstract class LichSoDatabase : RoomDatabase() {
                     context.applicationContext,
                     LichSoDatabase::class.java,
                     "lichso.db"
-                ).fallbackToDestructiveMigration().build().also { INSTANCE = it }
+                )
+                    // Migrations
+                    .addMigrations(MIGRATION_9_10)
+                    .fallbackToDestructiveMigrationFrom(
+                        // Only allow destructive migration from very old versions (pre-release)
+                        // that we don't need to support. Current users on v9 are safe.
+                        1, 2, 3, 4, 5, 6, 7, 8
+                    )
+                    .build()
+                    .also { INSTANCE = it }
             }
     }
 }

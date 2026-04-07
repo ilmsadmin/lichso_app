@@ -27,7 +27,8 @@ data class FamilyMemberEntity(
     val isSelf: Boolean = false,
     val isElder: Boolean = false,
     val emoji: String = "👤",
-    val spouseId: String? = null,
+    val spouseIds: String = "",      // comma-separated spouse IDs (supports multiple spouses)
+    val spouseOrder: Int = 0,        // order among spouses: 0=primary, 1=vợ cả, 2=vợ hai, etc.
     val parentIds: String = "",      // comma-separated IDs
     val note: String? = null,
     val avatarPath: String? = null,  // internal file path for avatar image
@@ -63,9 +64,9 @@ data class MemorialChecklistEntity(
 @Entity(tableName = "family_settings")
 data class FamilySettingsEntity(
     @PrimaryKey val id: Int = 1,     // singleton row
-    val familyName: String = "Dòng họ Nguyễn",
-    val familyCrest: String = "Ng",
-    val hometown: String = "Hà Nam",
+    val familyName: String = "Gia phả của tôi",
+    val familyCrest: String = "GP",
+    val hometown: String = "",
     val treeDisplayMode: String = "vertical",   // vertical, horizontal, fan
     val treeTheme: String = "classic",          // classic, modern
     val showAvatar: Boolean = true,

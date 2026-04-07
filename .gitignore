@@ -20,5 +20,12 @@ gradle-wrapper.jar
 *.jks
 *.keystore
 
+# Firebase config (contains API keys and project IDs)
+google-services.json
+**/google-services.json
+
+# Room schema exports (optional — can be committed for migration verification)
+# android/app/schemas/
+
 # Misc
 *.log

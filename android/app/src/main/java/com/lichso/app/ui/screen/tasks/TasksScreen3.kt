@@ -56,12 +56,16 @@ enum class NTRTab { REMINDERS, NOTES, TASKS }
 fun TasksScreen3(
     onBackClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
+    onEditVisibilityChanged: (Boolean) -> Unit = {},
     viewModel: TasksViewModel = hiltViewModel()
 ) {
     val c = LichSoThemeColors.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableStateOf(NTRTab.REMINDERS) }
     var searchQuery by remember { mutableStateOf("") }
+    var showFilterSheet by remember { mutableStateOf(false) }
+    var filterLabel by remember { mutableStateOf("") }
+    var filterPriority by remember { mutableIntStateOf(-1) } // -1 = all
 
     val activeColor = when (selectedTab) {
         NTRTab.NOTES -> NoteBlue
@@ -72,6 +76,11 @@ fun TasksScreen3(
     // Determine if we should show the edit screen
     val showEditScreen = state.showAddNoteDialog || state.showAddTaskDialog || state.showAddReminderDialog
             || state.editingNote != null || state.editingTask != null || state.editingReminder != null
+
+    // Notify parent when edit screen visibility changes (to hide bottom bar)
+    LaunchedEffect(showEditScreen) {
+        onEditVisibilityChanged(showEditScreen)
+    }
 
     val editInitialType = when {
         state.showAddNoteDialog || state.editingNote != null -> EditItemType.NOTE
@@ -110,28 +119,56 @@ fun TasksScreen3(
         // ═══ SEARCH ═══
         SearchRow(
             query = searchQuery,
-            onQueryChange = { searchQuery = it }
+            onQueryChange = { searchQuery = it },
+            onFilterClick = { showFilterSheet = true },
+            hasActiveFilter = filterLabel.isNotBlank() || filterPriority >= 0
         )
 
         // ═══ CONTENT ═══
         when (selectedTab) {
             NTRTab.NOTES -> NoteListV3(
-                notes = state.notes.filterBySearch(searchQuery),
+                notes = state.notes.filterBySearch(searchQuery).filterByLabel(filterLabel),
                 viewModel = viewModel,
                 onAddClick = { viewModel.showAddNote(true) }
             )
             NTRTab.TASKS -> TaskListV3(
-                tasks = state.tasks.filterTaskBySearch(searchQuery),
+                tasks = state.tasks.filterTaskBySearch(searchQuery).filterTaskByLabelAndPriority(filterLabel, filterPriority),
                 viewModel = viewModel,
                 onAddClick = { viewModel.showAddTask(true) }
             )
             NTRTab.REMINDERS -> ReminderListV3(
-                reminders = state.reminders.filterReminderBySearch(searchQuery),
+                reminders = state.reminders.filterReminderBySearch(searchQuery).filterReminderByLabel(filterLabel),
                 viewModel = viewModel,
                 onAddClick = { viewModel.showAddReminder(true) }
             )
         }
     }
+
+        // ═══ FILTER BOTTOM SHEET ═══
+        if (showFilterSheet) {
+            NTRFilterSheet(
+                selectedTab = selectedTab,
+                currentLabel = filterLabel,
+                currentPriority = filterPriority,
+                allLabels = remember(state.notes, state.tasks, state.reminders) {
+                    val noteLabels = state.notes.flatMap { it.labels.split(",").map { l -> l.trim() } }
+                    val taskLabels = state.tasks.flatMap { it.labels.split(",").map { l -> l.trim() } }
+                    val reminderLabels = state.reminders.flatMap { it.labels.split(",").map { l -> l.trim() } }
+                    (noteLabels + taskLabels + reminderLabels).filter { it.isNotBlank() }.distinct().sorted()
+                },
+                onApply = { label, priority ->
+                    filterLabel = label
+                    filterPriority = priority
+                    showFilterSheet = false
+                },
+                onReset = {
+                    filterLabel = ""
+                    filterPriority = -1
+                    showFilterSheet = false
+                },
+                onDismiss = { showFilterSheet = false }
+            )
+        }
 
         // ═══ EDIT SCREEN OVERLAY ═══
         AnimatedVisibility(
@@ -218,6 +255,12 @@ private fun StatsRow(noteCount: Int, taskPending: Int, taskTotal: Int, reminderC
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         StatChip(
+            value = "$reminderCount",
+            label = "Nhắc nhở",
+            color = RemindOrange,
+            modifier = Modifier.weight(1f)
+        )
+        StatChip(
             value = "$noteCount",
             label = "Ghi chú",
             color = NoteBlue,
@@ -228,12 +271,6 @@ private fun StatsRow(noteCount: Int, taskPending: Int, taskTotal: Int, reminderC
             valueSuffix = "/$taskTotal",
             label = "Công việc",
             color = TaskGreen,
-            modifier = Modifier.weight(1f)
-        )
-        StatChip(
-            value = "$reminderCount",
-            label = "Nhắc nhở",
-            color = RemindOrange,
             modifier = Modifier.weight(1f)
         )
     }
@@ -362,7 +399,7 @@ private fun TabButton(
 // ══════════════════════════════════════════
 
 @Composable
-private fun SearchRow(query: String, onQueryChange: (String) -> Unit) {
+private fun SearchRow(query: String, onQueryChange: (String) -> Unit, onFilterClick: () -> Unit = {}, hasActiveFilter: Boolean = false) {
     val c = LichSoThemeColors.current
     Row(
         modifier = Modifier
@@ -413,13 +450,20 @@ private fun SearchRow(query: String, onQueryChange: (String) -> Unit) {
         Box(
             modifier = Modifier
                 .size(36.dp)
-                .background(c.surfaceContainer, RoundedCornerShape(10.dp))
-                .border(1.dp, c.outlineVariant, RoundedCornerShape(10.dp))
+                .background(
+                    if (hasActiveFilter) c.primary.copy(alpha = 0.15f) else c.surfaceContainer,
+                    RoundedCornerShape(10.dp)
+                )
+                .border(
+                    1.dp,
+                    if (hasActiveFilter) c.primary else c.outlineVariant,
+                    RoundedCornerShape(10.dp)
+                )
                 .clip(RoundedCornerShape(10.dp))
-                .clickable { },
+                .clickable { onFilterClick() },
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Outlined.Tune, contentDescription = "Lọc", tint = c.textSecondary, modifier = Modifier.size(18.dp))
+            Icon(Icons.Outlined.Tune, contentDescription = "Lọc", tint = if (hasActiveFilter) c.primary else c.textSecondary, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -1224,13 +1268,16 @@ private fun getReminderTypeInfo(reminder: ReminderEntity): ReminderTypeInfo {
         1 -> ReminderTypeInfo(Icons.Outlined.Cake, Color(0xFF7B1FA2), Color(0xFFF3E5F5))          // Birthday
         2 -> ReminderTypeInfo(Icons.Outlined.DarkMode, Color(0xFFF57F17), Color(0xFFFFF8E1))      // Lunar
         3 -> ReminderTypeInfo(Icons.Outlined.EventNote, Color(0xFF1565C0), Color(0xFFE3F2FD))     // Personal
+        4 -> ReminderTypeInfo(Icons.Outlined.LocalFireDepartment, Color(0xFFC62828), Color(0xFFFFEBEE))  // Memorial (Ngày giỗ)
         else -> {
             // Fallback: auto-detect by title keywords
             val title = reminder.title.lowercase()
             when {
                 title.contains("sinh nhật") || title.contains("birthday") ->
                     ReminderTypeInfo(Icons.Outlined.Cake, Color(0xFF7B1FA2), Color(0xFFF3E5F5))
-                title.contains("lễ") || title.contains("giỗ") || title.contains("tết") ->
+                title.contains("giỗ") ->
+                    ReminderTypeInfo(Icons.Outlined.LocalFireDepartment, Color(0xFFC62828), Color(0xFFFFEBEE))
+                title.contains("lễ") || title.contains("tết") ->
                     ReminderTypeInfo(Icons.Outlined.Celebration, Color(0xFFE65100), Color(0xFFFFF3E0))
                 title.contains("rằm") || title.contains("mùng") ->
                     ReminderTypeInfo(Icons.Outlined.DarkMode, Color(0xFFF57F17), Color(0xFFFFF8E1))
@@ -1281,14 +1328,196 @@ private fun List<NoteEntity>.filterBySearch(query: String): List<NoteEntity> {
     return filter { it.title.lowercase().contains(q) || it.content.lowercase().contains(q) }
 }
 
+private fun List<NoteEntity>.filterByLabel(label: String): List<NoteEntity> {
+    if (label.isBlank()) return this
+    val l = label.lowercase()
+    return filter { it.labels.lowercase().contains(l) }
+}
+
 private fun List<TaskEntity>.filterTaskBySearch(query: String): List<TaskEntity> {
     if (query.isBlank()) return this
     val q = query.lowercase()
     return filter { it.title.lowercase().contains(q) || it.description.lowercase().contains(q) }
 }
 
+private fun List<TaskEntity>.filterTaskByLabelAndPriority(label: String, priority: Int): List<TaskEntity> {
+    var result = this
+    if (label.isNotBlank()) {
+        val l = label.lowercase()
+        result = result.filter { it.labels.lowercase().contains(l) }
+    }
+    if (priority >= 0) {
+        result = result.filter { it.priority == priority }
+    }
+    return result
+}
+
 private fun List<ReminderEntity>.filterReminderBySearch(query: String): List<ReminderEntity> {
     if (query.isBlank()) return this
     val q = query.lowercase()
     return filter { it.title.lowercase().contains(q) || it.subtitle.lowercase().contains(q) }
+}
+
+private fun List<ReminderEntity>.filterReminderByLabel(label: String): List<ReminderEntity> {
+    if (label.isBlank()) return this
+    val l = label.lowercase()
+    return filter { it.labels.lowercase().contains(l) }
+}
+
+// ══════════════════════════════════════════
+// FILTER BOTTOM SHEET
+// ══════════════════════════════════════════
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NTRFilterSheet(
+    selectedTab: NTRTab,
+    currentLabel: String,
+    currentPriority: Int,
+    allLabels: List<String>,
+    onApply: (label: String, priority: Int) -> Unit,
+    onReset: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val c = LichSoThemeColors.current
+    val sheetState = rememberModalBottomSheetState()
+    var label by remember { mutableStateOf(currentLabel) }
+    var priority by remember { mutableIntStateOf(currentPriority) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = c.bg,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
+            Text(
+                "Bộ lọc",
+                style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = c.textPrimary),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            // Label filter
+            Text(
+                "Nhãn",
+                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = c.textSecondary),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            if (allLabels.isEmpty()) {
+                Text(
+                    "Chưa có nhãn nào",
+                    style = TextStyle(fontSize = 12.sp, color = c.outline),
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+            } else {
+                // Wrap labels in a flow
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    allLabels.forEach { l ->
+                        val isSelected = l == label
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(
+                                    if (isSelected) c.primary else c.surfaceContainer,
+                                    RoundedCornerShape(20.dp)
+                                )
+                                .border(
+                                    1.dp,
+                                    if (isSelected) c.primary else c.outlineVariant,
+                                    RoundedCornerShape(20.dp)
+                                )
+                                .clickable { label = if (isSelected) "" else l }
+                                .padding(horizontal = 14.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                l,
+                                style = TextStyle(
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (isSelected) Color.White else c.textSecondary
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Priority filter (only for Tasks tab)
+            if (selectedTab == NTRTab.TASKS) {
+                Text(
+                    "Độ ưu tiên",
+                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = c.textSecondary),
+                    modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(bottom = 12.dp)
+                ) {
+                    val priorities = listOf(-1 to "Tất cả", 0 to "Thấp", 1 to "TB", 2 to "Cao")
+                    priorities.forEach { (p, lbl) ->
+                        val isSelected = priority == p
+                        val chipColor = when (p) {
+                            0 -> TaskGreen
+                            1 -> RemindOrange
+                            2 -> Color(0xFFC62828)
+                            else -> c.primary
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(
+                                    if (isSelected) chipColor else c.surfaceContainer,
+                                    RoundedCornerShape(20.dp)
+                                )
+                                .border(
+                                    1.dp,
+                                    if (isSelected) chipColor else c.outlineVariant,
+                                    RoundedCornerShape(20.dp)
+                                )
+                                .clickable { priority = p }
+                                .padding(horizontal = 14.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                lbl,
+                                style = TextStyle(
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (isSelected) Color.White else c.textSecondary
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Action buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onReset,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, c.outlineVariant)
+                ) {
+                    Text("Đặt lại", color = c.textSecondary)
+                }
+                Button(
+                    onClick = { onApply(label, priority) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = c.primary)
+                ) {
+                    Text("Áp dụng", color = Color.White)
+                }
+            }
+        }
+    }
 }

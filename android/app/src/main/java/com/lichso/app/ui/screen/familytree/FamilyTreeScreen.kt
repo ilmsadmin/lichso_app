@@ -1,5 +1,9 @@
 package com.lichso.app.ui.screen.familytree
 
+import android.graphics.Bitmap
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -24,6 +28,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -359,6 +364,122 @@ private fun FamilyTreeListScreen(
     onPrayersClick: (prayerId: Int?) -> Unit = {},
 ) {
     val c = LichSoThemeColors.current
+    val context = LocalContext.current
+
+    // ── JSON backup export launcher ──
+    var pendingExportJson by remember { mutableStateOf<String?>(null) }
+    val jsonExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null && pendingExportJson != null) {
+            viewModel.writeExportToUri(uri, pendingExportJson!!)
+        }
+        pendingExportJson = null
+    }
+
+    // ── JSON restore import launcher ──
+    val jsonImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.requestImport(uri)
+        }
+    }
+
+    // ── PDF export launcher ──
+    val pdfExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/pdf")
+    ) { uri ->
+        if (uri != null) {
+            viewModel.exportFamilyTreePdf(uri)
+        }
+    }
+
+    // ── Image export launcher ──
+    val imageExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("image/png")
+    ) { uri ->
+        if (uri != null) {
+            viewModel.exportFamilyTreeImage(uri)
+        }
+    }
+
+    // ── QR code dialog ──
+    if (uiState.showQrDialog) {
+        QrCodeDialog(
+            qrBitmap = uiState.qrBitmap,
+            familyName = uiState.familyName,
+            onDismiss = { viewModel.hideQrDialog() }
+        )
+    }
+
+    // ── Import confirm dialog ──
+    if (uiState.showImportConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.cancelImport() },
+            containerColor = c.bg,
+            shape = RoundedCornerShape(24.dp),
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .background(
+                            if (c.isDark) Color(0xFF1A2A3E) else Color(0xFFE3F2FD),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.Download,
+                        contentDescription = null,
+                        tint = if (c.isDark) Color(0xFF64B5F6) else Color(0xFF1565C0),
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+            },
+            title = {
+                Text(
+                    "Nhập dữ liệu gia phả",
+                    style = TextStyle(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = c.textPrimary,
+                        textAlign = TextAlign.Center
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            text = {
+                Text(
+                    "Dữ liệu gia phả hiện tại sẽ được thay thế bằng dữ liệu từ file.\n\nBạn nên xuất bản sao lưu trước khi nhập. Tiếp tục?",
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        color = c.textSecondary,
+                        lineHeight = 20.sp,
+                        textAlign = TextAlign.Center
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmImport() }) {
+                    Text("Nhập", color = if (c.isDark) Color(0xFF64B5F6) else Color(0xFF1565C0), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.cancelImport() }) {
+                    Text("Hủy", color = c.outline)
+                }
+            }
+        )
+    }
+
+    // Toast feedback for export
+    LaunchedEffect(uiState.exportImportMessage) {
+        uiState.exportImportMessage?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+            viewModel.clearExportImportMessage()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -377,23 +498,128 @@ private fun FamilyTreeListScreen(
         // Tab content
         Box(modifier = Modifier.weight(1f)) {
             when (uiState.selectedTab) {
-                0 -> TreeTabContent(viewModel, uiState)
+                0 -> TreeTabContent(
+                    viewModel = viewModel,
+                    uiState = uiState,
+                    onRestore = { jsonImportLauncher.launch(arrayOf("application/json", "*/*")) },
+                )
                 1 -> MemberListTabContent(viewModel, uiState)
                 2 -> MemorialTabContent(viewModel, uiState, onPrayersClick)
             }
 
-            // FAB (add person)
+            // FABs (share actions + add person)
             if (uiState.selectedTab == 0) {
-                FloatingActionButton(
-                    onClick = { viewModel.openAddMember() },
+                var showShareActions by remember { mutableStateOf(false) }
+
+                Column(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(end = 20.dp, bottom = 24.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    containerColor = Color(0xFF3E2723),
-                    contentColor = Color(0xFFD4A017),
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(Icons.Filled.PersonAdd, contentDescription = "Thêm", modifier = Modifier.size(26.dp))
+                    // Expandable share action mini-FABs
+                    AnimatedVisibility(
+                        visible = showShareActions,
+                        enter = fadeIn(tween(200)) + expandVertically(expandFrom = Alignment.Bottom, animationSpec = tween(250)),
+                        exit = fadeOut(tween(150)) + shrinkVertically(shrinkTowards = Alignment.Bottom, animationSpec = tween(200))
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            ShareMiniFab(
+                                icon = Icons.Filled.PictureAsPdf,
+                                label = "Xuất PDF",
+                                containerColor = if (c.isDark) Color(0xFFD32F2F) else Color(0xFFC62828),
+                                onClick = {
+                                    showShareActions = false
+                                    val fileName = "GiaPha_${uiState.familyName.replace(" ", "_")}.pdf"
+                                    pdfExportLauncher.launch(fileName)
+                                }
+                            )
+                            ShareMiniFab(
+                                icon = Icons.Filled.Image,
+                                label = "Xuất Ảnh",
+                                containerColor = if (c.isDark) Color(0xFF43A047) else Color(0xFF2E7D32),
+                                onClick = {
+                                    showShareActions = false
+                                    val fileName = "GiaPha_${uiState.familyName.replace(" ", "_")}.png"
+                                    imageExportLauncher.launch(fileName)
+                                }
+                            )
+                            ShareMiniFab(
+                                icon = Icons.Filled.Share,
+                                label = "Chia sẻ ảnh",
+                                containerColor = if (c.isDark) Color(0xFF1E88E5) else Color(0xFF1565C0),
+                                onClick = {
+                                    showShareActions = false
+                                    viewModel.shareFamilyLink(context)
+                                }
+                            )
+                            ShareMiniFab(
+                                icon = Icons.Filled.QrCode,
+                                label = "Mã QR",
+                                containerColor = if (c.isDark) Color(0xFF9C27B0) else Color(0xFF7B1FA2),
+                                onClick = {
+                                    showShareActions = false
+                                    viewModel.showQrCode()
+                                }
+                            )
+                            ShareMiniFab(
+                                icon = Icons.Filled.BackupTable,
+                                label = "Lưu dữ liệu",
+                                containerColor = if (c.isDark) Color(0xFF00897B) else Color(0xFF00695C),
+                                onClick = {
+                                    showShareActions = false
+                                    viewModel.exportFamilyData { json, fileName ->
+                                        pendingExportJson = json
+                                        jsonExportLauncher.launch(fileName)
+                                    }
+                                }
+                            )
+                        }
+                    }
+
+                    // Share toggle FAB
+                    FloatingActionButton(
+                        onClick = { showShareActions = !showShareActions },
+                        modifier = Modifier.size(48.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        containerColor = if (showShareActions)
+                            (if (c.isDark) Color(0xFF4E342E) else Color(0xFF5D4037))
+                        else
+                            (if (c.isDark) Color(0xFF3E2723) else Color(0xFF4E342E)),
+                        contentColor = if (c.isDark) Color(0xFFF0E8D0) else Color.White,
+                    ) {
+                        Icon(
+                            if (showShareActions) Icons.Filled.Close else Icons.Filled.Share,
+                            contentDescription = "Chia sẻ",
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    // Add member FAB (same size as share toggle)
+                    FloatingActionButton(
+                        onClick = { viewModel.openAddMember() },
+                        modifier = Modifier.size(48.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        containerColor = if (c.isDark) Color(0xFF4E342E) else Color(0xFF3E2723),
+                        contentColor = if (c.isDark) Color(0xFFE8C84A) else Color(0xFFD4A017),
+                    ) {
+                        Icon(Icons.Filled.PersonAdd, contentDescription = "Thêm", modifier = Modifier.size(22.dp))
+                    }
+
+                    // Restore from JSON FAB
+                    FloatingActionButton(
+                        onClick = { jsonImportLauncher.launch(arrayOf("application/json", "*/*")) },
+                        modifier = Modifier.size(48.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        containerColor = if (c.isDark) Color(0xFF2E3D2E) else Color(0xFF33691E),
+                        contentColor = if (c.isDark) Color(0xFF81C784) else Color(0xFFA5D6A7),
+                    ) {
+                        Icon(Icons.Filled.RestorePage, contentDescription = "Restore", modifier = Modifier.size(22.dp))
+                    }
                 }
             }
         }
@@ -406,7 +632,10 @@ private fun FamilyTreeListScreen(
 @Composable
 private fun FamilyTreeHeader(uiState: FamilyTreeUiState, onBackClick: () -> Unit, onSettingsClick: () -> Unit = {}) {
     val c = LichSoThemeColors.current
-    val colors = listOf(Color(0xFF3E2723), Color(0xFF4E342E), Color(0xFF5D4037))
+    val colors = if (c.isDark)
+        listOf(Color(0xFF2A1F1A), Color(0xFF362B22), Color(0xFF40332A))
+    else
+        listOf(Color(0xFF3E2723), Color(0xFF4E342E), Color(0xFF5D4037))
 
     Box(
         modifier = Modifier
@@ -465,6 +694,137 @@ private fun FamilyTreeHeader(uiState: FamilyTreeUiState, onBackClick: () -> Unit
 }
 
 // ══════════════════════════════════════════
+// SHARE MINI-FAB (used in expandable share actions)
+// ══════════════════════════════════════════
+@Composable
+private fun ShareMiniFab(
+    icon: ImageVector,
+    label: String,
+    containerColor: Color,
+    onClick: () -> Unit
+) {
+    val c = LichSoThemeColors.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Label chip
+        Text(
+            label,
+            style = TextStyle(
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (c.isDark) Color(0xFFF0E8D0) else Color.White,
+            ),
+            modifier = Modifier
+                .background(
+                    if (c.isDark) Color(0xFF3A3530) else Color(0xFF424242),
+                    RoundedCornerShape(8.dp)
+                )
+                .padding(horizontal = 10.dp, vertical = 5.dp)
+        )
+        // Mini FAB
+        SmallFloatingActionButton(
+            onClick = onClick,
+            shape = RoundedCornerShape(12.dp),
+            containerColor = containerColor,
+            contentColor = Color.White,
+            modifier = Modifier.size(42.dp)
+        ) {
+            Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+// ══════════════════════════════════════════
+// QR CODE DIALOG
+// ══════════════════════════════════════════
+@Composable
+private fun QrCodeDialog(
+    qrBitmap: Bitmap?,
+    familyName: String,
+    onDismiss: () -> Unit
+) {
+    val c = LichSoThemeColors.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = c.bg,
+        shape = RoundedCornerShape(24.dp),
+        title = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    Icons.Filled.QrCode,
+                    contentDescription = null,
+                    tint = if (c.isDark) Color(0xFFCE93D8) else Color(0xFF7B1FA2),
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Mã QR Gia Phả",
+                    style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = c.textPrimary),
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    familyName,
+                    style = TextStyle(fontSize = 13.sp, color = c.outline),
+                    textAlign = TextAlign.Center
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (qrBitmap != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(220.dp)
+                            .background(Color.White, RoundedCornerShape(16.dp))
+                            .border(1.dp, c.outlineVariant, RoundedCornerShape(16.dp))
+                            .padding(12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            bitmap = qrBitmap.asImageBitmap(),
+                            contentDescription = "QR Code",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(220.dp)
+                            .background(c.surfaceContainer, RoundedCornerShape(16.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            color = if (c.isDark) Color(0xFFCE93D8) else Color(0xFF7B1FA2)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    "Quét mã QR để xem thông tin gia phả",
+                    style = TextStyle(fontSize = 12.sp, color = c.outline, textAlign = TextAlign.Center)
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Đóng", color = c.primary, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    )
+}
+
+// ══════════════════════════════════════════
 // TAB BAR
 // ══════════════════════════════════════════
 @Composable
@@ -501,7 +861,7 @@ private fun TabBar(selectedTab: Int, onTabSelect: (Int) -> Unit) {
                     .drawBehind {
                         if (isActive) {
                             drawLine(
-                                color = Color(0xFFB71C1C),
+                                color = if (c.isDark) Color(0xFFEF5350) else Color(0xFFB71C1C),
                                 start = Offset(0f, size.height),
                                 end = Offset(size.width, size.height),
                                 strokeWidth = 2.dp.toPx()
@@ -535,7 +895,7 @@ private fun TabBar(selectedTab: Int, onTabSelect: (Int) -> Unit) {
 // TAB 1: TREE VIEW (Hierarchical)
 // ══════════════════════════════════════════════════════════════
 @Composable
-private fun TreeTabContent(viewModel: FamilyTreeViewModel, uiState: FamilyTreeUiState) {
+private fun TreeTabContent(viewModel: FamilyTreeViewModel, uiState: FamilyTreeUiState, onRestore: () -> Unit) {
     val c = LichSoThemeColors.current
     val familyTree = remember(uiState.members) { viewModel.getFamilyTree() }
     val maxGen = remember(uiState.members) { uiState.members.maxOfOrNull { it.generation } ?: 0 }
@@ -548,18 +908,26 @@ private fun TreeTabContent(viewModel: FamilyTreeViewModel, uiState: FamilyTreeUi
     val minScale = 0.3f
     val maxScale = 3f
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clipToBounds()
-            .pointerInput(Unit) {
-                detectTransformGestures { _, pan, zoom, _ ->
-                    scale = (scale * zoom).coerceIn(minScale, maxScale)
-                    offsetX += pan.x
-                    offsetY += pan.y
+    if (uiState.members.isEmpty()) {
+        // ── Empty state: Tour guide ──
+        EmptyFamilyTreeGuide(
+            onAddMember = { viewModel.openAddMember() },
+            onRestore = onRestore,
+        )
+    } else {
+        // ── Tree view with zoom/pan ──
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clipToBounds()
+                .pointerInput(Unit) {
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        scale = (scale * zoom).coerceIn(minScale, maxScale)
+                        offsetX += pan.x
+                        offsetY += pan.y
+                    }
                 }
-            }
-    ) {
+        ) {
         // Tree content — wraps to its intrinsic size, then scaled/translated
         Box(
             modifier = Modifier
@@ -617,6 +985,199 @@ private fun TreeTabContent(viewModel: FamilyTreeViewModel, uiState: FamilyTreeUi
             }
         }
     }
+    } // end else (has members)
+}
+
+// ══════════════════════════════════════════
+// EMPTY STATE: TOUR GUIDE
+// ══════════════════════════════════════════
+@Composable
+private fun EmptyFamilyTreeGuide(
+    onAddMember: () -> Unit,
+    onRestore: () -> Unit,
+) {
+    val c = LichSoThemeColors.current
+
+    // Gentle entrance animation
+    val visible = remember { MutableTransitionState(false).apply { targetState = true } }
+
+    AnimatedVisibility(
+        visibleState = visible,
+        enter = fadeIn(tween(600)) + slideInVertically(tween(500)) { it / 4 },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 32.dp, vertical = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            // ── Hero icon ──
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = if (c.isDark) listOf(Color(0xFF4A3728), Color(0xFF2C1E12))
+                            else listOf(Color(0xFFFFF3E0), Color(0xFFFFE0B2)),
+                        ),
+                        shape = CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.AccountTree,
+                    contentDescription = null,
+                    modifier = Modifier.size(56.dp),
+                    tint = if (c.isDark) Color(0xFFFFCC80) else Color(0xFF6D4C41),
+                )
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // ── Title ──
+            Text(
+                "Cây Gia Phả",
+                style = TextStyle(
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = c.textPrimary,
+                    letterSpacing = 0.3.sp,
+                ),
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                "Bắt đầu xây dựng cây gia phả của gia đình bạn",
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    color = c.textSecondary,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 20.sp,
+                ),
+            )
+
+            Spacer(modifier = Modifier.height(36.dp))
+
+            // ── Steps guide ──
+            val steps = listOf(
+                Triple(Icons.Filled.PersonAdd, "Thêm thành viên đầu tiên", "Bắt đầu bằng cách thêm người lớn tuổi nhất trong gia đình (ông/bà, cụ…)"),
+                Triple(Icons.Filled.FamilyRestroom, "Thêm quan hệ gia đình", "Thêm vợ/chồng, con cái để mở rộng cây gia phả"),
+                Triple(Icons.Filled.Share, "Chia sẻ & lưu trữ", "Xuất gia phả dưới dạng ảnh, PDF hoặc lưu dữ liệu để lưu trữ an toàn"),
+            )
+
+            steps.forEachIndexed { index, (icon, title, desc) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    // Step number badge
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(
+                                if (c.isDark) Color(0xFF3A2A1B) else Color(0xFFFFF8E1),
+                                RoundedCornerShape(12.dp),
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp),
+                            tint = if (c.isDark) Color(0xFFFFCC80) else Color(0xFF5D4037),
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "${index + 1}. $title",
+                            style = TextStyle(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = c.textPrimary,
+                            ),
+                        )
+                        Text(
+                            desc,
+                            style = TextStyle(
+                                fontSize = 12.sp,
+                                color = c.textSecondary,
+                                lineHeight = 18.sp,
+                            ),
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(36.dp))
+
+            // ── Primary CTA: Add first member ──
+            Button(
+                onClick = onAddMember,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (c.isDark) Color(0xFF5D4037) else Color(0xFF6D4C41),
+                    contentColor = Color.White,
+                ),
+            ) {
+                Icon(
+                    Icons.Filled.PersonAdd,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "Thêm thành viên đầu tiên",
+                    style = TextStyle(
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // ── Secondary CTA: Restore from backup ──
+            OutlinedButton(
+                onClick = onRestore,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(
+                    1.dp,
+                    if (c.isDark) Color(0xFF5D4037) else Color(0xFF8D6E63),
+                ),
+            ) {
+                Icon(
+                    Icons.Filled.RestorePage,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = if (c.isDark) Color(0xFFBCAAA4) else Color(0xFF5D4037),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "Khôi phục từ file backup",
+                    style = TextStyle(
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (c.isDark) Color(0xFFBCAAA4) else Color(0xFF5D4037),
+                    ),
+                )
+            }
+
+            Spacer(modifier = Modifier.height(80.dp)) // room for FABs
+        }
+    }
 }
 
 @Composable
@@ -636,6 +1197,9 @@ private fun GenerationLabel(label: String, c: LichSoColors) {
 /**
  * Recursively render a family group: parents on top, connector line down,
  * then children side by side (each child may have their own family).
+ *
+ * For MultiSpouse parents, each wife-branch is rendered separately with
+ * the couple header (husband + wife) and that wife's children below.
  */
 @Composable
 private fun FamilyGroupView(
@@ -654,27 +1218,18 @@ private fun FamilyGroupView(
             GenerationLabel(viewModel.getGenerationLabel(group.generation), c)
         }
 
-        // Parents
-        TreeNodeView(
-            node = group.parents,
-            viewModel = viewModel,
-        )
+        if (group.parents is TreeNode.MultiSpouse) {
+            // ── Multi-spouse layout: show husband+all wives, then each wife's branch ──
+            TreeNodeView(
+                node = group.parents,
+                viewModel = viewModel,
+            )
 
-        // Children
-        if (group.children.isNotEmpty()) {
-            // Connector: vertical line down from parents
-            ConnectorDown(c)
+            if (group.children.isNotEmpty()) {
+                ConnectorDown(c)
 
-            if (group.children.size == 1) {
-                // Single child group — render directly (no branch needed)
-                FamilyGroupView(
-                    group = group.children.first(),
-                    viewModel = viewModel,
-                    maxGeneration = maxGeneration,
-                )
-            } else {
-                // Multiple children — horizontal bracket then children
-                // Draw horizontal bracket line connecting all children
+                // Each child of a MultiSpouse parent is a wife-branch (Couple + that wife's children)
+                // or unassigned children
                 Row(
                     modifier = Modifier.drawBehind {
                         val y = 0f
@@ -685,29 +1240,99 @@ private fun FamilyGroupView(
                             strokeWidth = 2.dp.toPx(),
                         )
                     }.padding(top = 2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
                     verticalAlignment = Alignment.Top,
                 ) {
                     group.children.forEach { childGroup ->
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            // Short connector from horizontal line down to child
                             ConnectorDown(c, height = 8)
 
-                            FamilyGroupView(
-                                group = childGroup,
-                                viewModel = viewModel,
-                                maxGeneration = maxGeneration,
-                            )
+                            if (childGroup.wifeId != null && childGroup.children.isNotEmpty()) {
+                                // Wife branch label
+                                val wife = (group.parents as TreeNode.MultiSpouse).wives.find { it.id == childGroup.wifeId }
+                                if (wife != null) {
+                                    val label = when (wife.spouseOrder) {
+                                        1 -> "Vợ cả"
+                                        2 -> "Vợ hai"
+                                        3 -> "Vợ ba"
+                                        else -> wife.name
+                                    }
+                                    Text(
+                                        "── $label ──",
+                                        style = TextStyle(
+                                            fontSize = 9.sp,
+                                            color = c.outline,
+                                            fontWeight = FontWeight.Medium,
+                                        ),
+                                        modifier = Modifier.padding(bottom = 4.dp)
+                                    )
+                                }
+                            }
+
+                            // Render this wife's children normally
+                            childGroup.children.forEach { grandchild ->
+                                FamilyGroupView(
+                                    group = grandchild,
+                                    viewModel = viewModel,
+                                    maxGeneration = maxGeneration,
+                                    showGenLabel = false,
+                                )
+                            }
                         }
                     }
                 }
             }
-        } else if (group.generation == maxGeneration) {
-            // Leaf node at the last generation — show add placeholder
-            ConnectorDown(c)
-            AddPersonNodeView(onClick = { viewModel.openAddMember() })
+        } else {
+            // ── Standard single/couple layout ──
+            TreeNodeView(
+                node = group.parents,
+                viewModel = viewModel,
+            )
+
+            // Children
+            if (group.children.isNotEmpty()) {
+                ConnectorDown(c)
+
+                if (group.children.size == 1) {
+                    FamilyGroupView(
+                        group = group.children.first(),
+                        viewModel = viewModel,
+                        maxGeneration = maxGeneration,
+                    )
+                } else {
+                    Row(
+                        modifier = Modifier.drawBehind {
+                            val y = 0f
+                            drawLine(
+                                color = c.outlineVariant,
+                                start = Offset(0f, y),
+                                end = Offset(size.width, y),
+                                strokeWidth = 2.dp.toPx(),
+                            )
+                        }.padding(top = 2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(20.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        group.children.forEach { childGroup ->
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                ConnectorDown(c, height = 8)
+                                FamilyGroupView(
+                                    group = childGroup,
+                                    viewModel = viewModel,
+                                    maxGeneration = maxGeneration,
+                                )
+                            }
+                        }
+                    }
+                }
+            } else if (group.generation == maxGeneration) {
+                ConnectorDown(c)
+                AddPersonNodeView(onClick = { viewModel.openAddMember() })
+            }
         }
     }
 }
@@ -720,6 +1345,11 @@ private fun TreeNodeView(
     when (node) {
         is TreeNode.Couple -> CoupleNodeView(
             node.person1, node.person2,
+            onPersonClick = { viewModel.openMemberDetail(it) }
+        )
+        is TreeNode.MultiSpouse -> MultiSpouseNodeView(
+            husband = node.husband,
+            wives = node.wives,
             onPersonClick = { viewModel.openMemberDetail(it) }
         )
         is TreeNode.Single -> PersonNodeView(
@@ -765,8 +1395,8 @@ private fun PersonNodeView(member: FamilyMember, onClick: () -> Unit) {
 
     val borderColor = when {
         member.isSelf -> c.primary
-        member.gender == Gender.MALE -> Color(0xFF90CAF9)
-        else -> Color(0xFFF48FB1)
+        member.gender == Gender.MALE -> if (c.isDark) Color(0xFF1565C0) else Color(0xFF90CAF9)
+        else -> if (c.isDark) Color(0xFFC2185B) else Color(0xFFF48FB1)
     }
     val borderWidth = if (member.isSelf) 2.dp else 1.5.dp
     val nodeAlpha = if (member.deathYear != null) 0.7f else 1f
@@ -843,10 +1473,11 @@ private fun PersonNodeView(member: FamilyMember, onClick: () -> Unit) {
 
 @Composable
 private fun avatarBg(member: FamilyMember): Color {
+    val c = LichSoThemeColors.current
     return when {
-        member.isElder -> Color(0xFFFFE082) // golden
-        member.gender == Gender.MALE -> Color(0xFFE3F2FD)
-        else -> Color(0xFFFCE4EC)
+        member.isElder -> if (c.isDark) Color(0xFF5D4037) else Color(0xFFFFE082) // golden
+        member.gender == Gender.MALE -> if (c.isDark) Color(0xFF1A3A5C) else Color(0xFFE3F2FD)
+        else -> if (c.isDark) Color(0xFF4A2030) else Color(0xFFFCE4EC)
     }
 }
 
@@ -864,6 +1495,60 @@ private fun CoupleNodeView(
         PersonNodeView(person1, onClick = { onPersonClick(person1.id) })
         Text("❤️", fontSize = 10.sp)
         PersonNodeView(person2, onClick = { onPersonClick(person2.id) })
+    }
+}
+
+// ── Multi-Spouse Node: husband in center, wives around ──
+@Composable
+private fun MultiSpouseNodeView(
+    husband: FamilyMember,
+    wives: List<FamilyMember>,
+    onPersonClick: (String) -> Unit
+) {
+    val c = LichSoThemeColors.current
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            wives.forEachIndexed { index, wife ->
+                if (index == 0) {
+                    // First wife on the left of husband
+                    PersonNodeView(wife, onClick = { onPersonClick(wife.id) })
+                    Text("❤️", fontSize = 10.sp)
+                    PersonNodeView(husband, onClick = { onPersonClick(husband.id) })
+                } else {
+                    Text("❤️", fontSize = 10.sp)
+                    PersonNodeView(wife, onClick = { onPersonClick(wife.id) })
+                }
+            }
+        }
+        // Wife order labels
+        if (wives.size > 1) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(top = 2.dp)
+            ) {
+                wives.forEachIndexed { index, wife ->
+                    val label = when (wife.spouseOrder) {
+                        1 -> "Vợ cả"
+                        2 -> "Vợ hai"
+                        3 -> "Vợ ba"
+                        else -> "Vợ ${index + 1}"
+                    }
+                    Text(
+                        label,
+                        style = TextStyle(
+                            fontSize = 8.sp,
+                            color = c.outline,
+                            fontWeight = FontWeight.Medium,
+                        ),
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -1028,7 +1713,10 @@ private fun MemberListCard(member: FamilyMember, onClick: () -> Unit, onReminder
             // Reminder button
             val reminderLabel = if (isDeceased) "🕯️ Nhắc giỗ" else "🎂 Nhắc sinh nhật"
             val reminderBg = if (isDeceased) Color(0xFFFFF3E0) else Color(0xFFE8F5E9)
-            val reminderTextColor = if (isDeceased) Color(0xFFE65100) else Color(0xFF2E7D32)
+            val reminderTextColor = if (isDeceased)
+                (if (c.isDark) Color(0xFFFFAB40) else Color(0xFFE65100))
+            else
+                (if (c.isDark) Color(0xFF81C784) else Color(0xFF2E7D32))
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
@@ -1189,7 +1877,7 @@ private fun MemorialCard(memorial: MemorialDay, c: LichSoColors, onClick: () -> 
             .then(
                 if (memorial.isUpcoming) Modifier.drawBehind {
                     drawLine(
-                        color = Color(0xFFE65100),
+                        color = if (c.isDark) Color(0xFFFFAB40) else Color(0xFFE65100),
                         start = Offset(0f, 16.dp.toPx()),
                         end = Offset(0f, size.height - 16.dp.toPx()),
                         strokeWidth = 3.dp.toPx()
@@ -1240,7 +1928,9 @@ private fun MemorialCard(memorial: MemorialDay, c: LichSoColors, onClick: () -> 
             }
 
             // Countdown
-            val countdownColor = if (memorial.isUpcoming) Color(0xFFE65100) else c.outline
+            val countdownColor = if (memorial.isUpcoming) {
+                if (c.isDark) Color(0xFFFFAB40) else Color(0xFFE65100)
+            } else c.outline
             Text(
                 "⏰ ${memorial.countdown}",
                 style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = countdownColor),

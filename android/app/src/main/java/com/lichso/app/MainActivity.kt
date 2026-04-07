@@ -2,6 +2,7 @@ package com.lichso.app
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -29,7 +30,16 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Switch from splash theme (red background) to normal theme
         setTheme(R.style.Theme_LichSo)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT
+            ),
+            navigationBarStyle = SystemBarStyle.light(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT
+            )
+        )
 
         // Determine if launched from widget with a specific destination
         val widgetRoute = when (intent?.action) {

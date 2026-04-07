@@ -79,7 +79,9 @@ object FamilyTreeExportImport {
         @SerializedName("isSelf") val isSelf: Boolean = false,
         @SerializedName("isElder") val isElder: Boolean = false,
         @SerializedName("emoji") val emoji: String = "👤",
-        @SerializedName("spouseId") val spouseId: String? = null,
+        @SerializedName("spouseId") val spouseId: String? = null,       // legacy single-spouse (for backward compat)
+        @SerializedName("spouseIds") val spouseIds: String = "",         // comma-separated spouse IDs
+        @SerializedName("spouseOrder") val spouseOrder: Int = 0,
         @SerializedName("parentIds") val parentIds: String = "",
         @SerializedName("note") val note: String? = null,
         @SerializedName("avatarBase64") val avatarBase64: String? = null,
@@ -156,7 +158,7 @@ object FamilyTreeExportImport {
                 menhDetail = m.menhDetail, zodiacName = m.zodiacName, menhName = m.menhName,
                 hometown = m.hometown, occupation = m.occupation,
                 isSelf = m.isSelf, isElder = m.isElder, emoji = m.emoji,
-                spouseId = m.spouseId, parentIds = m.parentIds,
+                spouseIds = m.spouseIds, spouseOrder = m.spouseOrder, parentIds = m.parentIds,
                 note = m.note, avatarBase64 = avatarBase64,
             )
         }
@@ -252,10 +254,18 @@ object FamilyTreeExportImport {
      */
     fun parseExportJson(json: String): ExportData? {
         return try {
+            // Guard against excessively large imports (max 10MB)
+            if (json.length > 10 * 1024 * 1024) return null
+
             val data = Gson().fromJson(json, ExportData::class.java)
-            // Basic validation
-            if (data.appId != "com.lichso.app" && data.members.isEmpty()) null
-            else data
+            // Validate schema
+            if (data == null) return null
+            if (data.appId != "com.lichso.app") return null
+            if (data.version < 1 || data.version > CURRENT_VERSION) return null
+            // Sanity limits: prevent absurdly large imports
+            if (data.members.size > 5000) return null
+            if (data.memberPhotos.size > 10000) return null
+            data
         } catch (_: Exception) {
             null
         }
@@ -303,7 +313,11 @@ object FamilyTreeExportImport {
                 menhDetail = m.menhDetail, zodiacName = m.zodiacName, menhName = m.menhName,
                 hometown = m.hometown, occupation = m.occupation,
                 isSelf = m.isSelf, isElder = m.isElder, emoji = m.emoji,
-                spouseId = m.spouseId, parentIds = m.parentIds,
+                // Backward compatible: if spouseIds is empty, migrate from legacy spouseId
+                spouseIds = if (m.spouseIds.isNotBlank()) m.spouseIds
+                            else m.spouseId ?: "",
+                spouseOrder = m.spouseOrder,
+                parentIds = m.parentIds,
                 note = m.note, avatarPath = avatarPath,
                 createdAt = now, updatedAt = now,
             )
@@ -414,6 +428,7 @@ object FamilyTreeExportImport {
     /**
      * Decode a base64 string to a file in internal storage.
      * Returns the file path or null on failure.
+     * Rejects data exceeding MAX_PHOTO_BYTES to prevent OOM.
      */
     private fun decodeBase64ToFile(
         context: Context,
@@ -422,10 +437,19 @@ object FamilyTreeExportImport {
         fileName: String,
     ): String? {
         return try {
+            // Guard: base64 string length ~1.37x the decoded size
+            if (base64.length > MAX_PHOTO_BYTES * 2) return null
+
             val bytes = Base64.decode(base64, Base64.NO_WRAP)
-            val dir = File(context.filesDir, subDir)
+            if (bytes.size > MAX_PHOTO_BYTES) return null
+
+            // Sanitize subDir and fileName to prevent path traversal
+            val safeSubDir = subDir.replace("..", "").replace("/./", "/")
+            val safeFileName = fileName.replace("..", "").replace("/", "_")
+
+            val dir = File(context.filesDir, safeSubDir)
             if (!dir.exists()) dir.mkdirs()
-            val file = File(dir, fileName)
+            val file = File(dir, safeFileName)
             file.writeBytes(bytes)
             file.absolutePath
         } catch (_: Exception) {

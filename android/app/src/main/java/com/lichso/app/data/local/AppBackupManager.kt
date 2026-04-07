@@ -161,7 +161,9 @@ object AppBackupManager {
         @SerializedName("isSelf") val isSelf: Boolean = false,
         @SerializedName("isElder") val isElder: Boolean = false,
         @SerializedName("emoji") val emoji: String = "👤",
-        @SerializedName("spouseId") val spouseId: String? = null,
+        @SerializedName("spouseId") val spouseId: String? = null,       // legacy (backward compat)
+        @SerializedName("spouseIds") val spouseIds: String = "",
+        @SerializedName("spouseOrder") val spouseOrder: Int = 0,
         @SerializedName("parentIds") val parentIds: String = "",
         @SerializedName("note") val note: String? = null,
         @SerializedName("avatarBase64") val avatarBase64: String? = null,
@@ -256,7 +258,9 @@ object AppBackupManager {
                 m.birthYear, m.deathYear, m.birthDateLunar, m.deathDateLunar,
                 m.canChi, m.menh, m.zodiacEmoji, m.menhEmoji, m.hanhEmoji,
                 m.menhDetail, m.zodiacName, m.menhName, m.hometown, m.occupation,
-                m.isSelf, m.isElder, m.emoji, m.spouseId, m.parentIds, m.note, avatarBase64)
+                m.isSelf, m.isElder, m.emoji,
+                spouseIds = m.spouseIds, spouseOrder = m.spouseOrder,
+                parentIds = m.parentIds, note = m.note, avatarBase64 = avatarBase64)
         }
         val memorialDays = memorialDayDao.getAllMemorialsOnce().map { m ->
             BackupMemorialDay(m.id, m.memberId, m.memberName, m.relation,
@@ -443,7 +447,10 @@ object AppBackupManager {
                 menhEmoji = m.menhEmoji, hanhEmoji = m.hanhEmoji, menhDetail = m.menhDetail,
                 zodiacName = m.zodiacName, menhName = m.menhName, hometown = m.hometown,
                 occupation = m.occupation, isSelf = m.isSelf, isElder = m.isElder,
-                emoji = m.emoji, spouseId = m.spouseId, parentIds = m.parentIds,
+                emoji = m.emoji,
+                spouseIds = if (m.spouseIds.isNotBlank()) m.spouseIds else m.spouseId ?: "",
+                spouseOrder = m.spouseOrder,
+                parentIds = m.parentIds,
                 note = m.note, avatarPath = avatarPath
             ))
         }
@@ -568,10 +575,14 @@ object AppBackupManager {
 
     private fun restoreProfileAvatar(context: Context, base64: String) {
         try {
+            // Guard against oversized data
+            if (base64.length > MAX_PHOTO_BYTES * 2) return
+
             val avatarDir = File(context.filesDir, "avatars")
             if (!avatarDir.exists()) avatarDir.mkdirs()
             val destFile = File(avatarDir, "profile_avatar.jpg")
             val bytes = Base64.decode(base64, Base64.DEFAULT)
+            if (bytes.size > MAX_PHOTO_BYTES) return
             destFile.writeBytes(bytes)
         } catch (_: Exception) {
             // Silently skip if avatar restore fails
@@ -591,7 +602,12 @@ object AppBackupManager {
 
     private fun decodeBase64ToFile(base64: String, dest: File): String? {
         return try {
+            // Guard against oversized data
+            if (base64.length > MAX_PHOTO_BYTES * 2) return null
+
             val bytes = Base64.decode(base64, Base64.DEFAULT)
+            if (bytes.size > MAX_PHOTO_BYTES) return null
+
             dest.parentFile?.let { if (!it.exists()) it.mkdirs() }
             dest.writeBytes(bytes)
             dest.absolutePath

@@ -170,114 +170,12 @@ class FamilyTreeRepository @Inject constructor(
     // ══════════════════════════════════════════
 
     suspend fun seedIfEmpty() {
-        val count = memberDao.getMemberCount().first()
-        if (count > 0) return
-
-        // Insert default settings
-        settingsDao.insert(FamilySettingsEntity())
-
-        // Insert seed members
-        val members = listOf(
-            FamilyMemberEntity(
-                id = "1", name = "Nguyễn Văn Đức", role = "Ông Cố", gender = "MALE",
-                generation = 1, birthYear = 1920, deathYear = 1998,
-                canChi = "Canh Thân", menh = "Mộc", isElder = true, emoji = "👴",
-                birthDateLunar = "10/01/1920", deathDateLunar = "15/07/1998",
-                hometown = "Hà Nam", occupation = "Nông dân",
-            ),
-            FamilyMemberEntity(
-                id = "2", name = "Trần Thị Hoa", role = "Bà Cố", gender = "FEMALE",
-                generation = 1, birthYear = 1924, deathYear = 2005,
-                canChi = "Giáp Tý", menh = "Kim", isElder = true, emoji = "👵",
-                birthDateLunar = "05/03/1924", deathDateLunar = "03/02/2005",
-                spouseId = "1", hometown = "Hà Nam",
-            ),
-            FamilyMemberEntity(
-                id = "3", name = "Nguyễn Văn Hùng", role = "Ông Nội", gender = "MALE",
-                generation = 2, birthYear = 1945, deathYear = 2020,
-                canChi = "Ất Dậu", menh = "Mộc", isElder = true, emoji = "👴",
-                birthDateLunar = "15/03/1945", deathDateLunar = "20/11/2020",
-                menhDetail = "Tuyền Trung Thủy", zodiacEmoji = "🐓", menhEmoji = "💧",
-                hanhEmoji = "🌳", zodiacName = "Năm Gà", menhName = "Mệnh Thủy trong nguồn",
-                parentIds = "1,2", spouseId = "4",
-                hometown = "Hà Nam", occupation = "Giáo viên",
-                note = "Ông nội là giáo viên dạy Toán tại trường THPT Hà Nam. Ông rất yêu thương con cháu, luôn dạy dỗ nghiêm khắc nhưng nhân ái.",
-            ),
-            FamilyMemberEntity(
-                id = "4", name = "Lê Thị Mai", role = "Bà Nội", gender = "FEMALE",
-                generation = 2, birthYear = 1948, canChi = "Mậu Tý",
-                isElder = true, emoji = "👵", parentIds = "", spouseId = "3",
-            ),
-            FamilyMemberEntity(
-                id = "5", name = "Nguyễn Văn Minh", role = "Ông Chú", gender = "MALE",
-                generation = 2, birthYear = 1950, deathYear = 2018,
-                emoji = "👤", parentIds = "1,2",
-            ),
-            FamilyMemberEntity(
-                id = "6", name = "Nguyễn Văn Thành", role = "Bố", gender = "MALE",
-                generation = 3, birthYear = 1955, canChi = "Ất Mùi",
-                emoji = "👨", parentIds = "3,4", spouseId = "7",
-            ),
-            FamilyMemberEntity(
-                id = "7", name = "Phạm Thị Lan", role = "Mẹ", gender = "FEMALE",
-                generation = 3, birthYear = 1958, canChi = "Mậu Tuất",
-                emoji = "👩", spouseId = "6",
-            ),
-            FamilyMemberEntity(
-                id = "8", name = "Nguyễn Văn Bình", role = "Chú", gender = "MALE",
-                generation = 3, birthYear = 1960,
-                emoji = "👨", parentIds = "3,4",
-            ),
-            FamilyMemberEntity(
-                id = "9", name = "Nguyễn Văn An", role = "Bản thân", gender = "MALE",
-                generation = 4, birthYear = 1980, isSelf = true,
-                canChi = "Canh Thân", menh = "Mộc",
-                emoji = "🧑", parentIds = "6,7",
-            ),
-            FamilyMemberEntity(
-                id = "10", name = "Nguyễn Thị Hà", role = "Chị gái", gender = "FEMALE",
-                generation = 4, birthYear = 1978,
-                emoji = "👩", parentIds = "6,7",
-            ),
-        )
-        memberDao.insertAll(members)
-
-        // Insert seed memorials (using lunar day/month from deathDateLunar of members)
-        val memorials = listOf(
-            MemorialDayEntity(
-                id = "m1", memberId = "1", memberName = "Giỗ Ông Cố Nguyễn Văn Đức",
-                relation = "Ông Cố Nội · Đời 1",
-                lunarDay = 15, lunarMonth = 7,
-            ),
-            MemorialDayEntity(
-                id = "m2", memberId = "3", memberName = "Giỗ Ông Nội Nguyễn Văn Hùng",
-                relation = "Ông Nội · Đời 2",
-                lunarDay = 20, lunarMonth = 11,
-                note = "Năm ngoái cúng tại nhà Bà Nội, có khoảng 25 người tham dự. Năm nay cũng tổ chức tại nhà Bà. Nhớ gọi điện báo chú Bình, cô Hà trước 1 tuần.",
-            ),
-            MemorialDayEntity(
-                id = "m3", memberId = "2", memberName = "Giỗ Bà Cố Trần Thị Hoa",
-                relation = "Bà Cố Nội · Đời 1",
-                lunarDay = 3, lunarMonth = 2,
-            ),
-            MemorialDayEntity(
-                id = "m4", memberId = "5", memberName = "Giỗ Ông Chú Nguyễn Văn Minh",
-                relation = "Ông Chú · Đời 2",
-                lunarDay = 8, lunarMonth = 10,
-            ),
-        )
-        memorialDao.insertAll(memorials)
-
-        // Insert seed checklist items for memorial m2 (Ông Nội)
-        val checklistItems = listOf(
-            MemorialChecklistEntity(memorialId = "m2", text = "Mua hoa cúc vàng, hoa huệ trắng", isDone = true, sortOrder = 0),
-            MemorialChecklistEntity(memorialId = "m2", text = "Mua trái cây (5 loại)", isDone = true, sortOrder = 1),
-            MemorialChecklistEntity(memorialId = "m2", text = "Đặt gà luộc và xôi", sortOrder = 2),
-            MemorialChecklistEntity(memorialId = "m2", text = "Mua hương, nến, vàng mã", sortOrder = 3),
-            MemorialChecklistEntity(memorialId = "m2", text = "Nấu phở bò (món ông thích)", sortOrder = 4),
-            MemorialChecklistEntity(memorialId = "m2", text = "Thông báo anh chị em về dự", sortOrder = 5),
-        )
-        checklistDao.insertAll(checklistItems)
+        // Only insert default settings if no settings exist yet
+        val settings = settingsDao.getSettingsOnce()
+        if (settings == null) {
+            settingsDao.insert(FamilySettingsEntity())
+        }
+        // No sample data — start with a clean family tree
     }
 
     // ══════════════════════════════════════════
@@ -370,7 +268,8 @@ class FamilyTreeRepository @Inject constructor(
         isSelf = isSelf,
         isElder = isElder,
         emoji = emoji,
-        spouseId = spouseId,
+        spouseIds = if (spouseIds.isBlank()) emptyList() else spouseIds.split(",").filter { it.isNotBlank() },
+        spouseOrder = spouseOrder,
         parentIds = if (parentIds.isBlank()) emptyList() else parentIds.split(",").filter { it.isNotBlank() },
         note = note,
         avatarPath = avatarPath,
@@ -399,7 +298,8 @@ class FamilyTreeRepository @Inject constructor(
         isSelf = isSelf,
         isElder = isElder,
         emoji = emoji,
-        spouseId = spouseId,
+        spouseIds = spouseIds.joinToString(","),
+        spouseOrder = spouseOrder,
         parentIds = parentIds.joinToString(","),
         note = note,
         avatarPath = avatarPath,

@@ -1,5 +1,11 @@
 package com.lichso.app.ui.screen.prayers
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.speech.tts.TextToSpeech
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -20,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -34,6 +41,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lichso.app.ui.theme.*
 import com.lichso.app.ui.components.AppTopBar
 import com.lichso.app.ui.components.HeaderIconButton
+import java.util.Locale
 
 // ══════════════════════════════════════════════════════════════
 // Màn hình Văn Khấn — based on v2/screen-prayers.html mock
@@ -145,7 +153,7 @@ private fun PrayerListScreen(
             }
 
             // Grouped sections
-            val sectionOrder = listOf("gio", "ram", "tet", "nhap", "khai", "xe", "chua")
+            val sectionOrder = listOf("gio", "ram", "tet", "nhap", "khai", "xe", "chua", "gia", "dat")
             val displayedSections = mutableSetOf<String>() // avoid duplicate section headers
 
             sectionOrder.forEach { catId ->
@@ -515,6 +523,59 @@ private fun PrayerDetailScreen(
     onBack: () -> Unit
 ) {
     val c = LichSoThemeColors.current
+    val context = LocalContext.current
+
+    // ── TTS engine ──
+    var tts by remember { mutableStateOf<TextToSpeech?>(null) }
+    var isSpeaking by remember { mutableStateOf(false) }
+    var ttsInitialized by remember { mutableStateOf(false) }
+
+    DisposableEffect(Unit) {
+        var engine: TextToSpeech? = null
+        engine = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                // Set Vietnamese voice inside callback where engine is ready
+                val e = engine ?: return@TextToSpeech
+                val viLocale = Locale("vi", "VN")
+                val result = e.setLanguage(viLocale)
+
+                // If simple locale didn't work, search available voices
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    val viVoice = e.voices?.firstOrNull { voice ->
+                        voice.locale.language == "vi" && !voice.isNetworkConnectionRequired
+                    } ?: e.voices?.firstOrNull { voice ->
+                        voice.locale.language == "vi"
+                    }
+                    if (viVoice != null) {
+                        e.voice = viVoice
+                    }
+                }
+                ttsInitialized = true
+            }
+        }
+        tts = engine
+        onDispose {
+            engine?.stop()
+            engine?.shutdown()
+        }
+    }
+
+    // Track speaking state
+    LaunchedEffect(tts) {
+        tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) { isSpeaking = true }
+            override fun onDone(utteranceId: String?) { isSpeaking = false }
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) { isSpeaking = false }
+        })
+    }
+
+    // Clean prayer text (strip emphasis markers for TTS & clipboard)
+    val plainText = remember(prayer.content) {
+        prayer.content
+            .replace(Regex("\\*\\*(.*?)\\*\\*"), "$1")
+            .replace(Regex("\\*(.*?)\\*"), "$1")
+    }
 
     Column(
         modifier = Modifier
@@ -522,7 +583,22 @@ private fun PrayerDetailScreen(
             .background(c.bg)
     ) {
         // ── Detail Header ──
-        DetailHeader(prayer = prayer, onBack = onBack)
+        DetailHeader(
+            prayer = prayer,
+            onBack = {
+                tts?.stop()
+                onBack()
+            },
+            onShare = {
+                val sendIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_SUBJECT, prayer.name)
+                    putExtra(Intent.EXTRA_TEXT, "${prayer.name}\n\n$plainText")
+                    type = "text/plain"
+                }
+                context.startActivity(Intent.createChooser(sendIntent, "Chia sẻ văn khấn"))
+            }
+        )
 
         // ── Detail Content ──
         Column(
@@ -554,12 +630,63 @@ private fun PrayerDetailScreen(
         }
 
         // ── Bottom Bar ──
-        DetailBottomBar()
+        DetailBottomBar(
+            isSpeaking = isSpeaking,
+            onCopy = {
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText(prayer.name, "${prayer.name}\n\n$plainText")
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(context, "Đã sao chép văn khấn", Toast.LENGTH_SHORT).show()
+            },
+            onReadAloud = {
+                val engine = tts
+                if (engine == null || !ttsInitialized) {
+                    Toast.makeText(context, "Đang khởi tạo, vui lòng thử lại", Toast.LENGTH_SHORT).show()
+                    return@DetailBottomBar
+                }
+                if (isSpeaking) {
+                    engine.stop()
+                    isSpeaking = false
+                } else {
+                    // Ensure Vietnamese voice is set before speaking
+                    val viLocale = Locale("vi", "VN")
+                    val langResult = engine.setLanguage(viLocale)
+                    if (langResult == TextToSpeech.LANG_MISSING_DATA || langResult == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        // Fallback: find Vietnamese voice from available voices
+                        val viVoice = engine.voices?.firstOrNull { voice ->
+                            voice.locale.language == "vi" && !voice.isNetworkConnectionRequired
+                        } ?: engine.voices?.firstOrNull { voice ->
+                            voice.locale.language == "vi"
+                        }
+                        if (viVoice != null) {
+                            engine.voice = viVoice
+                        } else {
+                            Toast.makeText(context, "Không tìm thấy giọng tiếng Việt. Vui lòng cài đặt trong Google TTS.", Toast.LENGTH_LONG).show()
+                            return@DetailBottomBar
+                        }
+                    }
+                    engine.setSpeechRate(0.85f)
+                    engine.setPitch(1.0f)
+
+                    // Split into chunks (TTS has a ~4000 char limit per utterance)
+                    val chunks = plainText.chunked(3500)
+                    chunks.forEachIndexed { index, chunk ->
+                        val params = android.os.Bundle()
+                        engine.speak(
+                            chunk,
+                            if (index == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD,
+                            params,
+                            "prayer_chunk_$index"
+                        )
+                    }
+                }
+            }
+        )
     }
 }
 
 @Composable
-private fun DetailHeader(prayer: PrayerItem, onBack: () -> Unit) {
+private fun DetailHeader(prayer: PrayerItem, onBack: () -> Unit, onShare: () -> Unit = {}) {
     AppTopBar(
         title = "Văn Khấn",
         onBackClick = onBack,
@@ -567,7 +694,7 @@ private fun DetailHeader(prayer: PrayerItem, onBack: () -> Unit) {
             HeaderIconButton(
                 icon = Icons.Filled.Share,
                 contentDescription = "Chia sẻ",
-                onClick = { }
+                onClick = onShare
             )
         }
     )
@@ -656,7 +783,11 @@ private fun NoteCard(note: String) {
 }
 
 @Composable
-private fun DetailBottomBar() {
+private fun DetailBottomBar(
+    isSpeaking: Boolean = false,
+    onCopy: () -> Unit = {},
+    onReadAloud: () -> Unit = {}
+) {
     val c = LichSoThemeColors.current
 
     Row(
@@ -679,7 +810,7 @@ private fun DetailBottomBar() {
                 .clip(RoundedCornerShape(14.dp))
                 .background(c.surfaceContainer, RoundedCornerShape(14.dp))
                 .border(1.dp, c.outlineVariant, RoundedCornerShape(14.dp))
-                .clickable { /* TODO: copy to clipboard */ }
+                .clickable { onCopy() }
                 .padding(vertical = 12.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -696,12 +827,16 @@ private fun DetailBottomBar() {
         }
 
         // Read aloud button
+        val ttsBackground = if (isSpeaking) c.badRed else c.primary
+        val ttsIcon = if (isSpeaking) Icons.Filled.Stop else Icons.Filled.RecordVoiceOver
+        val ttsLabel = if (isSpeaking) "Dừng đọc" else "Đọc to"
+
         Box(
             modifier = Modifier
                 .weight(1f)
                 .clip(RoundedCornerShape(14.dp))
-                .background(c.primary, RoundedCornerShape(14.dp))
-                .clickable { /* TODO: TTS */ }
+                .background(ttsBackground, RoundedCornerShape(14.dp))
+                .clickable { onReadAloud() }
                 .padding(vertical = 12.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -709,9 +844,9 @@ private fun DetailBottomBar() {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Icon(Icons.Filled.RecordVoiceOver, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                Icon(ttsIcon, null, tint = Color.White, modifier = Modifier.size(18.dp))
                 Text(
-                    "Đọc to",
+                    ttsLabel,
                     style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 )
             }

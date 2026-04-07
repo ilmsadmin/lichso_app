@@ -190,7 +190,20 @@ fun OnboardingScreen(
                 OnboardingPageContent(page = page, pageOffset = pageOffset)
             } else if (pageIndex == permissionsPageIndex) {
                 // ── Permissions Page ──
-                PermissionsSetupPage()
+                PermissionsSetupPage(
+                    onSkip = {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(profilePageIndex)
+                        }
+                    },
+                    onNext = {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(profilePageIndex)
+                        }
+                    },
+                    totalPages = totalPages,
+                    currentPage = permissionsPageIndex
+                )
             } else {
                 // ── Profile Setup Page ──
                 ProfileSetupPage(
@@ -209,13 +222,42 @@ fun OnboardingScreen(
                     inputGender = inputGender,
                     onGenderChange = { inputGender = it },
                     nameError = nameError,
-                    yearError = yearError
+                    yearError = yearError,
+                    onSkip = { onFinish() },
+                    onFinish = {
+                        val nameTrimmed = inputName.trim()
+                        val yearInt = inputBirthYear.toIntOrNull() ?: 0
+                        if (nameTrimmed.isNotBlank() && yearInt > 0) {
+                            if (yearInt < 1900 || yearInt > 2100) {
+                                yearError = true
+                                return@ProfileSetupPage
+                            }
+                        }
+                        coroutineScope.launch {
+                            context.settingsDataStore.edit { prefs ->
+                                if (nameTrimmed.isNotBlank()) {
+                                    prefs[ProfileKeys.DISPLAY_NAME] = nameTrimmed
+                                }
+                                if (yearInt > 0) {
+                                    prefs[ProfileKeys.BIRTH_YEAR] = yearInt
+                                }
+                                prefs[ProfileKeys.BIRTH_DAY] = inputBirthDay.toIntOrNull() ?: 0
+                                prefs[ProfileKeys.BIRTH_MONTH] = inputBirthMonth.toIntOrNull() ?: 0
+                                prefs[ProfileKeys.BIRTH_HOUR] = inputBirthHour.toIntOrNull() ?: -1
+                                prefs[ProfileKeys.BIRTH_MINUTE] = inputBirthMinute.toIntOrNull() ?: -1
+                                prefs[ProfileKeys.GENDER] = inputGender
+                            }
+                            onFinish()
+                        }
+                    },
+                    totalPages = totalPages,
+                    currentPage = profilePageIndex
                 )
             }
         }
 
-        // ── Bottom controls ──
-        Column(
+        // ── Bottom controls (hidden on profile & permissions pages — buttons are inline there) ──
+        if (!isProfilePage && !isPermissionsPage) Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
@@ -629,7 +671,11 @@ private fun ProfileSetupPage(
     inputGender: String,
     onGenderChange: (String) -> Unit,
     nameError: Boolean,
-    yearError: Boolean
+    yearError: Boolean,
+    onSkip: () -> Unit,
+    onFinish: () -> Unit,
+    totalPages: Int,
+    currentPage: Int
 ) {
     Column(
         modifier = Modifier
@@ -637,7 +683,7 @@ private fun ProfileSetupPage(
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 32.dp)
-            .padding(top = 48.dp, bottom = 160.dp),
+            .padding(top = 48.dp, bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // ── Icon ──
@@ -929,6 +975,86 @@ private fun ProfileSetupPage(
                 )
             )
         }
+
+        Spacer(modifier = Modifier.height(28.dp))
+
+        // ── Inline page indicator dots ──
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 16.dp)
+        ) {
+            repeat(totalPages) { index ->
+                val isActive = currentPage == index
+                val dotWidth = if (isActive) 28.dp else 8.dp
+                val accentColor = when {
+                    index < onboardingPages.size -> onboardingPages[index].accentColor
+                    index == onboardingPages.size -> Color(0xFF1565C0)
+                    else -> PrimaryRed
+                }
+                val dotColor = if (isActive) accentColor else Outline
+                Box(
+                    modifier = Modifier
+                        .height(8.dp)
+                        .width(dotWidth)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(dotColor)
+                )
+            }
+        }
+
+        // ── Inline action buttons ──
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Bỏ qua",
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextDim
+                ),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { onSkip() }
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(
+                        Brush.linearGradient(listOf(PrimaryRed, DeepRed))
+                    )
+                    .clickable { onFinish() }
+                    .padding(horizontal = 32.dp, vertical = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Bắt đầu sử dụng",
+                        style = TextStyle(
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    )
+                    Icon(
+                        Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.navigationBarsPadding())
     }
 }
 
@@ -937,7 +1063,12 @@ private fun ProfileSetupPage(
 // ══════════════════════════════════════════
 
 @Composable
-private fun PermissionsSetupPage() {
+private fun PermissionsSetupPage(
+    onSkip: () -> Unit,
+    onNext: () -> Unit,
+    totalPages: Int,
+    currentPage: Int
+) {
     val context = LocalContext.current
 
     // ── Notification permission state ──
@@ -950,7 +1081,26 @@ private fun PermissionsSetupPage() {
         )
     }
 
-    // ── Exact alarm permission state — removed, not needed ──
+    // ── Photo library permission state ──
+    var photoGranted by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                // Android 14+: partial access via READ_MEDIA_VISUAL_USER_SELECTED or full via READ_MEDIA_IMAGES
+                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) ==
+                        android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) ==
+                        android.content.pm.PackageManager.PERMISSION_GRANTED
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // Android 13
+                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) ==
+                        android.content.pm.PackageManager.PERMISSION_GRANTED
+            } else {
+                // Android 12 and below
+                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) ==
+                        android.content.pm.PackageManager.PERMISSION_GRANTED
+            }
+        )
+    }
 
     // Notification permission launcher
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -959,9 +1109,11 @@ private fun PermissionsSetupPage() {
         notificationGranted = isGranted
     }
 
-    // Recheck permissions when page is visible (user might return from Settings)
-    LaunchedEffect(Unit) {
-        // Snapshotflow-like recheck via lifecycle isn't needed — we recheck on button tap
+    // Photo permission launcher (handles multiple permissions)
+    val photoPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        photoGranted = permissions.values.any { it }
     }
 
     // Helper to recheck permissions
@@ -970,6 +1122,19 @@ private fun PermissionsSetupPage() {
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
                     android.content.pm.PackageManager.PERMISSION_GRANTED
         } else true
+
+        photoGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
     }
 
     // Recheck when returning from settings
@@ -984,7 +1149,7 @@ private fun PermissionsSetupPage() {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    val allGranted = notificationGranted
+    val allGranted = notificationGranted && photoGranted
 
     Column(
         modifier = Modifier
@@ -992,7 +1157,7 @@ private fun PermissionsSetupPage() {
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 32.dp)
-            .padding(top = 48.dp, bottom = 160.dp),
+            .padding(top = 48.dp, bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // ── Icon ──
@@ -1042,7 +1207,7 @@ private fun PermissionsSetupPage() {
         Spacer(modifier = Modifier.height(6.dp))
 
         Text(
-            "Để nhắc nhở và thông báo hoạt động chính xác, ứng dụng cần một số quyền truy cập",
+            "Để nhắc nhở, thông báo và quản lý hình ảnh gia phả hoạt động tốt, ứng dụng cần một số quyền truy cập",
             style = TextStyle(
                 fontSize = 13.sp,
                 color = TextSub,
@@ -1085,6 +1250,29 @@ private fun PermissionsSetupPage() {
             )
             Spacer(modifier = Modifier.height(12.dp))
         }
+
+        // 2. Photo Library Permission
+        PermissionItemCard(
+            icon = Icons.Filled.PhotoLibrary,
+            iconColor = Color(0xFF7B1FA2),
+            title = "Bộ sưu tập ảnh",
+            description = "Cho phép thêm hình ảnh kỷ niệm vào gia phả, đặt ảnh đại diện thành viên và ảnh hồ sơ cá nhân.",
+            isGranted = photoGranted,
+            onRequest = {
+                val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    arrayOf(
+                        Manifest.permission.READ_MEDIA_IMAGES,
+                        Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+                    )
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
+                } else {
+                    arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+                }
+                photoPermissionLauncher.launch(permissions)
+            }
+        )
+        Spacer(modifier = Modifier.height(12.dp))
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -1182,8 +1370,8 @@ private fun PermissionsSetupPage() {
             )
             Text(
                 "Các quyền này giúp ứng dụng nhắc nhở bạn về ngày giỗ, lễ tết, " +
-                        "giờ hoàng đạo và các nhắc nhở cá nhân mà bạn tạo. " +
-                        "Không có quyền nào liên quan đến dữ liệu cá nhân.",
+                        "giờ hoàng đạo, nhắc nhở cá nhân và cho phép thêm ảnh kỷ niệm vào gia phả. " +
+                        "Dữ liệu của bạn luôn được lưu trữ trên thiết bị.",
                 style = TextStyle(
                     fontSize = 12.sp,
                     lineHeight = 18.sp,
@@ -1191,6 +1379,86 @@ private fun PermissionsSetupPage() {
                 )
             )
         }
+
+        Spacer(modifier = Modifier.height(28.dp))
+
+        // ── Inline page indicator dots ──
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 16.dp)
+        ) {
+            repeat(totalPages) { index ->
+                val isActive = currentPage == index
+                val dotWidth = if (isActive) 28.dp else 8.dp
+                val accentColor = when {
+                    index < onboardingPages.size -> onboardingPages[index].accentColor
+                    index == onboardingPages.size -> Color(0xFF1565C0)
+                    else -> PrimaryRed
+                }
+                val dotColor = if (isActive) accentColor else Outline
+                Box(
+                    modifier = Modifier
+                        .height(8.dp)
+                        .width(dotWidth)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(dotColor)
+                )
+            }
+        }
+
+        // ── Inline action buttons ──
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Để sau",
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextDim
+                ),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { onSkip() }
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(
+                        Brush.linearGradient(listOf(Color(0xFF1565C0), Color(0xFF1976D2)))
+                    )
+                    .clickable { onNext() }
+                    .padding(horizontal = 24.dp, vertical = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Tiếp tục",
+                        style = TextStyle(
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    )
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.navigationBarsPadding())
     }
 }
 

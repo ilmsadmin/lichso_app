@@ -26,12 +26,32 @@ class GioDaiCatWorker(
         val today = LocalDate.now()
         val dayInfo = DayInfoProvider().getDayInfo(today.dayOfMonth, today.monthValue, today.year)
 
-        val gioText = dayInfo.gioHoangDao
-            .take(6)
-            .joinToString(" · ") { "${it.name} (${it.time})" }
+        val dd = "%02d".format(today.dayOfMonth)
+        val mm = "%02d".format(today.monthValue)
+        val isGoodDay = !dayInfo.activities.isXauDay
 
-        val body = "Giờ tốt hôm nay (${today.dayOfMonth}/${today.monthValue}): $gioText"
-        NotificationHelper.sendGioDaiCatNotification(applicationContext, body)
+        // Title: professional, no emoji
+        val title = "Giờ Hoàng Đạo — ${dayInfo.dayOfWeek} $dd/$mm"
+
+        // Subtitle for collapsed view
+        val topGio = dayInfo.gioHoangDao.take(3).joinToString(", ") { "${it.name} (${it.time})" }
+        val subtitle = if (isGoodDay) "Ngày Hoàng Đạo | $topGio" else "Ngày Hắc Đạo | $topGio"
+
+        // Expanded lines for InboxStyle
+        val lines = mutableListOf<String>()
+        lines.add("${dayInfo.dayCanChi} — ${dayInfo.lunar.day}/${dayInfo.lunar.month} Âm lịch")
+        dayInfo.gioHoangDao.forEach { gio ->
+            lines.add("${gio.name}  ${gio.time}")
+        }
+        lines.add("Hướng Thần Tài: ${dayInfo.huong.thanTai}")
+        lines.add("Hướng Hỷ Thần: ${dayInfo.huong.hyThan}")
+
+        NotificationHelper.sendGioDaiCatNotification(applicationContext, title, subtitle, lines)
+
+        // Tự reschedule cho ngày mai để đảm bảo đúng giờ
+        val hour = prefs[SettingsKeys.REMINDER_HOUR] ?: 6
+        val minute = prefs[SettingsKeys.REMINDER_MINUTE] ?: 0
+        scheduleNext(applicationContext, hour, minute)
 
         return Result.success()
     }
@@ -40,26 +60,33 @@ class GioDaiCatWorker(
         const val WORK_NAME = "gio_dai_cat_daily"
 
         /**
-         * Lên lịch worker chạy hàng ngày vào giờ được cấu hình (mặc định 6h sáng).
+         * Lên lịch worker chạy 1 lần vào giờ được cấu hình.
+         * Sau khi chạy xong, worker sẽ tự reschedule cho ngày hôm sau.
+         * Dùng OneTimeWorkRequest thay vì PeriodicWork để đảm bảo đúng giờ.
          */
         fun schedule(context: Context, hour: Int = 6, minute: Int = 0) {
+            scheduleNext(context, hour, minute)
+        }
+
+        internal fun scheduleNext(context: Context, hour: Int, minute: Int) {
             val now = java.util.Calendar.getInstance()
             val target = java.util.Calendar.getInstance().apply {
                 set(java.util.Calendar.HOUR_OF_DAY, hour)
                 set(java.util.Calendar.MINUTE, minute)
                 set(java.util.Calendar.SECOND, 0)
-                if (before(now)) add(java.util.Calendar.DATE, 1)
+                set(java.util.Calendar.MILLISECOND, 0)
+                if (!after(now)) add(java.util.Calendar.DATE, 1)
             }
             val initialDelay = target.timeInMillis - now.timeInMillis
 
-            val request = PeriodicWorkRequestBuilder<GioDaiCatWorker>(1, TimeUnit.DAYS)
+            val request = OneTimeWorkRequestBuilder<GioDaiCatWorker>()
                 .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
-                .setConstraints(Constraints.Builder().build())
+                .addTag(WORK_NAME)
                 .build()
 
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            WorkManager.getInstance(context).enqueueUniqueWork(
                 WORK_NAME,
-                ExistingPeriodicWorkPolicy.UPDATE,
+                ExistingWorkPolicy.REPLACE,
                 request
             )
         }

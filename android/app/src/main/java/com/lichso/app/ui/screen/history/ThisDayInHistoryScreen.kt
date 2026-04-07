@@ -63,6 +63,7 @@ fun ThisDayInHistoryScreen(
 ) {
     val c = LichSoThemeColors.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Column(
         modifier = Modifier
@@ -74,7 +75,28 @@ fun ThisDayInHistoryScreen(
             dayDisplay = uiState.dayDisplay,
             monthDisplay = uiState.monthDisplay,
             onBackClick = onBackClick,
-            onShareClick = onShareClick
+            onShareClick = {
+                // Build share text from events
+                val sb = StringBuilder()
+                sb.appendLine("📅 Ngày này năm xưa — ${uiState.fullDateDisplay}")
+                sb.appendLine()
+                uiState.events.forEachIndexed { index, event ->
+                    val yearsAgo = viewModel.yearsAgo(event.year)
+                    sb.appendLine("${index + 1}. [${event.year}] ${event.title} ($yearsAgo năm trước)")
+                    if (event.description.isNotBlank()) {
+                        sb.appendLine("   ${event.description}")
+                    }
+                }
+                sb.appendLine()
+                sb.appendLine("— Lịch Sổ App")
+
+                val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(android.content.Intent.EXTRA_SUBJECT, "Ngày này năm xưa — ${uiState.fullDateDisplay}")
+                    putExtra(android.content.Intent.EXTRA_TEXT, sb.toString())
+                }
+                context.startActivity(android.content.Intent.createChooser(shareIntent, "Chia sẻ"))
+            }
         )
 
         // ═══ DATE PICKER ROW ═══

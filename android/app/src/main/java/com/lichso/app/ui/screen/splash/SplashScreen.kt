@@ -13,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
@@ -139,9 +138,14 @@ fun SplashScreen(
                 .size(340.dp)
                 .align(Alignment.TopEnd)
                 .offset(x = 100.dp, y = (-80).dp)
-                .blur(80.dp)
                 .alpha(glowPulse)
-                .background(Gold400, CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(Gold400, Color.Transparent),
+                        radius = 340f
+                    ),
+                    CircleShape
+                )
         )
         /* ── ambient glow bottom-left ── */
         Box(
@@ -149,9 +153,14 @@ fun SplashScreen(
                 .size(280.dp)
                 .align(Alignment.BottomStart)
                 .offset(x = (-70).dp, y = 100.dp)
-                .blur(80.dp)
                 .alpha(glowPulse * .6f)
-                .background(Gold200, CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(Gold200, Color.Transparent),
+                        radius = 280f
+                    ),
+                    CircleShape
+                )
         )
 
         /* ═══ center content ═══ */
@@ -187,7 +196,6 @@ fun SplashScreen(
                 Box(
                     Modifier
                         .size(180.dp)
-                        .blur(30.dp)
                         .alpha(.12f)
                         .background(
                             Brush.radialGradient(listOf(Gold200, Color.Transparent)),

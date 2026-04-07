@@ -1,8 +1,16 @@
 # Add project specific ProGuard rules here.
 -keepattributes *Annotation*
 
-# ── BuildConfig (Giữ lại API Key cho bản Release) ──
--keep class com.lichso.app.BuildConfig { *; }
+# ── BuildConfig ──
+# NOTE: Không keep BuildConfig để R8 obfuscate API key fields.
+# Chỉ keep các field cần thiết (không bao gồm OPENROUTER_API_KEY)
+-keep class com.lichso.app.BuildConfig {
+    public static final boolean DEBUG;
+    public static final java.lang.String APPLICATION_ID;
+    public static final int VERSION_CODE;
+    public static final java.lang.String VERSION_NAME;
+    public static final java.lang.String BUILD_TYPE;
+}
 
 # ── Hilt / Dagger ──
 -keep class dagger.** { *; }
@@ -61,8 +69,10 @@
 -dontwarn androidx.work.**
 
 # ── Firebase / Google Sign-In ──
--keep class com.google.firebase.** { *; }
--keep class com.google.android.gms.** { *; }
+# Only keep what's actually used (Firebase Auth, Credentials)
+-keep class com.google.firebase.auth.** { *; }
+-keep class com.google.android.gms.auth.** { *; }
+-keep class com.google.android.libraries.identity.googleid.** { *; }
 -dontwarn com.google.firebase.**
 -dontwarn com.google.android.gms.**
 

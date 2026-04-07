@@ -27,7 +27,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lichso.app.data.local.entity.NotificationEntity
 import com.lichso.app.ui.theme.*
-import java.util.*
 
 @Composable
 fun NotificationScreen(
@@ -36,6 +35,7 @@ fun NotificationScreen(
 ) {
     val c = LichSoThemeColors.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var selectedNotification by remember { mutableStateOf<NotificationEntity?>(null) }
 
     // Group notifications by date
     val grouped = remember(state.notifications) {
@@ -44,6 +44,7 @@ fun NotificationScreen(
         }
     }
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -52,8 +53,10 @@ fun NotificationScreen(
         // ═══ TOP BAR ═══
         TopBar(
             unreadCount = state.unreadCount,
+            totalCount = state.notifications.size,
             onBackClick = onBackClick,
-            onMarkAllRead = { viewModel.markAllAsRead() }
+            onMarkAllRead = { viewModel.markAllAsRead() },
+            onDeleteAll = { viewModel.deleteAllNotifications() }
         )
 
         // ═══ NOTIFICATION LIST ═══
@@ -102,21 +105,52 @@ fun NotificationScreen(
                         )
                     }
 
-                    // Notification cards
+                    // Notification cards with swipe-to-dismiss
                     items(
                         items = notifications,
                         key = { it.id }
                     ) { notification ->
-                        NotificationCard(
-                            notification = notification,
-                            timeLabel = viewModel.getTimeLabel(notification.createdAt),
-                            onClick = {
-                                if (!notification.isRead) {
-                                    viewModel.markAsRead(notification)
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = { value ->
+                                if (value == SwipeToDismissBoxValue.EndToStart) {
+                                    viewModel.deleteNotification(notification)
+                                    true
+                                } else false
+                            }
+                        )
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            backgroundContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(bottom = 8.dp)
+                                        .background(Color(0xFFE53935), RoundedCornerShape(16.dp))
+                                        .padding(horizontal = 20.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Delete,
+                                        contentDescription = "Xoá",
+                                        tint = Color.White
+                                    )
                                 }
                             },
-                            onDismiss = { viewModel.deleteNotification(notification) }
-                        )
+                            enableDismissFromStartToEnd = false,
+                            enableDismissFromEndToStart = true
+                        ) {
+                            NotificationCard(
+                                notification = notification,
+                                timeLabel = viewModel.getTimeLabel(notification.createdAt),
+                                onClick = {
+                                    if (!notification.isRead) {
+                                        viewModel.markAsRead(notification)
+                                    }
+                                    selectedNotification = notification
+                                },
+                                onDismiss = { viewModel.deleteNotification(notification) }
+                            )
+                        }
                     }
                 }
 
@@ -124,13 +158,36 @@ fun NotificationScreen(
             }
         }
     }
-}
+
+    // ═══ NOTIFICATION DETAIL OVERLAY ═══
+    AnimatedVisibility(
+        visible = selectedNotification != null,
+        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 4 }),
+        exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 4 })
+    ) {
+        selectedNotification?.let { notification ->
+            NotificationDetailOverlay(
+                notification = notification,
+                dateLabel = viewModel.getDateLabel(notification.createdAt),
+                timeLabel = viewModel.getTimeLabel(notification.createdAt),
+                onDismiss = { selectedNotification = null },
+                onDelete = {
+                    viewModel.deleteNotification(notification)
+                    selectedNotification = null
+                }
+            )
+        }
+    }
+    } // end Box
+} // end NotificationScreen
 
 @Composable
 private fun TopBar(
     unreadCount: Int,
+    totalCount: Int,
     onBackClick: () -> Unit,
-    onMarkAllRead: () -> Unit
+    onMarkAllRead: () -> Unit,
+    onDeleteAll: () -> Unit
 ) {
     val c = LichSoThemeColors.current
 
@@ -149,6 +206,25 @@ private fun TopBar(
                 ) {
                     Text(
                         "Đọc hết",
+                        style = TextStyle(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White
+                        )
+                    )
+                }
+            }
+            if (totalCount > 0) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { onDeleteAll() }
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        "Xoá hết",
                         style = TextStyle(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -293,4 +369,209 @@ private fun getNotificationTypeInfo(type: String): NotifTypeInfo {
             bgColor = Color(0xFFF5F5F5)
         )
     }
+}
+
+// ══════════════════════════════════════════
+// NOTIFICATION DETAIL OVERLAY
+// ══════════════════════════════════════════
+
+@Composable
+private fun NotificationDetailOverlay(
+    notification: NotificationEntity,
+    dateLabel: String,
+    timeLabel: String,
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val c = LichSoThemeColors.current
+    val typeInfo = getNotificationTypeInfo(notification.type)
+    val typeLabel = getNotificationTypeLabel(notification.type)
+
+    // Scrim + content
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.45f))
+            .clickable(
+                indication = null,
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+            ) { onDismiss() }
+    ) {
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(c.bg, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                ) { /* consume clicks */ }
+                .navigationBarsPadding()
+                .padding(top = 12.dp, bottom = 24.dp)
+        ) {
+            // Drag handle
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .width(40.dp)
+                    .height(4.dp)
+                    .background(c.outlineVariant, RoundedCornerShape(2.dp))
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Header: Icon + Type label + Close
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(typeInfo.bgColor, RoundedCornerShape(14.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            typeInfo.icon,
+                            contentDescription = null,
+                            tint = typeInfo.iconColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            typeLabel,
+                            style = TextStyle(
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = typeInfo.iconColor,
+                                letterSpacing = 0.3.sp
+                            )
+                        )
+                        Text(
+                            "$dateLabel · $timeLabel",
+                            style = TextStyle(fontSize = 11.sp, color = c.textTertiary)
+                        )
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(c.surfaceContainer, CircleShape)
+                        .clip(CircleShape)
+                        .clickable(onClick = onDismiss),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = "Đóng",
+                        tint = c.textTertiary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Divider
+            HorizontalDivider(
+                color = c.outlineVariant,
+                thickness = 0.5.dp,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Title
+            Text(
+                notification.title,
+                style = TextStyle(
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = c.textPrimary,
+                    lineHeight = 26.sp
+                ),
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
+
+            // Description
+            if (notification.description.isNotBlank()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    notification.description,
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        color = c.textSecondary,
+                        lineHeight = 22.sp
+                    ),
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Action buttons
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Delete button
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(c.surfaceContainer, RoundedCornerShape(14.dp))
+                        .border(1.dp, c.outlineVariant, RoundedCornerShape(14.dp))
+                        .clickable(onClick = onDelete)
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(Icons.Outlined.Delete, null, tint = Color(0xFFE53935), modifier = Modifier.size(18.dp))
+                        Text(
+                            "Xoá",
+                            style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFE53935))
+                        )
+                    }
+                }
+
+                // Close button
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(c.primary, RoundedCornerShape(14.dp))
+                        .clickable(onClick = onDismiss)
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "Đóng",
+                        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun getNotificationTypeLabel(type: String): String = when (type) {
+    "daily" -> "Thông báo hàng ngày"
+    "holiday" -> "Ngày lễ / Sự kiện"
+    "ai" -> "Trợ lý AI"
+    "reminder" -> "Nhắc nhở"
+    "good_day" -> "Ngày tốt / Giờ hoàng đạo"
+    else -> "Thông báo hệ thống"
 }

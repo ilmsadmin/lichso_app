@@ -9,6 +9,7 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.lichso.app.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,10 +32,9 @@ class AuthRepository @Inject constructor(
     private val tag = "AuthRepository"
     private val firebaseAuth = FirebaseAuth.getInstance()
 
-    // NOTE: Google Sign-In is not exposed in the UI for this release.
-    // To enable: replace with your actual Web Client ID from Firebase Console
-    // Firebase Console → Project Settings → General → Web client (auto created by Google Service)
-    private val webClientId = "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com"
+    // Web Client ID from Firebase Console, loaded from local.properties via BuildConfig.
+    // Add GOOGLE_WEB_CLIENT_ID=<your-id>.apps.googleusercontent.com to local.properties.
+    private val webClientId: String = BuildConfig.GOOGLE_WEB_CLIENT_ID
 
     private val _currentUser = MutableStateFlow<UserInfo?>(null)
     val currentUser: StateFlow<UserInfo?> = _currentUser.asStateFlow()
@@ -56,6 +56,12 @@ class AuthRepository @Inject constructor(
      * Must be called from an Activity context.
      */
     suspend fun signInWithGoogle(activityContext: Context): Result<UserInfo> {
+        if (webClientId.isBlank()) {
+            return Result.failure(
+                IllegalStateException("GOOGLE_WEB_CLIENT_ID is not configured. Add it to local.properties.")
+            )
+        }
+
         return try {
             val credentialManager = CredentialManager.create(activityContext)
 

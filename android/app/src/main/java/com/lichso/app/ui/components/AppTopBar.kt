@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lichso.app.ui.theme.LichSoThemeColors
@@ -125,21 +126,46 @@ fun HeaderIconButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    badgeCount: Int = 0
 ) {
     Box(
         modifier = modifier
-            .size(40.dp)
-            .background(Color.White.copy(alpha = 0.12f), CircleShape)
-            .clip(CircleShape)
-            .clickable(onClick = onClick),
+            .size(40.dp),
         contentAlignment = Alignment.Center
     ) {
+        // Clickable circle background (clipped separately so badge is not clipped)
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(Color.White.copy(alpha = 0.12f), CircleShape)
+                .clip(CircleShape)
+                .clickable(onClick = onClick)
+        )
         Icon(
             icon,
             contentDescription = contentDescription,
             tint = Color.White,
             modifier = Modifier.size(22.dp)
         )
+        if (badgeCount > 0) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 4.dp, y = (-4).dp)
+                    .size(if (badgeCount > 9) 18.dp else 16.dp)
+                    .background(Color(0xFFE53935), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (badgeCount > 99) "99+" else "$badgeCount",
+                    style = TextStyle(
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                )
+            }
+        }
     }
 }

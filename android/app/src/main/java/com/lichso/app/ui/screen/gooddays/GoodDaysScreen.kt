@@ -64,6 +64,8 @@ fun GoodDaysScreen(onBackClick: () -> Unit = {}, viewModel: HomeViewModel = hilt
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     var selectedFilter by remember { mutableIntStateOf(0) }
+    var showFilterSheet by remember { mutableStateOf(false) }
+    var qualityFilter by remember { mutableStateOf<DayQuality?>(null) } // null = all
 
     val filters = listOf(
         FilterChipData(Icons.Outlined.CalendarToday, "Tháng này", "all"),
@@ -79,9 +81,9 @@ fun GoodDaysScreen(onBackClick: () -> Unit = {}, viewModel: HomeViewModel = hilt
     }
 
     // Apply filter
-    val filteredDays = remember(allDays, selectedFilter) {
+    val filteredDays = remember(allDays, selectedFilter, qualityFilter) {
         val key = filters[selectedFilter].filterKey
-        if (key == "all") {
+        var result = if (key == "all") {
             allDays
         } else {
             allDays.filter { day ->
@@ -94,6 +96,11 @@ fun GoodDaysScreen(onBackClick: () -> Unit = {}, viewModel: HomeViewModel = hilt
                 }
             }
         }
+        // Apply quality filter
+        if (qualityFilter != null) {
+            result = result.filter { it.quality == qualityFilter }
+        }
+        result
     }
 
     Column(
@@ -109,7 +116,7 @@ fun GoodDaysScreen(onBackClick: () -> Unit = {}, viewModel: HomeViewModel = hilt
                 HeaderIconButton(
                     icon = Icons.Filled.FilterList,
                     contentDescription = "Lọc",
-                    onClick = { }
+                    onClick = { showFilterSheet = true }
                 )
             }
         )
@@ -190,6 +197,29 @@ fun GoodDaysScreen(onBackClick: () -> Unit = {}, viewModel: HomeViewModel = hilt
                 }
             }
         }
+    }
+
+    // ═══ FILTER BOTTOM SHEET ═══
+    if (showFilterSheet) {
+        GoodDayFilterSheet(
+            currentQuality = qualityFilter,
+            currentActivityFilter = selectedFilter,
+            filters = filters,
+            goodCount = allDays.count { it.quality == DayQuality.GOOD },
+            badCount = allDays.count { it.quality == DayQuality.BAD },
+            neutralCount = allDays.count { it.quality == DayQuality.NEUTRAL },
+            onApply = { quality, activityIdx ->
+                qualityFilter = quality
+                selectedFilter = activityIdx
+                showFilterSheet = false
+            },
+            onReset = {
+                qualityFilter = null
+                selectedFilter = 0
+                showFilterSheet = false
+            },
+            onDismiss = { showFilterSheet = false }
+        )
     }
 }
 
@@ -377,5 +407,165 @@ private fun buildGoodDaysFromReal(year: Int, month: Int): List<GoodDayItem> {
             nenLam = info.activities.nenLam,
             khongNen = info.activities.khongNen
         )
+    }
+}
+
+// ══════════════════════════════════════════
+// FILTER BOTTOM SHEET
+// ══════════════════════════════════════════
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GoodDayFilterSheet(
+    currentQuality: DayQuality?,
+    currentActivityFilter: Int,
+    filters: List<FilterChipData>,
+    goodCount: Int,
+    badCount: Int,
+    neutralCount: Int,
+    onApply: (quality: DayQuality?, activityIdx: Int) -> Unit,
+    onReset: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val c = LichSoThemeColors.current
+    val sheetState = rememberModalBottomSheetState()
+    var selectedQuality by remember { mutableStateOf(currentQuality) }
+    var selectedActivity by remember { mutableIntStateOf(currentActivityFilter) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = c.bg,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
+            Text(
+                "Lọc ngày",
+                style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = c.textPrimary),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            // Quality filter
+            Text(
+                "Loại ngày",
+                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = c.textSecondary),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
+                data class QualityOption(val quality: DayQuality?, val label: String, val count: Int, val color: Color)
+                val options = listOf(
+                    QualityOption(null, "Tất cả", goodCount + badCount + neutralCount, c.primary),
+                    QualityOption(DayQuality.GOOD, "✦ Hoàng Đạo", goodCount, Color(0xFF2E7D32)),
+                    QualityOption(DayQuality.BAD, "✕ Hắc Đạo", badCount, Color(0xFFC62828)),
+                    QualityOption(DayQuality.NEUTRAL, "◈ Bình thường", neutralCount, Color(0xFFF57F17)),
+                )
+                options.forEach { opt ->
+                    val isSelected = selectedQuality == opt.quality
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(
+                                if (isSelected) opt.color.copy(alpha = 0.12f) else c.surfaceContainer,
+                                RoundedCornerShape(14.dp)
+                            )
+                            .border(
+                                1.dp,
+                                if (isSelected) opt.color else c.outlineVariant,
+                                RoundedCornerShape(14.dp)
+                            )
+                            .clickable { selectedQuality = opt.quality }
+                            .padding(vertical = 10.dp, horizontal = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "${opt.count}",
+                            style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = if (isSelected) opt.color else c.textPrimary)
+                        )
+                        Text(
+                            opt.label,
+                            style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Medium, color = c.textSecondary),
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+
+            // Activity filter
+            Text(
+                "Mục đích",
+                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = c.textSecondary),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(bottom = 16.dp)
+            ) {
+                filters.forEachIndexed { index, filter ->
+                    val isSelected = selectedActivity == index
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(
+                                if (isSelected) c.primary else Color.Transparent,
+                                RoundedCornerShape(20.dp)
+                            )
+                            .border(
+                                1.dp,
+                                if (isSelected) c.primary else c.outlineVariant,
+                                RoundedCornerShape(20.dp)
+                            )
+                            .clickable { selectedActivity = index }
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            filter.icon,
+                            contentDescription = null,
+                            tint = if (isSelected) Color.White else c.textTertiary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            filter.label,
+                            style = TextStyle(
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (isSelected) Color.White else c.textTertiary
+                            )
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Action buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onReset,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, c.outlineVariant)
+                ) {
+                    Text("Đặt lại", color = c.textSecondary)
+                }
+                Button(
+                    onClick = { onApply(selectedQuality, selectedActivity) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = c.primary)
+                ) {
+                    Text("Áp dụng", color = Color.White)
+                }
+            }
+        }
     }
 }

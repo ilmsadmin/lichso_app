@@ -85,10 +85,50 @@ fun BookmarksScreen(
                 viewModel.toggleSort()
                 viewModel.hideMoreSheet()
             },
+            onFilterByCategory = {
+                viewModel.hideMoreSheet()
+                viewModel.showCategoryFilterSheet()
+            },
+            onExportList = {
+                viewModel.hideMoreSheet()
+                val text = viewModel.getExportText()
+                val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = "text/csv"
+                    putExtra(android.content.Intent.EXTRA_TEXT, text)
+                    putExtra(android.content.Intent.EXTRA_SUBJECT, "Ngày đã lưu — Lịch Sổ")
+                }
+                context.startActivity(android.content.Intent.createChooser(shareIntent, "Xuất danh sách"))
+            },
+            onSelectMultiple = {
+                viewModel.hideMoreSheet()
+                viewModel.toggleMultiSelectMode()
+            },
+            onShareList = {
+                viewModel.hideMoreSheet()
+                val text = viewModel.getShareText()
+                val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(android.content.Intent.EXTRA_SUBJECT, "Ngày đã lưu — Lịch Sổ")
+                    putExtra(android.content.Intent.EXTRA_TEXT, text)
+                }
+                context.startActivity(android.content.Intent.createChooser(shareIntent, "Chia sẻ danh sách"))
+            },
             onDeleteAll = {
                 viewModel.deleteAllBookmarks()
                 viewModel.hideMoreSheet()
             }
+        )
+    }
+
+    // Category Filter Sheet
+    if (state.showCategoryFilterSheet) {
+        CategoryFilterSheet(
+            currentCategory = state.selectedCategory,
+            onSelect = { category ->
+                viewModel.selectCategory(category)
+                viewModel.hideCategoryFilterSheet()
+            },
+            onDismiss = { viewModel.hideCategoryFilterSheet() }
         )
     }
 
@@ -127,6 +167,33 @@ fun BookmarksScreen(
                 onTuneClick = { viewModel.showMoreSheet() }
             )
 
+            // ═══ MULTI-SELECT BAR ═══
+            if (state.isMultiSelectMode) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(c.primaryContainer)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Đã chọn ${state.selectedIds.size} ngày",
+                        style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = c.primary)
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = { viewModel.toggleMultiSelectMode() }) {
+                            Text("Hủy", color = c.textSecondary)
+                        }
+                        if (state.selectedIds.isNotEmpty()) {
+                            TextButton(onClick = { viewModel.deleteSelectedBookmarks() }) {
+                                Text("Xóa", color = Color(0xFFC62828), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+
             // ═══ BOOKMARK LIST ═══
             if (state.filteredBookmarks.isEmpty() && state.bookmarks.isEmpty()) {
                 // Empty state
@@ -137,8 +204,20 @@ fun BookmarksScreen(
             } else {
                 BookmarkList(
                     bookmarks = state.filteredBookmarks,
+                    isMultiSelect = state.isMultiSelectMode,
+                    selectedIds = state.selectedIds,
                     onItemClick = { item ->
-                        onDateSelected(item.entity.solarYear, item.entity.solarMonth, item.entity.solarDay)
+                        if (state.isMultiSelectMode) {
+                            viewModel.toggleSelectItem(item.entity.id)
+                        } else {
+                            onDateSelected(item.entity.solarYear, item.entity.solarMonth, item.entity.solarDay)
+                        }
+                    },
+                    onItemLongClick = { item ->
+                        if (!state.isMultiSelectMode) {
+                            viewModel.toggleMultiSelectMode()
+                            viewModel.toggleSelectItem(item.entity.id)
+                        }
                     },
                     onDeleteItem = { viewModel.deleteBookmark(it) }
                 )
@@ -223,28 +302,28 @@ private fun StatsRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         StatCard(
-            emoji = "📅", count = totalCount, label = "TẤT CẢ",
+            icon = Icons.Outlined.CalendarMonth, count = totalCount, label = "TẤT CẢ",
             isActive = selectedCategory == BookmarkCategory.ALL,
             valueColor = c.primary,
             onClick = { onCategorySelect(BookmarkCategory.ALL) },
             modifier = Modifier.weight(1f)
         )
         StatCard(
-            emoji = "✨", count = goodDayCount, label = "NGÀY TỐT",
+            icon = Icons.Outlined.AutoAwesome, count = goodDayCount, label = "NGÀY TỐT",
             isActive = selectedCategory == BookmarkCategory.GOOD_DAY,
             valueColor = GoodDayGreen,
             onClick = { onCategorySelect(BookmarkCategory.GOOD_DAY) },
             modifier = Modifier.weight(1f)
         )
         StatCard(
-            emoji = "🎉", count = holidayCount, label = "LỄ / GIỖ",
+            icon = Icons.Outlined.Celebration, count = holidayCount, label = "LỄ / GIỖ",
             isActive = selectedCategory == BookmarkCategory.HOLIDAY,
             valueColor = HolidayOrange,
             onClick = { onCategorySelect(BookmarkCategory.HOLIDAY) },
             modifier = Modifier.weight(1f)
         )
         StatCard(
-            emoji = "💼", count = personalCount, label = "CÁ NHÂN",
+            icon = Icons.Outlined.WorkOutline, count = personalCount, label = "CÁ NHÂN",
             isActive = selectedCategory == BookmarkCategory.PERSONAL,
             valueColor = PersonalBlue,
             onClick = { onCategorySelect(BookmarkCategory.PERSONAL) },
@@ -255,7 +334,7 @@ private fun StatsRow(
 
 @Composable
 private fun StatCard(
-    emoji: String,
+    icon: ImageVector,
     count: Int,
     label: String,
     isActive: Boolean,
@@ -280,7 +359,12 @@ private fun StatCard(
             .padding(vertical = 12.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(emoji, fontSize = 20.sp)
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = if (isActive) c.primary else valueColor,
+            modifier = Modifier.size(22.dp)
+        )
         Spacer(Modifier.height(2.dp))
         Text(
             "$count",
@@ -338,7 +422,12 @@ private fun FilterChipsRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
-                Text(chip.emoji, fontSize = 13.sp)
+                Icon(
+                    chip.icon,
+                    contentDescription = null,
+                    tint = if (isActive) Color.White else c.textSecondary,
+                    modifier = Modifier.size(15.dp)
+                )
                 Text(
                     chip.label,
                     style = TextStyle(
@@ -447,7 +536,10 @@ private fun SearchRow(
 @Composable
 private fun BookmarkList(
     bookmarks: List<BookmarkDisplayItem>,
+    isMultiSelect: Boolean = false,
+    selectedIds: Set<Long> = emptySet(),
     onItemClick: (BookmarkDisplayItem) -> Unit,
+    onItemLongClick: (BookmarkDisplayItem) -> Unit = {},
     onDeleteItem: (BookmarkDisplayItem) -> Unit
 ) {
     val upcoming = bookmarks.filter { it.isUpcoming }
@@ -472,12 +564,15 @@ private fun BookmarkList(
         // Upcoming section
         if (upcoming.isNotEmpty()) {
             item(key = "section_upcoming") {
-                SectionDivider("📌 Sắp tới")
+                SectionDivider("Sắp tới", Icons.Outlined.PushPin)
             }
             items(upcoming, key = { "up_${it.entity.id}" }) { item ->
                 BookmarkCard(
                     item = item,
+                    isSelected = selectedIds.contains(item.entity.id),
+                    isMultiSelect = isMultiSelect,
                     onClick = { onItemClick(item) },
+                    onLongClick = { onItemLongClick(item) },
                     onDelete = { onDeleteItem(item) }
                 )
                 Spacer(Modifier.height(10.dp))
@@ -487,12 +582,15 @@ private fun BookmarkList(
         // Today section
         if (today.isNotEmpty()) {
             item(key = "section_today") {
-                SectionDivider("📍 Hôm nay")
+                SectionDivider("Hôm nay", Icons.Outlined.LocationOn)
             }
             items(today, key = { "td_${it.entity.id}" }) { item ->
                 BookmarkCard(
                     item = item,
+                    isSelected = selectedIds.contains(item.entity.id),
+                    isMultiSelect = isMultiSelect,
                     onClick = { onItemClick(item) },
+                    onLongClick = { onItemLongClick(item) },
                     onDelete = { onDeleteItem(item) }
                 )
                 Spacer(Modifier.height(10.dp))
@@ -502,12 +600,15 @@ private fun BookmarkList(
         // Past section
         if (past.isNotEmpty()) {
             item(key = "section_past") {
-                SectionDivider("🕐 Đã qua")
+                SectionDivider("Đã qua", Icons.Outlined.History)
             }
             items(past, key = { "past_${it.entity.id}" }) { item ->
                 BookmarkCard(
                     item = item,
+                    isSelected = selectedIds.contains(item.entity.id),
+                    isMultiSelect = isMultiSelect,
                     onClick = { onItemClick(item) },
+                    onLongClick = { onItemLongClick(item) },
                     onDelete = { onDeleteItem(item) },
                     dimmed = true
                 )
@@ -525,15 +626,23 @@ private fun BookmarkList(
 // ══════════════════════════════════════════
 
 @Composable
-private fun SectionDivider(text: String) {
+private fun SectionDivider(text: String, icon: ImageVector? = null) {
     val c = LichSoThemeColors.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 12.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
+        if (icon != null) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = c.outline,
+                modifier = Modifier.size(14.dp)
+            )
+        }
         Text(
             text,
             style = TextStyle(
@@ -586,7 +695,7 @@ private fun FeaturedSavedCard(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Text("⭐", fontSize = 26.sp)
+            Icon(Icons.Filled.Star, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
         }
 
         // Info
@@ -629,10 +738,14 @@ private fun FeaturedSavedCard(
 // BOOKMARK CARD
 // ══════════════════════════════════════════
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun BookmarkCard(
     item: BookmarkDisplayItem,
+    isSelected: Boolean = false,
+    isMultiSelect: Boolean = false,
     onClick: () -> Unit,
+    onLongClick: () -> Unit = {},
     onDelete: () -> Unit,
     dimmed: Boolean = false
 ) {
@@ -674,17 +787,34 @@ private fun BookmarkCard(
             .fillMaxWidth()
             .graphicsLayer { this.alpha = alpha }
             .clip(RoundedCornerShape(20.dp))
-            .clickable { onClick() }
+            .then(
+                if (isSelected) Modifier.border(2.dp, c.primary, RoundedCornerShape(20.dp))
+                else Modifier
+            )
+            .combinedClickable(
+                onClick = { onClick() },
+                onLongClick = { onLongClick() }
+            )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(c.surfaceContainer, RoundedCornerShape(20.dp))
-                .border(1.dp, c.outlineVariant, RoundedCornerShape(20.dp))
+                .border(1.dp, if (isSelected) c.primary else c.outlineVariant, RoundedCornerShape(20.dp))
                 .padding(start = 4.dp)
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            // Multi-select checkbox
+            if (isMultiSelect) {
+                Checkbox(
+                    checked = isSelected,
+                    onCheckedChange = { onClick() },
+                    colors = CheckboxDefaults.colors(checkedColor = c.primary),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
             // Left strip
             Box(
                 modifier = Modifier
@@ -941,6 +1071,10 @@ private fun EmptyFilterState() {
 private fun MoreOptionsSheet(
     onDismiss: () -> Unit,
     onSortByDate: () -> Unit,
+    onFilterByCategory: () -> Unit,
+    onExportList: () -> Unit,
+    onSelectMultiple: () -> Unit,
+    onShareList: () -> Unit,
     onDeleteAll: () -> Unit
 ) {
     val c = LichSoThemeColors.current
@@ -967,12 +1101,12 @@ private fun MoreOptionsSheet(
             SheetOption(
                 icon = Icons.Filled.FilterList,
                 text = "Lọc theo danh mục",
-                onClick = onDismiss
+                onClick = onFilterByCategory
             )
             SheetOption(
                 icon = Icons.Filled.FileDownload,
                 text = "Xuất danh sách",
-                onClick = onDismiss
+                onClick = onExportList
             )
 
             HorizontalDivider(
@@ -983,12 +1117,12 @@ private fun MoreOptionsSheet(
             SheetOption(
                 icon = Icons.Filled.SelectAll,
                 text = "Chọn nhiều ngày",
-                onClick = onDismiss
+                onClick = onSelectMultiple
             )
             SheetOption(
                 icon = Icons.Filled.Share,
                 text = "Chia sẻ danh sách",
-                onClick = onDismiss
+                onClick = onShareList
             )
 
             HorizontalDivider(
@@ -1033,6 +1167,91 @@ private fun SheetOption(
             text,
             style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium, color = color)
         )
+    }
+}
+
+// ══════════════════════════════════════════
+// CATEGORY FILTER BOTTOM SHEET
+// ══════════════════════════════════════════
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CategoryFilterSheet(
+    currentCategory: BookmarkCategory,
+    onSelect: (BookmarkCategory) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val c = LichSoThemeColors.current
+    val sheetState = rememberModalBottomSheetState()
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = c.bg,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 32.dp)) {
+            Text(
+                "Lọc theo danh mục",
+                style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = c.textPrimary),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            BookmarkCategory.entries.forEach { category ->
+                val isSelected = category == currentCategory
+                val categoryIcon = category.icon
+                val label = category.label
+                val color = when (category) {
+                    BookmarkCategory.ALL -> c.primary
+                    BookmarkCategory.GOOD_DAY -> GoodDayGreen
+                    BookmarkCategory.HOLIDAY -> HolidayOrange
+                    BookmarkCategory.PERSONAL -> PersonalBlue
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            if (isSelected) color.copy(alpha = 0.1f) else Color.Transparent,
+                            RoundedCornerShape(14.dp)
+                        )
+                        .border(
+                            if (isSelected) 1.5.dp else 0.dp,
+                            if (isSelected) color else Color.Transparent,
+                            RoundedCornerShape(14.dp)
+                        )
+                        .clickable { onSelect(category) }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Icon(
+                        categoryIcon,
+                        contentDescription = null,
+                        tint = if (isSelected) color else c.textSecondary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        label,
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) color else c.textPrimary
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (isSelected) {
+                        Icon(
+                            Icons.Filled.CheckCircle,
+                            contentDescription = null,
+                            tint = color,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+            }
+        }
     }
 }
 

@@ -170,12 +170,6 @@ fun ProfileScreen(
                         state.displayName,
                         style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     )
-                    if (state.email.isNotEmpty()) {
-                        Text(
-                            state.email,
-                            style = TextStyle(fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f))
-                        )
-                    }
 
                     // Meta chips — show only when birth info is available
                     if (state.birthInfo.yearCanChi.isNotEmpty()) {
@@ -576,15 +570,6 @@ private fun EditProfileSheet(
                 value = state.editName,
                 onValueChange = { viewModel.updateEditName(it) },
                 placeholder = "Nhập họ tên"
-            )
-
-            FormField(
-                label = "Email",
-                icon = Icons.Filled.Email,
-                value = state.editEmail,
-                onValueChange = { viewModel.updateEditEmail(it) },
-                placeholder = "Nhập email",
-                keyboardType = KeyboardType.Email
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -1221,6 +1206,8 @@ private fun AvatarImage(
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(File(avatarPath))
+                    .memoryCacheKey(avatarPath)
+                    .diskCacheKey(avatarPath)
                     .crossfade(true)
                     .build(),
                 contentDescription = "Avatar",

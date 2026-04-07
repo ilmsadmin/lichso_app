@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -63,12 +62,12 @@ fun HomeScreen(
     var showWeatherSheet by remember { mutableStateOf(false) }
 
     // ── Page flip state ──
-    // flipProgress: 0 = page flat (normal), → 1 = page fully flipped up (next day)
-    //                                        → -1 = page fully flipped down (prev day)
+    // flipProgress: 0 = page flat, → 1 = page fully flipped (next day)
+    //                                → -1 = page fully flipped (prev day)
     val flipProgress = remember { Animatable(0f) }
     var isDragging by remember { mutableStateOf(false) }
     var isAnimatingFlip by remember { mutableStateOf(false) }
-    val flipCommitThreshold = 0.2f  // 20% rotation = commit
+    val flipCommitThreshold = 0.18f  // 18% rotation = commit
 
     Column(
         modifier = Modifier
@@ -86,7 +85,8 @@ fun HomeScreen(
                 onProfileClick = onProfileClick,
                 onNotificationClick = onNotificationClick,
                 onWeatherRefresh = { viewModel.refreshWeather() },
-                onWeatherClick = { showWeatherSheet = true }
+                onWeatherClick = { showWeatherSheet = true },
+                notificationUnreadCount = uiState.notificationUnreadCount
             )
 
             // ═══ TEAR LINE (perforation) ═══
@@ -123,18 +123,18 @@ fun HomeScreen(
                                     val goNext = current > 0
                                     isAnimatingFlip = true
                                     coroutineScope.launch {
-                                        // Animate page to fully flipped (90°)
+                                        // Animate page to fully flipped
                                         flipProgress.animateTo(
                                             if (goNext) 1f else -1f,
-                                            tween(300, easing = FastOutSlowInEasing)
+                                            tween(180, easing = FastOutSlowInEasing)
                                         )
                                         // Change day
                                         if (goNext) viewModel.nextDay() else viewModel.prevDay()
-                                        // Snap new page to "coming from other side" then animate flat
-                                        flipProgress.snapTo(if (goNext) -0.3f else 0.3f)
+                                        // New page enters from opposite side
+                                        flipProgress.snapTo(if (goNext) -0.25f else 0.25f)
                                         flipProgress.animateTo(
                                             0f,
-                                            spring(dampingRatio = 0.75f, stiffness = 200f)
+                                            tween(200, easing = FastOutSlowInEasing)
                                         )
                                         isAnimatingFlip = false
                                     }
@@ -144,7 +144,7 @@ fun HomeScreen(
                                     coroutineScope.launch {
                                         flipProgress.animateTo(
                                             0f,
-                                            spring(dampingRatio = 0.6f, stiffness = 400f)
+                                            spring(dampingRatio = 0.8f, stiffness = 600f)
                                         )
                                         isAnimatingFlip = false
                                     }
@@ -153,15 +153,14 @@ fun HomeScreen(
                             onDragCancel = {
                                 isDragging = false
                                 coroutineScope.launch {
-                                    flipProgress.animateTo(0f, spring(stiffness = 400f))
+                                    flipProgress.animateTo(0f, spring(stiffness = 600f))
                                 }
                             },
                             onVerticalDrag = { change, dragAmount ->
                                 if (isDragging && !isAnimatingFlip) {
                                     change.consume()
-                                    // Swipe up (negative dragAmount) → positive flipProgress (next day)
-                                    // Swipe down (positive dragAmount) → negative flipProgress (prev day)
-                                    val delta = -dragAmount / 600f
+                                    // Swipe up → positive (next), swipe down → negative (prev)
+                                    val delta = -dragAmount / 450f
                                     val newVal = (flipProgress.value + delta).coerceIn(-1f, 1f)
                                     coroutineScope.launch {
                                         flipProgress.snapTo(newVal)
@@ -174,70 +173,25 @@ fun HomeScreen(
                 val progress = flipProgress.value
                 val absProgress = kotlin.math.abs(progress)
 
-                // ── LAYER 1: Next page (revealed behind) ──
+                // ── Single layer: 3D page flip ──
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer {
-                            // Slightly scaled down, scales up as page flips
-                            val s = 0.92f + (0.08f * absProgress.coerceAtMost(1f))
-                            scaleX = s
-                            scaleY = s
-                            alpha = absProgress.coerceIn(0f, 1f)
-                        }
-                ) {
-                    // Shadow/hint of next page
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            if (progress > 0) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                            contentDescription = null,
-                            tint = c.primary.copy(alpha = 0.2f),
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Text(
-                            if (progress > 0) "Ngày tiếp theo" else "Ngày trước đó",
-                            style = TextStyle(fontSize = 13.sp, color = c.textTertiary.copy(alpha = 0.5f))
-                        )
-                    }
-                }
+                            // 3D perspective
+                            cameraDistance = 16f * density
 
-                // ── LAYER 2: Current page (flips like a book page) ──
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            // cameraDistance for realistic 3D perspective
-                            cameraDistance = 12f * density
+                            // Rotate around top/bottom edge like a calendar page
+                            rotationX = progress * -80f
 
-                            // Rotate around top edge (page flips upward when swiping up)
-                            rotationX = progress * -90f
-
-                            // Pivot at top edge for "swipe up = flip up" feel
+                            // Pivot at top edge (swipe up) or bottom edge (swipe down)
                             transformOrigin = if (progress >= 0)
-                                TransformOrigin(0.5f, 0f)  // top edge pivot
+                                TransformOrigin(0.5f, 0f)
                             else
-                                TransformOrigin(0.5f, 1f)  // bottom edge pivot
+                                TransformOrigin(0.5f, 1f)
 
-                            // Fade page as it flips past ~45°
-                            alpha = (1f - absProgress * 1.2f).coerceIn(0f, 1f)
-
-                            // Slight elevation shadow while lifting
-                            shadowElevation = absProgress * 16f
-                        }
-                        // Gradient shadow overlay on the page as it flips
-                        .drawWithContent {
-                            drawContent()
-                            // Darken as page curls away
-                            if (absProgress > 0.05f) {
-                                drawRect(
-                                    color = Color.Black.copy(alpha = absProgress * 0.3f),
-                                    size = size
-                                )
-                            }
+                            // Fade as page flips past ~50°
+                            alpha = (1f - absProgress * 0.9f).coerceIn(0f, 1f)
                         }
                         .background(c.bg)
                 ) {
@@ -265,7 +219,7 @@ fun HomeScreen(
 
                         // ═══ QUOTE SECTION ═══
                         if (uiState.showQuote) {
-                            QuoteSection()
+                            QuoteSection(selectedDate = uiState.selectedDate)
                             Spacer(modifier = Modifier.height(8.dp))
                         }
 
@@ -367,7 +321,8 @@ private fun RedHeader(
     onProfileClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
     onWeatherRefresh: () -> Unit = {},
-    onWeatherClick: () -> Unit = {}
+    onWeatherClick: () -> Unit = {},
+    notificationUnreadCount: Int = 0
 ) {
     val c = LichSoThemeColors.current
     val colors = listOf(c.primary, Color(0xFFD32F2F), c.deepRed)
@@ -408,7 +363,8 @@ private fun RedHeader(
                 HeaderIconButton(
                     icon = Icons.Outlined.Notifications,
                     contentDescription = "Notifications",
-                    onClick = onNotificationClick
+                    onClick = onNotificationClick,
+                    badgeCount = notificationUnreadCount
                 )
             }
 
@@ -782,8 +738,15 @@ private fun BigDateSection(info: DayInfo) {
 // ══════════════════════════════════════════
 
 @Composable
-private fun QuoteSection() {
+private fun QuoteSection(selectedDate: java.time.LocalDate) {
     val c = LichSoThemeColors.current
+
+    // Mỗi tờ lịch (ngày khác nhau) hiển thị câu khác nhau
+    val (quoteText, quoteAuthor) = remember(selectedDate) {
+        val dayOfYear = selectedDate.dayOfYear
+        com.lichso.app.data.VietnameseQuotes.ofDay(dayOfYear)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -791,7 +754,7 @@ private fun QuoteSection() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "\u201C Có chí thì nên, có công mài sắt có ngày nên kim \u201D",
+            text = "\u201C $quoteText \u201D",
             style = TextStyle(
                 fontFamily = FontFamily.Serif,
                 fontSize = 14.sp,
@@ -803,7 +766,7 @@ private fun QuoteSection() {
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            "— Tục ngữ Việt Nam",
+            "— $quoteAuthor",
             style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = c.outline)
         )
     }

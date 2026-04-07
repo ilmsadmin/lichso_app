@@ -41,6 +41,8 @@ fun CalendarScreen(
     onGoodDaysClick: () -> Unit = {},
     onSearchClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
+    onEditVisibilityChanged: (Boolean) -> Unit = {},
+    onAskAiClick: (day: Int, month: Int, year: Int) -> Unit = { _, _, _ -> },
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val c = LichSoThemeColors.current
@@ -97,9 +99,44 @@ fun CalendarScreen(
                 DayDetailScreen(
                     dayInfo = info,
                     onBackClick = { showDayDetail = false },
-                    onShareClick = { /* TODO */ },
+                    onShareClick = {
+                        val sb = StringBuilder()
+                        sb.appendLine("📅 ${info.dayOfWeek}, ${info.solar.dd}/${info.solar.mm}/${info.solar.yy}")
+                        sb.appendLine("🌙 Âm lịch: ${info.lunar.day}/${info.lunar.month}/${info.lunar.year}" +
+                                if (info.lunar.leap == 1) " (Nhuận)" else "")
+                        sb.appendLine("🔮 Ngày ${info.dayCanChi}")
+                        sb.appendLine("📆 Tháng ${info.monthCanChi}, Năm ${info.yearCanChi}")
+                        sb.appendLine()
+                        // Day rating
+                        sb.appendLine("⭐ Đánh giá: ${info.dayRating.label} (${info.dayRating.percent}%)")
+                        // Holidays
+                        info.solarHoliday?.let { sb.appendLine("🎉 $it") }
+                        info.lunarHoliday?.let { sb.appendLine("🏮 $it") }
+                        // Activities
+                        if (info.activities.nenLam.isNotEmpty()) {
+                            sb.appendLine()
+                            sb.appendLine("✅ Nên làm: ${info.activities.nenLam.take(5).joinToString(", ")}")
+                        }
+                        if (info.activities.khongNen.isNotEmpty()) {
+                            sb.appendLine("❌ Không nên: ${info.activities.khongNen.take(5).joinToString(", ")}")
+                        }
+                        // Hướng
+                        sb.appendLine()
+                        sb.appendLine("💰 Thần Tài: ${info.huong.thanTai}")
+                        sb.appendLine("😊 Hỷ Thần: ${info.huong.hyThan}")
+                        sb.appendLine()
+                        sb.appendLine("— Lịch Số · Lịch Vạn Niên")
+
+                        val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(android.content.Intent.EXTRA_TEXT, sb.toString())
+                        }
+                        context.startActivity(android.content.Intent.createChooser(shareIntent, "Chia sẻ thông tin ngày"))
+                    },
                     onBookmarkClick = { dayActionsViewModel.toggleBookmark() },
-                    onAskAiClick = { /* TODO: navigate to AI chat */ },
+                    onAskAiClick = {
+                        onAskAiClick(info.solar.dd, info.solar.mm, info.solar.yy)
+                    },
                     isBookmarked = dayActionsState.isBookmarked,
                     onAddNoteClick = { dayActionsViewModel.showAddNoteForDay() },
                     onAddReminderClick = { dayActionsViewModel.showAddReminderForDay() },
@@ -127,6 +164,11 @@ fun CalendarScreen(
 
     // ═══ FULL-SCREEN NOTE/REMINDER EDIT (consistent with TasksScreen3) ═══
     val showNoteOrReminderEdit = dayActionsState.showAddNoteDialog || dayActionsState.showAddReminderDialog
+
+    // Notify parent when edit screen visibility changes (to hide bottom bar)
+    LaunchedEffect(showNoteOrReminderEdit) {
+        onEditVisibilityChanged(showNoteOrReminderEdit)
+    }
 
     if (showNoteOrReminderEdit) {
         val editInitialType = if (dayActionsState.showAddNoteDialog)

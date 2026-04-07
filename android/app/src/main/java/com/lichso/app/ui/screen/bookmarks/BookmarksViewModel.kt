@@ -1,5 +1,9 @@
 package com.lichso.app.ui.screen.bookmarks
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lichso.app.data.local.dao.BookmarkDao
@@ -18,20 +22,20 @@ import javax.inject.Inject
 // Models
 // ═══════════════════════════════════════
 
-enum class BookmarkCategory(val label: String, val emoji: String) {
-    ALL("Tất cả", "📅"),
-    GOOD_DAY("Ngày tốt", "✨"),
-    HOLIDAY("Lễ / Giỗ", "🎉"),
-    PERSONAL("Cá nhân", "💼")
+enum class BookmarkCategory(val label: String, val icon: ImageVector) {
+    ALL("Tất cả", Icons.Outlined.CalendarMonth),
+    GOOD_DAY("Ngày tốt", Icons.Outlined.AutoAwesome),
+    HOLIDAY("Lễ / Giỗ", Icons.Outlined.Celebration),
+    PERSONAL("Cá nhân", Icons.Outlined.WorkOutline)
 }
 
-enum class BookmarkFilterChip(val label: String, val emoji: String) {
-    ALL("Tất cả", "📑"),
-    WEDDING("Cưới hỏi", "💒"),
-    BUSINESS("Kinh doanh", "🏢"),
-    MEMORIAL("Giỗ chạp", "🕯️"),
-    TRAVEL("Du lịch", "✈️"),
-    HEALTH("Sức khỏe", "🏥")
+enum class BookmarkFilterChip(val label: String, val icon: ImageVector) {
+    ALL("Tất cả", Icons.Outlined.Bookmarks),
+    WEDDING("Cưới hỏi", Icons.Outlined.Favorite),
+    BUSINESS("Kinh doanh", Icons.Outlined.Business),
+    MEMORIAL("Giỗ chạp", Icons.Outlined.LocalFireDepartment),
+    TRAVEL("Du lịch", Icons.Outlined.Flight),
+    HEALTH("Sức khỏe", Icons.Outlined.LocalHospital)
 }
 
 enum class BookmarkSortMode {
@@ -68,6 +72,9 @@ data class BookmarksUiState(
     val searchQuery: String = "",
     val sortMode: BookmarkSortMode = BookmarkSortMode.DATE_DESC,
     val showMoreSheet: Boolean = false,
+    val showCategoryFilterSheet: Boolean = false,
+    val isMultiSelectMode: Boolean = false,
+    val selectedIds: Set<Long> = emptySet(),
     val toastMessage: String? = null
 )
 
@@ -260,6 +267,68 @@ class BookmarksViewModel @Inject constructor(
 
     fun showMoreSheet() = _uiState.update { it.copy(showMoreSheet = true) }
     fun hideMoreSheet() = _uiState.update { it.copy(showMoreSheet = false) }
+
+    fun showCategoryFilterSheet() = _uiState.update { it.copy(showCategoryFilterSheet = true) }
+    fun hideCategoryFilterSheet() = _uiState.update { it.copy(showCategoryFilterSheet = false) }
+
+    fun toggleMultiSelectMode() {
+        val current = _uiState.value.isMultiSelectMode
+        _uiState.update { it.copy(isMultiSelectMode = !current, selectedIds = emptySet()) }
+    }
+
+    fun toggleSelectItem(id: Long) {
+        val current = _uiState.value.selectedIds.toMutableSet()
+        if (current.contains(id)) current.remove(id) else current.add(id)
+        _uiState.update { it.copy(selectedIds = current) }
+    }
+
+    fun deleteSelectedBookmarks() {
+        viewModelScope.launch {
+            val selected = _uiState.value.selectedIds
+            val items = _uiState.value.bookmarks.filter { selected.contains(it.entity.id) }
+            items.forEach { bookmarkDao.delete(it.entity) }
+            _uiState.update { it.copy(
+                isMultiSelectMode = false,
+                selectedIds = emptySet(),
+                toastMessage = "Đã xóa ${items.size} đánh dấu"
+            ) }
+        }
+    }
+
+    fun getShareText(): String {
+        val items = _uiState.value.filteredBookmarks
+        val sb = StringBuilder()
+        sb.appendLine("Ngày đã lưu — Lịch Sổ")
+        sb.appendLine("Tổng: ${items.size} ngày")
+        sb.appendLine()
+        items.forEachIndexed { index, item ->
+            val dateStr = "%02d/%02d/%d".format(item.entity.solarDay, item.entity.solarMonth, item.entity.solarYear)
+            sb.appendLine("${index + 1}. $dateStr — ${item.entity.label}")
+            val lunarStr = "${item.lunarDay}/${item.lunarMonth} ÂL · ${item.dayCanChi}"
+            sb.appendLine("   $lunarStr · ${item.dayRating}")
+            item.solarHoliday?.let { sb.appendLine("   Lễ: $it") }
+            item.lunarHoliday?.let { sb.appendLine("   Lễ: $it") }
+            if (item.entity.note.isNotBlank()) {
+                sb.appendLine("   Ghi chú: ${item.entity.note}")
+            }
+        }
+        sb.appendLine()
+        sb.appendLine("— Lịch Sổ App")
+        return sb.toString()
+    }
+
+    fun getExportText(): String {
+        val items = _uiState.value.filteredBookmarks
+        val sb = StringBuilder()
+        sb.appendLine("Ngày,Thứ,Âm lịch,Can Chi,Đánh giá,Nhãn,Ghi chú,Ngày lễ")
+        items.forEach { item ->
+            val dateStr = "%02d/%02d/%d".format(item.entity.solarDay, item.entity.solarMonth, item.entity.solarYear)
+            val lunarStr = "${item.lunarDay}/${item.lunarMonth}"
+            val holiday = listOfNotNull(item.solarHoliday, item.lunarHoliday).joinToString(" | ")
+            sb.appendLine("$dateStr,${item.dayOfWeek},$lunarStr,${item.dayCanChi},${item.dayRating},${item.entity.label},${item.entity.note},$holiday")
+        }
+        return sb.toString()
+    }
 
     fun consumeToast() {
         _uiState.update { it.copy(toastMessage = null) }

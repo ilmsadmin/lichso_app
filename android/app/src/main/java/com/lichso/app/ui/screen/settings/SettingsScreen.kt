@@ -36,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lichso.app.ui.theme.*
 import com.lichso.app.ui.components.AppTopBar
+import com.lichso.app.util.ReviewHelper
 
 // ══════════════════════════════════════════════════════════
 // Settings Screen — Material 3, matching screen-settings.html
@@ -73,16 +74,6 @@ fun SettingsScreen(
     // ─── Dialogs ───
     if (state.showPrivacyPolicyDialog) {
         PrivacyPolicyDialog(onDismiss = { viewModel.dismissPrivacyPolicy() })
-    }
-
-    if (state.showLanguageDialog) {
-        SelectionDialog(
-            title = "Ngôn ngữ",
-            options = listOf("Tiếng Việt", "English", "中文", "日本語", "한국어"),
-            selected = state.language,
-            onSelect = { viewModel.setLanguage(it) },
-            onDismiss = { viewModel.hideLanguageDialog() }
-        )
     }
 
     if (state.showWeekStartDialog) {
@@ -179,12 +170,6 @@ fun SettingsScreen(
                 ) { viewModel.showWeekStartDialog() }
                 SettingsItemDivider()
                 SettingsArrowItem(
-                    icon = Icons.Filled.Language, iconColor = iconAmber,
-                    title = "Ngôn ngữ", desc = "Ngôn ngữ hiển thị",
-                    value = state.language
-                ) { viewModel.showLanguageDialog() }
-                SettingsItemDivider()
-                SettingsArrowItem(
                     icon = Icons.Filled.Palette, iconColor = iconPurple,
                     title = "Giao diện", desc = "Sáng / Tối / Theo hệ thống",
                     value = when (state.themeMode) {
@@ -261,7 +246,6 @@ fun SettingsScreen(
                 ) { viewModel.showTempUnitDialog() }
             }
 
-            // ── DỮ LIỆU ──
             SectionTitle("Dữ liệu")
             SettingsGroup {
                 SettingsArrowItem(
@@ -269,6 +253,32 @@ fun SettingsScreen(
                     title = "Xoá bộ nhớ đệm", desc = "Giải phóng dung lượng",
                     value = state.cacheSize
                 ) { viewModel.showClearCacheDialog() }
+            }
+
+            // ── HỖ TRỢ ──
+            SectionTitle("Hỗ trợ")
+            SettingsGroup {
+                SettingsArrowItem(
+                    icon = Icons.Filled.Star, iconColor = IconWrapColor(Color(0xFFFFF8E1), Color(0xFFF9A825)),
+                    title = "Đánh giá ứng dụng", desc = "Đánh giá 5 sao trên Google Play"
+                ) {
+                    val activity = context as? android.app.Activity
+                    if (activity != null) {
+                        ReviewHelper.launchReviewFlow(activity)
+                    }
+                }
+                SettingsItemDivider()
+                SettingsArrowItem(
+                    icon = Icons.Filled.Share, iconColor = iconBlue,
+                    title = "Chia sẻ ứng dụng", desc = "Giới thiệu cho bạn bè & người thân"
+                ) {
+                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_SUBJECT, "Lịch Số - Lịch Vạn Niên & Phong Thủy")
+                        putExtra(Intent.EXTRA_TEXT, "Lịch Số - Ứng dụng lịch vạn niên, phong thủy, gia phả số miễn phí!\n\nhttps://play.google.com/store/apps/details?id=com.lichso.app")
+                    }
+                    context.startActivity(Intent.createChooser(shareIntent, "Chia sẻ ứng dụng"))
+                }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -517,6 +527,8 @@ private fun PrivacyPolicyDialog(onDismiss: () -> Unit) {
                         settings.javaScriptEnabled = false
                         settings.loadWithOverviewMode = true
                         settings.useWideViewPort = true
+                        settings.allowFileAccess = false
+                        settings.allowContentAccess = false
                         setBackgroundColor(android.graphics.Color.TRANSPARENT)
                         loadUrl("file:///android_asset/privacy_policy.html")
                     }

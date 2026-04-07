@@ -1,7 +1,7 @@
 package com.lichso.app.data.remote
 
 import com.google.gson.Gson
-import com.lichso.app.BuildConfig
+import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -19,7 +19,7 @@ data class ChatMessage(val role: String, val content: String)
 data class OpenRouterRequest(
     val model: String = "google/gemini-2.0-flash-001",
     val messages: List<ChatMessage>,
-    val max_tokens: Int = 2048,
+    @SerializedName("max_tokens") val maxTokens: Int = 2048,
     val temperature: Double = 0.7
 )
 
@@ -31,12 +31,12 @@ data class OpenRouterResponse(
 }
 
 @Singleton
-class OpenRouterApi @Inject constructor() {
+class OpenRouterApi @Inject constructor(
+    private val apiKeyProvider: ApiKeyProvider
+) {
 
     companion object {
         private const val BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
-        // API key được đọc từ local.properties qua BuildConfig (an toàn, không bị commit lên Git)
-        private val API_KEY = BuildConfig.OPENROUTER_API_KEY
     }
 
     private val gson = Gson()
@@ -157,7 +157,7 @@ QUY TẮC FORMAT BẮT BUỘC (rất quan trọng, phải tuân thủ tuyệt đ
 
             val request = Request.Builder()
                 .url(BASE_URL)
-                .addHeader("Authorization", "Bearer $API_KEY")
+                .addHeader("Authorization", "Bearer ${apiKeyProvider.getOpenRouterApiKey()}")
                 .addHeader("Content-Type", "application/json")
                 .addHeader("HTTP-Referer", "https://lichso.app")
                 .addHeader("X-Title", "Lich So - Lich Van Nien")

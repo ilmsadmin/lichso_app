@@ -135,7 +135,10 @@ fun FamilySettingsScreen(
                     .padding(vertical = 16.dp)
                     .clip(RoundedCornerShape(20.dp))
                     .background(
-                        Brush.linearGradient(listOf(Color(0xFF3E2723), Color(0xFF4E342E), Color(0xFF5D4037))),
+                        Brush.linearGradient(
+                            if (c.isDark) listOf(Color(0xFF2A1F1A), Color(0xFF362B22), Color(0xFF40332A))
+                            else listOf(Color(0xFF3E2723), Color(0xFF4E342E), Color(0xFF5D4037))
+                        ),
                         RoundedCornerShape(20.dp)
                     )
                     .padding(20.dp)
@@ -150,7 +153,10 @@ fun FamilySettingsScreen(
                             .size(56.dp)
                             .clip(CircleShape)
                             .background(
-                                Brush.linearGradient(listOf(Color(0xFFD4A017), Color(0xFFB8860B))),
+                                Brush.linearGradient(
+                                    if (c.isDark) listOf(Color(0xFFB8860B), Color(0xFF9A7200))
+                                    else listOf(Color(0xFFD4A017), Color(0xFFB8860B))
+                                ),
                                 CircleShape
                             )
                             .border(2.dp, Color.White.copy(alpha = 0.3f), CircleShape),
@@ -192,7 +198,9 @@ fun FamilySettingsScreen(
             SettingsSectionTitle("Chỉnh sửa", Icons.Filled.Edit, c)
             SettingsGroup(c) {
                 SettingsItem(
-                    icon = Icons.Filled.Badge, iconBg = Color(0xFFEFEBE9), iconTint = Color(0xFF5D4037),
+                    icon = Icons.Filled.Badge,
+                    iconBg = if (c.isDark) Color(0xFF3E3530) else Color(0xFFEFEBE9),
+                    iconTint = if (c.isDark) Color(0xFFBCAAA4) else Color(0xFF5D4037),
                     title = "Tên dòng họ", desc = "Đổi tên hiển thị gia phả",
                     value = uiState.familyName.split(" ").lastOrNull() ?: "",
                     c = c, showDivider = true,
@@ -202,7 +210,9 @@ fun FamilySettingsScreen(
                     }
                 )
                 SettingsItem(
-                    icon = Icons.Filled.Shield, iconBg = Color(0xFFFFF8E1), iconTint = Color(0xFFF57F17),
+                    icon = Icons.Filled.Shield,
+                    iconBg = if (c.isDark) Color(0xFF3A3520) else Color(0xFFFFF8E1),
+                    iconTint = if (c.isDark) Color(0xFFFFD54F) else Color(0xFFF57F17),
                     title = "Biểu tượng dòng họ", desc = "Chỉnh sửa ký hiệu trên Family Crest",
                     value = uiState.familyCrest,
                     c = c, showDivider = true,
@@ -212,7 +222,9 @@ fun FamilySettingsScreen(
                     }
                 )
                 SettingsItem(
-                    icon = Icons.Filled.LocationOn, iconBg = Color(0xFFF3E5F5), iconTint = Color(0xFF7B1FA2),
+                    icon = Icons.Filled.LocationOn,
+                    iconBg = if (c.isDark) Color(0xFF2D1F3D) else Color(0xFFF3E5F5),
+                    iconTint = if (c.isDark) Color(0xFFCE93D8) else Color(0xFF7B1FA2),
                     title = "Quê quán gốc", desc = "Quê gốc của dòng họ",
                     value = uiState.familyHometown,
                     c = c, showDivider = false,
@@ -227,13 +239,17 @@ fun FamilySettingsScreen(
             SettingsSectionTitle("Hiển thị", Icons.Filled.Visibility, c)
             SettingsGroup(c) {
                 SettingsItem(
-                    icon = Icons.Filled.AccountTree, iconBg = Color(0xFFE3F2FD), iconTint = Color(0xFF1565C0),
+                    icon = Icons.Filled.AccountTree,
+                    iconBg = if (c.isDark) Color(0xFF1A2A3E) else Color(0xFFE3F2FD),
+                    iconTint = if (c.isDark) Color(0xFF64B5F6) else Color(0xFF1565C0),
                     title = "Kiểu hiển thị cây", desc = "Dọc, ngang hoặc hình quạt",
                     value = "Dọc",
                     c = c, showDivider = true, onClick = {}
                 )
                 SettingsToggleItem(
-                    icon = Icons.Filled.Photo, iconBg = Color(0xFFE8F5E9), iconTint = Color(0xFF2E7D32),
+                    icon = Icons.Filled.Photo,
+                    iconBg = if (c.isDark) Color(0xFF1A3020) else Color(0xFFE8F5E9),
+                    iconTint = if (c.isDark) Color(0xFF81C784) else Color(0xFF2E7D32),
                     title = "Hiện ảnh đại diện", desc = "Hiển thị ảnh trên cây gia phả",
                     checked = showAvatar, c = c, showDivider = true,
                     onCheckedChange = {
@@ -242,7 +258,9 @@ fun FamilySettingsScreen(
                     }
                 )
                 SettingsToggleItem(
-                    icon = Icons.Filled.CalendarMonth, iconBg = Color(0xFFFFF8E1), iconTint = Color(0xFFF57F17),
+                    icon = Icons.Filled.CalendarMonth,
+                    iconBg = if (c.isDark) Color(0xFF3A3520) else Color(0xFFFFF8E1),
+                    iconTint = if (c.isDark) Color(0xFFFFD54F) else Color(0xFFF57F17),
                     title = "Hiện năm sinh/mất", desc = "Hiển thị năm trên node",
                     checked = showYears, c = c, showDivider = false,
                     onCheckedChange = {
@@ -256,7 +274,9 @@ fun FamilySettingsScreen(
             SettingsSectionTitle("Thông báo", Icons.Filled.Notifications, c)
             SettingsGroup(c) {
                 SettingsToggleItem(
-                    icon = Icons.Filled.LocalFireDepartment, iconBg = Color(0xFFFFEBEE), iconTint = Color(0xFFC62828),
+                    icon = Icons.Filled.LocalFireDepartment,
+                    iconBg = if (c.isDark) Color(0xFF3A1A1A) else Color(0xFFFFEBEE),
+                    iconTint = if (c.isDark) Color(0xFFEF5350) else Color(0xFFC62828),
                     title = "Nhắc ngày giỗ", desc = "Nhắc nhở trước ngày giỗ",
                     checked = remindMemorial, c = c, showDivider = true,
                     onCheckedChange = {
@@ -265,7 +285,9 @@ fun FamilySettingsScreen(
                     }
                 )
                 SettingsToggleItem(
-                    icon = Icons.Filled.Cake, iconBg = Color(0xFFE3F2FD), iconTint = Color(0xFF1565C0),
+                    icon = Icons.Filled.Cake,
+                    iconBg = if (c.isDark) Color(0xFF1A2A3E) else Color(0xFFE3F2FD),
+                    iconTint = if (c.isDark) Color(0xFF64B5F6) else Color(0xFF1565C0),
                     title = "Nhắc sinh nhật", desc = "Nhắc sinh nhật thành viên",
                     checked = remindBirthday, c = c, showDivider = true,
                     onCheckedChange = {
@@ -274,37 +296,22 @@ fun FamilySettingsScreen(
                     }
                 )
                 SettingsItem(
-                    icon = Icons.Filled.Schedule, iconBg = Color(0xFFFFF8E1), iconTint = Color(0xFFF57F17),
+                    icon = Icons.Filled.Schedule,
+                    iconBg = if (c.isDark) Color(0xFF3A3520) else Color(0xFFFFF8E1),
+                    iconTint = if (c.isDark) Color(0xFFFFD54F) else Color(0xFFF57F17),
                     title = "Thời gian nhắc trước", desc = "Nhắc trước ngày giỗ bao lâu",
                     value = "3 ngày",
                     c = c, showDivider = false, onClick = {}
                 )
             }
 
-            // ═══ CHIA SẺ & XUẤT ═══
-            SettingsSectionTitle("Chia sẻ & Xuất", Icons.Filled.Share, c)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                ShareButton(Icons.Filled.PictureAsPdf, Color(0xFFFFEBEE), Color(0xFFC62828), "Xuất PDF", "File in ấn", Modifier.weight(1f), c)
-                ShareButton(Icons.Filled.Image, Color(0xFFE8F5E9), Color(0xFF2E7D32), "Xuất Ảnh", "PNG chất lượng cao", Modifier.weight(1f), c)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                ShareButton(Icons.Filled.Link, Color(0xFFE3F2FD), Color(0xFF1565C0), "Chia sẻ link", "Gửi cho gia đình", Modifier.weight(1f), c)
-                ShareButton(Icons.Filled.QrCode, Color(0xFFF3E5F5), Color(0xFF7B1FA2), "Mã QR", "Quét để xem", Modifier.weight(1f), c)
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-
             // ═══ ĐỒNG BỘ ═══
             SettingsSectionTitle("Sao lưu & Khôi phục", Icons.Filled.Sync, c)
             SettingsGroup(c) {
                 SettingsItem(
-                    icon = Icons.Filled.Upload, iconBg = Color(0xFFE8F5E9), iconTint = Color(0xFF2E7D32),
+                    icon = Icons.Filled.Upload,
+                    iconBg = if (c.isDark) Color(0xFF1A3020) else Color(0xFFE8F5E9),
+                    iconTint = if (c.isDark) Color(0xFF81C784) else Color(0xFF2E7D32),
                     title = "Xuất dữ liệu gia phả", desc = "Lưu file JSON để chia sẻ, backup",
                     c = c, showDivider = true,
                     onClick = {
@@ -315,7 +322,9 @@ fun FamilySettingsScreen(
                     }
                 )
                 SettingsItem(
-                    icon = Icons.Filled.Download, iconBg = Color(0xFFE3F2FD), iconTint = Color(0xFF1565C0),
+                    icon = Icons.Filled.Download,
+                    iconBg = if (c.isDark) Color(0xFF1A2A3E) else Color(0xFFE3F2FD),
+                    iconTint = if (c.isDark) Color(0xFF64B5F6) else Color(0xFF1565C0),
                     title = "Nhập dữ liệu gia phả", desc = "Khôi phục từ file JSON đã xuất",
                     c = c, showDivider = true,
                     onClick = {
@@ -323,7 +332,9 @@ fun FamilySettingsScreen(
                     }
                 )
                 SettingsItem(
-                    icon = Icons.Filled.CloudUpload, iconBg = Color(0xFFF5F5F5), iconTint = Color(0xFF616161),
+                    icon = Icons.Filled.CloudUpload,
+                    iconBg = if (c.isDark) Color(0xFF2A2A2A) else Color(0xFFF5F5F5),
+                    iconTint = if (c.isDark) Color(0xFF9E9E9E) else Color(0xFF616161),
                     title = "Sao lưu lên Cloud", desc = "Đang phát triển...",
                     c = c, showDivider = false, onClick = {}
                 )
@@ -336,7 +347,10 @@ fun FamilySettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFFE3F2FD), RoundedCornerShape(14.dp))
+                        .background(
+                            if (c.isDark) Color(0xFF1A2A3E) else Color(0xFFE3F2FD),
+                            RoundedCornerShape(14.dp)
+                        )
                         .padding(14.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -344,12 +358,12 @@ fun FamilySettingsScreen(
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp,
-                        color = Color(0xFF1565C0)
+                        color = if (c.isDark) Color(0xFF64B5F6) else Color(0xFF1565C0)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         if (uiState.isExporting) "Đang xuất dữ liệu..." else "Đang nhập dữ liệu...",
-                        style = TextStyle(fontSize = 13.sp, color = Color(0xFF1565C0))
+                        style = TextStyle(fontSize = 13.sp, color = if (c.isDark) Color(0xFF64B5F6) else Color(0xFF1565C0))
                     )
                 }
             }
@@ -360,8 +374,15 @@ fun FamilySettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .border(1.5.dp, Color(0xFFFFCDD2), RoundedCornerShape(14.dp))
-                    .background(Color(0xFFFFF5F5), RoundedCornerShape(14.dp))
+                    .border(
+                        1.5.dp,
+                        if (c.isDark) Color(0xFF5A2020) else Color(0xFFFFCDD2),
+                        RoundedCornerShape(14.dp)
+                    )
+                    .background(
+                        if (c.isDark) Color(0xFF3A1A1A) else Color(0xFFFFF5F5),
+                        RoundedCornerShape(14.dp)
+                    )
                     .clickable { showDeleteDialog = true }
                     .padding(14.dp),
                 contentAlignment = Alignment.Center
@@ -370,10 +391,10 @@ fun FamilySettingsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(Icons.Filled.DeleteForever, null, tint = Color(0xFFC62828), modifier = Modifier.size(20.dp))
+                    Icon(Icons.Filled.DeleteForever, null, tint = if (c.isDark) Color(0xFFEF5350) else Color(0xFFC62828), modifier = Modifier.size(20.dp))
                     Text(
                         "Xoá toàn bộ gia phả",
-                        style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFC62828))
+                        style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (c.isDark) Color(0xFFEF5350) else Color(0xFFC62828))
                     )
                 }
             }
@@ -394,10 +415,10 @@ fun FamilySettingsScreen(
             onDismiss = { editingField = null },
             title = dialogTitle,
             icon = Icons.Filled.Edit,
-            iconTint = Color(0xFF1565C0),
-            iconBgColor = Color(0xFFE3F2FD),
+            iconTint = if (c.isDark) Color(0xFF64B5F6) else Color(0xFF1565C0),
+            iconBgColor = if (c.isDark) Color(0xFF1A2A3E) else Color(0xFFE3F2FD),
             confirmText = "Lưu",
-            confirmColor = Color(0xFF1565C0),
+            confirmColor = if (c.isDark) Color(0xFF64B5F6) else Color(0xFF1565C0),
             onConfirm = {
                 when (editingField) {
                     "familyName" -> viewModel.updateFamilySettings(familyName = editValue)
@@ -429,10 +450,10 @@ fun FamilySettingsScreen(
             title = "Xác nhận xoá",
             message = "Bạn có chắc chắn muốn xoá toàn bộ dữ liệu gia phả? Hành động này không thể hoàn tác.",
             icon = Icons.Filled.DeleteForever,
-            iconTint = Color(0xFFC62828),
-            iconBgColor = Color(0xFFFFEBEE),
+            iconTint = if (c.isDark) Color(0xFFEF5350) else Color(0xFFC62828),
+            iconBgColor = if (c.isDark) Color(0xFF3A1A1A) else Color(0xFFFFEBEE),
             confirmText = "Xoá",
-            confirmColor = Color(0xFFC62828),
+            confirmColor = if (c.isDark) Color(0xFFEF5350) else Color(0xFFC62828),
         )
     }
 
@@ -444,10 +465,10 @@ fun FamilySettingsScreen(
             title = "Nhập dữ liệu gia phả",
             message = "Dữ liệu gia phả hiện tại sẽ được thay thế bằng dữ liệu từ file.\n\nBạn nên xuất bản sao lưu trước khi nhập. Tiếp tục?",
             icon = Icons.Filled.Download,
-            iconTint = Color(0xFF1565C0),
-            iconBgColor = Color(0xFFE3F2FD),
+            iconTint = if (c.isDark) Color(0xFF64B5F6) else Color(0xFF1565C0),
+            iconBgColor = if (c.isDark) Color(0xFF1A2A3E) else Color(0xFFE3F2FD),
             confirmText = "Nhập",
-            confirmColor = Color(0xFF1565C0),
+            confirmColor = if (c.isDark) Color(0xFF64B5F6) else Color(0xFF1565C0),
         )
     }
 }
@@ -580,35 +601,5 @@ private fun SettingsToggleItem(
                 uncheckedTrackColor = c.outlineVariant,
             )
         )
-    }
-}
-
-@Composable
-private fun ShareButton(
-    icon: ImageVector, iconBg: Color, iconTint: Color,
-    title: String, desc: String, modifier: Modifier, c: LichSoColors
-) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(c.surfaceContainer, RoundedCornerShape(16.dp))
-            .border(1.dp, c.outlineVariant, RoundedCornerShape(16.dp))
-            .clickable { }
-            .padding(14.dp, 14.dp, 16.dp, 14.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .background(iconBg, RoundedCornerShape(10.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, null, tint = iconTint, modifier = Modifier.size(20.dp))
-        }
-        Column {
-            Text(title, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = c.textPrimary))
-            Text(desc, style = TextStyle(fontSize = 10.sp, color = c.outline))
-        }
     }
 }

@@ -48,11 +48,16 @@ fun AddMemberScreen(
     val isEdit = editMemberId != null
     val existingMember = editMemberId?.let { viewModel.getMember(it) }
 
+    val uiState = viewModel.uiState.collectAsState().value
+    val isFirstMember = !isEdit && uiState.totalMembers == 0
+
     // ── Local form state ──
     var name by remember { mutableStateOf(existingMember?.name ?: "") }
     var isMale by remember { mutableStateOf(existingMember?.gender != Gender.FEMALE) }
-    var selectedRelation by remember { mutableStateOf(existingMember?.role ?: "Con trai") }
-    val familyHometown = viewModel.uiState.collectAsState().value.familyHometown
+    var selectedRelation by remember { mutableStateOf(
+        if (isFirstMember) "" else (existingMember?.role ?: "Con trai")
+    ) }
+    val familyHometown = uiState.familyHometown
     var hometown by remember { mutableStateOf(existingMember?.hometown ?: familyHometown) }
     var occupation by remember { mutableStateOf(existingMember?.occupation ?: "") }
     var noteText by remember { mutableStateOf(existingMember?.note ?: "") }
@@ -63,15 +68,19 @@ fun AddMemberScreen(
     var deathDay by remember { mutableStateOf(existingMember?.deathDateLunar?.split("/")?.getOrNull(0) ?: "") }
     var deathMonth by remember { mutableStateOf(existingMember?.deathDateLunar?.split("/")?.getOrNull(1) ?: "") }
     var deathYear by remember { mutableStateOf(existingMember?.deathYear?.toString() ?: "") }
-    var generation by remember { mutableIntStateOf(existingMember?.generation ?: 4) }
+    var generation by remember { mutableIntStateOf(existingMember?.generation ?: 1) }
     var isElder by remember { mutableStateOf(existingMember?.isElder ?: false) }
     var isSelf by remember { mutableStateOf(existingMember?.isSelf ?: false) }
     var avatarPath by remember { mutableStateOf(existingMember?.avatarPath ?: "") }
     var avatarVersion by remember { mutableIntStateOf(0) } // force Coil to reload on change
 
-    // Connected member (parent)
+    // Connected member (parent or spouse)
     var connectedMember by remember { mutableStateOf<FamilyMember?>(
-        existingMember?.parentIds?.firstOrNull()?.let { viewModel.getMember(it) }
+        existingMember?.let { em ->
+            // Try parentIds first, then spouseIds
+            em.parentIds.firstOrNull()?.let { viewModel.getMember(it) }
+                ?: em.spouseIds.firstOrNull()?.let { viewModel.getMember(it) }
+        }
     ) }
 
     // Member ID for avatar saving
@@ -222,6 +231,7 @@ fun AddMemberScreen(
             Spacer(modifier = Modifier.height(14.dp))
 
             // ═══ QUAN HỆ ═══
+            if (!isFirstMember) {
             FormSectionTitle("Quan hệ", Icons.Filled.Group, c)
 
             FormLabel("Quan hệ với", required = true, c = c)
@@ -242,12 +252,15 @@ fun AddMemberScreen(
             val relations = listOf("Con trai", "Con gái", "Vợ/Chồng", "Anh/Chị", "Em", "Cha", "Mẹ", "Dâu/Rể")
             RelationPicker(relations, selectedRelation, c) { relation ->
                 selectedRelation = relation
-                // Auto-adjust generation when relation changes
-                connectedMember?.let { cm ->
-                    generation = computeGeneration(cm.generation, relation)
+                // Auto-adjust generation when relation changes (only if not deselected)
+                if (relation.isNotBlank()) {
+                    connectedMember?.let { cm ->
+                        generation = computeGeneration(cm.generation, relation)
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(14.dp))
+            } // end if (!isFirstMember)
 
             // Generation
             FormLabel("Đời (thế hệ)", c = c)
@@ -404,6 +417,12 @@ fun AddMemberScreen(
                     )
                     .clickable {
                         if (name.isNotBlank()) {
+                            // Use selectedRelation, or fall back to existing role / sensible default
+                            val effectiveRelation = when {
+                                selectedRelation.isNotBlank() -> selectedRelation
+                                existingMember != null -> existingMember.role
+                                else -> "Trưởng tộc" // first member
+                            }
                             val emoji = when {
                                 isElder && isMale -> "👴"
                                 isElder && !isMale -> "👵"
@@ -411,13 +430,23 @@ fun AddMemberScreen(
                                 isMale -> "👨"
                                 else -> "👩"
                             }
-                            val parentIds = when (selectedRelation) {
+                            val parentIds = when (effectiveRelation) {
                                 "Con trai", "Con gái" -> connectedMember?.let { listOf(it.id) } ?: emptyList()
                                 else -> existingMember?.parentIds ?: emptyList()
                             }
-                            val spouseId = when (selectedRelation) {
-                                "Vợ/Chồng" -> connectedMember?.id
-                                else -> existingMember?.spouseId
+                            // Multi-spouse support: build spouseIds list
+                            val spouseIds = when (effectiveRelation) {
+                                "Vợ/Chồng" -> connectedMember?.let { listOf(it.id) } ?: emptyList()
+                                else -> existingMember?.spouseIds ?: emptyList()
+                            }
+                            // Determine spouse order for the new wife
+                            val spouseOrder = when (effectiveRelation) {
+                                "Vợ/Chồng" -> {
+                                    // Count existing wives of the connected member
+                                    val existingWifeCount = connectedMember?.spouseIds?.size ?: 0
+                                    existingWifeCount + 1
+                                }
+                                else -> existingMember?.spouseOrder ?: 0
                             }
                             val birthYearInt = birthYear.toIntOrNull()
                             val deathYearInt = if (isDeceased) deathYear.toIntOrNull() else null
@@ -432,7 +461,7 @@ fun AddMemberScreen(
                             val member = FamilyMember(
                                 id = memberId,
                                 name = name,
-                                role = selectedRelation,
+                                role = effectiveRelation,
                                 gender = if (isMale) Gender.MALE else Gender.FEMALE,
                                 generation = generation,
                                 birthYear = birthYearInt,
@@ -452,7 +481,8 @@ fun AddMemberScreen(
                                 isSelf = isSelf,
                                 isElder = isElder,
                                 emoji = emoji,
-                                spouseId = spouseId,
+                                spouseIds = spouseIds,
+                                spouseOrder = spouseOrder,
                                 parentIds = parentIds,
                                 note = noteText.ifBlank { null },
                                 avatarPath = avatarPath.ifBlank { null },
@@ -461,9 +491,13 @@ fun AddMemberScreen(
 
                             // Memorial is auto-synced inside saveMember()
 
-                            // If spouse relation, also update the connected member
-                            if (selectedRelation == "Vợ/Chồng" && connectedMember != null) {
-                                val updatedSpouse = connectedMember!!.copy(spouseId = member.id)
+                            // If spouse relation, also update the connected member's spouseIds
+                            if (effectiveRelation == "Vợ/Chồng" && connectedMember != null) {
+                                val updatedSpouseIds = if (connectedMember!!.spouseIds.contains(member.id))
+                                    connectedMember!!.spouseIds
+                                else
+                                    connectedMember!!.spouseIds + member.id
+                                val updatedSpouse = connectedMember!!.copy(spouseIds = updatedSpouseIds)
                                 viewModel.saveMember(updatedSpouse)
                             }
                         }
@@ -694,7 +728,10 @@ private fun RelationPicker(
                     .clip(RoundedCornerShape(12.dp))
                     .background(bg, RoundedCornerShape(12.dp))
                     .border(1.5.dp, border, RoundedCornerShape(12.dp))
-                    .clickable { onSelect(rel) }
+                    .clickable {
+                        // Allow deselecting by tapping the active item again
+                        if (isActive) onSelect("") else onSelect(rel)
+                    }
                     .padding(horizontal = 14.dp, vertical = 8.dp)
             ) {
                 Text(rel, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = textColor))

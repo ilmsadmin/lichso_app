@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -43,6 +44,7 @@ import com.lichso.app.ui.theme.*
 import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import com.lichso.app.util.ReviewHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,12 +52,24 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
     val c = LichSoThemeColors.current
     var currentRoute by remember { mutableStateOf(initialRoute) }
     var prayerDetailShowing by remember { mutableStateOf(false) }
+    var taskEditShowing by remember { mutableStateOf(false) }
     var initialPrayerId by remember { mutableStateOf<Int?>(null) }
+    var initialAiMessage by remember { mutableStateOf<String?>(null) }
     val homeViewModel: HomeViewModel = hiltViewModel()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
-    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays") || prayerDetailShowing
+    // ── In-App Review: increment open count & auto-trigger ──
+    LaunchedEffect(Unit) {
+        ReviewHelper.incrementAppOpenCount(context)
+        val activity = context as? android.app.Activity
+        if (activity != null) {
+            ReviewHelper.tryShowReview(activity)
+        }
+    }
+
+    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays") || prayerDetailShowing || taskEditShowing
 
     val toggleDrawer: () -> Unit = {
         scope.launch {
@@ -76,14 +90,19 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
             )
         }
     ) {
+        val navBarInsets = WindowInsets.navigationBars.asPaddingValues()
+        val navBarBottom = navBarInsets.calculateBottomPadding()
+        // Bottom bar height (72dp bar + 8dp raised offset) + actual navigation bar inset
+        val bottomBarTotalHeight = 80.dp + navBarBottom
+
         Box(modifier = modifier.fillMaxSize().background(c.bg)) {
         // Content area
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .then(
-                    if (hideBottomBar) Modifier
-                    else Modifier.padding(bottom = 80.dp)
+                    if (hideBottomBar) Modifier.navigationBarsPadding()
+                    else Modifier.padding(bottom = bottomBarTotalHeight)
                 )
         ) {
             when (currentRoute) {
@@ -97,7 +116,12 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
                 "calendar" -> CalendarScreen(
                     onGoodDaysClick = { currentRoute = "gooddays" },
                     onSearchClick = { currentRoute = "search" },
-                    onMenuClick = toggleDrawer
+                    onMenuClick = toggleDrawer,
+                    onEditVisibilityChanged = { taskEditShowing = it },
+                    onAskAiClick = { day, month, year ->
+                        initialAiMessage = "Phân tích chi tiết ngày $day/$month/$year"
+                        currentRoute = "chat"
+                    }
                 )
                 "gooddays" -> GoodDaysScreen(
                     onBackClick = { currentRoute = "home" }
@@ -118,7 +142,8 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
                 )
                 "tasks" -> TasksScreen3(
                     onBackClick = { currentRoute = "home" },
-                    onMenuClick = toggleDrawer
+                    onMenuClick = toggleDrawer,
+                    onEditVisibilityChanged = { taskEditShowing = it }
                 )
                 "notifications" -> NotificationScreen(
                     onBackClick = { currentRoute = "home" }
@@ -133,7 +158,8 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
                 "history" -> ThisDayInHistoryScreen(onBackClick = { currentRoute = "home" })
                 "chat" -> AIChatScreen(
                     onBackClick = { currentRoute = "home" },
-                    onNavigateToProfile = { currentRoute = "profile" }
+                    onNavigateToProfile = { currentRoute = "profile" },
+                    initialMessage = initialAiMessage.also { initialAiMessage = null }
                 )
                 "settings" -> SettingsScreen(onBackClick = { currentRoute = "home" })
                 "search" -> SearchScreen(
@@ -163,10 +189,12 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
 
         // AI FAB — only show when bottom bar is visible
         if (!hideBottomBar) {
+            val navBarInsets = WindowInsets.navigationBars.asPaddingValues()
+            val fabBottom = 100.dp + navBarInsets.calculateBottomPadding()
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 100.dp)
+                    .padding(end = 16.dp, bottom = fabBottom)
             ) {
                 // Circle background + icon
                 Box(
@@ -278,31 +306,36 @@ private fun DrawerMenuContent(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // App logo
                     Image(
                         painter = painterResource(R.drawable.ic_launcher_foreground),
                         contentDescription = "Lịch Số",
                         modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(Color.White, CircleShape)
+                            .size(58.dp)
+                            .graphicsLayer {
+                                scaleX = 1.5f
+                                scaleY = 1.5f
+                            }
                     )
                     Column {
                         Text(
-                            "Lịch Vạn Niên",
+                            "Lịch Số",
                             style = TextStyle(
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
                         )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        // Line 2: tagline
                         Text(
-                            "Việt Nam",
+                            "Lịch vạn niên số 1 Việt Nam",
                             style = TextStyle(
-                                fontSize = 12.sp,
-                                color = Color.White.copy(alpha = 0.7f)
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.White.copy(alpha = 0.8f)
                             )
                         )
                     }

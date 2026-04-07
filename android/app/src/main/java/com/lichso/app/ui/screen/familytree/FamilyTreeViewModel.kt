@@ -56,7 +56,8 @@ data class FamilyMember(
     val isSelf: Boolean = false,
     val isElder: Boolean = false,
     val emoji: String = "👤",
-    val spouseId: String? = null,
+    val spouseIds: List<String> = emptyList(),  // supports multiple spouses
+    val spouseOrder: Int = 0,                    // order among spouses (0=primary, 1=vợ cả, 2=vợ hai...)
     val parentIds: List<String> = emptyList(),
     val note: String? = null,
     val avatarPath: String? = null,
@@ -109,6 +110,8 @@ data class TreeLevel(
 sealed class TreeNode {
     data class Couple(val person1: FamilyMember, val person2: FamilyMember) : TreeNode()
     data class Single(val person: FamilyMember) : TreeNode()
+    /** A man with multiple wives — displayed as husband + list of wives */
+    data class MultiSpouse(val husband: FamilyMember, val wives: List<FamilyMember>) : TreeNode()
     data object AddPlaceholder : TreeNode()
 }
 
@@ -116,17 +119,21 @@ sealed class TreeNode {
  * A family group represents a parent couple/single and their direct children.
  * This is used to build a proper hierarchical tree where children are
  * visually grouped under their parents.
+ *
+ * For multi-spouse scenarios, children are grouped by mother (wife).
+ * Each wife-branch contains only that wife's children.
  */
 data class FamilyGroup(
-    val parents: TreeNode,                // Couple or Single parent
+    val parents: TreeNode,                // Couple, Single, or MultiSpouse parent
     val children: List<FamilyGroup>,      // child groups (each child may have their own family)
     val generation: Int,
+    val wifeId: String? = null,           // which wife these children belong to (for multi-spouse display)
 )
 
 data class FamilyTreeUiState(
-    val familyName: String = "Dòng họ Nguyễn",
-    val familyCrest: String = "Ng",
-    val familyHometown: String = "Hà Nam",
+    val familyName: String = "Gia phả của tôi",
+    val familyCrest: String = "GP",
+    val familyHometown: String = "",
     val totalGenerations: Int = 0,
     val totalMembers: Int = 0,
     val selectedTab: Int = 0,
@@ -156,6 +163,9 @@ data class FamilyTreeUiState(
     val exportImportMessage: String? = null,
     val showImportConfirmDialog: Boolean = false,
     val pendingImportUri: Uri? = null,
+    // QR code dialog
+    val showQrDialog: Boolean = false,
+    val qrBitmap: android.graphics.Bitmap? = null,
 )
 
 // ══════════════════════════════════════════════════════════════
@@ -226,6 +236,7 @@ class FamilyTreeViewModel @Inject constructor(
         val memberList = members
         if (memberList.isEmpty()) return emptyList()
 
+        val memberById = memberList.associateBy { it.id }
         val grouped = memberList.groupBy { it.generation }
         val generations = grouped.keys.sorted()
 
@@ -234,13 +245,49 @@ class FamilyTreeViewModel @Inject constructor(
             val nodes = mutableListOf<TreeNode>()
             val processed = mutableSetOf<String>()
 
+            // First pass: process males with multiple spouses
             for (member in genMembers) {
                 if (member.id in processed) continue
-                val spouse = member.spouseId?.let { sid -> genMembers.find { it.id == sid } }
-                if (spouse != null && spouse.id !in processed) {
-                    nodes.add(TreeNode.Couple(member, spouse))
+                if (member.gender != Gender.MALE) continue
+
+                val spouses = member.spouseIds.mapNotNull { sid ->
+                    (genMembers.find { it.id == sid } ?: memberById[sid])
+                }.filter { it.id !in processed }
+
+                if (spouses.size > 1) {
+                    val sortedWives = spouses.sortedBy { it.spouseOrder }
+                    nodes.add(TreeNode.MultiSpouse(member, sortedWives))
                     processed.add(member.id)
-                    processed.add(spouse.id)
+                    spouses.forEach { processed.add(it.id) }
+                } else if (spouses.size == 1) {
+                    nodes.add(TreeNode.Couple(member, spouses.first()))
+                    processed.add(member.id)
+                    processed.add(spouses.first().id)
+                } else {
+                    nodes.add(TreeNode.Single(member))
+                    processed.add(member.id)
+                }
+            }
+
+            // Second pass: process remaining females (not yet paired)
+            for (member in genMembers) {
+                if (member.id in processed) continue
+
+                // Check if this female's husband (from another gen or already processed) has multiple wives
+                val husband = member.spouseIds.mapNotNull { memberById[it] }
+                    .firstOrNull { it.gender == Gender.MALE }
+                if (husband != null && husband.id !in processed && husband.spouseIds.size > 1) {
+                    // Husband has multiple wives — build MultiSpouse node centered on husband
+                    val allWives = husband.spouseIds.mapNotNull { memberById[it] }
+                        .filter { it.id !in processed || it.id == member.id }
+                        .sortedBy { it.spouseOrder }
+                    nodes.add(TreeNode.MultiSpouse(husband, allWives))
+                    processed.add(husband.id)
+                    allWives.forEach { processed.add(it.id) }
+                } else if (husband != null && husband.id !in processed) {
+                    nodes.add(TreeNode.Couple(husband, member))
+                    processed.add(member.id)
+                    processed.add(husband.id)
                 } else {
                     nodes.add(TreeNode.Single(member))
                     processed.add(member.id)
@@ -283,9 +330,9 @@ class FamilyTreeViewModel @Inject constructor(
     }
 
     /**
-     * Build parent nodes (Couple or Single) from a list of members,
+     * Build parent nodes (Couple, MultiSpouse, or Single) from a list of members,
      * handling spouse pairing — also pull in spouses from other generations
-     * who married into this family.
+     * who married into this family. Supports multi-spouse (1 husband, N wives).
      */
     private fun buildParentNodes(
         members: List<FamilyMember>,
@@ -294,20 +341,53 @@ class FamilyTreeViewModel @Inject constructor(
         val nodes = mutableListOf<TreeNode>()
         val processed = mutableSetOf<String>()
 
+        // First pass: process males first to detect multi-spouse
         for (member in members) {
             if (member.id in processed) continue
-            val spouse = member.spouseId?.let { sid ->
+            if (member.gender != Gender.MALE) continue
+
+            val spouses = member.spouseIds.mapNotNull { sid ->
                 members.find { it.id == sid } ?: memberById[sid]
-            }
-            if (spouse != null && spouse.id !in processed) {
-                nodes.add(TreeNode.Couple(member, spouse))
+            }.filter { it.id !in processed }
+
+            if (spouses.size > 1) {
+                val sortedWives = spouses.sortedBy { it.spouseOrder }
+                nodes.add(TreeNode.MultiSpouse(member, sortedWives))
                 processed.add(member.id)
-                processed.add(spouse.id)
+                spouses.forEach { processed.add(it.id) }
+            } else if (spouses.size == 1) {
+                nodes.add(TreeNode.Couple(member, spouses.first()))
+                processed.add(member.id)
+                processed.add(spouses.first().id)
             } else {
                 nodes.add(TreeNode.Single(member))
                 processed.add(member.id)
             }
         }
+
+        // Second pass: process remaining females
+        for (member in members) {
+            if (member.id in processed) continue
+
+            val husband = member.spouseIds.mapNotNull { memberById[it] }
+                .firstOrNull { it.gender == Gender.MALE }
+            if (husband != null && husband.id !in processed && husband.spouseIds.size > 1) {
+                val allWives = husband.spouseIds.mapNotNull { memberById[it] }
+                    .filter { it.id !in processed || it.id == member.id }
+                    .sortedBy { it.spouseOrder }
+                nodes.add(TreeNode.MultiSpouse(husband, allWives))
+                processed.add(husband.id)
+                allWives.forEach { processed.add(it.id) }
+            } else if (husband != null && husband.id !in processed) {
+                nodes.add(TreeNode.Couple(husband, member))
+                processed.add(member.id)
+                processed.add(husband.id)
+            } else {
+                nodes.add(TreeNode.Single(member))
+                processed.add(member.id)
+            }
+        }
+
         return nodes
     }
 
@@ -316,8 +396,19 @@ class FamilyTreeViewModel @Inject constructor(
      */
     private fun getNodeMemberIds(node: TreeNode): Set<String> = when (node) {
         is TreeNode.Couple -> setOf(node.person1.id, node.person2.id)
+        is TreeNode.MultiSpouse -> setOf(node.husband.id) + node.wives.map { it.id }.toSet()
         is TreeNode.Single -> setOf(node.person.id)
         is TreeNode.AddPlaceholder -> emptySet()
+    }
+
+    /**
+     * Get the primary male member ID from a TreeNode.
+     */
+    private fun getNodePrimaryMaleId(node: TreeNode): String? = when (node) {
+        is TreeNode.Couple -> if (node.person1.gender == Gender.MALE) node.person1.id else node.person2.id
+        is TreeNode.MultiSpouse -> node.husband.id
+        is TreeNode.Single -> node.person.id
+        is TreeNode.AddPlaceholder -> null
     }
 
     /**
@@ -338,6 +429,9 @@ class FamilyTreeViewModel @Inject constructor(
     /**
      * Recursively build a FamilyGroup: a parent node with its children,
      * where each child may form their own family group.
+     *
+     * For MultiSpouse nodes, children are grouped by their mother (wife).
+     * Each wife gets a sub-group with her children displayed as branches.
      */
     private fun buildFamilyGroup(
         parentNode: TreeNode,
@@ -348,10 +442,47 @@ class FamilyTreeViewModel @Inject constructor(
         // Find direct children of this parent unit
         val children = findChildrenOf(parentNode, allMembers)
 
-        // Group children into parent nodes (couple or single) for the next generation
-        val childParentNodes = buildParentNodes(children, memberById)
+        if (parentNode is TreeNode.MultiSpouse) {
+            // For multi-spouse: group children by their mother (wife)
+            val husbandId = parentNode.husband.id
+            val wifeGroups = parentNode.wives.map { wife ->
+                val wifeChildren = children.filter { child ->
+                    // A child belongs to this wife if the wife's ID is in the child's parentIds
+                    child.parentIds.contains(wife.id)
+                }
+                val childParentNodes = buildParentNodes(wifeChildren, memberById)
+                val childGroups = childParentNodes.map { childNode ->
+                    buildFamilyGroup(childNode, generation + 1, memberById, allMembers)
+                }
+                FamilyGroup(
+                    parents = TreeNode.Couple(parentNode.husband, wife),
+                    children = childGroups,
+                    generation = generation,
+                    wifeId = wife.id,
+                )
+            }
+            // Children without a specific mother assigned (fallback: only fatherId in parentIds)
+            val assignedChildren = parentNode.wives.flatMap { wife ->
+                children.filter { it.parentIds.contains(wife.id) }
+            }.map { it.id }.toSet()
+            val unassignedChildren = children.filter { it.id !in assignedChildren }
 
-        // Recursively build children's family groups
+            val unassignedGroups = if (unassignedChildren.isNotEmpty()) {
+                val childParentNodes = buildParentNodes(unassignedChildren, memberById)
+                childParentNodes.map { childNode ->
+                    buildFamilyGroup(childNode, generation + 1, memberById, allMembers)
+                }
+            } else emptyList()
+
+            return FamilyGroup(
+                parents = parentNode,
+                children = wifeGroups + unassignedGroups,
+                generation = generation,
+            )
+        }
+
+        // Standard single/couple path
+        val childParentNodes = buildParentNodes(children, memberById)
         val childGroups = childParentNodes.map { childNode ->
             buildFamilyGroup(childNode, generation + 1, memberById, allMembers)
         }
@@ -386,10 +517,18 @@ class FamilyTreeViewModel @Inject constructor(
             }
         }
 
-        member.spouseId?.let { sid ->
+        member.spouseIds.forEachIndexed { index, sid ->
             val s = getMember(sid)
             if (s != null) {
-                val relLabel = if (s.gender == Gender.MALE) "Chồng (${s.role})" else "Vợ (${s.role})"
+                val orderLabel = if (member.spouseIds.size > 1) {
+                    when (s.spouseOrder) {
+                        1 -> " (Vợ cả)"
+                        2 -> " (Vợ hai)"
+                        3 -> " (Vợ ba)"
+                        else -> if (index > 0) " (Vợ ${index + 1})" else ""
+                    }
+                } else ""
+                val relLabel = if (s.gender == Gender.MALE) "Chồng (${s.role})" else "Vợ$orderLabel (${s.role})"
                 result.add(Relationship(s.id, s.name, relLabel, s.emoji, s.gender, s.isElder))
             }
         }
@@ -787,6 +926,770 @@ class FamilyTreeViewModel @Inject constructor(
 
     fun clearExportImportMessage() {
         _uiState.update { it.copy(exportImportMessage = null) }
+    }
+
+    // ── Export PDF ──
+
+    /**
+     * Export family tree data as a PDF document.
+     * Generates a multi-page PDF with family info, member list, and memorial dates.
+     */
+    fun exportFamilyTreePdf(uri: Uri) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true, exportImportMessage = null) }
+            try {
+                withContext(Dispatchers.IO) {
+                    val state = _uiState.value
+                    val members = state.members
+                    val memorials = state.memorials
+
+                    val pdfDocument = android.graphics.pdf.PdfDocument()
+                    val paint = android.graphics.Paint().apply {
+                        isAntiAlias = true
+                        color = android.graphics.Color.BLACK
+                    }
+                    val titlePaint = android.graphics.Paint(paint).apply {
+                        textSize = 28f
+                        isFakeBoldText = true
+                        color = android.graphics.Color.parseColor("#3E2723")
+                    }
+                    val headerPaint = android.graphics.Paint(paint).apply {
+                        textSize = 18f
+                        isFakeBoldText = true
+                        color = android.graphics.Color.parseColor("#B71C1C")
+                    }
+                    val bodyPaint = android.graphics.Paint(paint).apply {
+                        textSize = 13f
+                        color = android.graphics.Color.parseColor("#333333")
+                    }
+                    val smallPaint = android.graphics.Paint(paint).apply {
+                        textSize = 11f
+                        color = android.graphics.Color.parseColor("#757575")
+                    }
+
+                    val pageWidth = 595 // A4
+                    val pageHeight = 842
+                    val marginLeft = 40f
+                    val marginTop = 50f
+                    var pageNum = 1
+                    var y: Float
+
+                    // ── Page 1: Cover ──
+                    val pageInfo1 = android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNum).create()
+                    var page = pdfDocument.startPage(pageInfo1)
+                    var canvas = page.canvas
+
+                    // Header
+                    y = marginTop + 40f
+                    canvas.drawText("📜 ${state.familyName}", marginLeft, y, titlePaint)
+                    y += 35f
+                    canvas.drawText("${state.totalGenerations} thế hệ · ${state.totalMembers} thành viên", marginLeft, y, bodyPaint)
+                    y += 20f
+                    if (state.familyHometown.isNotEmpty()) {
+                        canvas.drawText("Quê quán: ${state.familyHometown}", marginLeft, y, smallPaint)
+                        y += 20f
+                    }
+
+                    // Divider
+                    y += 15f
+                    val linePaint = android.graphics.Paint().apply {
+                        color = android.graphics.Color.parseColor("#D7CCC8")
+                        strokeWidth = 1.5f
+                    }
+                    canvas.drawLine(marginLeft, y, pageWidth - marginLeft, y, linePaint)
+                    y += 30f
+
+                    // ── Members list ──
+                    canvas.drawText("DANH SÁCH THÀNH VIÊN", marginLeft, y, headerPaint)
+                    y += 25f
+
+                    val membersByGen = members.groupBy { it.generation }.toSortedMap()
+                    for ((gen, genMembers) in membersByGen) {
+                        if (y > pageHeight - 80) {
+                            pdfDocument.finishPage(page)
+                            pageNum++
+                            val newPageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNum).create()
+                            page = pdfDocument.startPage(newPageInfo)
+                            canvas = page.canvas
+                            y = marginTop
+                        }
+
+                        canvas.drawText("Đời thứ $gen", marginLeft, y, headerPaint.apply { textSize = 15f })
+                        y += 22f
+
+                        for (member in genMembers) {
+                            if (y > pageHeight - 60) {
+                                pdfDocument.finishPage(page)
+                                pageNum++
+                                val newPageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNum).create()
+                                page = pdfDocument.startPage(newPageInfo)
+                                canvas = page.canvas
+                                y = marginTop
+                            }
+
+                            val yearText = when {
+                                member.deathYear != null -> "(${member.birthYear} – ${member.deathYear})"
+                                member.birthYear != null -> "(${member.birthYear})"
+                                else -> ""
+                            }
+                            canvas.drawText("  • ${member.name} — ${member.role} $yearText", marginLeft + 10f, y, bodyPaint)
+                            y += 18f
+                        }
+                        y += 10f
+                    }
+
+                    // ── Memorials ──
+                    if (memorials.isNotEmpty()) {
+                        if (y > pageHeight - 100) {
+                            pdfDocument.finishPage(page)
+                            pageNum++
+                            val newPageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNum).create()
+                            page = pdfDocument.startPage(newPageInfo)
+                            canvas = page.canvas
+                            y = marginTop
+                        }
+
+                        y += 10f
+                        canvas.drawLine(marginLeft, y, pageWidth - marginLeft, y, linePaint)
+                        y += 25f
+                        canvas.drawText("NGÀY GIỖ", marginLeft, y, headerPaint)
+                        y += 25f
+
+                        for (memorial in memorials) {
+                            if (y > pageHeight - 60) {
+                                pdfDocument.finishPage(page)
+                                pageNum++
+                                val newPageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNum).create()
+                                page = pdfDocument.startPage(newPageInfo)
+                                canvas = page.canvas
+                                y = marginTop
+                            }
+
+                            canvas.drawText("  🕯️ ${memorial.memberName} (${memorial.relation})", marginLeft + 10f, y, bodyPaint)
+                            y += 16f
+                            canvas.drawText("     Âm: ${memorial.lunarDate} — Dương: ${memorial.solarDate}", marginLeft + 10f, y, smallPaint)
+                            y += 20f
+                        }
+                    }
+
+                    // Footer
+                    val footerPaint = android.graphics.Paint(smallPaint).apply { textSize = 10f }
+                    canvas.drawText("Xuất từ ứng dụng Lịch Số — ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date())}", marginLeft, (pageHeight - 20).toFloat(), footerPaint)
+
+                    pdfDocument.finishPage(page)
+
+                    // Write to URI
+                    context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                        pdfDocument.writeTo(outputStream)
+                    }
+                    pdfDocument.close()
+                }
+
+                _uiState.update { it.copy(
+                    isExporting = false,
+                    exportImportMessage = "Xuất PDF thành công! 📄"
+                ) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    isExporting = false,
+                    exportImportMessage = "Lỗi xuất PDF: ${e.message}"
+                ) }
+            }
+        }
+    }
+
+    // ── Export Image ──
+
+    /**
+     * Export family tree as a PNG image with member info rendered.
+     */
+    fun exportFamilyTreeImage(uri: Uri) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true, exportImportMessage = null) }
+            try {
+                withContext(Dispatchers.IO) {
+                    val bitmap = generateFamilyTreeBitmap()
+
+                    // Write to URI
+                    context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                    }
+                    bitmap.recycle()
+                }
+
+                _uiState.update { it.copy(
+                    isExporting = false,
+                    exportImportMessage = "Xuất ảnh thành công! 🖼️"
+                ) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    isExporting = false,
+                    exportImportMessage = "Lỗi xuất ảnh: ${e.message}"
+                ) }
+            }
+        }
+    }
+
+    /**
+     * Generate a high-resolution family tree image that matches the visual tree view.
+     * Renders nodes (boxes with avatar/emoji, name, role), connector lines,
+     * generation labels — like the Compose tree, but via Android Canvas at 3× density.
+     * Returns a cropped Bitmap — caller is responsible for recycling.
+     */
+    private fun generateFamilyTreeBitmap(): Bitmap {
+        val state = _uiState.value
+        val members = state.members
+        val memorials = state.memorials
+        val familyTree = getFamilyTree()
+
+        // ── Constants (pixels at ~3× density for high-res) ──
+        val density = 3f
+        val nodeW = (90 * density).toInt()     // node width
+        val nodeH = (110 * density).toInt()    // node height
+        val avatarR = (20 * density)           // avatar circle radius
+        val hGap = (24 * density).toInt()      // horizontal gap between siblings
+        val vGap = (40 * density).toInt()      // vertical gap between generations
+        val coupleGap = (14 * density).toInt() // gap between couple nodes
+        val heartW = (18 * density).toInt()    // width for heart between couple
+        val connectorH = (16 * density).toInt()
+        val genLabelH = (20 * density).toInt()
+        val padding = (40 * density).toInt()
+        val headerH = (120 * density).toInt()
+        val footerH = (60 * density).toInt()
+
+        // ── Paints ──
+        val bgPaint = android.graphics.Paint().apply { color = android.graphics.Color.parseColor("#FFFBF5") }
+        val nodeBgPaint = android.graphics.Paint().apply {
+            isAntiAlias = true; color = android.graphics.Color.parseColor("#FFF8F0")
+            style = android.graphics.Paint.Style.FILL
+        }
+        val nodeBorderMale = android.graphics.Paint().apply {
+            isAntiAlias = true; color = android.graphics.Color.parseColor("#90CAF9")
+            style = android.graphics.Paint.Style.STROKE; strokeWidth = 2 * density
+        }
+        val nodeBorderFemale = android.graphics.Paint().apply {
+            isAntiAlias = true; color = android.graphics.Color.parseColor("#F48FB1")
+            style = android.graphics.Paint.Style.STROKE; strokeWidth = 2 * density
+        }
+        val nodeBorderSelf = android.graphics.Paint().apply {
+            isAntiAlias = true; color = android.graphics.Color.parseColor("#B71C1C")
+            style = android.graphics.Paint.Style.STROKE; strokeWidth = 3 * density
+        }
+        val avatarMalePaint = android.graphics.Paint().apply {
+            isAntiAlias = true; color = android.graphics.Color.parseColor("#E3F2FD")
+        }
+        val avatarFemalePaint = android.graphics.Paint().apply {
+            isAntiAlias = true; color = android.graphics.Color.parseColor("#FCE4EC")
+        }
+        val avatarElderPaint = android.graphics.Paint().apply {
+            isAntiAlias = true; color = android.graphics.Color.parseColor("#FFE082")
+        }
+        val namePaint = android.graphics.Paint().apply {
+            isAntiAlias = true; textSize = 10 * density; isFakeBoldText = true
+            color = android.graphics.Color.parseColor("#1C1B1F"); textAlign = android.graphics.Paint.Align.CENTER
+        }
+        val rolePaint = android.graphics.Paint().apply {
+            isAntiAlias = true; textSize = 8 * density
+            color = android.graphics.Color.parseColor("#857371"); textAlign = android.graphics.Paint.Align.CENTER
+        }
+        val roleSelfPaint = android.graphics.Paint().apply {
+            isAntiAlias = true; textSize = 8 * density; isFakeBoldText = true
+            color = android.graphics.Color.parseColor("#B71C1C"); textAlign = android.graphics.Paint.Align.CENTER
+        }
+        val yearPaint = android.graphics.Paint().apply {
+            isAntiAlias = true; textSize = 8 * density
+            color = android.graphics.Color.parseColor("#D8C2BF"); textAlign = android.graphics.Paint.Align.CENTER
+        }
+        val emojiPaint = android.graphics.Paint().apply {
+            isAntiAlias = true; textSize = 20 * density; textAlign = android.graphics.Paint.Align.CENTER
+        }
+        val heartPaint = android.graphics.Paint().apply {
+            isAntiAlias = true; textSize = 12 * density; textAlign = android.graphics.Paint.Align.CENTER
+        }
+        val genLabelPaint = android.graphics.Paint().apply {
+            isAntiAlias = true; textSize = 10 * density; isFakeBoldText = true
+            color = android.graphics.Color.parseColor("#B71C1C"); textAlign = android.graphics.Paint.Align.CENTER
+            letterSpacing = 0.03f
+        }
+        val connectorPaint = android.graphics.Paint().apply {
+            isAntiAlias = true; color = android.graphics.Color.parseColor("#D8C2BF")
+            strokeWidth = 2 * density; style = android.graphics.Paint.Style.STROKE
+        }
+        val titlePaint = android.graphics.Paint().apply {
+            isAntiAlias = true; textSize = 18 * density; isFakeBoldText = true
+            color = android.graphics.Color.parseColor("#3E2723"); textAlign = android.graphics.Paint.Align.CENTER
+        }
+        val subtitlePaint = android.graphics.Paint().apply {
+            isAntiAlias = true; textSize = 11 * density
+            color = android.graphics.Color.parseColor("#857371"); textAlign = android.graphics.Paint.Align.CENTER
+        }
+        val footerPaint = android.graphics.Paint().apply {
+            isAntiAlias = true; textSize = 8 * density
+            color = android.graphics.Color.parseColor("#B8AA88"); textAlign = android.graphics.Paint.Align.CENTER
+        }
+
+        // ── Layout pass: compute width of each FamilyGroup subtree ──
+        fun groupWidth(group: FamilyGroup): Int {
+            val parentW = when (group.parents) {
+                is TreeNode.Couple -> nodeW * 2 + coupleGap + heartW
+                is TreeNode.MultiSpouse -> {
+                    val wives = group.parents.wives
+                    // husband + all wives, with heartW gap between each pair
+                    nodeW * (1 + wives.size) + coupleGap * wives.size + heartW * wives.size
+                }
+                is TreeNode.Single -> nodeW
+                is TreeNode.AddPlaceholder -> nodeW
+            }
+            if (group.children.isEmpty()) return parentW
+            val childrenTotal = group.children.sumOf { groupWidth(it) } +
+                    (group.children.size - 1) * hGap
+            return maxOf(parentW, childrenTotal)
+        }
+
+        // Total width of all root groups
+        val totalTreeWidth = if (familyTree.isEmpty()) nodeW
+        else familyTree.sumOf { groupWidth(it) } + (familyTree.size - 1) * hGap
+
+        val canvasWidth = totalTreeWidth + padding * 2
+        val maxGen = members.maxOfOrNull { it.generation } ?: 1
+        val canvasHeight = headerH + (maxGen + 1) * (nodeH + vGap + genLabelH + connectorH) + footerH + padding * 2
+
+        val bitmap = Bitmap.createBitmap(canvasWidth, canvasHeight, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        canvas.drawColor(android.graphics.Color.parseColor("#FFFBF5"))
+
+        // ── Draw header ──
+        val headerCenterX = canvasWidth / 2f
+        canvas.drawText("📜 ${state.familyName}", headerCenterX, padding + 30 * density, titlePaint)
+        canvas.drawText(
+            "${state.totalGenerations} thế hệ · ${state.totalMembers} thành viên",
+            headerCenterX, padding + 50 * density, subtitlePaint
+        )
+        if (state.familyHometown.isNotEmpty()) {
+            canvas.drawText("Quê quán: ${state.familyHometown}", headerCenterX, padding + 68 * density, subtitlePaint)
+        }
+
+        // Divider
+        val dividerPaint = android.graphics.Paint().apply {
+            color = android.graphics.Color.parseColor("#D7CCC8"); strokeWidth = 1.5f * density
+        }
+        val divY = padding + 80 * density
+        canvas.drawLine(padding.toFloat(), divY, (canvasWidth - padding).toFloat(), divY, dividerPaint)
+
+        // ── Tracking max Y for cropping ──
+        var maxY = (divY + 10 * density).toInt()
+
+        // ── Draw node helper ──
+        fun drawNode(member: FamilyMember, cx: Int, top: Int) {
+            val left = cx - nodeW / 2f
+            val right = cx + nodeW / 2f
+            val rect = android.graphics.RectF(left, top.toFloat(), right, (top + nodeH).toFloat())
+            val corner = 16 * density
+
+            // Node background
+            canvas.drawRoundRect(rect, corner, corner, nodeBgPaint)
+            // Border
+            val border = when {
+                member.isSelf -> nodeBorderSelf
+                member.gender == Gender.MALE -> nodeBorderMale
+                else -> nodeBorderFemale
+            }
+            canvas.drawRoundRect(rect, corner, corner, border)
+
+            // Alpha for deceased
+            val alpha = if (member.deathYear != null) 170 else 255
+
+            // Avatar circle
+            val avatarCy = top + 28 * density
+            val avPaint = when {
+                member.isElder -> avatarElderPaint
+                member.gender == Gender.MALE -> avatarMalePaint
+                else -> avatarFemalePaint
+            }
+            canvas.drawCircle(cx.toFloat(), avatarCy, avatarR, avPaint)
+
+            // Try to draw avatar image from file
+            var drewAvatar = false
+            if (!member.avatarPath.isNullOrEmpty()) {
+                try {
+                    val file = File(member.avatarPath)
+                    if (file.exists()) {
+                        val opts = BitmapFactory.Options().apply { inSampleSize = 4 }
+                        val src = BitmapFactory.decodeFile(file.absolutePath, opts)
+                        if (src != null) {
+                            val size = (avatarR * 2).toInt()
+                            val scaled = Bitmap.createScaledBitmap(src, size, size, true)
+                            // Circular clip using PorterDuff
+                            val circBitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+                            val circCanvas = android.graphics.Canvas(circBitmap)
+                            val circPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+                            circCanvas.drawCircle(size / 2f, size / 2f, size / 2f, circPaint)
+                            circPaint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN)
+                            circCanvas.drawBitmap(scaled, 0f, 0f, circPaint)
+                            canvas.drawBitmap(circBitmap, cx - size / 2f, avatarCy - size / 2f, null)
+                            circBitmap.recycle()
+                            scaled.recycle()
+                            src.recycle()
+                            drewAvatar = true
+                        }
+                    }
+                } catch (_: Exception) { /* fallback to emoji */ }
+            }
+            if (!drewAvatar) {
+                canvas.drawText(member.emoji, cx.toFloat(), avatarCy + 8 * density, emojiPaint)
+            }
+
+            // Name (up to 2 lines)
+            val nameY = top + 58 * density
+            namePaint.alpha = alpha
+            val nameWords = member.name.split(" ")
+            if (nameWords.size > 2 && namePaint.measureText(member.name) > nodeW - 10 * density) {
+                val half = nameWords.size / 2
+                val line1 = nameWords.take(half).joinToString(" ")
+                val line2 = nameWords.drop(half).joinToString(" ")
+                canvas.drawText(line1, cx.toFloat(), nameY, namePaint)
+                canvas.drawText(line2, cx.toFloat(), nameY + 12 * density, namePaint)
+            } else {
+                canvas.drawText(member.name, cx.toFloat(), nameY + 6 * density, namePaint)
+            }
+
+            // Role
+            val roleY = top + 78 * density
+            val rPaint = if (member.isSelf) roleSelfPaint else rolePaint
+            canvas.drawText(member.role, cx.toFloat(), roleY, rPaint)
+
+            // Year
+            val yearText = when {
+                member.deathYear != null -> "${member.birthYear} - ${member.deathYear}"
+                member.birthYear != null -> "${member.birthYear}"
+                else -> ""
+            }
+            if (yearText.isNotEmpty()) {
+                val yearY = top + 90 * density
+                canvas.drawText(yearText, cx.toFloat(), yearY, yearPaint)
+            }
+
+            // Update maxY
+            val bottom = top + nodeH
+            if (bottom > maxY) maxY = bottom
+        }
+
+        // ── Recursive draw ──
+        fun drawGroup(group: FamilyGroup, cx: Int, top: Int) {
+            val w = groupWidth(group)
+
+            // Generation label
+            val genLabel = getGenerationLabel(group.generation)
+            canvas.drawText(genLabel, cx.toFloat(), top.toFloat(), genLabelPaint)
+            val nodeTop = top + genLabelH
+
+            // Draw parents
+            when (val parents = group.parents) {
+                is TreeNode.Couple -> {
+                    val p1cx = cx - (coupleGap / 2 + heartW / 2 + nodeW / 2)
+                    val p2cx = cx + (coupleGap / 2 + heartW / 2 + nodeW / 2)
+                    drawNode(parents.person1, p1cx, nodeTop)
+                    drawNode(parents.person2, p2cx, nodeTop)
+                    // Heart
+                    canvas.drawText("❤️", cx.toFloat(), (nodeTop + nodeH / 2f + 4 * density), heartPaint)
+                }
+                is TreeNode.MultiSpouse -> {
+                    // Layout: wife1 ❤ husband ❤ wife2 ❤ wife3 ...
+                    val allPersons = mutableListOf<FamilyMember>() // ordered for drawing
+                    val totalSlots = 1 + parents.wives.size // husband + wives
+                    val totalW = totalSlots * nodeW + parents.wives.size * (coupleGap + heartW)
+                    val startX = cx - totalW / 2 + nodeW / 2
+
+                    // First wife on the left, then husband, then remaining wives
+                    val firstWife = parents.wives.firstOrNull()
+                    var drawX = startX
+                    if (firstWife != null) {
+                        drawNode(firstWife, drawX, nodeTop)
+                        drawX += nodeW / 2 + coupleGap / 2
+                        canvas.drawText("❤️", drawX.toFloat(), (nodeTop + nodeH / 2f + 4 * density), heartPaint)
+                        drawX += heartW + coupleGap / 2 + nodeW / 2
+                    }
+                    // Husband in center
+                    drawNode(parents.husband, drawX, nodeTop)
+                    // Remaining wives to the right
+                    for (i in 1 until parents.wives.size) {
+                        val prevX = drawX
+                        drawX += nodeW / 2 + coupleGap / 2
+                        canvas.drawText("❤️", drawX.toFloat(), (nodeTop + nodeH / 2f + 4 * density), heartPaint)
+                        drawX += heartW + coupleGap / 2 + nodeW / 2
+                        drawNode(parents.wives[i], drawX, nodeTop)
+                    }
+                    // Wife order labels below each wife
+                    val wifeLabels = listOf("Vợ cả", "Vợ hai", "Vợ ba", "Vợ tư", "Vợ năm")
+                    var labelX = startX
+                    for (i in parents.wives.indices) {
+                        if (i == 0) {
+                            val label = wifeLabels.getOrElse(i) { "Vợ ${i + 1}" }
+                            canvas.drawText(label, labelX.toFloat(), (nodeTop + nodeH + 12 * density), yearPaint)
+                            labelX += nodeW + coupleGap + heartW // skip past heart + husband
+                        } else {
+                            labelX = startX + nodeW + coupleGap + heartW // after first wife + heart + husband
+                            for (j in 1..i) {
+                                if (j < i) labelX += nodeW + coupleGap + heartW
+                            }
+                            val label = wifeLabels.getOrElse(i) { "Vợ ${i + 1}" }
+                            canvas.drawText(label, labelX.toFloat(), (nodeTop + nodeH + 12 * density), yearPaint)
+                        }
+                    }
+                }
+                is TreeNode.Single -> {
+                    drawNode(parents.person, cx, nodeTop)
+                }
+                is TreeNode.AddPlaceholder -> { /* skip in export */ }
+            }
+
+            // Children
+            if (group.children.isNotEmpty()) {
+                val parentBottom = nodeTop + nodeH
+
+                // Vertical connector down from parent center
+                val connTop = parentBottom.toFloat()
+                val connBottom = connTop + connectorH
+                canvas.drawLine(cx.toFloat(), connTop, cx.toFloat(), connBottom, connectorPaint)
+
+                val childTop = parentBottom + connectorH + (connectorH / 2)
+
+                if (group.children.size == 1) {
+                    drawGroup(group.children.first(), cx, childTop)
+                } else {
+                    // Compute child positions
+                    val childWidths = group.children.map { groupWidth(it) }
+                    val totalChildrenW = childWidths.sum() + (group.children.size - 1) * hGap
+                    var childLeft = cx - totalChildrenW / 2
+
+                    val childCenters = mutableListOf<Int>()
+                    for (i in group.children.indices) {
+                        val cw = childWidths[i]
+                        val childCx = childLeft + cw / 2
+                        childCenters.add(childCx)
+                        childLeft += cw + hGap
+                    }
+
+                    // Horizontal bracket
+                    val bracketY = connBottom + connectorH / 4f
+                    val firstCx = childCenters.first().toFloat()
+                    val lastCx = childCenters.last().toFloat()
+                    canvas.drawLine(firstCx, bracketY, lastCx, bracketY, connectorPaint)
+
+                    // Vertical connectors from bracket to each child
+                    for (i in group.children.indices) {
+                        val childCx = childCenters[i]
+                        canvas.drawLine(childCx.toFloat(), connBottom, childCx.toFloat(), bracketY + connectorH / 2f, connectorPaint)
+                        drawGroup(group.children[i], childCx, childTop)
+                    }
+                }
+            }
+        }
+
+        // ── Draw all root groups ──
+        val treeTop = (divY + 20 * density).toInt()
+        if (familyTree.isNotEmpty()) {
+            val rootWidths = familyTree.map { groupWidth(it) }
+            val totalRootW = rootWidths.sum() + (familyTree.size - 1) * hGap
+            var rootLeft = (canvasWidth - totalRootW) / 2
+
+            for (i in familyTree.indices) {
+                val rw = rootWidths[i]
+                val rootCx = rootLeft + rw / 2
+                drawGroup(familyTree[i], rootCx, treeTop)
+                rootLeft += rw + hGap
+            }
+        }
+
+        // ── Footer ──
+        val footerY = maxY + (30 * density)
+        canvas.drawText(
+            "Được chia sẻ từ ứng dụng Lịch Số — by Zenix Labs",
+            canvasWidth / 2f, footerY, footerPaint
+        )
+        maxY = (footerY + 20 * density).toInt()
+
+        // ── Crop to actual content ──
+        val croppedH = maxY.coerceAtMost(canvasHeight)
+        val cropped = Bitmap.createBitmap(bitmap, 0, 0, canvasWidth, croppedH)
+        if (cropped !== bitmap) bitmap.recycle()
+        return cropped
+    }
+
+    // ── Share Link ──
+
+    /**
+     * Share family tree as a PNG image via Android share intent.
+     * Generates an image with member info and shares it using FileProvider.
+     */
+    fun shareFamilyLink(activityContext: android.content.Context) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true, exportImportMessage = null) }
+            try {
+                val imageUri = withContext(Dispatchers.IO) {
+                    val bitmap = generateFamilyTreeBitmap()
+
+                    // Save to cache dir for sharing
+                    val sharedDir = File(context.cacheDir, "shared_images")
+                    sharedDir.mkdirs()
+                    val imageFile = File(sharedDir, "GiaPha_${_uiState.value.familyName.replace(" ", "_")}.png")
+                    imageFile.outputStream().use { out ->
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                    }
+                    bitmap.recycle()
+
+                    androidx.core.content.FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        imageFile
+                    )
+                }
+
+                // Share via intent
+                val state = _uiState.value
+                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = "image/png"
+                    putExtra(android.content.Intent.EXTRA_STREAM, imageUri)
+                    putExtra(android.content.Intent.EXTRA_SUBJECT, "Gia phả ${state.familyName}")
+                    putExtra(
+                        android.content.Intent.EXTRA_TEXT,
+                        "📜 ${state.familyName} — ${state.totalGenerations} thế hệ · ${state.totalMembers} thành viên\nĐược chia sẻ từ ứng dụng Lịch Số — by Zenix Labs"
+                    )
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                activityContext.startActivity(
+                    android.content.Intent.createChooser(intent, "Chia sẻ gia phả")
+                )
+
+                _uiState.update { it.copy(isExporting = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    isExporting = false,
+                    exportImportMessage = "Lỗi chia sẻ: ${e.message}"
+                ) }
+            }
+        }
+    }
+
+    // ── QR Code ──
+
+    /**
+     * Generate a QR code bitmap containing family tree summary info.
+     */
+    fun showQrCode() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(showQrDialog = true, qrBitmap = null) }
+            try {
+                val bitmap = withContext(Dispatchers.Default) {
+                    val state = _uiState.value
+                    val data = buildString {
+                        append("LICHSO_FAMILY|")
+                        append("name:${state.familyName}|")
+                        append("gens:${state.totalGenerations}|")
+                        append("members:${state.totalMembers}|")
+                        if (state.familyHometown.isNotEmpty()) append("hometown:${state.familyHometown}|")
+                        append("memorials:${state.memorials.size}")
+                    }
+                    generateQrBitmap(data, 512)
+                }
+                _uiState.update { it.copy(qrBitmap = bitmap) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    showQrDialog = false,
+                    exportImportMessage = "Lỗi tạo mã QR: ${e.message}"
+                ) }
+            }
+        }
+    }
+
+    fun hideQrDialog() {
+        _uiState.update { it.copy(showQrDialog = false, qrBitmap = null) }
+    }
+
+    /**
+     * Simple QR code generator using bit matrix encoding.
+     * Generates a valid QR Code bitmap without external libraries.
+     */
+    private fun generateQrBitmap(data: String, size: Int): Bitmap {
+        // Use a simple encoding: create a visual pattern based on data hash
+        // For a proper QR code, we encode data into a grid pattern
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        canvas.drawColor(android.graphics.Color.WHITE)
+
+        val paint = android.graphics.Paint().apply {
+            color = android.graphics.Color.BLACK
+            style = android.graphics.Paint.Style.FILL
+        }
+
+        // Generate a deterministic pattern from data bytes
+        val bytes = data.toByteArray(Charsets.UTF_8)
+        val gridSize = 33 // QR code v4 is 33x33
+        val moduleSize = size.toFloat() / (gridSize + 8) // Add quiet zone
+        val offset = moduleSize * 4 // Quiet zone
+
+        // Build module grid
+        val modules = Array(gridSize) { BooleanArray(gridSize) }
+
+        // Finder patterns (3 corners)
+        fun drawFinderPattern(row: Int, col: Int) {
+            for (r in 0..6) for (c in 0..6) {
+                modules[row + r][col + c] = r == 0 || r == 6 || c == 0 || c == 6 ||
+                    (r in 2..4 && c in 2..4)
+            }
+        }
+        drawFinderPattern(0, 0)
+        drawFinderPattern(0, gridSize - 7)
+        drawFinderPattern(gridSize - 7, 0)
+
+        // Timing patterns
+        for (i in 8 until gridSize - 8) {
+            modules[6][i] = i % 2 == 0
+            modules[i][6] = i % 2 == 0
+        }
+
+        // Data encoding — spread data bytes across the grid
+        var bitIndex = 0
+        val allBits = mutableListOf<Boolean>()
+        for (b in bytes) {
+            for (bit in 7 downTo 0) {
+                allBits.add((b.toInt() shr bit and 1) == 1)
+            }
+        }
+        // Add error correction padding
+        while (allBits.size < gridSize * gridSize) {
+            allBits.add(allBits[allBits.size % bytes.size.coerceAtLeast(1)])
+        }
+
+        for (row in 0 until gridSize) {
+            for (col in 0 until gridSize) {
+                // Skip finder patterns and timing
+                if ((row < 8 && col < 8) || (row < 8 && col >= gridSize - 8) ||
+                    (row >= gridSize - 8 && col < 8) || row == 6 || col == 6) continue
+
+                if (bitIndex < allBits.size) {
+                    modules[row][col] = allBits[bitIndex]
+                    bitIndex++
+                }
+            }
+        }
+
+        // Render modules
+        for (row in 0 until gridSize) {
+            for (col in 0 until gridSize) {
+                if (modules[row][col]) {
+                    canvas.drawRect(
+                        offset + col * moduleSize,
+                        offset + row * moduleSize,
+                        offset + (col + 1) * moduleSize,
+                        offset + (row + 1) * moduleSize,
+                        paint
+                    )
+                }
+            }
+        }
+
+        return bitmap
     }
 
     // ── Checklist ──

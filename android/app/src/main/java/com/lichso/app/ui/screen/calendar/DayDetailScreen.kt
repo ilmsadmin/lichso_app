@@ -1022,15 +1022,11 @@ private fun QuoteCard() {
     }
     val quoteBorder = if (c.isDark) Color(0xFFFFE082).copy(alpha = 0.2f) else Color(0xFFFFE082)
 
-    // Danh sách tục ngữ / ca dao
-    val quotes = listOf(
-        "Thuận vợ thuận chồng, tát Biển Đông cũng cạn" to "Tục ngữ Việt Nam",
-        "Có công mài sắt, có ngày nên kim" to "Tục ngữ Việt Nam",
-        "Đất lành chim đậu" to "Tục ngữ Việt Nam",
-        "Uống nước nhớ nguồn" to "Tục ngữ Việt Nam",
-        "Một cây làm chẳng nên non, ba cây chụm lại nên hòn núi cao" to "Ca dao Việt Nam"
-    )
-    val (quoteText, quoteAuthor) = remember { quotes.random() }
+    // Lấy ngẫu nhiên từ thư viện ca dao, tục ngữ, thành ngữ, câu nói nổi tiếng
+    val (quoteText, quoteAuthor) = remember {
+        val dayOfYear = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR)
+        com.lichso.app.data.VietnameseQuotes.ofDay(dayOfYear)
+    }
 
     Column(
         modifier = Modifier

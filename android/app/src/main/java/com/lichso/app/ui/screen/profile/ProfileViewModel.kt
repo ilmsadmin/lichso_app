@@ -521,7 +521,14 @@ class ProfileViewModel @Inject constructor(
                     val avatarDir = File(context.filesDir, "avatars")
                     if (!avatarDir.exists()) avatarDir.mkdirs()
 
-                    val destFile = File(avatarDir, "profile_avatar.jpg")
+                    // Use timestamp in filename to bust Coil image cache
+                    val ts = System.currentTimeMillis()
+                    val destFile = File(avatarDir, "profile_avatar_$ts.jpg")
+
+                    // Delete old avatar files
+                    avatarDir.listFiles()?.filter {
+                        it.name.startsWith("profile_avatar") && it != destFile
+                    }?.forEach { it.delete() }
 
                     context.contentResolver.openInputStream(uri)?.use { input ->
                         destFile.outputStream().use { output ->
@@ -544,8 +551,10 @@ class ProfileViewModel @Inject constructor(
     fun removeAvatar() {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                val file = File(context.filesDir, "avatars/profile_avatar.jpg")
-                if (file.exists()) file.delete()
+                val avatarDir = File(context.filesDir, "avatars")
+                avatarDir.listFiles()?.filter {
+                    it.name.startsWith("profile_avatar")
+                }?.forEach { it.delete() }
             }
             dataStore.edit { prefs ->
                 prefs.remove(ProfileKeys.AVATAR_PATH)

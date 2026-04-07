@@ -61,6 +61,18 @@ fun SearchScreen(
     var lunarMonthInput by remember { mutableStateOf("") }
     var conversionResult by remember { mutableStateOf<LunarConversion?>(null) }
 
+    // Go-to-date dialog state
+    var showGoToDateDialog by remember { mutableStateOf(false) }
+    var goToDay by remember { mutableStateOf("") }
+    var goToMonth by remember { mutableStateOf("") }
+    var goToYear by remember { mutableStateOf("") }
+
+    // Zodiac compatibility state
+    var showZodiacDialog by remember { mutableStateOf(false) }
+    var zodiacYear1 by remember { mutableStateOf("") }
+    var zodiacYear2 by remember { mutableStateOf("") }
+    var zodiacResult by remember { mutableStateOf<ZodiacCompatResult?>(null) }
+
     // Auto-focus search bar
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -99,9 +111,13 @@ fun SearchScreen(
             QuickActionsSection(
                 onConvertClick = { showLunarConverter = !showLunarConverter },
                 onGoodDaysClick = onGoodDaysClick,
+                onZodiacClick = {
+                    showZodiacDialog = !showZodiacDialog
+                    showGoToDateDialog = false
+                },
                 onGoToDateClick = {
-                    viewModel.onQueryChange("")
-                    focusRequester.requestFocus()
+                    showGoToDateDialog = !showGoToDateDialog
+                    showZodiacDialog = false
                 }
             )
         }
@@ -129,6 +145,50 @@ fun SearchScreen(
                         val d = lunarDayInput.toIntOrNull() ?: 0
                         val m = lunarMonthInput.toIntOrNull() ?: 0
                         conversionResult = viewModel.convertLunarToSolar(d, m)
+                    }
+                )
+            }
+
+            // ── Go To Date Card ──
+            AnimatedVisibility(
+                visible = showGoToDateDialog,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                GoToDateCard(
+                    day = goToDay,
+                    month = goToMonth,
+                    year = goToYear,
+                    onDayChange = { goToDay = it },
+                    onMonthChange = { goToMonth = it },
+                    onYearChange = { goToYear = it },
+                    onGo = {
+                        val d = goToDay.toIntOrNull() ?: 0
+                        val m = goToMonth.toIntOrNull() ?: 0
+                        val y = goToYear.toIntOrNull() ?: java.time.LocalDate.now().year
+                        if (d in 1..31 && m in 1..12 && y in 1900..2100) {
+                            onDateSelected(y, m, d)
+                        }
+                    }
+                )
+            }
+
+            // ── Zodiac Compatibility Card ──
+            AnimatedVisibility(
+                visible = showZodiacDialog,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                ZodiacCompatCard(
+                    year1 = zodiacYear1,
+                    year2 = zodiacYear2,
+                    onYear1Change = { zodiacYear1 = it },
+                    onYear2Change = { zodiacYear2 = it },
+                    result = zodiacResult,
+                    onCheck = {
+                        val y1 = zodiacYear1.toIntOrNull() ?: 0
+                        val y2 = zodiacYear2.toIntOrNull() ?: 0
+                        zodiacResult = getZodiacCompatibility(y1, y2)
                     }
                 )
             }
@@ -289,6 +349,7 @@ private fun SearchBar(
 private fun QuickActionsSection(
     onConvertClick: () -> Unit,
     onGoodDaysClick: () -> Unit,
+    onZodiacClick: () -> Unit,
     onGoToDateClick: () -> Unit
 ) {
     val c = LichSoThemeColors.current
@@ -310,7 +371,7 @@ private fun QuickActionsSection(
         ) {
             QuickActionItem(
                 icon = Icons.Filled.SwapHoriz,
-                label = "Đổi\nÂm → Dương",
+                label = "Đổi Âm\nDương",
                 color = Color(0xFFC62828),
                 modifier = Modifier.weight(1f),
                 onClick = onConvertClick
@@ -327,7 +388,7 @@ private fun QuickActionsSection(
                 label = "Tuổi\nhợp",
                 color = Color(0xFF2E7D32),
                 modifier = Modifier.weight(1f),
-                onClick = { /* TODO */ }
+                onClick = onZodiacClick
             )
             QuickActionItem(
                 icon = Icons.Filled.CalendarMonth,
@@ -778,5 +839,466 @@ private fun EmptySearchState(query: String) {
             style = TextStyle(fontSize = 13.sp, color = c.textTertiary),
             textAlign = TextAlign.Center
         )
+    }
+}
+
+// ══════════════════════════════════════════
+// GO TO DATE CARD
+// ══════════════════════════════════════════
+
+@Composable
+private fun GoToDateCard(
+    day: String,
+    month: String,
+    year: String,
+    onDayChange: (String) -> Unit,
+    onMonthChange: (String) -> Unit,
+    onYearChange: (String) -> Unit,
+    onGo: () -> Unit
+) {
+    val c = LichSoThemeColors.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp)
+            .background(
+                Brush.linearGradient(listOf(Color(0xFFE3F2FD), Color(0xFFEDE7F6))),
+                RoundedCornerShape(20.dp)
+            )
+            .border(1.dp, Color(0xFF90CAF9), RoundedCornerShape(20.dp))
+            .padding(16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                Icons.Filled.CalendarMonth,
+                contentDescription = null,
+                tint = Color(0xFF1565C0),
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                "Đi đến ngày",
+                style = TextStyle(
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1565C0)
+                )
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            // Day
+            OutlinedTextField(
+                value = day,
+                onValueChange = { if (it.length <= 2) onDayChange(it.filter { ch -> ch.isDigit() }) },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Ngày", style = TextStyle(fontSize = 14.sp, color = c.outline, textAlign = TextAlign.Center)) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                    imeAction = ImeAction.Next
+                ),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFF90CAF9),
+                    unfocusedBorderColor = Color(0xFF90CAF9),
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    cursorColor = Color(0xFF1565C0)
+                ),
+                textStyle = TextStyle(fontSize = 14.sp, color = c.textPrimary, textAlign = TextAlign.Center)
+            )
+
+            Text("/", style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0)))
+
+            // Month
+            OutlinedTextField(
+                value = month,
+                onValueChange = { if (it.length <= 2) onMonthChange(it.filter { ch -> ch.isDigit() }) },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Tháng", style = TextStyle(fontSize = 14.sp, color = c.outline, textAlign = TextAlign.Center)) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                    imeAction = ImeAction.Next
+                ),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFF90CAF9),
+                    unfocusedBorderColor = Color(0xFF90CAF9),
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    cursorColor = Color(0xFF1565C0)
+                ),
+                textStyle = TextStyle(fontSize = 14.sp, color = c.textPrimary, textAlign = TextAlign.Center)
+            )
+
+            Text("/", style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0)))
+
+            // Year
+            OutlinedTextField(
+                value = year,
+                onValueChange = { if (it.length <= 4) onYearChange(it.filter { ch -> ch.isDigit() }) },
+                modifier = Modifier.weight(1.5f),
+                placeholder = { Text("Năm", style = TextStyle(fontSize = 14.sp, color = c.outline, textAlign = TextAlign.Center)) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(onDone = { onGo() }),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFF90CAF9),
+                    unfocusedBorderColor = Color(0xFF90CAF9),
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    cursorColor = Color(0xFF1565C0)
+                ),
+                textStyle = TextStyle(fontSize = 14.sp, color = c.textPrimary, textAlign = TextAlign.Center)
+            )
+
+            // Go button
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(Color(0xFF1565C0), CircleShape)
+                    .clip(CircleShape)
+                    .clickable(onClick = onGo),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Filled.ArrowForward,
+                    contentDescription = "Đi đến",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════
+// ZODIAC COMPATIBILITY CARD
+// ══════════════════════════════════════════
+
+data class ZodiacCompatResult(
+    val chi1: String,
+    val emoji1: String,
+    val chi2: String,
+    val emoji2: String,
+    val rating: Int, // 1–5
+    val relationship: String,
+    val description: String
+)
+
+private val CHI_NAMES = listOf("Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi")
+private val CHI_EMOJIS = listOf("🐀", "🐃", "🐅", "🐇", "🐉", "🐍", "🐴", "🐐", "🐒", "🐓", "🐕", "🐖")
+
+// Tam hợp groups (3 chi that are in harmony)
+private val TAM_HOP = listOf(
+    setOf(0, 4, 8),  // Tý Thìn Thân  (Thủy)
+    setOf(1, 5, 9),  // Sửu Tỵ Dậu  (Kim)
+    setOf(2, 6, 10), // Dần Ngọ Tuất  (Hỏa)
+    setOf(3, 7, 11)  // Mão Mùi Hợi  (Mộc)
+)
+
+// Lục hợp pairs (pairs that complement each other)
+private val LUC_HOP = listOf(
+    setOf(0, 1),   // Tý – Sửu
+    setOf(2, 11),  // Dần – Hợi
+    setOf(3, 10),  // Mão – Tuất
+    setOf(4, 9),   // Thìn – Dậu
+    setOf(5, 8),   // Tỵ – Thân
+    setOf(6, 7)    // Ngọ – Mùi
+)
+
+// Lục xung pairs (opposing/conflicting)
+private val LUC_XUNG = listOf(
+    setOf(0, 6),   // Tý – Ngọ
+    setOf(1, 7),   // Sửu – Mùi
+    setOf(2, 8),   // Dần – Thân
+    setOf(3, 9),   // Mão – Dậu
+    setOf(4, 10),  // Thìn – Tuất
+    setOf(5, 11)   // Tỵ – Hợi
+)
+
+// Lục hại pairs (harmful)
+private val LUC_HAI = listOf(
+    setOf(0, 7),   // Tý – Mùi
+    setOf(1, 6),   // Sửu – Ngọ
+    setOf(2, 5),   // Dần – Tỵ
+    setOf(3, 4),   // Mão – Thìn
+    setOf(8, 11),  // Thân – Hợi
+    setOf(9, 10)   // Dậu – Tuất
+)
+
+private fun getChiIndex(year: Int): Int = (year + 8) % 12
+
+private fun getZodiacCompatibility(year1: Int, year2: Int): ZodiacCompatResult? {
+    if (year1 !in 1900..2100 || year2 !in 1900..2100) return null
+    val idx1 = getChiIndex(year1)
+    val idx2 = getChiIndex(year2)
+    val pair = setOf(idx1, idx2)
+
+    // Same chi
+    if (idx1 == idx2) {
+        return ZodiacCompatResult(
+            chi1 = CHI_NAMES[idx1], emoji1 = CHI_EMOJIS[idx1],
+            chi2 = CHI_NAMES[idx2], emoji2 = CHI_EMOJIS[idx2],
+            rating = 3,
+            relationship = "Tương đồng",
+            description = "Cùng tuổi ${CHI_NAMES[idx1]}, tính cách tương đồng. Dễ hiểu nhau nhưng cũng dễ va chạm do giống nhau quá nhiều."
+        )
+    }
+
+    // Check Lục hợp (best)
+    if (LUC_HOP.any { it == pair }) {
+        return ZodiacCompatResult(
+            chi1 = CHI_NAMES[idx1], emoji1 = CHI_EMOJIS[idx1],
+            chi2 = CHI_NAMES[idx2], emoji2 = CHI_EMOJIS[idx2],
+            rating = 5,
+            relationship = "Lục hợp ⭐",
+            description = "${CHI_NAMES[idx1]} và ${CHI_NAMES[idx2]} là cặp Lục hợp — mối quan hệ tương sinh tốt đẹp nhất. Bổ trợ cho nhau, mang lại may mắn và thịnh vượng."
+        )
+    }
+
+    // Check Tam hợp (great)
+    if (TAM_HOP.any { it.containsAll(pair) }) {
+        return ZodiacCompatResult(
+            chi1 = CHI_NAMES[idx1], emoji1 = CHI_EMOJIS[idx1],
+            chi2 = CHI_NAMES[idx2], emoji2 = CHI_EMOJIS[idx2],
+            rating = 4,
+            relationship = "Tam hợp ✨",
+            description = "${CHI_NAMES[idx1]} và ${CHI_NAMES[idx2]} thuộc bộ Tam hợp — hòa hợp, hỗ trợ nhau tốt trong công việc lẫn cuộc sống."
+        )
+    }
+
+    // Check Lục xung (worst)
+    if (LUC_XUNG.any { it == pair }) {
+        return ZodiacCompatResult(
+            chi1 = CHI_NAMES[idx1], emoji1 = CHI_EMOJIS[idx1],
+            chi2 = CHI_NAMES[idx2], emoji2 = CHI_EMOJIS[idx2],
+            rating = 1,
+            relationship = "Lục xung ⚠️",
+            description = "${CHI_NAMES[idx1]} và ${CHI_NAMES[idx2]} xung khắc — dễ bất đồng, mâu thuẫn. Cần nhẫn nhịn và thấu hiểu lẫn nhau."
+        )
+    }
+
+    // Check Lục hại (bad)
+    if (LUC_HAI.any { it == pair }) {
+        return ZodiacCompatResult(
+            chi1 = CHI_NAMES[idx1], emoji1 = CHI_EMOJIS[idx1],
+            chi2 = CHI_NAMES[idx2], emoji2 = CHI_EMOJIS[idx2],
+            rating = 2,
+            relationship = "Lục hại ⚡",
+            description = "${CHI_NAMES[idx1]} và ${CHI_NAMES[idx2]} thuộc cặp Lục hại — dễ gây tổn thương cho nhau nếu không cẩn thận. Cần kiên nhẫn."
+        )
+    }
+
+    // Neutral
+    return ZodiacCompatResult(
+        chi1 = CHI_NAMES[idx1], emoji1 = CHI_EMOJIS[idx1],
+        chi2 = CHI_NAMES[idx2], emoji2 = CHI_EMOJIS[idx2],
+        rating = 3,
+        relationship = "Bình thường",
+        description = "${CHI_NAMES[idx1]} và ${CHI_NAMES[idx2]} không có quan hệ đặc biệt — tương đối bình hòa, tùy thuộc vào sự nỗ lực của cả hai."
+    )
+}
+
+@Composable
+private fun ZodiacCompatCard(
+    year1: String,
+    year2: String,
+    onYear1Change: (String) -> Unit,
+    onYear2Change: (String) -> Unit,
+    result: ZodiacCompatResult?,
+    onCheck: () -> Unit
+) {
+    val c = LichSoThemeColors.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp)
+            .background(
+                Brush.linearGradient(listOf(Color(0xFFE8F5E9), Color(0xFFF1F8E9))),
+                RoundedCornerShape(20.dp)
+            )
+            .border(1.dp, Color(0xFFA5D6A7), RoundedCornerShape(20.dp))
+            .padding(16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                Icons.Filled.AutoAwesome,
+                contentDescription = null,
+                tint = Color(0xFF2E7D32),
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                "Xem tuổi hợp",
+                style = TextStyle(
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2E7D32)
+                )
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(
+                value = year1,
+                onValueChange = { if (it.length <= 4) onYear1Change(it.filter { ch -> ch.isDigit() }) },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Năm sinh 1", style = TextStyle(fontSize = 13.sp, color = c.outline, textAlign = TextAlign.Center)) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                    imeAction = ImeAction.Next
+                ),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFA5D6A7),
+                    unfocusedBorderColor = Color(0xFFA5D6A7),
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    cursorColor = Color(0xFF2E7D32)
+                ),
+                textStyle = TextStyle(fontSize = 14.sp, color = c.textPrimary, textAlign = TextAlign.Center)
+            )
+
+            Icon(
+                Icons.Filled.Favorite,
+                contentDescription = null,
+                tint = Color(0xFF2E7D32).copy(alpha = 0.5f),
+                modifier = Modifier.size(20.dp)
+            )
+
+            OutlinedTextField(
+                value = year2,
+                onValueChange = { if (it.length <= 4) onYear2Change(it.filter { ch -> ch.isDigit() }) },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Năm sinh 2", style = TextStyle(fontSize = 13.sp, color = c.outline, textAlign = TextAlign.Center)) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(onDone = { onCheck() }),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFA5D6A7),
+                    unfocusedBorderColor = Color(0xFFA5D6A7),
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    cursorColor = Color(0xFF2E7D32)
+                ),
+                textStyle = TextStyle(fontSize = 14.sp, color = c.textPrimary, textAlign = TextAlign.Center)
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(Color(0xFF2E7D32), CircleShape)
+                    .clip(CircleShape)
+                    .clickable(onClick = onCheck),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Filled.Search,
+                    contentDescription = "Xem",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        // Result
+        AnimatedVisibility(visible = result != null) {
+            result?.let { res ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp)
+                ) {
+                    HorizontalDivider(color = Color(0xFFA5D6A7).copy(alpha = 0.5f), thickness = 0.5.dp)
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Emoji row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(res.emoji1, style = TextStyle(fontSize = 28.sp))
+                            Text(res.chi1, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = c.textPrimary))
+                        }
+                        Spacer(modifier = Modifier.width(24.dp))
+
+                        // Rating hearts
+                        val ratingColor = when {
+                            res.rating >= 4 -> Color(0xFF2E7D32)
+                            res.rating == 3 -> Color(0xFFF57F17)
+                            else -> Color(0xFFE53935)
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Row {
+                                repeat(5) { i ->
+                                    Icon(
+                                        if (i < res.rating) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                        contentDescription = null,
+                                        tint = ratingColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                res.relationship,
+                                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ratingColor)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(24.dp))
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(res.emoji2, style = TextStyle(fontSize = 28.sp))
+                            Text(res.chi2, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = c.textPrimary))
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Description
+                    Text(
+                        res.description,
+                        style = TextStyle(
+                            fontSize = 13.sp,
+                            color = c.textSecondary,
+                            lineHeight = 20.sp,
+                            textAlign = TextAlign.Center
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
     }
 }

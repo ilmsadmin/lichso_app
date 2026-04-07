@@ -179,6 +179,20 @@
         .detail-btn.secondary:active { background:var(--md-sys-color-surface-variant); }
 
         ::-webkit-scrollbar { display:none; }
+
+        /* Toast notification */
+        .toast-notification {
+            position:absolute; bottom:100px; left:50%; transform:translateX(-50%) translateY(20px);
+            background:rgba(0,0,0,0.85); color:#fff; padding:12px 24px; border-radius:12px;
+            font-size:13px; font-weight:500; white-space:nowrap; z-index:500;
+            opacity:0; pointer-events:none; transition:all 0.3s ease;
+            display:flex; align-items:center; gap:8px;
+            box-shadow:0 4px 12px rgba(0,0,0,0.3);
+        }
+        .toast-notification.show {
+            opacity:1; transform:translateX(-50%) translateY(0);
+        }
+        .toast-notification .material-symbols-rounded { font-size:18px; }
     </style>
 </head>
 <body>
@@ -457,13 +471,16 @@
         </div>
 
         <div class="detail-bottom-bar">
-            <button class="detail-btn secondary">
+            <button class="detail-btn secondary" onclick="copyPrayer()">
                 <span class="material-symbols-rounded">content_copy</span>Sao chép
             </button>
-            <button class="detail-btn primary">
+            <button class="detail-btn primary" onclick="readAloud()">
                 <span class="material-symbols-rounded">record_voice_over</span>Đọc to
             </button>
         </div>
+
+        <!-- Toast notification -->
+        <div class="toast-notification" id="toast"></div>
     </div>
 
 </div>
@@ -474,6 +491,140 @@
     }
     function hideDetail() {
         document.getElementById('prayerDetail').classList.remove('show');
+    }
+
+    function showToast(message, icon) {
+        const toast = document.getElementById('toast');
+        toast.innerHTML = '<span class="material-symbols-rounded">' + icon + '</span>' + message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    function copyPrayer() {
+        const textBlock = document.querySelector('.prayer-text-block');
+        const text = textBlock.innerText;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Đã sao chép bài văn khấn', 'check_circle');
+            }).catch(() => {
+                showToast('Không thể sao chép', 'error');
+            });
+        } else {
+            // Fallback
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand('copy');
+                showToast('Đã sao chép bài văn khấn', 'check_circle');
+            } catch(e) {
+                showToast('Không thể sao chép', 'error');
+            }
+            document.body.removeChild(ta);
+        }
+    }
+
+    let isReading = false;
+
+    function readAloud() {
+        // Nếu đang đọc -> dừng
+        if (isReading) {
+            window.speechSynthesis.cancel();
+            isReading = false;
+            updateReadBtn(false);
+            showToast('Đã dừng đọc', 'stop_circle');
+            return;
+        }
+
+        // Kiểm tra trình duyệt hỗ trợ Speech Synthesis
+        if (!('speechSynthesis' in window)) {
+            showToast('Thiết bị không hỗ trợ đọc to', 'error');
+            return;
+        }
+
+        const textBlock = document.querySelector('.prayer-text-block');
+        const text = textBlock.innerText;
+
+        // Tạo utterance tiếng Việt
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'vi-VN';
+        utterance.rate = 0.85;   // Đọc chậm, trang nghiêm
+        utterance.pitch = 1.0;
+
+        // Thử tìm giọng tiếng Việt (Google TTS trên Android)
+        function setVietnameseVoice() {
+            const voices = window.speechSynthesis.getVoices();
+            const viVoice = voices.find(v => v.lang === 'vi-VN' || v.lang === 'vi_VN' || v.lang.startsWith('vi'));
+            if (viVoice) {
+                utterance.voice = viVoice;
+            }
+        }
+
+        // Voices có thể load bất đồng bộ
+        setVietnameseVoice();
+        if (window.speechSynthesis.onvoiceschanged !== undefined) {
+            window.speechSynthesis.onvoiceschanged = setVietnameseVoice;
+        }
+
+        utterance.onstart = function() {
+            isReading = true;
+            updateReadBtn(true);
+            showToast('Đang đọc bài văn khấn...', 'volume_up');
+        };
+
+        utterance.onend = function() {
+            isReading = false;
+            updateReadBtn(false);
+            showToast('Đã đọc xong', 'check_circle');
+        };
+
+        utterance.onerror = function(e) {
+            isReading = false;
+            updateReadBtn(false);
+            if (e.error === 'not-allowed') {
+                showToast('Vui lòng cho phép phát âm thanh', 'error');
+            } else {
+                showToast('Không thể đọc, thiết bị chưa hỗ trợ tiếng Việt', 'error');
+            }
+        };
+
+        // Workaround: Chrome dừng sau ~15s nếu text dài → chia nhỏ
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+
+        // Chrome bug workaround: resume mỗi 10s để tránh bị pause
+        const keepAlive = setInterval(() => {
+            if (!isReading) { clearInterval(keepAlive); return; }
+            window.speechSynthesis.pause();
+            window.speechSynthesis.resume();
+        }, 10000);
+
+        utterance.onend = function() {
+            isReading = false;
+            updateReadBtn(false);
+            clearInterval(keepAlive);
+            showToast('Đã đọc xong', 'check_circle');
+        };
+        utterance.onerror = function() {
+            isReading = false;
+            updateReadBtn(false);
+            clearInterval(keepAlive);
+            showToast('Không thể đọc, thiết bị chưa hỗ trợ tiếng Việt', 'error');
+        };
+    }
+
+    function updateReadBtn(reading) {
+        const btn = document.querySelector('.detail-btn.primary');
+        if (reading) {
+            btn.innerHTML = '<span class="material-symbols-rounded">stop</span>Dừng đọc';
+            btn.style.background = '#D32F2F';
+        } else {
+            btn.innerHTML = '<span class="material-symbols-rounded">record_voice_over</span>Đọc to';
+            btn.style.background = '';
+        }
     }
 </script>
 </body>

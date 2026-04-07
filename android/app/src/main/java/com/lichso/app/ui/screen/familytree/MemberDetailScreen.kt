@@ -245,7 +245,7 @@ private fun MemberHero(member: FamilyMember, isDeceased: Boolean, onBack: () -> 
                             .border(2.dp, Color(0xFF3E2723), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("✝", style = TextStyle(fontSize = 12.sp, color = Color.White))
+                        Text("🪷", style = TextStyle(fontSize = 12.sp))
                     }
                 }
             }
@@ -270,7 +270,7 @@ private fun MemberHero(member: FamilyMember, isDeceased: Boolean, onBack: () -> 
             ) {
                 HeroChip("🏛️ Đời ${member.generation}", Color(0xFFD4A017).copy(alpha = 0.2f), Color(0xFFD4A017))
                 if (isDeceased) {
-                    HeroChip("✝ Đã mất · ${member.deathYear}", Color.White.copy(alpha = 0.1f), Color.White.copy(alpha = 0.7f))
+                    HeroChip("🪷 Đã mất · ${member.deathYear}", Color.White.copy(alpha = 0.1f), Color.White.copy(alpha = 0.7f))
                 }
                 if (member.isSelf) {
                     HeroChip("⭐ Bản thân", Color(0xFFB71C1C).copy(alpha = 0.3f), Color(0xFFFFCDD2))
@@ -427,7 +427,7 @@ private fun MissingDeathDateHint(c: LichSoColors) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Text("🕯️", fontSize = 28.sp)
+        Text("🪔", fontSize = 28.sp)
         Text(
             "Chưa có ngày giỗ",
             style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = c.outline)
@@ -458,7 +458,7 @@ private fun MemorialMiniCard(memorial: MemorialDay, c: LichSoColors, onClick: ()
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("🕯️", fontSize = 28.sp)
+        Text("🪔", fontSize = 28.sp)
 
         Column(modifier = Modifier.weight(1f)) {
             Text(

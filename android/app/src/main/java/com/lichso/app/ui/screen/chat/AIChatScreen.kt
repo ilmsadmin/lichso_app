@@ -54,10 +54,18 @@ import com.lichso.app.ui.components.LichSoConfirmDialog
 fun AIChatScreen(
     onBackClick: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
+    initialMessage: String? = null,
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val c = LichSoThemeColors.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // Auto-send initial message (e.g. from "Hỏi AI về ngày này")
+    LaunchedEffect(initialMessage) {
+        if (!initialMessage.isNullOrBlank()) {
+            viewModel.sendMessage(initialMessage)
+        }
+    }
     var inputText by remember { mutableStateOf(TextFieldValue("")) }
     val listState = rememberLazyListState()
     var showClearDialog by remember { mutableStateOf(false) }
@@ -160,19 +168,12 @@ private fun AiChatHeader(onBackClick: () -> Unit, onClearClick: () -> Unit) {
         onBackClick = onBackClick,
         actions = {
             // AI Avatar
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(Color.White.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Filled.AutoAwesome,
-                    contentDescription = null,
-                    tint = Color(0xFFD4A017),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+            Icon(
+                Icons.Filled.AutoAwesome,
+                contentDescription = null,
+                tint = Color(0xFFD4A017),
+                modifier = Modifier.size(24.dp)
+            )
             HeaderIconButton(
                 icon = Icons.Filled.DeleteOutline,
                 contentDescription = "Xoá lịch sử",
@@ -457,7 +458,8 @@ private fun ChatInputBar(
         val sendEnabled = !isTyping && inputText.text.isNotBlank()
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .padding(bottom = 4.dp)
+                .size(48.dp)
                 .clip(CircleShape)
                 .background(
                     if (sendEnabled) c.primary else c.primary.copy(alpha = 0.4f),
@@ -550,8 +552,8 @@ private val mdBoldLineRegex = Regex("""^\*\*(.+?)\*\*\s*$""")
 /** Markdown bullet: - item or * item or • item  (not ** bold) */
 private val mdBulletRegex = Regex("""^[\s]*[-*•]\s+(.+)$""")
 
-/** Regex to extract follow-up suggestions block: ~~~gợi ý ... ~~~ */
-private val followUpBlockRegex = Regex("""~~~gợi ý\s*\n([\s\S]*?)~~~""")
+/** Regex to extract follow-up suggestions block: ~~~gợi ý ... ~~~ or ~~~gợi ý ... (end of string) */
+private val followUpBlockRegex = Regex("""~~~gợi ý\s*\n([\s\S]*?)(?:~~~|$)""")
 /** Each suggestion line: 📌 Text */
 private val followUpItemRegex = Regex("""📌\s*(.+)""")
 
@@ -565,6 +567,8 @@ private fun extractFollowUpSuggestions(content: String): Pair<String, List<Strin
         .map { it.groupValues[1].trim() }
         .filter { it.isNotBlank() }
         .toList()
+    // If no suggestions were parsed, return original content
+    if (suggestions.isEmpty()) return content to emptyList()
     val cleanedContent = content.replace(match.value, "").trimEnd()
     return cleanedContent to suggestions
 }

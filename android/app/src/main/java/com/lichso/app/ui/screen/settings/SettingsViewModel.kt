@@ -28,7 +28,6 @@ object SettingsKeys {
     val LUNAR_BADGE = booleanPreferencesKey("lunar_badge")
     val GIO_DAI_CAT = booleanPreferencesKey("gio_dai_cat")
     val DARK_MODE = booleanPreferencesKey("dark_mode")
-    val LANGUAGE = stringPreferencesKey("language")
     val CALENDAR_STYLE = stringPreferencesKey("calendar_style")
     val WEEK_START = stringPreferencesKey("week_start")
     val THEME_MODE = stringPreferencesKey("theme_mode") // "light", "dark", "system"
@@ -39,6 +38,9 @@ object SettingsKeys {
     val REMINDER_MINUTE = intPreferencesKey("reminder_minute")
     val TEMP_UNIT = stringPreferencesKey("temp_unit")
     val LOCATION_NAME = stringPreferencesKey("location_name")
+    // In-App Review tracking
+    val APP_OPEN_COUNT = intPreferencesKey("app_open_count")
+    val LAST_REVIEW_PROMPT_TIME = longPreferencesKey("last_review_prompt_time")
 }
 
 data class SettingsUiState(
@@ -59,15 +61,13 @@ data class SettingsUiState(
     val reminderMinute: Int = 0,
     val tempUnit: String = "°C",
     val locationName: String = "Hà Nội",
-    val language: String = "Tiếng Việt",
     val calendarStyle: String = "Lưới tháng",
     val weekStart: String = "Thứ Hai",
     val cacheSize: String = "Đang tính...",
     // Dialogs
-    val showLanguageDialog: Boolean = false,
+    val showClearCacheDialog: Boolean = false,
     val showCalendarStyleDialog: Boolean = false,
     val showWeekStartDialog: Boolean = false,
-    val showClearCacheDialog: Boolean = false,
     val showPrivacyPolicyDialog: Boolean = false,
     val showTempUnitDialog: Boolean = false,
     val showLocationDialog: Boolean = false,
@@ -105,7 +105,6 @@ class SettingsViewModel @Inject constructor(
                         reminderMinute = prefs[SettingsKeys.REMINDER_MINUTE] ?: 0,
                         tempUnit = prefs[SettingsKeys.TEMP_UNIT] ?: "°C",
                         locationName = prefs[SettingsKeys.LOCATION_NAME] ?: "Hà Nội",
-                        language = prefs[SettingsKeys.LANGUAGE] ?: "Tiếng Việt",
                         calendarStyle = prefs[SettingsKeys.CALENDAR_STYLE] ?: "Lưới tháng",
                         weekStart = prefs[SettingsKeys.WEEK_START] ?: "Thứ Hai"
                     )
@@ -269,11 +268,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setLanguage(value: String) {
-        savePrefString(SettingsKeys.LANGUAGE, value)
-        _uiState.update { it.copy(showLanguageDialog = false) }
-    }
-
     fun setCalendarStyle(value: String) {
         savePrefString(SettingsKeys.CALENDAR_STYLE, value)
         _uiState.update { it.copy(showCalendarStyleDialog = false) }
@@ -291,8 +285,6 @@ class SettingsViewModel @Inject constructor(
 
     // ═══ Dialog visibility ═══
 
-    fun showLanguageDialog() = _uiState.update { it.copy(showLanguageDialog = true) }
-    fun hideLanguageDialog() = _uiState.update { it.copy(showLanguageDialog = false) }
     fun showCalendarStyleDialog() = _uiState.update { it.copy(showCalendarStyleDialog = true) }
     fun hideCalendarStyleDialog() = _uiState.update { it.copy(showCalendarStyleDialog = false) }
     fun showWeekStartDialog() = _uiState.update { it.copy(showWeekStartDialog = true) }
