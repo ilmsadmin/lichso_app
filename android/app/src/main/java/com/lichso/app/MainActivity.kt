@@ -30,6 +30,13 @@ class MainActivity : ComponentActivity() {
         // Switch from splash theme (red background) to normal theme
         setTheme(R.style.Theme_LichSo)
         enableEdgeToEdge()
+
+        // Determine if launched from widget with a specific destination
+        val widgetRoute = when (intent?.action) {
+            "OPEN_AI_CHAT" -> "chat"
+            else -> null
+        }
+
         setContent {
             val context = LocalContext.current
             val coroutineScope = rememberCoroutineScope()
@@ -84,7 +91,10 @@ class MainActivity : ComponentActivity() {
                     }
 
                     AppScreen.MAIN -> {
-                        LichSoMainScreen(modifier = Modifier.fillMaxSize())
+                        LichSoMainScreen(
+                            modifier = Modifier.fillMaxSize(),
+                            initialRoute = widgetRoute ?: "home"
+                        )
                     }
                 }
             }
