@@ -46,9 +46,9 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LichSoMainScreen(modifier: Modifier = Modifier) {
+fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home") {
     val c = LichSoThemeColors.current
-    var currentRoute by remember { mutableStateOf("home") }
+    var currentRoute by remember { mutableStateOf(initialRoute) }
     var prayerDetailShowing by remember { mutableStateOf(false) }
     var initialPrayerId by remember { mutableStateOf<Int?>(null) }
     val homeViewModel: HomeViewModel = hiltViewModel()

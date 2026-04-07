@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/widget_ai_bg">
+
+    <!-- Header row: AI label + date -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="✦ Lịch Số AI"
+            android:textSize="13sp"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_ai_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="7/4"
+            android:textSize="11sp"
+            android:textColor="#FFCDD2" />
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#33FFFFFF"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Can chi year + day info -->
+    <TextView
+        android:id="@+id/tv_ai_year_can_chi"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Năm Ất Tỵ · Ngày Nhâm Tuất"
+        android:textSize="12sp"
+        android:textColor="#FFCDD2"
+        android:textStyle="bold" />
+
+    <!-- Day rating summary -->
+    <TextView
+        android:id="@+id/tv_ai_rating"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Ngày Hoàng Đạo — Rất tốt"
+        android:textSize="11sp"
+        android:textColor="#FFFFFF"
+        android:layout_marginTop="3dp" />
+
+    <!-- Advice line -->
+    <TextView
+        android:id="@+id/tv_ai_advice"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:text="Hướng tài lộc: Đông Nam · Hỷ thần: Tây Bắc"
+        android:textSize="11sp"
+        android:textColor="#EF9A9A"
+        android:layout_marginTop="3dp"
+        android:maxLines="2"
+        android:ellipsize="end" />
+
+    <!-- Tap hint -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Nhấn để hỏi AI ›"
+        android:textSize="10sp"
+        android:textColor="#FFCDD2"
+        android:alpha="0.8"
+        android:layout_marginTop="4dp" />
+
+</LinearLayout>
