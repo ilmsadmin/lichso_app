@@ -15,6 +15,7 @@ object CalendarWidgetScheduler {
      * Schedule periodic widget updates at midnight and every hour
      */
     fun scheduleWidgetUpdates(context: Context) {
+        val appContext = context.applicationContext
         // Schedule periodic update every hour
         val constraints = Constraints.Builder()
             .setRequiresBatteryNotLow(false)
@@ -27,7 +28,7 @@ object CalendarWidgetScheduler {
             .setConstraints(constraints)
             .build()
 
-        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+        WorkManager.getInstance(appContext).enqueueUniquePeriodicWork(
             WIDGET_UPDATE_WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,
             updateRequest
@@ -38,16 +39,17 @@ object CalendarWidgetScheduler {
      * Trigger immediate widget update
      */
     fun triggerImmediateUpdate(context: Context) {
+        val appContext = context.applicationContext
         val updateRequest = OneTimeWorkRequestBuilder<CalendarWidgetUpdateWorker>()
             .build()
 
-        WorkManager.getInstance(context).enqueue(updateRequest)
+        WorkManager.getInstance(appContext).enqueue(updateRequest)
     }
 
     /**
      * Cancel all scheduled widget updates
      */
     fun cancelWidgetUpdates(context: Context) {
-        WorkManager.getInstance(context).cancelUniqueWork(WIDGET_UPDATE_WORK_NAME)
+        WorkManager.getInstance(context.applicationContext).cancelUniqueWork(WIDGET_UPDATE_WORK_NAME)
     }
 }

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Lịch Số</string>
-    <string name="widget_ai_horoscope_description">Widget hiển thị lời khuyên tử vi từ AI</string>
     <string name="widget_calendar_description">Lịch Vạn Niên — hiển thị ngày dương, âm lịch và can chi hôm nay</string>
     <string name="widget_ai_description">AI Tử Vi — hiển thị can chi, hướng tài lộc và đánh giá ngày hôm nay</string>
 </resources>

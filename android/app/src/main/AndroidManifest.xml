@@ -52,7 +52,7 @@
         <receiver
             android:name=".widget.CalendarWidget"
             android:exported="true"
-            android:label="@string/widget_calendar_description">
+            android:label="Lịch Vạn Niên">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="android.intent.action.DATE_CHANGED" />
@@ -68,7 +68,7 @@
         <receiver
             android:name=".widget.AiWidget"
             android:exported="true"
-            android:label="@string/widget_ai_description">
+            android:label="AI Tử Vi">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="android.intent.action.DATE_CHANGED" />

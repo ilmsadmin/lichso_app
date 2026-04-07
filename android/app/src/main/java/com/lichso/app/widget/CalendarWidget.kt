@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.widget.RemoteViews
 import com.lichso.app.MainActivity
 import com.lichso.app.R
@@ -18,13 +19,28 @@ import java.time.LocalDate
  */
 class CalendarWidget : AppWidgetProvider() {
 
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        // Schedule periodic updates when first widget is added
+        try {
+            CalendarWidgetScheduler.scheduleWidgetUpdates(context.applicationContext)
+        } catch (e: Exception) {
+            Log.e("CalendarWidget", "Error scheduling updates", e)
+        }
+    }
+
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
+        Log.d("CalendarWidget", "onUpdate called, ids=${appWidgetIds.toList()}")
         for (appWidgetId in appWidgetIds) {
-            updateWidget(context, appWidgetManager, appWidgetId)
+            try {
+                updateWidget(context, appWidgetManager, appWidgetId)
+            } catch (e: Exception) {
+                Log.e("CalendarWidget", "Error updating widget $appWidgetId", e)
+            }
         }
     }
 
@@ -60,20 +76,15 @@ class CalendarWidget : AppWidgetProvider() {
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int
         ) {
+            Log.d("CalendarWidget", "updateWidget id=$appWidgetId")
             val today = LocalDate.now()
             val dd = today.dayOfMonth
             val mm = today.monthValue
             val yy = today.year
 
-            val dayInfo = try {
-                DayInfoProvider().getDayInfo(dd, mm, yy)
-            } catch (e: Exception) {
-                null
-            }
-
             val views = RemoteViews(context.packageName, R.layout.widget_calendar)
 
-            // Solar date
+            // Solar date — always set
             views.setTextViewText(R.id.tv_solar_day, dd.toString())
 
             // Day of week (LocalDate dayOfWeek: 1=Mon..7=Sun → index 0..6)
@@ -86,10 +97,13 @@ class CalendarWidget : AppWidgetProvider() {
                 "${MONTH_LABELS[mm - 1]} · $yy"
             )
 
-            if (dayInfo != null) {
+            try {
+                val dayInfo = DayInfoProvider().getDayInfo(dd, mm, yy)
+
                 val lunar = dayInfo.lunar
                 val leapLabel = if (lunar.leap == 1) " nhuận" else ""
-                val lunarText = "Mùng ${lunar.day} · ${lunar.monthName}$leapLabel Âm lịch"
+                val lunarDayLabel = if (lunar.day <= 10) "Mùng ${lunar.day}" else "${lunar.day}"
+                val lunarText = "$lunarDayLabel · ${lunar.monthName}$leapLabel Âm lịch"
                 views.setTextViewText(R.id.tv_lunar, lunarText)
 
                 views.setTextViewText(
@@ -107,6 +121,13 @@ class CalendarWidget : AppWidgetProvider() {
                 // Color: green for good day, red for bad
                 val ratingColor = if (!dayInfo.activities.isXauDay) 0xFF2E7D32.toInt() else 0xFFC62828.toInt()
                 views.setTextColor(R.id.tv_day_rating, ratingColor)
+
+                Log.d("CalendarWidget", "Data loaded: solar=$dd/$mm/$yy, lunar=${lunar.day}/${lunar.monthName}")
+            } catch (e: Exception) {
+                Log.e("CalendarWidget", "Error loading day info", e)
+                views.setTextViewText(R.id.tv_lunar, "Đang tải...")
+                views.setTextViewText(R.id.tv_can_chi, "")
+                views.setTextViewText(R.id.tv_day_rating, "")
             }
 
             // Tap to open app — attached to root for full-widget tap target
@@ -119,6 +140,7 @@ class CalendarWidget : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
+            Log.d("CalendarWidget", "updateAppWidget done for id=$appWidgetId")
         }
     }
 }

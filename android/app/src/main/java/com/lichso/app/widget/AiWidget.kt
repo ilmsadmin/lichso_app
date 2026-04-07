@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.widget.RemoteViews
 import com.lichso.app.MainActivity
 import com.lichso.app.R
@@ -18,13 +19,22 @@ import java.time.LocalDate
  */
 class AiWidget : AppWidgetProvider() {
 
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+    }
+
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
+        Log.d("AiWidget", "onUpdate called, ids=${appWidgetIds.toList()}")
         for (appWidgetId in appWidgetIds) {
-            updateWidget(context, appWidgetManager, appWidgetId)
+            try {
+                updateWidget(context, appWidgetManager, appWidgetId)
+            } catch (e: Exception) {
+                Log.e("AiWidget", "Error updating widget $appWidgetId", e)
+            }
         }
     }
 
@@ -48,23 +58,20 @@ class AiWidget : AppWidgetProvider() {
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int
         ) {
+            Log.d("AiWidget", "updateWidget id=$appWidgetId")
             val today = LocalDate.now()
             val dd = today.dayOfMonth
             val mm = today.monthValue
             val yy = today.year
 
-            val dayInfo = try {
-                DayInfoProvider().getDayInfo(dd, mm, yy)
-            } catch (e: Exception) {
-                null
-            }
-
             val views = RemoteViews(context.packageName, R.layout.widget_ai)
 
-            // Date label (e.g. "7/4")
+            // Date label — always set
             views.setTextViewText(R.id.tv_ai_date, "$dd/$mm")
 
-            if (dayInfo != null) {
+            try {
+                val dayInfo = DayInfoProvider().getDayInfo(dd, mm, yy)
+
                 // Year + day can chi
                 views.setTextViewText(
                     R.id.tv_ai_year_can_chi,
@@ -83,6 +90,13 @@ class AiWidget : AppWidgetProvider() {
                 val huong = dayInfo.huong
                 val adviceText = "Tài lộc: ${huong.thanTai} · Hỷ thần: ${huong.hyThan}"
                 views.setTextViewText(R.id.tv_ai_advice, adviceText)
+
+                Log.d("AiWidget", "Data loaded: $dd/$mm/$yy, canchi=${dayInfo.dayCanChi}")
+            } catch (e: Exception) {
+                Log.e("AiWidget", "Error loading day info", e)
+                views.setTextViewText(R.id.tv_ai_year_can_chi, "Đang tải...")
+                views.setTextViewText(R.id.tv_ai_rating, "")
+                views.setTextViewText(R.id.tv_ai_advice, "Nhấn để mở ứng dụng")
             }
 
             // Tap to open app (to AI chat screen) — attached to root for full-widget tap target
@@ -99,6 +113,7 @@ class AiWidget : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
+            Log.d("AiWidget", "updateAppWidget done for id=$appWidgetId")
         }
     }
 }

@@ -79,8 +79,7 @@
         android:layout_height="wrap_content"
         android:text="Nhấn để hỏi AI ›"
         android:textSize="10sp"
-        android:textColor="#FFCDD2"
-        android:alpha="0.8"
+        android:textColor="#80FFCDD2"
         android:layout_marginTop="4dp" />
 
 </LinearLayout>
