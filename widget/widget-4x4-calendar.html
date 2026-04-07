@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Widget 4×4 — Lịch Tháng</title>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet">
+    <style>
+        :root {
+            --md-sys-color-primary: #B71C1C;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #FFDAD6;
+            --md-sys-color-on-primary-container: #410002;
+            --md-sys-color-secondary: #C6A300;
+            --md-sys-color-secondary-container: #FFF0B3;
+            --md-sys-color-surface: #FFFBF5;
+            --md-sys-color-on-surface: #1C1B1F;
+            --md-sys-color-surface-variant: #F5DDD8;
+            --md-sys-color-on-surface-variant: #534340;
+            --md-sys-color-surface-container: #FFF8F0;
+            --md-sys-color-surface-container-high: #FFF0E8;
+            --md-sys-color-outline: #857371;
+            --md-sys-color-outline-variant: #D8C2BF;
+            --gold-accent: #D4A017;
+            --deep-red: #8B0000;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Google Sans', system-ui, sans-serif;
+            background: #1a1a1a;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 24px;
+            padding: 40px 20px;
+        }
+
+        .widget-label {
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        /* ===== WIDGET 4×4 — MONTHLY CALENDAR ===== */
+        .widget-4x4 {
+            width: 364px;
+            height: 364px;
+            border-radius: 28px;
+            overflow: hidden;
+            position: relative;
+            background: var(--md-sys-color-surface);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid rgba(183, 28, 28, 0.06);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== HEADER ===== */
+        .w-header {
+            background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 50%, #8B0000 100%);
+            padding: 14px 18px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .w-header::before {
+            content: '';
+            position: absolute;
+            top: -30px;
+            right: -10px;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(255,215,0,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .w-header-left {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 1;
+        }
+
+        .w-month-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #FFFFFF;
+            line-height: 1.2;
+        }
+
+        .w-month-lunar {
+            font-size: 11px;
+            color: rgba(255,215,0,0.85);
+            font-weight: 500;
+            margin-top: 1px;
+        }
+
+        .w-header-right {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .w-nav-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255,255,255,0.12);
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0;
+        }
+
+        .w-nav-btn .material-symbols-rounded {
+            font-size: 18px;
+        }
+
+        .w-nav-btn:active {
+            background: rgba(255,255,255,0.24);
+        }
+
+        /* ===== WEEKDAY HEADER ===== */
+        .w-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            padding: 8px 12px 4px;
+            flex-shrink: 0;
+        }
+
+        .w-weekdays span {
+            text-align: center;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--md-sys-color-outline);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .w-weekdays span.weekend {
+            color: var(--md-sys-color-primary);
+        }
+
+        /* ===== CALENDAR GRID ===== */
+        .w-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            padding: 2px 10px 10px;
+            gap: 1px;
+            flex: 1;
+        }
+
+        .w-day {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.15s;
+            position: relative;
+            padding: 2px 0;
+            gap: 0px;
+        }
+
+        .w-day:active {
+            background: var(--md-sys-color-surface-variant);
+        }
+
+        .w-day .solar {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--md-sys-color-on-surface);
+            line-height: 1.3;
+        }
+
+        .w-day .lunar {
+            font-size: 7.5px;
+            color: var(--md-sys-color-outline);
+            line-height: 1;
+            font-weight: 500;
+        }
+
+        /* Today */
+        .w-day.today {
+            background: var(--md-sys-color-primary);
+            border-radius: 10px;
+        }
+
+        .w-day.today .solar {
+            color: #FFFFFF;
+            font-weight: 700;
+        }
+
+        .w-day.today .lunar {
+            color: rgba(255,255,255,0.7);
+        }
+
+        /* Weekend */
+        .w-day.weekend .solar {
+            color: var(--md-sys-color-primary);
+        }
+
+        /* Other month */
+        .w-day.other-month .solar {
+            color: var(--md-sys-color-outline-variant);
+        }
+
+        .w-day.other-month .lunar {
+            color: transparent;
+        }
+
+        /* Holiday */
+        .w-day.holiday .solar {
+            color: var(--md-sys-color-primary);
+            font-weight: 700;
+        }
+
+        /* Event dot */
+        .w-day .event-dot {
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: var(--gold-accent);
+            position: absolute;
+            bottom: 2px;
+        }
+
+        /* Good day indicator */
+        .w-day.good-day::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            right: 3px;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #4CAF50;
+        }
+
+        /* Lunar month start (Mùng 1) - special styling */
+        .w-day .lunar.lunar-month {
+            color: var(--md-sys-color-primary);
+            font-weight: 600;
+            font-size: 7.5px;
+        }
+
+        /* ===== DARK THEME ===== */
+        .widget-4x4.dark {
+            background: #1E1E1E;
+            border-color: rgba(255,255,255,0.06);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .widget-4x4.dark .w-weekdays span {
+            color: rgba(255,255,255,0.4);
+        }
+
+        .widget-4x4.dark .w-weekdays span.weekend {
+            color: #EF5350;
+        }
+
+        .widget-4x4.dark .w-day .solar {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .widget-4x4.dark .w-day .lunar {
+            color: rgba(255,255,255,0.35);
+        }
+
+        .widget-4x4.dark .w-day.weekend .solar {
+            color: #EF5350;
+        }
+
+        .widget-4x4.dark .w-day.other-month .solar {
+            color: rgba(255,255,255,0.15);
+        }
+
+        .widget-4x4.dark .w-day.today {
+            background: #B71C1C;
+        }
+
+        .widget-4x4.dark .w-day:active {
+            background: rgba(255,255,255,0.06);
+        }
+
+        .widget-4x4.dark .w-day .lunar.lunar-month {
+            color: #EF5350;
+        }
+
+        .widget-4x4.dark .w-day.holiday .solar {
+            color: #EF5350;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LABEL -->
+    <div class="widget-label">Widget 4×4 — Light Theme</div>
+
+    <!-- ===== WIDGET 4×4 LIGHT ===== -->
+    <div class="widget-4x4">
+        <!-- Header -->
+        <div class="w-header">
+            <div class="w-header-left">
+                <div class="w-month-title">Tháng 4, 2026</div>
+                <div class="w-month-lunar">Tháng 3 Âm · Bính Ngọ</div>
+            </div>
+            <div class="w-header-right">
+                <button class="w-nav-btn"><span class="material-symbols-rounded">chevron_left</span></button>
+                <button class="w-nav-btn"><span class="material-symbols-rounded">chevron_right</span></button>
+            </div>
+        </div>
+
+        <!-- Weekday Header -->
+        <div class="w-weekdays">
+            <span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span>
+            <span class="weekend">T7</span><span class="weekend">CN</span>
+        </div>
+
+        <!-- Calendar Grid — Tháng 4/2026 -->
+        <div class="w-grid">
+            <!-- Row 1 -->
+            <div class="w-day other-month"><span class="solar">30</span><span class="lunar">2/3</span></div>
+            <div class="w-day other-month"><span class="solar">31</span><span class="lunar">3/3</span></div>
+            <div class="w-day"><span class="solar">1</span><span class="lunar">4/3</span></div>
+            <div class="w-day"><span class="solar">2</span><span class="lunar">5/3</span></div>
+            <div class="w-day"><span class="solar">3</span><span class="lunar">6/3</span></div>
+            <div class="w-day weekend"><span class="solar">4</span><span class="lunar">7/3</span></div>
+            <div class="w-day weekend"><span class="solar">5</span><span class="lunar">8/3</span></div>
+
+            <!-- Row 2 -->
+            <div class="w-day"><span class="solar">6</span><span class="lunar">9/3</span></div>
+            <div class="w-day today"><span class="solar">7</span><span class="lunar">10/3</span></div>
+            <div class="w-day good-day"><span class="solar">8</span><span class="lunar">11/3</span></div>
+            <div class="w-day"><span class="solar">9</span><span class="lunar">12/3</span></div>
+            <div class="w-day holiday"><span class="solar">10</span><span class="lunar">13/3</span><span class="event-dot"></span></div>
+            <div class="w-day weekend"><span class="solar">11</span><span class="lunar">14/3</span></div>
+            <div class="w-day weekend"><span class="solar">12</span><span class="lunar">15/3</span></div>
+
+            <!-- Row 3 -->
+            <div class="w-day good-day"><span class="solar">13</span><span class="lunar">16/3</span></div>
+            <div class="w-day"><span class="solar">14</span><span class="lunar">17/3</span></div>
+            <div class="w-day"><span class="solar">15</span><span class="lunar">18/3</span></div>
+            <div class="w-day"><span class="solar">16</span><span class="lunar">19/3</span></div>
+            <div class="w-day"><span class="solar">17</span><span class="lunar">20/3</span></div>
+            <div class="w-day weekend"><span class="solar">18</span><span class="lunar">21/3</span></div>
+            <div class="w-day weekend good-day"><span class="solar">19</span><span class="lunar">22/3</span></div>
+
+            <!-- Row 4 -->
+            <div class="w-day"><span class="solar">20</span><span class="lunar">23/3</span></div>
+            <div class="w-day"><span class="solar">21</span><span class="lunar">24/3</span></div>
+            <div class="w-day"><span class="solar">22</span><span class="lunar">25/3</span></div>
+            <div class="w-day good-day"><span class="solar">23</span><span class="lunar">26/3</span></div>
+            <div class="w-day"><span class="solar">24</span><span class="lunar">27/3</span></div>
+            <div class="w-day weekend"><span class="solar">25</span><span class="lunar">28/3</span></div>
+            <div class="w-day weekend"><span class="solar">26</span><span class="lunar">29/3</span></div>
+
+            <!-- Row 5 -->
+            <div class="w-day"><span class="solar">27</span><span class="lunar lunar-month">1/4</span></div>
+            <div class="w-day"><span class="solar">28</span><span class="lunar">2/4</span></div>
+            <div class="w-day"><span class="solar">29</span><span class="lunar">3/4</span></div>
+            <div class="w-day holiday"><span class="solar">30</span><span class="lunar">4/4</span><span class="event-dot"></span></div>
+            <div class="w-day other-month holiday"><span class="solar">1</span><span class="lunar">5/4</span></div>
+            <div class="w-day other-month weekend"><span class="solar">2</span><span class="lunar">6/4</span></div>
+            <div class="w-day other-month weekend"><span class="solar">3</span><span class="lunar">7/4</span></div>
+        </div>
+    </div>
+
+    <!-- LABEL -->
+    <div class="widget-label" style="margin-top:12px;">Widget 4×4 — Dark Theme</div>
+
+    <!-- ===== WIDGET 4×4 DARK ===== -->
+    <div class="widget-4x4 dark">
+        <!-- Header -->
+        <div class="w-header">
+            <div class="w-header-left">
+                <div class="w-month-title">Tháng 4, 2026</div>
+                <div class="w-month-lunar">Tháng 3 Âm · Bính Ngọ</div>
+            </div>
+            <div class="w-header-right">
+                <button class="w-nav-btn"><span class="material-symbols-rounded">chevron_left</span></button>
+                <button class="w-nav-btn"><span class="material-symbols-rounded">chevron_right</span></button>
+            </div>
+        </div>
+
+        <!-- Weekday Header -->
+        <div class="w-weekdays">
+            <span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span>
+            <span class="weekend">T7</span><span class="weekend">CN</span>
+        </div>
+
+        <!-- Calendar Grid — Tháng 4/2026 (Dark) -->
+        <div class="w-grid">
+            <!-- Row 1 -->
+            <div class="w-day other-month"><span class="solar">30</span><span class="lunar">2/3</span></div>
+            <div class="w-day other-month"><span class="solar">31</span><span class="lunar">3/3</span></div>
+            <div class="w-day"><span class="solar">1</span><span class="lunar">4/3</span></div>
+            <div class="w-day"><span class="solar">2</span><span class="lunar">5/3</span></div>
+            <div class="w-day"><span class="solar">3</span><span class="lunar">6/3</span></div>
+            <div class="w-day weekend"><span class="solar">4</span><span class="lunar">7/3</span></div>
+            <div class="w-day weekend"><span class="solar">5</span><span class="lunar">8/3</span></div>
+
+            <!-- Row 2 -->
+            <div class="w-day"><span class="solar">6</span><span class="lunar">9/3</span></div>
+            <div class="w-day today"><span class="solar">7</span><span class="lunar">10/3</span></div>
+            <div class="w-day good-day"><span class="solar">8</span><span class="lunar">11/3</span></div>
+            <div class="w-day"><span class="solar">9</span><span class="lunar">12/3</span></div>
+            <div class="w-day holiday"><span class="solar">10</span><span class="lunar">13/3</span><span class="event-dot"></span></div>
+            <div class="w-day weekend"><span class="solar">11</span><span class="lunar">14/3</span></div>
+            <div class="w-day weekend"><span class="solar">12</span><span class="lunar">15/3</span></div>
+
+            <!-- Row 3 -->
+            <div class="w-day good-day"><span class="solar">13</span><span class="lunar">16/3</span></div>
+            <div class="w-day"><span class="solar">14</span><span class="lunar">17/3</span></div>
+            <div class="w-day"><span class="solar">15</span><span class="lunar">18/3</span></div>
+            <div class="w-day"><span class="solar">16</span><span class="lunar">19/3</span></div>
+            <div class="w-day"><span class="solar">17</span><span class="lunar">20/3</span></div>
+            <div class="w-day weekend"><span class="solar">18</span><span class="lunar">21/3</span></div>
+            <div class="w-day weekend good-day"><span class="solar">19</span><span class="lunar">22/3</span></div>
+
+            <!-- Row 4 -->
+            <div class="w-day"><span class="solar">20</span><span class="lunar">23/3</span></div>
+            <div class="w-day"><span class="solar">21</span><span class="lunar">24/3</span></div>
+            <div class="w-day"><span class="solar">22</span><span class="lunar">25/3</span></div>
+            <div class="w-day good-day"><span class="solar">23</span><span class="lunar">26/3</span></div>
+            <div class="w-day"><span class="solar">24</span><span class="lunar">27/3</span></div>
+            <div class="w-day weekend"><span class="solar">25</span><span class="lunar">28/3</span></div>
+            <div class="w-day weekend"><span class="solar">26</span><span class="lunar">29/3</span></div>
+
+            <!-- Row 5 -->
+            <div class="w-day"><span class="solar">27</span><span class="lunar lunar-month">1/4</span></div>
+            <div class="w-day"><span class="solar">28</span><span class="lunar">2/4</span></div>
+            <div class="w-day"><span class="solar">29</span><span class="lunar">3/4</span></div>
+            <div class="w-day holiday"><span class="solar">30</span><span class="lunar">4/4</span><span class="event-dot"></span></div>
+            <div class="w-day other-month holiday"><span class="solar">1</span><span class="lunar">5/4</span></div>
+            <div class="w-day other-month weekend"><span class="solar">2</span><span class="lunar">6/4</span></div>
+            <div class="w-day other-month weekend"><span class="solar">3</span><span class="lunar">7/4</span></div>
+        </div>
+    </div>
+
+</body>
+</html>

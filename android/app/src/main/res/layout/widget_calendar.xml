@@ -53,7 +53,7 @@
     </LinearLayout>
 
     <!-- Divider -->
-    <View
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="#22D8C2BF"

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Widget 4×2 — Giờ & Lịch</title>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet">
+    <style>
+        :root {
+            --md-sys-color-primary: #B71C1C;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #FFDAD6;
+            --md-sys-color-on-primary-container: #410002;
+            --md-sys-color-secondary: #C6A300;
+            --md-sys-color-secondary-container: #FFF0B3;
+            --md-sys-color-surface: #FFFBF5;
+            --md-sys-color-on-surface: #1C1B1F;
+            --md-sys-color-surface-variant: #F5DDD8;
+            --md-sys-color-on-surface-variant: #534340;
+            --md-sys-color-surface-container: #FFF8F0;
+            --md-sys-color-outline: #857371;
+            --md-sys-color-outline-variant: #D8C2BF;
+            --gold-accent: #D4A017;
+            --deep-red: #8B0000;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Google Sans', system-ui, sans-serif;
+            background: #1a1a1a;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .widget-label {
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        /* ===== WIDGET 4×2 — CLOCK & CALENDAR ===== */
+        .widget-4x2 {
+            width: 364px;
+            height: 170px;
+            border-radius: 28px;
+            overflow: hidden;
+            position: relative;
+            background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 40%, #8B0000 100%);
+            box-shadow: 0 8px 32px rgba(183, 28, 28, 0.3), 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        /* Decorative elements */
+        .widget-4x2::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            right: -20px;
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, rgba(255,215,0,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .widget-4x2::after {
+            content: '';
+            position: absolute;
+            bottom: -30px;
+            left: -20px;
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .widget-content {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            padding: 20px 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* LEFT SECTION — Time & Date */
+        .widget-left {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .widget-time {
+            font-size: 48px;
+            font-weight: 700;
+            color: #FFFFFF;
+            line-height: 1;
+            letter-spacing: -1px;
+        }
+
+        .widget-time-ampm {
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.7);
+            margin-left: 4px;
+            vertical-align: super;
+        }
+
+        .widget-date-solar {
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.9);
+            margin-top: 2px;
+        }
+
+        .widget-date-lunar {
+            font-size: 12px;
+            color: rgba(255,215,0,0.9);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .widget-date-lunar .material-symbols-rounded {
+            font-size: 14px;
+        }
+
+        /* DIVIDER */
+        .widget-divider {
+            width: 1px;
+            height: 80%;
+            background: rgba(255,255,255,0.15);
+            align-self: center;
+            margin: 0 18px;
+            border-radius: 1px;
+        }
+
+        /* RIGHT SECTION — Weather & Info */
+        .widget-right {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            min-width: 100px;
+        }
+
+        .weather-icon-big {
+            font-size: 40px;
+            color: #FFD54F;
+            line-height: 1;
+        }
+
+        .weather-temp-big {
+            font-size: 28px;
+            font-weight: 700;
+            color: #FFFFFF;
+            line-height: 1;
+        }
+
+        .weather-desc {
+            font-size: 11px;
+            color: rgba(255,255,255,0.7);
+            font-weight: 500;
+        }
+
+        .weather-range {
+            font-size: 10px;
+            color: rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .weather-range .hi { color: rgba(255,200,200,0.8); }
+        .weather-range .lo { color: rgba(180,200,255,0.8); }
+
+        /* ===== DAY STATUS BADGE ===== */
+        .day-status-badge {
+            position: absolute;
+            bottom: 16px;
+            left: 24px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(8px);
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .day-status-badge .material-symbols-rounded {
+            font-size: 14px;
+            color: #81C784;
+        }
+
+        .day-status-badge span:last-child {
+            font-size: 10px;
+            color: rgba(255,255,255,0.8);
+            font-weight: 500;
+        }
+
+        /* ===== APP ICON OVERLAY ===== */
+        .app-logo {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+
+        .app-logo .material-symbols-rounded {
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+        }
+
+        /* ===== VARIANT — Light Theme ===== */
+        .widget-4x2.light {
+            background: linear-gradient(135deg, #FFFBF5 0%, #FFF8F0 50%, #FFF0E8 100%);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+            border: 1px solid rgba(183, 28, 28, 0.08);
+        }
+
+        .widget-4x2.light .widget-time {
+            color: #B71C1C;
+        }
+
+        .widget-4x2.light .widget-date-solar {
+            color: #1C1B1F;
+        }
+
+        .widget-4x2.light .widget-date-lunar {
+            color: #C6A300;
+        }
+
+        .widget-4x2.light .widget-divider {
+            background: rgba(183, 28, 28, 0.1);
+        }
+
+        .widget-4x2.light .weather-icon-big {
+            color: #FF8F00;
+        }
+
+        .widget-4x2.light .weather-temp-big {
+            color: #1C1B1F;
+        }
+
+        .widget-4x2.light .weather-desc {
+            color: #534340;
+        }
+
+        .widget-4x2.light .weather-range .hi { color: #C62828; }
+        .widget-4x2.light .weather-range .lo { color: #1565C0; }
+
+        .widget-4x2.light .day-status-badge {
+            background: rgba(183, 28, 28, 0.06);
+        }
+
+        .widget-4x2.light .day-status-badge .material-symbols-rounded {
+            color: #2E7D32;
+        }
+
+        .widget-4x2.light .day-status-badge span:last-child {
+            color: #534340;
+        }
+
+        .widget-4x2.light .app-logo {
+            background: rgba(183, 28, 28, 0.06);
+        }
+
+        .widget-4x2.light .app-logo .material-symbols-rounded {
+            color: #B71C1C;
+        }
+
+        .widget-4x2.light::before {
+            background: radial-gradient(circle, rgba(183,28,28,0.04) 0%, transparent 70%);
+        }
+
+        .widget-4x2.light::after {
+            background: radial-gradient(circle, rgba(198,163,0,0.04) 0%, transparent 70%);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LABEL -->
+    <div class="widget-label">Widget 4×2 — Dark Theme</div>
+
+    <!-- ===== WIDGET 4×2 DARK ===== -->
+    <div class="widget-4x2">
+        <div class="app-logo">
+            <span class="material-symbols-rounded">calendar_month</span>
+        </div>
+
+        <div class="widget-content">
+            <!-- LEFT: Time & Date -->
+            <div class="widget-left">
+                <div class="widget-time">
+                    9:41
+                </div>
+                <div class="widget-date-solar">Thứ Ba, 07/04/2026</div>
+                <div class="widget-date-lunar">
+                    <span class="material-symbols-rounded">dark_mode</span>
+                    10/3 Âm · Bính Ngọ
+                </div>
+            </div>
+
+            <!-- DIVIDER -->
+            <div class="widget-divider"></div>
+
+            <!-- RIGHT: Weather -->
+            <div class="widget-right">
+                <div class="weather-icon-big">☀️</div>
+                <div class="weather-temp-big">32°</div>
+                <div class="weather-desc">Nắng đẹp</div>
+                <div class="weather-range">
+                    <span class="hi">↑ 34°</span>
+                    <span class="lo">↓ 25°</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Day status badge -->
+        <div class="day-status-badge">
+            <span class="material-symbols-rounded">verified</span>
+            <span>Ngày Hoàng Đạo</span>
+        </div>
+    </div>
+
+    <!-- LABEL -->
+    <div class="widget-label" style="margin-top:16px;">Widget 4×2 — Light Theme</div>
+
+    <!-- ===== WIDGET 4×2 LIGHT ===== -->
+    <div class="widget-4x2 light">
+        <div class="app-logo">
+            <span class="material-symbols-rounded">calendar_month</span>
+        </div>
+
+        <div class="widget-content">
+            <div class="widget-left">
+                <div class="widget-time">
+                    9:41
+                </div>
+                <div class="widget-date-solar">Thứ Ba, 07/04/2026</div>
+                <div class="widget-date-lunar">
+                    <span class="material-symbols-rounded">dark_mode</span>
+                    10/3 Âm · Bính Ngọ
+                </div>
+            </div>
+
+            <div class="widget-divider"></div>
+
+            <div class="widget-right">
+                <div class="weather-icon-big">⛅</div>
+                <div class="weather-temp-big">32°</div>
+                <div class="weather-desc">Nắng đẹp</div>
+                <div class="weather-range">
+                    <span class="hi">↑ 34°</span>
+                    <span class="lo">↓ 25°</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="day-status-badge">
+            <span class="material-symbols-rounded">verified</span>
+            <span>Ngày Hoàng Đạo</span>
+        </div>
+    </div>
+
+</body>
+</html>
