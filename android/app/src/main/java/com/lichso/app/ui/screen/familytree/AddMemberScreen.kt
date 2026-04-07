@@ -74,13 +74,19 @@ fun AddMemberScreen(
     var avatarPath by remember { mutableStateOf(existingMember?.avatarPath ?: "") }
     var avatarVersion by remember { mutableIntStateOf(0) } // force Coil to reload on change
 
-    // Connected member (parent or spouse)
-    var connectedMember by remember { mutableStateOf<FamilyMember?>(
-        existingMember?.let { em ->
-            // Try parentIds first, then spouseIds
-            em.parentIds.firstOrNull()?.let { viewModel.getMember(it) }
-                ?: em.spouseIds.firstOrNull()?.let { viewModel.getMember(it) }
-        }
+    // ── Relationship members ──
+    // For child relations: pick both father and mother
+    var selectedFather by remember { mutableStateOf<FamilyMember?>(
+        existingMember?.parentIds?.mapNotNull { viewModel.getMember(it) }
+            ?.firstOrNull { it.gender == Gender.MALE }
+    ) }
+    var selectedMother by remember { mutableStateOf<FamilyMember?>(
+        existingMember?.parentIds?.mapNotNull { viewModel.getMember(it) }
+            ?.firstOrNull { it.gender == Gender.FEMALE }
+    ) }
+    // For spouse relations: pick one spouse
+    var selectedSpouse by remember { mutableStateOf<FamilyMember?>(
+        existingMember?.spouseIds?.firstOrNull()?.let { viewModel.getMember(it) }
     ) }
 
     // Member ID for avatar saving
@@ -234,32 +240,83 @@ fun AddMemberScreen(
             if (!isFirstMember) {
             FormSectionTitle("Quan hệ", Icons.Filled.Group, c)
 
-            FormLabel("Quan hệ với", required = true, c = c)
-            ConnectCard(
-                member = connectedMember,
-                c = c,
-                onClick = {
-                    viewModel.openPickMember { picked ->
-                        connectedMember = picked
-                        // Auto-adjust generation based on current selected relation
-                        generation = computeGeneration(picked.generation, selectedRelation)
-                    }
-                }
-            )
-            Spacer(modifier = Modifier.height(14.dp))
-
-            FormLabel("Là ai của người trên?", required = true, c = c)
-            val relations = listOf("Con trai", "Con gái", "Vợ/Chồng", "Anh/Chị", "Em", "Cha", "Mẹ", "Dâu/Rể")
+            FormLabel("Loại quan hệ", required = true, c = c)
+            val relations = listOf("Con trai", "Con gái", "Vợ/Chồng")
             RelationPicker(relations, selectedRelation, c) { relation ->
                 selectedRelation = relation
-                // Auto-adjust generation when relation changes (only if not deselected)
+                // Auto-adjust generation when relation changes
                 if (relation.isNotBlank()) {
-                    connectedMember?.let { cm ->
-                        generation = computeGeneration(cm.generation, relation)
+                    val isChild = relation in listOf("Con trai", "Con gái")
+                    if (isChild) {
+                        // Use father's generation if available, else mother's
+                        val refGen = selectedFather?.generation ?: selectedMother?.generation
+                        if (refGen != null) generation = refGen + 1
+                    } else {
+                        // Spouse: same generation
+                        selectedSpouse?.let { generation = it.generation }
                     }
                 }
             }
             Spacer(modifier = Modifier.height(14.dp))
+
+            val isChildRelation = selectedRelation in listOf("Con trai", "Con gái")
+
+            if (isChildRelation) {
+                // ── Pick Father ──
+                FormLabel("Cha (bắt buộc)", required = true, c = c)
+                ConnectCard(
+                    member = selectedFather,
+                    placeholder = "Chọn cha",
+                    subPlaceholder = "Chạm để chọn cha",
+                    c = c,
+                    onClick = {
+                        viewModel.openPickMember(excludeId = memberId) { picked ->
+                            selectedFather = picked
+                            // Auto-adjust generation: child = max(father, mother) + 1
+                            val fatherGen = picked.generation
+                            val motherGen = selectedMother?.generation ?: fatherGen
+                            generation = maxOf(fatherGen, motherGen) + 1
+                        }
+                    }
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // ── Pick Mother ──
+                FormLabel("Mẹ (bắt buộc)", required = true, c = c)
+                ConnectCard(
+                    member = selectedMother,
+                    placeholder = "Chọn mẹ",
+                    subPlaceholder = "Chạm để chọn mẹ",
+                    c = c,
+                    onClick = {
+                        viewModel.openPickMember(excludeId = memberId) { picked ->
+                            selectedMother = picked
+                            // Auto-adjust generation
+                            val motherGen = picked.generation
+                            val fatherGen = selectedFather?.generation ?: motherGen
+                            generation = maxOf(fatherGen, motherGen) + 1
+                        }
+                    }
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+            } else if (selectedRelation == "Vợ/Chồng") {
+                // ── Pick Spouse ──
+                FormLabel("Chồng/Vợ", required = true, c = c)
+                ConnectCard(
+                    member = selectedSpouse,
+                    placeholder = "Chọn chồng/vợ",
+                    subPlaceholder = "Chạm để chọn người liên kết",
+                    c = c,
+                    onClick = {
+                        viewModel.openPickMember(excludeId = memberId) { picked ->
+                            selectedSpouse = picked
+                            generation = picked.generation
+                        }
+                    }
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+            }
+
             } // end if (!isFirstMember)
 
             // Generation
@@ -431,19 +488,26 @@ fun AddMemberScreen(
                                 else -> "👩"
                             }
                             val parentIds = when (effectiveRelation) {
-                                "Con trai", "Con gái" -> connectedMember?.let { listOf(it.id) } ?: emptyList()
+                                "Con trai", "Con gái" -> {
+                                    val ids = mutableListOf<String>()
+                                    selectedFather?.let { ids.add(it.id) }
+                                    selectedMother?.let { mother ->
+                                        if (mother.id !in ids) ids.add(mother.id)
+                                    }
+                                    ids
+                                }
                                 else -> existingMember?.parentIds ?: emptyList()
                             }
                             // Multi-spouse support: build spouseIds list
                             val spouseIds = when (effectiveRelation) {
-                                "Vợ/Chồng" -> connectedMember?.let { listOf(it.id) } ?: emptyList()
+                                "Vợ/Chồng" -> selectedSpouse?.let { listOf(it.id) } ?: emptyList()
                                 else -> existingMember?.spouseIds ?: emptyList()
                             }
                             // Determine spouse order for the new wife
                             val spouseOrder = when (effectiveRelation) {
                                 "Vợ/Chồng" -> {
                                     // Count existing wives of the connected member
-                                    val existingWifeCount = connectedMember?.spouseIds?.size ?: 0
+                                    val existingWifeCount = selectedSpouse?.spouseIds?.size ?: 0
                                     existingWifeCount + 1
                                 }
                                 else -> existingMember?.spouseOrder ?: 0
@@ -492,12 +556,12 @@ fun AddMemberScreen(
                             // Memorial is auto-synced inside saveMember()
 
                             // If spouse relation, also update the connected member's spouseIds
-                            if (effectiveRelation == "Vợ/Chồng" && connectedMember != null) {
-                                val updatedSpouseIds = if (connectedMember!!.spouseIds.contains(member.id))
-                                    connectedMember!!.spouseIds
+                            if (effectiveRelation == "Vợ/Chồng" && selectedSpouse != null) {
+                                val updatedSpouseIds = if (selectedSpouse!!.spouseIds.contains(member.id))
+                                    selectedSpouse!!.spouseIds
                                 else
-                                    connectedMember!!.spouseIds + member.id
-                                val updatedSpouse = connectedMember!!.copy(spouseIds = updatedSpouseIds)
+                                    selectedSpouse!!.spouseIds + member.id
+                                val updatedSpouse = selectedSpouse!!.copy(spouseIds = updatedSpouseIds)
                                 viewModel.saveMember(updatedSpouse)
                             }
                         }
@@ -527,8 +591,7 @@ fun AddMemberScreen(
 private fun computeGeneration(connectedGeneration: Int, relation: String): Int {
     return when (relation) {
         "Con trai", "Con gái" -> connectedGeneration + 1
-        "Cha", "Mẹ"          -> maxOf(1, connectedGeneration - 1)
-        // Vợ/Chồng, Anh/Chị, Em, Dâu/Rể → same generation
+        // Vợ/Chồng → same generation
         else                  -> connectedGeneration
     }
 }
@@ -659,7 +722,13 @@ private fun FlagChip(label: String, isActive: Boolean, c: LichSoColors, onToggle
 }
 
 @Composable
-private fun ConnectCard(member: FamilyMember?, c: LichSoColors, onClick: () -> Unit) {
+private fun ConnectCard(
+    member: FamilyMember?,
+    c: LichSoColors,
+    onClick: () -> Unit,
+    placeholder: String = "Chọn thành viên",
+    subPlaceholder: String = "Chạm để chọn người liên kết"
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -699,8 +768,8 @@ private fun ConnectCard(member: FamilyMember?, c: LichSoColors, onClick: () -> U
                 Icon(Icons.Filled.PersonSearch, null, tint = c.outline, modifier = Modifier.size(20.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text("Chọn thành viên", style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = c.textSecondary))
-                Text("Chạm để chọn người liên kết", style = TextStyle(fontSize = 11.sp, color = c.outline))
+                Text(placeholder, style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = c.textSecondary))
+                Text(subPlaceholder, style = TextStyle(fontSize = 11.sp, color = c.outline))
             }
         }
         Icon(Icons.Filled.SwapHoriz, null, tint = c.primary, modifier = Modifier.size(20.dp))

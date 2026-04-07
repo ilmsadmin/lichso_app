@@ -48,28 +48,6 @@
             </intent-filter>
         </receiver>
 
-        <!-- Calendar Widget -->
-        <receiver
-            android:name=".widget.CalendarWidgetProvider"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/calendar_widget_info" />
-        </receiver>
-
-        <!-- AI Horoscope Widget -->
-        <receiver
-            android:name=".widget.AiHoroscopeWidgetProvider"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/ai_horoscope_widget_info" />
         <!-- Widget Lịch Vạn Niên -->
         <receiver
             android:name=".widget.CalendarWidget"

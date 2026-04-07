@@ -168,7 +168,8 @@ fun FamilyTreeScreen(
             PickMemberScreen(
                 viewModel = viewModel,
                 onBack = { viewModel.closePickMember() },
-                onMemberPicked = { viewModel.onMemberPicked(it) }
+                onMemberPicked = { viewModel.onMemberPicked(it) },
+                excludeMemberId = uiState.pickMemberExcludeId,
             )
         }
 
@@ -1251,14 +1252,11 @@ private fun FamilyGroupView(
 
                             if (childGroup.wifeId != null && childGroup.children.isNotEmpty()) {
                                 // Wife branch label
-                                val wife = (group.parents as TreeNode.MultiSpouse).wives.find { it.id == childGroup.wifeId }
+                                val wives = (group.parents as TreeNode.MultiSpouse).wives
+                                val wifeIndex = wives.indexOfFirst { it.id == childGroup.wifeId }
+                                val wife = wives.getOrNull(wifeIndex)
                                 if (wife != null) {
-                                    val label = when (wife.spouseOrder) {
-                                        1 -> "Vợ cả"
-                                        2 -> "Vợ hai"
-                                        3 -> "Vợ ba"
-                                        else -> wife.name
-                                    }
+                                    val label = getWifeLabel(wifeIndex)
                                     Text(
                                         "── $label ──",
                                         style = TextStyle(
@@ -1532,12 +1530,7 @@ private fun MultiSpouseNodeView(
                 modifier = Modifier.padding(top = 2.dp)
             ) {
                 wives.forEachIndexed { index, wife ->
-                    val label = when (wife.spouseOrder) {
-                        1 -> "Vợ cả"
-                        2 -> "Vợ hai"
-                        3 -> "Vợ ba"
-                        else -> "Vợ ${index + 1}"
-                    }
+                    val label = getWifeLabel(index)
                     Text(
                         label,
                         style = TextStyle(
@@ -1550,6 +1543,15 @@ private fun MultiSpouseNodeView(
             }
         }
     }
+}
+
+/** Helper: wife label by 0-based index in the sorted wives list */
+private fun getWifeLabel(index: Int): String = when (index) {
+    0 -> "Vợ cả"
+    1 -> "Vợ hai"
+    2 -> "Vợ ba"
+    3 -> "Vợ tư"
+    else -> "Vợ ${index + 1}"
 }
 
 // ── Add Person Placeholder ──

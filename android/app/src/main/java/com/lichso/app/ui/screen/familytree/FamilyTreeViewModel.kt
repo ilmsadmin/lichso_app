@@ -150,6 +150,7 @@ data class FamilyTreeUiState(
     val memorials: List<MemorialDay> = emptyList(),
     val isLoading: Boolean = true,
     val pickMemberCallback: ((FamilyMember) -> Unit)? = null,
+    val pickMemberExcludeId: String? = null, // exclude this member from pick list (avoid picking self)
     // Memorial quick-add note/reminder
     val showMemorialNoteEdit: Boolean = false,
     val showMemorialReminderEdit: Boolean = false,
@@ -244,25 +245,27 @@ class FamilyTreeViewModel @Inject constructor(
             val genMembers = grouped[gen] ?: emptyList()
             val nodes = mutableListOf<TreeNode>()
             val processed = mutableSetOf<String>()
+            val multiSpouseHusbandIds = mutableSetOf<String>()
 
             // First pass: process males with multiple spouses
             for (member in genMembers) {
                 if (member.id in processed) continue
                 if (member.gender != Gender.MALE) continue
 
-                val spouses = member.spouseIds.mapNotNull { sid ->
-                    (genMembers.find { it.id == sid } ?: memberById[sid])
-                }.filter { it.id !in processed }
+                // Look up ALL spouses from the full family
+                val allSpouseMembers = member.spouseIds.mapNotNull { memberById[it] }
+                val localSpouses = allSpouseMembers.filter { it.id !in processed }
 
-                if (spouses.size > 1) {
-                    val sortedWives = spouses.sortedBy { it.spouseOrder }
+                if (allSpouseMembers.size > 1) {
+                    val sortedWives = localSpouses.sortedBy { it.spouseOrder }
                     nodes.add(TreeNode.MultiSpouse(member, sortedWives))
                     processed.add(member.id)
-                    spouses.forEach { processed.add(it.id) }
-                } else if (spouses.size == 1) {
-                    nodes.add(TreeNode.Couple(member, spouses.first()))
+                    localSpouses.forEach { processed.add(it.id) }
+                    multiSpouseHusbandIds.add(member.id)
+                } else if (localSpouses.size == 1) {
+                    nodes.add(TreeNode.Couple(member, localSpouses.first()))
                     processed.add(member.id)
-                    processed.add(spouses.first().id)
+                    processed.add(localSpouses.first().id)
                 } else {
                     nodes.add(TreeNode.Single(member))
                     processed.add(member.id)
@@ -273,21 +276,71 @@ class FamilyTreeViewModel @Inject constructor(
             for (member in genMembers) {
                 if (member.id in processed) continue
 
-                // Check if this female's husband (from another gen or already processed) has multiple wives
+                // Find husband: either from this member's spouseIds, or reverse-lookup
                 val husband = member.spouseIds.mapNotNull { memberById[it] }
                     .firstOrNull { it.gender == Gender.MALE }
-                if (husband != null && husband.id !in processed && husband.spouseIds.size > 1) {
-                    // Husband has multiple wives — build MultiSpouse node centered on husband
-                    val allWives = husband.spouseIds.mapNotNull { memberById[it] }
-                        .filter { it.id !in processed || it.id == member.id }
-                        .sortedBy { it.spouseOrder }
-                    nodes.add(TreeNode.MultiSpouse(husband, allWives))
-                    processed.add(husband.id)
-                    allWives.forEach { processed.add(it.id) }
-                } else if (husband != null && husband.id !in processed) {
-                    nodes.add(TreeNode.Couple(husband, member))
-                    processed.add(member.id)
-                    processed.add(husband.id)
+                    ?: memberById.values.firstOrNull { candidate ->
+                        candidate.gender == Gender.MALE && candidate.spouseIds.contains(member.id)
+                    }
+
+                if (husband != null) {
+                    if (husband.id in multiSpouseHusbandIds) {
+                        // Merge into existing MultiSpouse node
+                        val existingIdx = nodes.indexOfFirst {
+                            it is TreeNode.MultiSpouse && it.husband.id == husband.id
+                        }
+                        if (existingIdx >= 0) {
+                            val existing = nodes[existingIdx] as TreeNode.MultiSpouse
+                            if (existing.wives.none { it.id == member.id }) {
+                                nodes[existingIdx] = existing.copy(
+                                    wives = (existing.wives + member).sortedBy { it.spouseOrder }
+                                )
+                            }
+                        }
+                        processed.add(member.id)
+                    } else if (husband.id !in processed && husband.spouseIds.size > 1) {
+                        val allWives = husband.spouseIds.mapNotNull { memberById[it] }
+                            .filter { it.id !in processed || it.id == member.id }
+                            .sortedBy { it.spouseOrder }
+                        nodes.add(TreeNode.MultiSpouse(husband, allWives))
+                        processed.add(husband.id)
+                        allWives.forEach { processed.add(it.id) }
+                        multiSpouseHusbandIds.add(husband.id)
+                    } else if (husband.id !in processed) {
+                        nodes.add(TreeNode.Couple(husband, member))
+                        processed.add(member.id)
+                        processed.add(husband.id)
+                    } else {
+                        // Husband already processed — try to upgrade existing node
+                        val existingIdx = nodes.indexOfFirst { node ->
+                            when (node) {
+                                is TreeNode.Single -> node.person.id == husband.id
+                                is TreeNode.Couple -> node.person1.id == husband.id || node.person2.id == husband.id
+                                else -> false
+                            }
+                        }
+                        if (existingIdx >= 0) {
+                            val existing = nodes[existingIdx]
+                            when (existing) {
+                                is TreeNode.Single -> {
+                                    nodes[existingIdx] = TreeNode.Couple(existing.person, member)
+                                }
+                                is TreeNode.Couple -> {
+                                    val h = if (existing.person1.gender == Gender.MALE) existing.person1 else existing.person2
+                                    val firstWife = if (existing.person1.gender == Gender.FEMALE) existing.person1 else existing.person2
+                                    nodes[existingIdx] = TreeNode.MultiSpouse(
+                                        h,
+                                        listOf(firstWife, member).sortedBy { it.spouseOrder }
+                                    )
+                                    multiSpouseHusbandIds.add(h.id)
+                                }
+                                else -> nodes.add(TreeNode.Single(member))
+                            }
+                        } else {
+                            nodes.add(TreeNode.Single(member))
+                        }
+                        processed.add(member.id)
+                    }
                 } else {
                     nodes.add(TreeNode.Single(member))
                     processed.add(member.id)
@@ -323,9 +376,12 @@ class FamilyTreeViewModel @Inject constructor(
         // Build parent nodes (couple or single) for roots
         val rootNodes = buildParentNodes(rootMembers, memberById)
 
+        // Track which children have been claimed to avoid duplicates across root groups
+        val claimedChildIds = mutableSetOf<String>()
+
         // Recursively build family groups
         return rootNodes.map { node ->
-            buildFamilyGroup(node, rootGen, memberById, memberList)
+            buildFamilyGroup(node, rootGen, memberById, memberList, claimedChildIds)
         }
     }
 
@@ -333,6 +389,12 @@ class FamilyTreeViewModel @Inject constructor(
      * Build parent nodes (Couple, MultiSpouse, or Single) from a list of members,
      * handling spouse pairing — also pull in spouses from other generations
      * who married into this family. Supports multi-spouse (1 husband, N wives).
+     *
+     * Key: we detect multi-spouse by checking the husband's full spouseIds
+     * (via memberById), not just those present in the local `members` list.
+     * This ensures a man with 3 wives is always rendered as MultiSpouse
+     * even if some wives come from a different generation or aren't in the
+     * current `members` subset.
      */
     private fun buildParentNodes(
         members: List<FamilyMember>,
@@ -341,24 +403,30 @@ class FamilyTreeViewModel @Inject constructor(
         val nodes = mutableListOf<TreeNode>()
         val processed = mutableSetOf<String>()
 
+        // Collect all husband IDs that have multiple wives anywhere in the family
+        // so that wives processed in the second pass are merged correctly.
+        val multiSpouseHusbandIds = mutableSetOf<String>()
+
         // First pass: process males first to detect multi-spouse
         for (member in members) {
             if (member.id in processed) continue
             if (member.gender != Gender.MALE) continue
 
-            val spouses = member.spouseIds.mapNotNull { sid ->
-                members.find { it.id == sid } ?: memberById[sid]
-            }.filter { it.id !in processed }
+            // Look up ALL spouses from the full family, not just the local list
+            val allSpouseMembers = member.spouseIds.mapNotNull { memberById[it] }
+            val localSpouses = allSpouseMembers.filter { it.id !in processed }
 
-            if (spouses.size > 1) {
-                val sortedWives = spouses.sortedBy { it.spouseOrder }
+            if (allSpouseMembers.size > 1) {
+                // This man has multiple wives — always render as MultiSpouse
+                val sortedWives = localSpouses.sortedBy { it.spouseOrder }
                 nodes.add(TreeNode.MultiSpouse(member, sortedWives))
                 processed.add(member.id)
-                spouses.forEach { processed.add(it.id) }
-            } else if (spouses.size == 1) {
-                nodes.add(TreeNode.Couple(member, spouses.first()))
+                localSpouses.forEach { processed.add(it.id) }
+                multiSpouseHusbandIds.add(member.id)
+            } else if (localSpouses.size == 1) {
+                nodes.add(TreeNode.Couple(member, localSpouses.first()))
                 processed.add(member.id)
-                processed.add(spouses.first().id)
+                processed.add(localSpouses.first().id)
             } else {
                 nodes.add(TreeNode.Single(member))
                 processed.add(member.id)
@@ -369,19 +437,76 @@ class FamilyTreeViewModel @Inject constructor(
         for (member in members) {
             if (member.id in processed) continue
 
+            // Find husband: either from this member's spouseIds, or reverse-lookup
+            // (some male whose spouseIds contains this member)
             val husband = member.spouseIds.mapNotNull { memberById[it] }
                 .firstOrNull { it.gender == Gender.MALE }
-            if (husband != null && husband.id !in processed && husband.spouseIds.size > 1) {
-                val allWives = husband.spouseIds.mapNotNull { memberById[it] }
-                    .filter { it.id !in processed || it.id == member.id }
-                    .sortedBy { it.spouseOrder }
-                nodes.add(TreeNode.MultiSpouse(husband, allWives))
-                processed.add(husband.id)
-                allWives.forEach { processed.add(it.id) }
-            } else if (husband != null && husband.id !in processed) {
-                nodes.add(TreeNode.Couple(husband, member))
-                processed.add(member.id)
-                processed.add(husband.id)
+                ?: memberById.values.firstOrNull { candidate ->
+                    candidate.gender == Gender.MALE && candidate.spouseIds.contains(member.id)
+                }
+
+            if (husband != null) {
+                // Check if this husband was already rendered as MultiSpouse
+                if (husband.id in multiSpouseHusbandIds) {
+                    // Merge this wife into the existing MultiSpouse node
+                    val existingIdx = nodes.indexOfFirst {
+                        it is TreeNode.MultiSpouse && it.husband.id == husband.id
+                    }
+                    if (existingIdx >= 0) {
+                        val existing = nodes[existingIdx] as TreeNode.MultiSpouse
+                        if (existing.wives.none { it.id == member.id }) {
+                            nodes[existingIdx] = existing.copy(
+                                wives = (existing.wives + member).sortedBy { it.spouseOrder }
+                            )
+                        }
+                    }
+                    processed.add(member.id)
+                } else if (husband.id !in processed && husband.spouseIds.size > 1) {
+                    val allWives = husband.spouseIds.mapNotNull { memberById[it] }
+                        .filter { it.id !in processed || it.id == member.id }
+                        .sortedBy { it.spouseOrder }
+                    nodes.add(TreeNode.MultiSpouse(husband, allWives))
+                    processed.add(husband.id)
+                    allWives.forEach { processed.add(it.id) }
+                    multiSpouseHusbandIds.add(husband.id)
+                } else if (husband.id !in processed) {
+                    nodes.add(TreeNode.Couple(husband, member))
+                    processed.add(member.id)
+                    processed.add(husband.id)
+                } else {
+                    // Husband already processed as Single or Couple, but this wife wasn't included.
+                    // Upgrade the existing node to include her.
+                    val existingIdx = nodes.indexOfFirst { node ->
+                        when (node) {
+                            is TreeNode.Single -> node.person.id == husband.id
+                            is TreeNode.Couple -> node.person1.id == husband.id || node.person2.id == husband.id
+                            else -> false
+                        }
+                    }
+                    if (existingIdx >= 0) {
+                        val existing = nodes[existingIdx]
+                        when (existing) {
+                            is TreeNode.Single -> {
+                                nodes[existingIdx] = TreeNode.Couple(existing.person, member)
+                            }
+                            is TreeNode.Couple -> {
+                                val h = if (existing.person1.gender == Gender.MALE) existing.person1 else existing.person2
+                                val firstWife = if (existing.person1.gender == Gender.FEMALE) existing.person1 else existing.person2
+                                nodes[existingIdx] = TreeNode.MultiSpouse(
+                                    h,
+                                    listOf(firstWife, member).sortedBy { it.spouseOrder }
+                                )
+                                multiSpouseHusbandIds.add(h.id)
+                            }
+                            else -> {
+                                nodes.add(TreeNode.Single(member))
+                            }
+                        }
+                    } else {
+                        nodes.add(TreeNode.Single(member))
+                    }
+                    processed.add(member.id)
+                }
             } else {
                 nodes.add(TreeNode.Single(member))
                 processed.add(member.id)
@@ -413,17 +538,50 @@ class FamilyTreeViewModel @Inject constructor(
 
     /**
      * Find children of a parent node from the full member list.
-     * A child belongs to this parent if any of its parentIds match the node's member IDs.
+     *
+     * Matching rules (to avoid duplicates across separate root groups):
+     * - For a Couple(person1, person2): a child must have BOTH parent IDs in its parentIds,
+     *   OR have at least one AND not be claimed yet. Children whose parentIds also reference
+     *   someone outside this node are deprioritized.
+     * - For MultiSpouse: uses the full set of husband + all wives IDs.
+     * - For Single: any child referencing this person.
+     *
+     * Children already claimed by another branch are always excluded.
      */
     private fun findChildrenOf(
         parentNode: TreeNode,
         allMembers: List<FamilyMember>,
+        claimedChildIds: MutableSet<String>,
     ): List<FamilyMember> {
-        val parentIds = getNodeMemberIds(parentNode)
-        if (parentIds.isEmpty()) return emptyList()
-        return allMembers.filter { member ->
-            member.parentIds.any { it in parentIds }
+        val nodeIds = getNodeMemberIds(parentNode)
+        if (nodeIds.isEmpty()) return emptyList()
+
+        // Candidate children: not yet claimed, and at least one parentId matches
+        val candidates = allMembers.filter { member ->
+            member.id !in claimedChildIds &&
+            member.id !in nodeIds &&  // a parent can't be their own child
+            member.parentIds.any { it in nodeIds }
         }
+
+        // For Couple or Single, only claim children that "belong" to this specific unit.
+        // A child belongs if ALL of its parentIds are within this node's IDs,
+        // OR if none of its other parentIds are part of another known family unit.
+        val children = when (parentNode) {
+            is TreeNode.Couple, is TreeNode.Single -> {
+                candidates.filter { child ->
+                    // All of child's parentIds should be within this node
+                    child.parentIds.all { it in nodeIds }
+                }.ifEmpty {
+                    // Fallback: take candidates whose parentIds partially match
+                    // but only if no other root group would be a better match
+                    candidates
+                }
+            }
+            else -> candidates
+        }
+
+        children.forEach { claimedChildIds.add(it.id) }
+        return children
     }
 
     /**
@@ -438,21 +596,44 @@ class FamilyTreeViewModel @Inject constructor(
         generation: Int,
         memberById: Map<String, FamilyMember>,
         allMembers: List<FamilyMember>,
+        claimedChildIds: MutableSet<String>,
     ): FamilyGroup {
         // Find direct children of this parent unit
-        val children = findChildrenOf(parentNode, allMembers)
+        val children = findChildrenOf(parentNode, allMembers, claimedChildIds)
 
         if (parentNode is TreeNode.MultiSpouse) {
             // For multi-spouse: group children by their mother (wife)
             val husbandId = parentNode.husband.id
-            val wifeGroups = parentNode.wives.map { wife ->
-                val wifeChildren = children.filter { child ->
-                    // A child belongs to this wife if the wife's ID is in the child's parentIds
+
+            // First, find children explicitly assigned to each wife
+            val assignedChildIds = mutableSetOf<String>()
+            val wifeChildrenMap = mutableMapOf<String, MutableList<FamilyMember>>()
+            parentNode.wives.forEach { wife ->
+                wifeChildrenMap[wife.id] = mutableListOf()
+            }
+
+            children.forEach { child ->
+                val matchedWife = parentNode.wives.firstOrNull { wife ->
                     child.parentIds.contains(wife.id)
                 }
+                if (matchedWife != null) {
+                    wifeChildrenMap[matchedWife.id]!!.add(child)
+                    assignedChildIds.add(child.id)
+                }
+            }
+
+            // Unassigned children (only have father's ID) → assign to first wife
+            val unassignedChildren = children.filter { it.id !in assignedChildIds }
+            if (unassignedChildren.isNotEmpty() && parentNode.wives.isNotEmpty()) {
+                val firstWifeId = parentNode.wives.first().id
+                wifeChildrenMap[firstWifeId]!!.addAll(unassignedChildren)
+            }
+
+            val wifeGroups = parentNode.wives.map { wife ->
+                val wifeChildren = wifeChildrenMap[wife.id] ?: emptyList()
                 val childParentNodes = buildParentNodes(wifeChildren, memberById)
                 val childGroups = childParentNodes.map { childNode ->
-                    buildFamilyGroup(childNode, generation + 1, memberById, allMembers)
+                    buildFamilyGroup(childNode, generation + 1, memberById, allMembers, claimedChildIds)
                 }
                 FamilyGroup(
                     parents = TreeNode.Couple(parentNode.husband, wife),
@@ -461,22 +642,10 @@ class FamilyTreeViewModel @Inject constructor(
                     wifeId = wife.id,
                 )
             }
-            // Children without a specific mother assigned (fallback: only fatherId in parentIds)
-            val assignedChildren = parentNode.wives.flatMap { wife ->
-                children.filter { it.parentIds.contains(wife.id) }
-            }.map { it.id }.toSet()
-            val unassignedChildren = children.filter { it.id !in assignedChildren }
-
-            val unassignedGroups = if (unassignedChildren.isNotEmpty()) {
-                val childParentNodes = buildParentNodes(unassignedChildren, memberById)
-                childParentNodes.map { childNode ->
-                    buildFamilyGroup(childNode, generation + 1, memberById, allMembers)
-                }
-            } else emptyList()
 
             return FamilyGroup(
                 parents = parentNode,
-                children = wifeGroups + unassignedGroups,
+                children = wifeGroups,
                 generation = generation,
             )
         }
@@ -484,7 +653,7 @@ class FamilyTreeViewModel @Inject constructor(
         // Standard single/couple path
         val childParentNodes = buildParentNodes(children, memberById)
         val childGroups = childParentNodes.map { childNode ->
-            buildFamilyGroup(childNode, generation + 1, memberById, allMembers)
+            buildFamilyGroup(childNode, generation + 1, memberById, allMembers, claimedChildIds)
         }
 
         return FamilyGroup(
@@ -591,12 +760,12 @@ class FamilyTreeViewModel @Inject constructor(
         _uiState.update { it.copy(showFamilySettings = false) }
     }
 
-    fun openPickMember(callback: (FamilyMember) -> Unit) {
-        _uiState.update { it.copy(showPickMember = true, pickMemberCallback = callback) }
+    fun openPickMember(excludeId: String? = null, callback: (FamilyMember) -> Unit) {
+        _uiState.update { it.copy(showPickMember = true, pickMemberCallback = callback, pickMemberExcludeId = excludeId) }
     }
 
     fun closePickMember() {
-        _uiState.update { it.copy(showPickMember = false, pickMemberCallback = null) }
+        _uiState.update { it.copy(showPickMember = false, pickMemberCallback = null, pickMemberExcludeId = null) }
     }
 
     fun onMemberPicked(member: FamilyMember) {

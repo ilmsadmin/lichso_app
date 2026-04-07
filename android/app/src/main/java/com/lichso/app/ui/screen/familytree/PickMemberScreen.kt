@@ -34,10 +34,11 @@ fun PickMemberScreen(
     viewModel: FamilyTreeViewModel,
     onBack: () -> Unit,
     onMemberPicked: (FamilyMember) -> Unit,
+    excludeMemberId: String? = null,
 ) {
     val c = LichSoThemeColors.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val members = uiState.members
+    val members = uiState.members.filter { it.id != excludeMemberId }
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("Tất cả") }

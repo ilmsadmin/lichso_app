@@ -22,13 +22,13 @@ class CalendarWidgetUpdateWorker(
             val appWidgetIds = appWidgetManager.getAppWidgetIds(
                 android.content.ComponentName(
                     applicationContext,
-                    CalendarWidgetProvider::class.java
+                    CalendarWidget::class.java
                 )
             )
 
             // Update each widget
             for (appWidgetId in appWidgetIds) {
-                CalendarWidgetProvider.updateAppWidget(
+                CalendarWidget.updateWidget(
                     applicationContext,
                     appWidgetManager,
                     appWidgetId
