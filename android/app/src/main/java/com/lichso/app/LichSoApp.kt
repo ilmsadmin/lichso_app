@@ -9,6 +9,7 @@ import com.lichso.app.notification.NotificationHelper
 import com.lichso.app.notification.ReminderScheduler
 import com.lichso.app.ui.screen.settings.SettingsKeys
 import com.lichso.app.ui.screen.settings.settingsDataStore
+import com.lichso.app.widget.CalendarWidgetScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,6 +22,8 @@ class LichSoApp : Application() {
         super.onCreate()
         NotificationHelper.createChannels(this)
         scheduleWorkersFromSettings()
+        // Schedule widget updates
+        CalendarWidgetScheduler.scheduleWidgetUpdates(this)
     }
 
     /**

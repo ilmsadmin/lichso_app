@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Lịch Số</string>
+    <string name="widget_calendar_description">Widget hiển thị lịch vạn niên và thông tin ngày</string>
+    <string name="widget_ai_horoscope_description">Widget hiển thị lời khuyên tử vi từ AI</string>
 </resources>
