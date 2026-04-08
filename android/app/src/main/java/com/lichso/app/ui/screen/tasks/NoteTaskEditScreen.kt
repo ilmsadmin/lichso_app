@@ -540,7 +540,10 @@ private fun DateAttachmentCard(
             modifier = Modifier
                 .size(42.dp)
                 .background(
-                    Brush.linearGradient(listOf(c.primary, Color(0xFFC62828))),
+                    Brush.linearGradient(
+                        if (c.isDark) listOf(Color(0xFF7F1D1D), Color(0xFF5D1212))
+                        else listOf(c.primary, Color(0xFFC62828))
+                    ),
                     RoundedCornerShape(12.dp)
                 ),
             contentAlignment = Alignment.Center

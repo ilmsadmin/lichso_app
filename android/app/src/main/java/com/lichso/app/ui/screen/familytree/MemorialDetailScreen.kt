@@ -297,11 +297,15 @@ fun MemorialDetailScreen(
 // ══════════════════════════════════════════
 @Composable
 private fun MemorialHero(memorial: MemorialDay, member: FamilyMember?, onBack: () -> Unit, onEdit: () -> Unit = {}, onDelete: () -> Unit = {}) {
+    val c = LichSoThemeColors.current
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                Brush.linearGradient(listOf(Color(0xFFBF360C), Color(0xFFE65100), Color(0xFFFF6D00)))
+                Brush.linearGradient(
+                    if (c.isDark) listOf(Color(0xFF5A2000), Color(0xFF7A3000), Color(0xFF8B3A00))
+                    else listOf(Color(0xFFBF360C), Color(0xFFE65100), Color(0xFFFF6D00))
+                )
             )
             .statusBarsPadding()
             .padding(horizontal = 24.dp, vertical = 16.dp),
@@ -622,7 +626,10 @@ private fun PrayerLinkCard(c: LichSoColors, onClick: () -> Unit = {}) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
             .background(
-                Brush.linearGradient(listOf(c.primary, Color(0xFFC62828))),
+                Brush.linearGradient(
+                    if (c.isDark) listOf(Color(0xFF7F1D1D), Color(0xFF5D1212))
+                    else listOf(c.primary, Color(0xFFC62828))
+                ),
                 RoundedCornerShape(18.dp)
             )
             .clickable(onClick = onClick)

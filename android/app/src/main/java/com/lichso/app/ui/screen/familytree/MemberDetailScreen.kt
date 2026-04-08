@@ -177,12 +177,14 @@ fun MemberDetailScreen(
 // ══════════════════════════════════════════
 @Composable
 private fun MemberHero(member: FamilyMember, isDeceased: Boolean, onBack: () -> Unit, onEdit: () -> Unit = {}, onDelete: () -> Unit = {}) {
+    val c = LichSoThemeColors.current
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(
                 Brush.linearGradient(
-                    listOf(Color(0xFF3E2723), Color(0xFF4E342E), Color(0xFF5D4037))
+                    if (c.isDark) listOf(Color(0xFF2A1F1A), Color(0xFF362B22), Color(0xFF40332A))
+                    else listOf(Color(0xFF3E2723), Color(0xFF4E342E), Color(0xFF5D4037))
                 )
             )
             .statusBarsPadding()
@@ -876,7 +878,10 @@ private fun ActionBar(c: LichSoColors, onEdit: () -> Unit = {}, onDelete: () -> 
                 .weight(1f)
                 .clip(RoundedCornerShape(14.dp))
                 .background(
-                    Brush.linearGradient(listOf(Color(0xFF4E342E), Color(0xFF3E2723))),
+                    Brush.linearGradient(
+                        if (c.isDark) listOf(Color(0xFF362B22), Color(0xFF2A1F1A))
+                        else listOf(Color(0xFF4E342E), Color(0xFF3E2723))
+                    ),
                     RoundedCornerShape(14.dp)
                 )
                 .clickable(onClick = onEdit)

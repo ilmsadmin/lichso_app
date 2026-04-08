@@ -48,7 +48,11 @@ fun AppTopBar(
     bottomContent: @Composable (ColumnScope.() -> Unit)? = null
 ) {
     val c = LichSoThemeColors.current
-    val colors = gradientColors ?: listOf(c.primary, Color(0xFFD32F2F), c.deepRed)
+    val colors = gradientColors ?: if (c.isDark) {
+        listOf(Color(0xFF5D1212), Color(0xFF7F1D1D), Color(0xFF4A1010))
+    } else {
+        listOf(c.primary, Color(0xFFD32F2F), c.deepRed)
+    }
 
     Box(
         modifier = Modifier

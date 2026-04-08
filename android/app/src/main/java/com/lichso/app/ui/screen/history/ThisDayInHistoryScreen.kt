@@ -29,13 +29,19 @@ import com.lichso.app.domain.model.*
 import com.lichso.app.ui.theme.*
 import com.lichso.app.ui.components.AppTopBar
 import com.lichso.app.ui.components.HeaderIconButton
+import com.lichso.app.ui.theme.LichSoThemeColors
 
 // ══════════════════════════════════════════
 // Màu header gradient xanh lá (từ mock HTML)
 // ══════════════════════════════════════════
+// Light
 private val HeaderGreen1 = Color(0xFF1B5E20)
 private val HeaderGreen2 = Color(0xFF2E7D32)
 private val HeaderGreen3 = Color(0xFF388E3C)
+// Dark — dimmer greens to match dark theme
+private val HeaderGreenDark1 = Color(0xFF0D3311)
+private val HeaderGreenDark2 = Color(0xFF1B5E20)
+private val HeaderGreenDark3 = Color(0xFF145218)
 
 // ══════════════════════════════════════════
 // Màu category badge
@@ -128,10 +134,15 @@ private fun HistoryHeader(
     onBackClick: () -> Unit,
     onShareClick: () -> Unit
 ) {
+    val c = LichSoThemeColors.current
     AppTopBar(
         title = "Ngày này năm xưa",
         onBackClick = onBackClick,
-        gradientColors = listOf(HeaderGreen1, HeaderGreen2, HeaderGreen3),
+        gradientColors = if (c.isDark) {
+            listOf(HeaderGreenDark1, HeaderGreenDark2, HeaderGreenDark3)
+        } else {
+            listOf(HeaderGreen1, HeaderGreen2, HeaderGreen3)
+        },
         actions = {
             HeaderIconButton(
                 icon = Icons.Filled.Share,
