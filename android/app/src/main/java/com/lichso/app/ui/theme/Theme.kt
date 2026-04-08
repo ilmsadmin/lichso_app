@@ -12,14 +12,14 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val LichSoDarkColorScheme = darkColorScheme(
-    primary = Color(0xFFB71C1C),
+    primary = Color(0xFFEF5350),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFFFDAD6),
-    onPrimaryContainer = Color(0xFF410002),
-    secondary = Color(0xFFD4A017),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFFFF0B3),
-    onSecondaryContainer = Color(0xFF3E2E00),
+    primaryContainer = Color(0xFF3D1515),
+    onPrimaryContainer = Color(0xFFFFDAD6),
+    secondary = Color(0xFFE8C84A),
+    onSecondary = Color.Black,
+    secondaryContainer = Color(0xFF3E2E00),
+    onSecondaryContainer = Color(0xFFFFF0B3),
     error = DarkColors.red,
     onError = DarkColors.textPrimary,
     errorContainer = DarkColors.red2,
@@ -29,8 +29,8 @@ private val LichSoDarkColorScheme = darkColorScheme(
     onSurface = DarkColors.textPrimary,
     surfaceVariant = DarkColors.bg3,
     onSurfaceVariant = DarkColors.textSecondary,
-    outline = DarkColors.border,
-    outlineVariant = DarkColors.textQuaternary,
+    outline = DarkColors.outline,
+    outlineVariant = DarkColors.outlineVariant,
 )
 
 private val LichSoLightColorScheme = lightColorScheme(

@@ -761,11 +761,14 @@ private fun BookmarkCard(
 
     val badgeBg = when {
         item.solarHoliday != null || item.lunarHoliday != null ->
-            Brush.linearGradient(listOf(Color(0xFFFFF3E0), Color(0xFFFFE0B2)))
+            if (c.isDark) Brush.linearGradient(listOf(Color(0xFF3A2A1B), Color(0xFF3A2A1B)))
+            else Brush.linearGradient(listOf(Color(0xFFFFF3E0), Color(0xFFFFE0B2)))
         item.dayRating in listOf("Rất tốt", "Tốt") ->
-            Brush.linearGradient(listOf(Color(0xFFE8F5E9), Color(0xFFC8E6C9)))
+            if (c.isDark) Brush.linearGradient(listOf(Color(0xFF1B3A2F), Color(0xFF1B3A2F)))
+            else Brush.linearGradient(listOf(Color(0xFFE8F5E9), Color(0xFFC8E6C9)))
         item.dayRating == "Xấu" ->
-            Brush.linearGradient(listOf(Color(0xFFFFEBEE), Color(0xFFFFCDD2)))
+            if (c.isDark) Brush.linearGradient(listOf(Color(0xFF3A1B1B), Color(0xFF3A1B1B)))
+            else Brush.linearGradient(listOf(Color(0xFFFFEBEE), Color(0xFFFFCDD2)))
         else -> Brush.linearGradient(listOf(c.primaryContainer, c.primaryContainer))
     }
 
@@ -897,14 +900,14 @@ private fun BookmarkCard(
                     TagChip(
                         text = item.dayRating,
                         bgColor = when (item.dayRating) {
-                            "Rất tốt", "Tốt" -> Color(0xFFE8F5E9)
-                            "Xấu" -> Color(0xFFFFEBEE)
-                            else -> Color(0xFFFFF8E1)
+                            "Rất tốt", "Tốt" -> if (c.isDark) Color(0xFF1B3A2F) else Color(0xFFE8F5E9)
+                            "Xấu" -> if (c.isDark) Color(0xFF3A1B1B) else Color(0xFFFFEBEE)
+                            else -> if (c.isDark) Color(0xFF3A3010) else Color(0xFFFFF8E1)
                         },
                         textColor = when (item.dayRating) {
-                            "Rất tốt", "Tốt" -> GoodDayGreen
-                            "Xấu" -> Color(0xFFC62828)
-                            else -> HolidayOrange
+                            "Rất tốt", "Tốt" -> if (c.isDark) Color(0xFF81C784) else GoodDayGreen
+                            "Xấu" -> if (c.isDark) Color(0xFFEF5350) else Color(0xFFC62828)
+                            else -> if (c.isDark) Color(0xFFE8A06A) else HolidayOrange
                         }
                     )
 

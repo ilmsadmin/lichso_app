@@ -151,11 +151,18 @@ private fun DayDetailHero(
     onBookmarkClick: () -> Unit,
     isBookmarked: Boolean = false
 ) {
-    val primary = Color(0xFFB71C1C)
-    val deepRed = Color(0xFF8B0000)
-    val heroGradient = Brush.linearGradient(
-        colors = listOf(primary, Color(0xFFD32F2F), deepRed)
-    )
+    val c = LichSoThemeColors.current
+    val primary = c.primary
+    val deepRed = c.deepRed
+    val heroGradient = if (c.isDark) {
+        Brush.linearGradient(
+            colors = listOf(Color(0xFF5D1212), Color(0xFF7F1D1D), Color(0xFF4A1010))
+        )
+    } else {
+        Brush.linearGradient(
+            colors = listOf(primary, Color(0xFFD32F2F), deepRed)
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -1064,7 +1071,12 @@ private fun QuoteCard() {
 // ══════════════════════════════════════════
 @Composable
 private fun AskAiButton(onClick: () -> Unit) {
-    val primary = Color(0xFFB71C1C)
+    val c = LichSoThemeColors.current
+    val btnGradient = if (c.isDark) {
+        Brush.linearGradient(listOf(Color(0xFF7F1D1D), Color(0xFF5D1212)))
+    } else {
+        Brush.linearGradient(listOf(Color(0xFFB71C1C), Color(0xFFC62828)))
+    }
     val gold = Color(0xFFD4A017)
 
     Box(
@@ -1072,7 +1084,7 @@ private fun AskAiButton(onClick: () -> Unit) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(
-                Brush.linearGradient(listOf(primary, Color(0xFFC62828))),
+                btnGradient,
                 RoundedCornerShape(16.dp)
             )
             .clickable(onClick = onClick)

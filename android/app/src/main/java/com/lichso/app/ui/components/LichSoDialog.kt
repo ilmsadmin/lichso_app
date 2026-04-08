@@ -30,16 +30,23 @@ fun LichSoDialog(
     onDismiss: () -> Unit,
     title: String,
     icon: ImageVector? = null,
-    iconTint: Color = Color(0xFFB71C1C),
-    iconBgColor: Color = Color(0xFFFFEBEE),
+    iconTint: Color = Color.Unspecified,
+    iconBgColor: Color = Color.Unspecified,
     confirmText: String = "Xác nhận",
     dismissText: String = "Hủy",
-    confirmColor: Color = Color(0xFFB71C1C),
+    confirmColor: Color = Color.Unspecified,
     onConfirm: () -> Unit,
     confirmEnabled: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val c = LichSoThemeColors.current
+    val resolvedIconTint = if (iconTint == Color.Unspecified) c.primary else iconTint
+    val resolvedIconBg = if (iconBgColor == Color.Unspecified) {
+        if (c.isDark) c.primaryContainer else Color(0xFFFFEBEE)
+    } else iconBgColor
+    val resolvedConfirmColor = if (confirmColor == Color.Unspecified) {
+        if (c.isDark) Color(0xFF7F1D1D) else Color(0xFFB71C1C)
+    } else confirmColor
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -50,10 +57,10 @@ fun LichSoDialog(
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .background(iconBgColor, CircleShape),
+                        .background(resolvedIconBg, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(it, null, tint = iconTint, modifier = Modifier.size(24.dp))
+                    Icon(it, null, tint = resolvedIconTint, modifier = Modifier.size(24.dp))
                 }
             }
         },
@@ -77,7 +84,7 @@ fun LichSoDialog(
             Button(
                 onClick = onConfirm,
                 enabled = confirmEnabled,
-                colors = ButtonDefaults.buttonColors(containerColor = confirmColor),
+                colors = ButtonDefaults.buttonColors(containerColor = resolvedConfirmColor),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(confirmText, fontWeight = FontWeight.SemiBold)
@@ -104,13 +111,20 @@ fun LichSoConfirmDialog(
     title: String,
     message: String,
     icon: ImageVector? = null,
-    iconTint: Color = Color(0xFFC62828),
-    iconBgColor: Color = Color(0xFFFFEBEE),
+    iconTint: Color = Color.Unspecified,
+    iconBgColor: Color = Color.Unspecified,
     confirmText: String = "Xác nhận",
     dismissText: String = "Hủy",
-    confirmColor: Color = Color(0xFFC62828),
+    confirmColor: Color = Color.Unspecified,
 ) {
     val c = LichSoThemeColors.current
+    val resolvedIconTint2 = if (iconTint == Color.Unspecified) c.primary else iconTint
+    val resolvedIconBg2 = if (iconBgColor == Color.Unspecified) {
+        if (c.isDark) c.primaryContainer else Color(0xFFFFEBEE)
+    } else iconBgColor
+    val resolvedConfirmColor2 = if (confirmColor == Color.Unspecified) {
+        if (c.isDark) Color(0xFF7F1D1D) else Color(0xFFC62828)
+    } else confirmColor
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -121,10 +135,10 @@ fun LichSoConfirmDialog(
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .background(iconBgColor, CircleShape),
+                        .background(resolvedIconBg2, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(it, null, tint = iconTint, modifier = Modifier.size(24.dp))
+                    Icon(it, null, tint = resolvedIconTint2, modifier = Modifier.size(24.dp))
                 }
             }
         },
@@ -151,7 +165,7 @@ fun LichSoConfirmDialog(
         confirmButton = {
             Button(
                 onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = confirmColor),
+                colors = ButtonDefaults.buttonColors(containerColor = resolvedConfirmColor2),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(confirmText, fontWeight = FontWeight.SemiBold)

@@ -282,9 +282,9 @@ private fun DayCard(day: GoodDayItem) {
             ) {
                 day.tags.forEach { tag ->
                     val (tagBg, tagColor) = when (tag.type) {
-                        TagType.GOOD -> Color(0xFFE8F5E9) to Color(0xFF2E7D32)
-                        TagType.AVOID -> Color(0xFFFFF3E0) to Color(0xFFE65100)
-                        TagType.EVENT -> Color(0xFFE3F2FD) to Color(0xFF1565C0)
+                        TagType.GOOD -> (if (c.isDark) Color(0xFF1B3A2F) else Color(0xFFE8F5E9)) to (if (c.isDark) Color(0xFF81C784) else Color(0xFF2E7D32))
+                        TagType.AVOID -> (if (c.isDark) Color(0xFF3A2A1B) else Color(0xFFFFF3E0)) to (if (c.isDark) Color(0xFFE8A06A) else Color(0xFFE65100))
+                        TagType.EVENT -> (if (c.isDark) Color(0xFF1B2A3A) else Color(0xFFE3F2FD)) to (if (c.isDark) Color(0xFF64B5F6) else Color(0xFF1565C0))
                     }
                     Box(
                         modifier = Modifier
@@ -314,10 +314,11 @@ private fun DayCard(day: GoodDayItem) {
 
 @Composable
 private fun QualityBadge(quality: DayQuality, label: String) {
+    val c = LichSoThemeColors.current
     val (bg, textColor) = when (quality) {
-        DayQuality.GOOD -> Color(0xFFE8F5E9) to Color(0xFF2E7D32)
-        DayQuality.BAD -> Color(0xFFFFEBEE) to Color(0xFFC62828)
-        DayQuality.NEUTRAL -> Color(0xFFFFF8E1) to Color(0xFFF57F17)
+        DayQuality.GOOD -> (if (c.isDark) Color(0xFF1B3A2F) else Color(0xFFE8F5E9)) to (if (c.isDark) Color(0xFF81C784) else Color(0xFF2E7D32))
+        DayQuality.BAD -> (if (c.isDark) Color(0xFF3A1B1B) else Color(0xFFFFEBEE)) to (if (c.isDark) Color(0xFFEF5350) else Color(0xFFC62828))
+        DayQuality.NEUTRAL -> (if (c.isDark) Color(0xFF3A3010) else Color(0xFFFFF8E1)) to (if (c.isDark) Color(0xFFFFD54F) else Color(0xFFF57F17))
     }
     val symbol = when (quality) {
         DayQuality.GOOD -> "✦"

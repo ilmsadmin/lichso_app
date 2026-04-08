@@ -325,7 +325,11 @@ private fun RedHeader(
     notificationUnreadCount: Int = 0
 ) {
     val c = LichSoThemeColors.current
-    val colors = listOf(c.primary, Color(0xFFD32F2F), c.deepRed)
+    val colors = if (c.isDark) {
+        listOf(Color(0xFF5D1212), Color(0xFF7F1D1D), Color(0xFF4A1010))
+    } else {
+        listOf(c.primary, Color(0xFFD32F2F), c.deepRed)
+    }
 
     Box(
         modifier = Modifier
@@ -567,8 +571,10 @@ private fun MiniCalendarStrip(
                     .width(44.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(
-                        if (isToday) c.primary
-                        else Color.Transparent
+                        when {
+                            isToday -> if (c.isDark) Color(0xFF7F1D1D) else c.primary
+                            else -> Color.Transparent
+                        }
                     )
                     .clickable {
                         val matchDay = calendarDays.find {
@@ -596,7 +602,7 @@ private fun MiniCalendarStrip(
                         fontWeight = FontWeight.SemiBold,
                         color = when {
                             isToday -> Color.White
-                            isWeekend -> c.primary
+                            isWeekend -> if (c.isDark) Color(0xFFEF9A9A) else c.primary
                             else -> c.textPrimary
                         }
                     )
@@ -606,7 +612,7 @@ private fun MiniCalendarStrip(
                     style = TextStyle(
                         fontSize = 8.sp,
                         color = if (isToday) Color.White.copy(alpha = 0.7f)
-                        else c.outline
+                        else c.textSecondary
                     )
                 )
             }
@@ -635,7 +641,7 @@ private fun BigDateSection(info: DayInfo) {
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Bold,
                 fontSize = 140.sp,
-                color = c.primary,
+                color = if (c.isDark) Color(0xFFEF9A9A) else c.primary,
                 lineHeight = 140.sp,
                 letterSpacing = (-2).sp
             )
@@ -673,7 +679,11 @@ private fun BigDateSection(info: DayInfo) {
         Row(
             modifier = Modifier
                 .background(c.surfaceContainer, RoundedCornerShape(16.dp))
-                .border(1.dp, c.outlineVariant, RoundedCornerShape(16.dp))
+                .border(
+                    1.dp,
+                    if (c.isDark) c.gold.copy(alpha = 0.25f) else c.outlineVariant,
+                    RoundedCornerShape(16.dp)
+                )
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -704,7 +714,7 @@ private fun BigDateSection(info: DayInfo) {
 
             Text(
                 "Ngày ${info.dayCanChi}",
-                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = c.deepRed)
+                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (c.isDark) Color(0xFFEF9A9A) else c.deepRed)
             )
         }
 
@@ -759,7 +769,7 @@ private fun QuoteSection(selectedDate: java.time.LocalDate) {
                 fontFamily = FontFamily.Serif,
                 fontSize = 14.sp,
                 fontStyle = FontStyle.Italic,
-                color = c.textTertiary,
+                color = if (c.isDark) c.textSecondary else c.textTertiary,
                 textAlign = TextAlign.Center,
                 lineHeight = 21.sp
             )
@@ -767,7 +777,7 @@ private fun QuoteSection(selectedDate: java.time.LocalDate) {
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             "— $quoteAuthor",
-            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = c.outline)
+            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = if (c.isDark) c.textTertiary else c.outline)
         )
     }
 }
@@ -791,18 +801,18 @@ private fun EventChips(info: DayInfo, showFestival: Boolean = true, onHistoryCli
             EventChip(
                 icon = Icons.Filled.Celebration,
                 text = holiday,
-                bgColor = Color(0xFFFFF3E0),
-                textColor = Color(0xFFE65100),
-                borderColor = Color(0xFFFFB74D)
+                bgColor = if (c.isDark) Color(0xFF3D2A10) else Color(0xFFFFF3E0),
+                textColor = if (c.isDark) Color(0xFFE8A06A) else Color(0xFFE65100),
+                borderColor = if (c.isDark) Color(0xFF5C3D1A) else Color(0xFFFFB74D)
             )
             Spacer(modifier = Modifier.width(8.dp))
         }
         EventChip(
             icon = Icons.Filled.HistoryEdu,
             text = "Ngày này năm xưa",
-            bgColor = Color(0xFFE8F5E9),
-            textColor = Color(0xFF2E7D32),
-            borderColor = Color(0xFF81C784),
+            bgColor = if (c.isDark) Color(0xFF1A2E1A) else Color(0xFFE8F5E9),
+            textColor = if (c.isDark) Color(0xFF81C784) else Color(0xFF2E7D32),
+            borderColor = if (c.isDark) Color(0xFF2E4A2E) else Color(0xFF81C784),
             onClick = onHistoryClick
         )
     }

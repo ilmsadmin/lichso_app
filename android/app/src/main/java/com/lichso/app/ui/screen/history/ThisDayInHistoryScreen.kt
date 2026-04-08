@@ -458,11 +458,12 @@ private fun TimelineCard(
 
 @Composable
 private fun CategoryBadge(category: HistoryCategory) {
+    val c = LichSoThemeColors.current
     val (bgColor, textColor) = when (category) {
-        HistoryCategory.VIETNAM -> VnBg to VnText
-        HistoryCategory.WORLD -> WorldBg to WorldText
-        HistoryCategory.CULTURE -> CultureBg to CultureText
-        HistoryCategory.SCIENCE -> ScienceBg to ScienceText
+        HistoryCategory.VIETNAM -> (if (c.isDark) Color(0xFF3A1B1B) else VnBg) to (if (c.isDark) Color(0xFFEF5350) else VnText)
+        HistoryCategory.WORLD -> (if (c.isDark) Color(0xFF1B2A3A) else WorldBg) to (if (c.isDark) Color(0xFF64B5F6) else WorldText)
+        HistoryCategory.CULTURE -> (if (c.isDark) Color(0xFF3A3010) else CultureBg) to (if (c.isDark) Color(0xFFFFD54F) else CultureText)
+        HistoryCategory.SCIENCE -> (if (c.isDark) Color(0xFF1B3A2F) else ScienceBg) to (if (c.isDark) Color(0xFF81C784) else ScienceText)
     }
 
     Row(

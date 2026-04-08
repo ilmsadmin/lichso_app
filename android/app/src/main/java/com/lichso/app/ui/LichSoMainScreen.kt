@@ -202,7 +202,10 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
                         .size(56.dp)
                         .clip(CircleShape)
                         .background(
-                            Brush.linearGradient(listOf(c.primary, Color(0xFFC62828))),
+                            if (c.isDark)
+                                Brush.linearGradient(listOf(Color(0xFF7F1D1D), Color(0xFF5D1212)))
+                            else
+                                Brush.linearGradient(listOf(c.primary, Color(0xFFC62828))),
                             CircleShape
                         )
                         .clickable { currentRoute = "chat" },
@@ -296,7 +299,8 @@ private fun DrawerMenuContent(
                     .fillMaxWidth()
                     .background(
                         Brush.linearGradient(
-                            colors = listOf(c.primary, c.deepRed),
+                            colors = if (c.isDark) listOf(Color(0xFF5D1212), Color(0xFF4A1010))
+                                     else listOf(c.primary, c.deepRed),
                             start = Offset(0f, 0f),
                             end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
                         )
@@ -752,9 +756,15 @@ private fun BottomNavBar(
                     .clip(CircleShape)
                     .background(
                         if (isHomeSelected)
-                            Brush.linearGradient(listOf(c.primary, Color(0xFFC62828)))
+                            Brush.linearGradient(
+                                if (c.isDark) listOf(Color(0xFF7F1D1D), Color(0xFF5D1212))
+                                else listOf(c.primary, Color(0xFFC62828))
+                            )
                         else
-                            Brush.linearGradient(listOf(c.primary.copy(alpha = 0.85f), c.primary)),
+                            Brush.linearGradient(
+                                if (c.isDark) listOf(Color(0xFF5D1212).copy(alpha = 0.85f), Color(0xFF5D1212))
+                                else listOf(c.primary.copy(alpha = 0.85f), c.primary)
+                            ),
                         CircleShape
                     )
                     .border(

@@ -42,9 +42,10 @@ import com.lichso.app.util.ReviewHelper
 // Settings Screen — Material 3, matching screen-settings.html
 // ══════════════════════════════════════════════════════════
 
-// Icon wrap color presets (bg + foreground)
+// Icon wrap color presets (bg + foreground) — dark-mode aware
 private data class IconWrapColor(val bg: Color, val fg: Color)
 
+// Light defaults — these are overridden at callsite via settingsIconColors()
 private val iconRed = IconWrapColor(Color(0xFFFFEBEE), Color(0xFFC62828))
 private val iconAmber = IconWrapColor(Color(0xFFFFF8E1), Color(0xFFF57F17))
 private val iconGreen = IconWrapColor(Color(0xFFE8F5E9), Color(0xFF2E7D32))
@@ -54,6 +55,22 @@ private val iconTeal = IconWrapColor(Color(0xFFE0F2F1), Color(0xFF00695C))
 private val iconGrey = IconWrapColor(Color(0xFFF5F5F5), Color(0xFF616161))
 private val iconOrange = IconWrapColor(Color(0xFFFFF3E0), Color(0xFFE65100))
 
+// Dark variants
+private val iconRedDark = IconWrapColor(Color(0xFF3A1B1B), Color(0xFFEF5350))
+private val iconAmberDark = IconWrapColor(Color(0xFF3A3010), Color(0xFFFFD54F))
+private val iconGreenDark = IconWrapColor(Color(0xFF1B3A2F), Color(0xFF81C784))
+private val iconBlueDark = IconWrapColor(Color(0xFF1B2A3A), Color(0xFF64B5F6))
+private val iconPurpleDark = IconWrapColor(Color(0xFF2A1B3A), Color(0xFFCE93D8))
+private val iconTealDark = IconWrapColor(Color(0xFF1B3A35), Color(0xFF4DB6AC))
+private val iconGreyDark = IconWrapColor(Color(0xFF2A2A2A), Color(0xFF9E9E9E))
+private val iconOrangeDark = IconWrapColor(Color(0xFF3A2A1B), Color(0xFFE8A06A))
+
+// Helper to pick icon color based on dark mode
+@Composable
+private fun themedIcon(light: IconWrapColor, dark: IconWrapColor): IconWrapColor {
+    return if (LichSoThemeColors.current.isDark) dark else light
+}
+
 @Composable
 fun SettingsScreen(
     onBackClick: () -> Unit = {},
@@ -62,6 +79,16 @@ fun SettingsScreen(
     val c = LichSoThemeColors.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    // Dark-mode-aware icon colors
+    val iconRed = themedIcon(iconRed, iconRedDark)
+    val iconAmber = themedIcon(iconAmber, iconAmberDark)
+    val iconGreen = themedIcon(iconGreen, iconGreenDark)
+    val iconBlue = themedIcon(iconBlue, iconBlueDark)
+    val iconPurple = themedIcon(iconPurple, iconPurpleDark)
+    val iconTeal = themedIcon(iconTeal, iconTealDark)
+    val iconGrey = themedIcon(iconGrey, iconGreyDark)
+    val iconOrange = themedIcon(iconOrange, iconOrangeDark)
 
     // Toast
     LaunchedEffect(state.toastMessage) {
@@ -822,7 +849,8 @@ private fun AboutZenixDialog(
                     .fillMaxWidth()
                     .background(
                         Brush.linearGradient(
-                            listOf(Color(0xFFB71C1C), Color(0xFFD32F2F), Color(0xFF8B0000))
+                            if (c.isDark) listOf(Color(0xFF5D1212), Color(0xFF7F1D1D), Color(0xFF4A1010))
+                            else listOf(Color(0xFFB71C1C), Color(0xFFD32F2F), Color(0xFF8B0000))
                         )
                     )
                     .padding(vertical = 28.dp),
