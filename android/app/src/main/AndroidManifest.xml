@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Photo library access -->
@@ -79,6 +80,62 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_ai_info" />
         </receiver>
+
+        <!-- Widget Đồng Hồ & Lịch (4×2) -->
+        <receiver
+            android:name=".widget.ClockWidget"
+            android:exported="true"
+            android:label="Đồng Hồ Lịch Số">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_clock_info" />
+        </receiver>
+
+        <!-- Widget Lịch Tháng (4×4) -->
+        <receiver
+            android:name=".widget.MonthCalendarWidget"
+            android:exported="true"
+            android:label="Lịch Tháng">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_CHANGED" />
+                <action android:name="com.lichso.app.widget.ACTION_PREV_MONTH" />
+                <action android:name="com.lichso.app.widget.ACTION_NEXT_MONTH" />
+                <action android:name="com.lichso.app.widget.ACTION_TODAY" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_calendar_month_info" />
+        </receiver>
+
+        <!-- Widget Đồng Hồ Sáng/Tối (4×2) -->
+        <receiver
+            android:name=".widget.ClockWidget2"
+            android:exported="true"
+            android:label="Đồng Hồ Sáng/Tối">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_clock2_info" />
+        </receiver>
+
+        <!-- Midnight alarm receiver for widget date update -->
+        <receiver
+            android:name=".widget.CalendarWidgetScheduler$MidnightUpdateReceiver"
+            android:exported="false" />
 
         <!-- FileProvider for sharing images -->
         <provider

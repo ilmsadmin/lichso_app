@@ -13,6 +13,7 @@ import com.lichso.app.notification.DailyNotificationWorker
 import com.lichso.app.notification.FestivalReminderWorker
 import com.lichso.app.notification.GioDaiCatWorker
 import com.lichso.app.notification.ReminderScheduler
+import com.lichso.app.widget.WidgetWeatherHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -260,6 +261,8 @@ class SettingsViewModel @Inject constructor(
 
     fun setLocationName(value: String) {
         savePrefString(SettingsKeys.LOCATION_NAME, value)
+        // Sync city name to widget weather cache
+        WidgetWeatherHelper.saveCityName(context, value)
         _uiState.update {
             it.copy(
                 showLocationDialog = false,

@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget 3×2 — AI Chat (Light theme) -->
+<!-- Widget 3×2 — AI Chat (DARK theme — deep red, matching other widgets) -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/widget_ai_card_bg">
+    android:background="@drawable/widget_ai_card_bg_dark">
 
-    <!-- ===== HEADER (red gradient) ===== -->
+    <!-- ===== HEADER ===== -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="@drawable/widget_ai_header_bg"
+        android:background="@drawable/widget_ai_header_bg_dark"
         android:padding="10dp">
 
         <!-- Avatar circle -->
@@ -83,11 +83,11 @@
             android:id="@+id/tv_ai_bubble"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/widget_ai_bubble_bg"
+            android:background="@drawable/widget_ai_bubble_bg_dark"
             android:padding="6dp"
             android:text="✦ Hôm nay Ngày Hoàng Đạo, hướng tài lộc Đông Nam"
             android:textSize="9sp"
-            android:textColor="#1C1B1F"
+            android:textColor="#E0E0E0"
             android:maxLines="4"
             android:ellipsize="end" />
 
@@ -98,7 +98,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:layout_marginTop="4dp"
-            android:background="@drawable/widget_ai_bubble_user_bg"
+            android:background="@drawable/widget_ai_bubble_user_bg_dark"
             android:padding="8dp"
             android:text="Hỏi AI tử vi ›"
             android:textSize="10sp"
@@ -124,16 +124,16 @@
             android:layout_weight="1"
             android:gravity="center_vertical"
             android:paddingStart="12dp"
-            android:background="@drawable/widget_ai_input_bg"
+            android:background="@drawable/widget_ai_input_bg_dark"
             android:text="Hỏi gì đó..."
             android:textSize="11sp"
-            android:textColor="#857371" />
+            android:textColor="#99FFFFFF" />
 
         <FrameLayout
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_marginStart="6dp"
-            android:background="@drawable/widget_ai_send_bg">
+            android:background="@drawable/widget_ai_send_bg_dark">
 
             <TextView
                 android:layout_width="match_parent"

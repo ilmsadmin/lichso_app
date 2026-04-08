@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget 2×2 — Lịch ngày (compact, light theme) -->
+<!-- Widget 2×2 — Lịch ngày (DARK theme) -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
@@ -7,7 +7,7 @@
     android:orientation="vertical"
     android:gravity="center"
     android:padding="8dp"
-    android:background="@drawable/widget_bg">
+    android:background="@drawable/widget_cal_bg_dark">
 
     <!-- Day of week -->
     <TextView
@@ -16,7 +16,7 @@
         android:layout_height="wrap_content"
         android:text="Thứ Ba"
         android:textSize="11sp"
-        android:textColor="#857371"
+        android:textColor="#B3FFFFFF"
         android:textStyle="bold" />
 
     <!-- Large solar day -->
@@ -26,7 +26,7 @@
         android:layout_height="wrap_content"
         android:text="07"
         android:textSize="42sp"
-        android:textColor="#B71C1C"
+        android:textColor="#FFFFFF"
         android:textStyle="bold"
         android:includeFontPadding="false" />
 
@@ -37,13 +37,13 @@
         android:layout_height="wrap_content"
         android:text="tháng 4 · 2026"
         android:textSize="10sp"
-        android:textColor="#534340" />
+        android:textColor="#B3FFFFFF" />
 
     <!-- Divider -->
     <TextView
         android:layout_width="50dp"
         android:layout_height="1dp"
-        android:background="#22D8C2BF"
+        android:background="#33FFFFFF"
         android:layout_marginTop="4dp"
         android:layout_marginBottom="4dp" />
 
@@ -54,7 +54,7 @@
         android:layout_height="wrap_content"
         android:text="20 · tháng 2 Âm"
         android:textSize="10sp"
-        android:textColor="#D4A017"
+        android:textColor="#FFD700"
         android:textStyle="bold" />
 
     <!-- Can Chi -->
@@ -64,7 +64,7 @@
         android:layout_height="wrap_content"
         android:text="Tân Hợi · Bính Ngọ"
         android:textSize="9sp"
-        android:textColor="#534340"
+        android:textColor="#B3FFFFFF"
         android:layout_marginTop="1dp" />
 
     <!-- Day rating -->
@@ -74,7 +74,7 @@
         android:layout_height="wrap_content"
         android:text="✦ Ngày Hoàng Đạo"
         android:textSize="9sp"
-        android:textColor="#2E7D32"
+        android:textColor="#81C784"
         android:layout_marginTop="2dp" />
 
 </LinearLayout>

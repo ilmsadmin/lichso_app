@@ -1,9 +1,14 @@
 package com.lichso.app.data.remote
 
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
 import com.lichso.app.data.settings.AppSettingsRepository
 import com.lichso.app.domain.model.CityCoordinates
 import com.lichso.app.domain.model.WeatherInfo
+import com.lichso.app.widget.ClockWidget
+import com.lichso.app.widget.ClockWidget2
+import com.lichso.app.widget.WidgetWeatherHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -70,6 +75,8 @@ class WeatherRepository @Inject constructor(
                 cachedWeather = weather
                 lastFetchTime = System.currentTimeMillis()
                 _weatherState.value = WeatherState.Success(weather)
+                // Sync to widget SharedPreferences cache
+                syncToWidgetCache(weather)
             },
             onFailure = { error ->
                 // Nếu có cache cũ thì vẫn dùng
@@ -96,10 +103,45 @@ class WeatherRepository @Inject constructor(
                 lastFetchTime = System.currentTimeMillis()
                 lastCityName = cityName
                 _weatherState.value = WeatherState.Success(weather)
+                // Sync to widget SharedPreferences cache
+                syncToWidgetCache(weather)
             },
             onFailure = { error ->
                 _weatherState.value = WeatherState.Error(error.message ?: "Lỗi")
             }
         )
+    }
+
+    /**
+     * Sync weather data to widget's SharedPreferences cache
+     * so ClockWidget can display it immediately.
+     */
+    private fun syncToWidgetCache(weather: WeatherInfo) {
+        try {
+            val prefs = context.getSharedPreferences("widget_weather_cache", Context.MODE_PRIVATE)
+            prefs.edit()
+                .putFloat("temp", weather.temperature.toFloat())
+                .putString("icon", weather.icon)
+                .putString("desc", weather.description)
+                .putInt("code", weather.weatherCode)
+                .putInt("humidity", weather.humidity)
+                .putFloat("wind", weather.windSpeed.toFloat())
+                .putString("city", weather.cityName)
+                .putLong("timestamp", System.currentTimeMillis())
+                .apply()
+
+            // Trigger ClockWidget update so it picks up the fresh weather
+            val mgr = AppWidgetManager.getInstance(context)
+            val ids = mgr.getAppWidgetIds(ComponentName(context, ClockWidget::class.java))
+            for (id in ids) {
+                ClockWidget.updateWidget(context, mgr, id)
+            }
+
+            // Also trigger ClockWidget2 update
+            val ids2 = mgr.getAppWidgetIds(ComponentName(context, ClockWidget2::class.java))
+            for (id in ids2) {
+                ClockWidget2.updateWidget(context, mgr, id)
+            }
+        } catch (_: Exception) { }
     }
 }

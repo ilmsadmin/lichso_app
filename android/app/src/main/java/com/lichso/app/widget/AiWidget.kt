@@ -53,53 +53,78 @@ class AiWidget : AppWidgetProvider() {
     }
 
     companion object {
+        private const val TAG = "AiWidget"
+
+        /**
+         * Update widget.
+         * @param forceDark if non-null, overrides auto-detection of dark mode
+         *                  (used by DarkModeWidgetObserver which knows the new state
+         *                  before context.resources.configuration is updated).
+         */
         fun updateWidget(
             context: Context,
             appWidgetManager: AppWidgetManager,
-            appWidgetId: Int
+            appWidgetId: Int,
+            forceDark: Boolean? = null
         ) {
-            Log.d("AiWidget", "updateWidget id=$appWidgetId")
+            Log.d(TAG, "updateWidget id=$appWidgetId forceDark=$forceDark")
             val today = LocalDate.now()
             val dd = today.dayOfMonth
             val mm = today.monthValue
             val yy = today.year
 
-            val views = RemoteViews(context.packageName, R.layout.widget_ai)
+            // Use forceDark if provided (from DarkModeWidgetObserver), otherwise auto-detect
+            val isDark = forceDark ?: run {
+                val nightMode = context.resources.configuration.uiMode and
+                        android.content.res.Configuration.UI_MODE_NIGHT_MASK
+                nightMode == android.content.res.Configuration.UI_MODE_NIGHT_YES
+            }
 
-            // Date label — always set
+            // Choose layout explicitly when forceDark is provided,
+            // because the system resource qualifier may not have updated yet.
+            val layoutId = if (forceDark != null) {
+                if (isDark) R.layout.widget_ai_dark
+                else R.layout.widget_ai
+            } else {
+                // Let system auto-resolve via layout/ vs layout-night/
+                R.layout.widget_ai
+            }
+
+            val views = RemoteViews(context.packageName, layoutId)
+
+            // Date badge in header
             views.setTextViewText(R.id.tv_ai_date, "$dd/$mm")
 
             try {
                 val dayInfo = DayInfoProvider().getDayInfo(dd, mm, yy)
 
-                // Year + day can chi
-                views.setTextViewText(
-                    R.id.tv_ai_year_can_chi,
-                    "Năm ${dayInfo.yearCanChi} · Ngày ${dayInfo.dayCanChi}"
-                )
+                // Status line
+                views.setTextViewText(R.id.tv_ai_status, "● Đang hoạt động")
 
-                // Day rating
-                val ratingLabel = if (!dayInfo.activities.isXauDay) {
-                    "Ngày Hoàng Đạo — ${dayInfo.dayRating.label}"
+                // AI bubble — summary of today
+                val lunar = dayInfo.lunar
+                val lunarDayLabel = if (lunar.day <= 10) "Mùng ${lunar.day}" else "${lunar.day}"
+                val ratingText = if (!dayInfo.activities.isXauDay) {
+                    "Ngày Hoàng Đạo"
                 } else {
-                    "Ngày Hắc Đạo — ${dayInfo.dayRating.label}"
+                    "Ngày Hắc Đạo"
                 }
-                views.setTextViewText(R.id.tv_ai_rating, ratingLabel)
-
-                // Direction advice
                 val huong = dayInfo.huong
-                val adviceText = "Tài lộc: ${huong.thanTai} · Hỷ thần: ${huong.hyThan}"
-                views.setTextViewText(R.id.tv_ai_advice, adviceText)
+                val bubbleText = "✦ Hôm nay $ratingText, $lunarDayLabel/${lunar.monthName} Âm. " +
+                    "Hướng tài lộc ${huong.thanTai}"
+                views.setTextViewText(R.id.tv_ai_bubble, bubbleText)
 
-                Log.d("AiWidget", "Data loaded: $dd/$mm/$yy, canchi=${dayInfo.dayCanChi}")
+                // User prompt bubble
+                views.setTextViewText(R.id.tv_ai_user_bubble, "Hỏi AI tử vi ›")
+
+                Log.d(TAG, "Data loaded: $dd/$mm/$yy, canchi=${dayInfo.dayCanChi}")
             } catch (e: Exception) {
-                Log.e("AiWidget", "Error loading day info", e)
-                views.setTextViewText(R.id.tv_ai_year_can_chi, "Đang tải...")
-                views.setTextViewText(R.id.tv_ai_rating, "")
-                views.setTextViewText(R.id.tv_ai_advice, "Nhấn để mở ứng dụng")
+                Log.e(TAG, "Error loading day info", e)
+                views.setTextViewText(R.id.tv_ai_bubble, "✦ Nhấn để xem tử vi hôm nay")
+                views.setTextViewText(R.id.tv_ai_user_bubble, "Hỏi AI tử vi ›")
             }
 
-            // Tap to open app (to AI chat screen) — attached to root for full-widget tap target
+            // Tap to open app (to AI chat screen)
             val intent = Intent(context, MainActivity::class.java).apply {
                 action = "OPEN_AI_CHAT"
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -113,7 +138,7 @@ class AiWidget : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
-            Log.d("AiWidget", "updateAppWidget done for id=$appWidgetId")
+            Log.d(TAG, "updateAppWidget done for id=$appWidgetId isDark=$isDark")
         }
     }
 }

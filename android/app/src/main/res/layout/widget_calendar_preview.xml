@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget 2×2 — Lịch ngày (compact, light theme) -->
+<!-- Preview layout cho Calendar Widget (dùng trong widget picker) -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -9,9 +8,7 @@
     android:padding="8dp"
     android:background="@drawable/widget_bg">
 
-    <!-- Day of week -->
     <TextView
-        android:id="@+id/tv_day_of_week"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Thứ Ba"
@@ -19,9 +16,7 @@
         android:textColor="#857371"
         android:textStyle="bold" />
 
-    <!-- Large solar day -->
     <TextView
-        android:id="@+id/tv_solar_day"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="07"
@@ -30,16 +25,13 @@
         android:textStyle="bold"
         android:includeFontPadding="false" />
 
-    <!-- Month year -->
     <TextView
-        android:id="@+id/tv_solar_month_year"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="tháng 4 · 2026"
         android:textSize="10sp"
         android:textColor="#534340" />
 
-    <!-- Divider -->
     <TextView
         android:layout_width="50dp"
         android:layout_height="1dp"
@@ -47,9 +39,7 @@
         android:layout_marginTop="4dp"
         android:layout_marginBottom="4dp" />
 
-    <!-- Lunar -->
     <TextView
-        android:id="@+id/tv_lunar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="20 · tháng 2 Âm"
@@ -57,9 +47,7 @@
         android:textColor="#D4A017"
         android:textStyle="bold" />
 
-    <!-- Can Chi -->
     <TextView
-        android:id="@+id/tv_can_chi"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Tân Hợi · Bính Ngọ"
@@ -67,9 +55,7 @@
         android:textColor="#534340"
         android:layout_marginTop="1dp" />
 
-    <!-- Day rating -->
     <TextView
-        android:id="@+id/tv_day_rating"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="✦ Ngày Hoàng Đạo"

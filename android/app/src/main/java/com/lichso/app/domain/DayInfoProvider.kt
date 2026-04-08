@@ -40,7 +40,7 @@ class DayInfoProvider @Inject constructor() {
         // Day rating
         val dayRating = calculateDayRating(trucNgay, saoChieu, activities)
 
-        val lunarMonthName = if (lunar.lunarLeap == 1) "tháng ${lunar.lunarMonth} nhuận" else "tháng ${lunar.lunarMonth}"
+        val lunarMonthName = if (lunar.lunarLeap == 1) "Tháng ${lunar.lunarMonth} nhuận" else "Tháng ${lunar.lunarMonth}"
 
         return DayInfo(
             solar = SolarDate(dd, mm, yy),

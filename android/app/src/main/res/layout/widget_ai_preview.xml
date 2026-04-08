@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget 3×2 — AI Chat (Light theme) -->
+<!-- Preview layout cho AI Chat Widget (dùng trong widget picker) -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -16,7 +15,6 @@
         android:background="@drawable/widget_ai_header_bg"
         android:padding="10dp">
 
-        <!-- Avatar circle -->
         <FrameLayout
             android:layout_width="28dp"
             android:layout_height="28dp"
@@ -32,7 +30,6 @@
 
         </FrameLayout>
 
-        <!-- Name + status -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -49,7 +46,6 @@
                 android:textColor="#FFFFFF" />
 
             <TextView
-                android:id="@+id/tv_ai_status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="● Đang hoạt động"
@@ -58,9 +54,7 @@
 
         </LinearLayout>
 
-        <!-- Date badge -->
         <TextView
-            android:id="@+id/tv_ai_date"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="7/4"
@@ -78,22 +72,18 @@
         android:padding="8dp"
         android:gravity="top">
 
-        <!-- AI bubble -->
         <TextView
-            android:id="@+id/tv_ai_bubble"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/widget_ai_bubble_bg"
-            android:padding="6dp"
+            android:padding="8dp"
             android:text="✦ Hôm nay Ngày Hoàng Đạo, hướng tài lộc Đông Nam"
-            android:textSize="9sp"
+            android:textSize="11sp"
             android:textColor="#1C1B1F"
-            android:maxLines="4"
+            android:maxLines="2"
             android:ellipsize="end" />
 
-        <!-- User-like prompt bubble (aligned right) -->
         <TextView
-            android:id="@+id/tv_ai_user_bubble"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"

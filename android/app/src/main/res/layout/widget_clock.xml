@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget 4×2 — Giờ & Lịch (dark theme, gradient đỏ) -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_clock_bg"
+    android:padding="16dp">
+
+    <!-- ===== LEFT: Time & Date ===== -->
+    <LinearLayout
+        android:id="@+id/section_left"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_alignParentStart="true"
+        android:layout_toStartOf="@+id/divider"
+        android:orientation="vertical"
+        android:gravity="center_vertical">
+
+        <!-- Large time -->
+        <TextClock
+            android:id="@+id/tc_time"
+            android:fontFamily="sans-serif-medium"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="HH:mm"
+            android:format12Hour="h:mm"
+            android:textSize="46sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:includeFontPadding="false" />
+
+        <!-- Solar date: Thứ Ba, 07/04/2026 -->
+        <TextView
+            android:id="@+id/tv_clock_solar"
+            android:fontFamily="sans-serif-medium"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Thứ Ba, 07/04/2026"
+            android:textSize="13sp"
+            android:textColor="#E6FFFFFF"
+            android:layout_marginTop="2dp" />
+
+        <!-- Lunar date: ☽ 10/3 Âm · Bính Ngọ -->
+        <TextView
+            android:id="@+id/tv_clock_lunar"
+            android:fontFamily="sans-serif-medium"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="10/3 âm - Bính Ngọ"
+            android:textSize="11sp"
+            android:textColor="#B8860B"
+            android:layout_marginTop="1dp" />
+
+    </LinearLayout>
+
+    <!-- ===== VERTICAL DIVIDER ===== -->
+    <FrameLayout
+        android:id="@+id/divider"
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="#33FFFFFF" />
+
+    <!-- ===== RIGHT: Weather ===== -->
+    <LinearLayout
+        android:id="@+id/section_right"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_toEndOf="@+id/divider"
+        android:layout_alignParentEnd="true"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingStart="16dp">
+
+        <!-- Weather icon (emoji) -->
+        <TextView
+            android:id="@+id/tv_weather_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="☀️"
+            android:textSize="36sp"
+            android:includeFontPadding="false" />
+
+        <!-- Temperature -->
+        <TextView
+            android:id="@+id/tv_weather_temp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="32°"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:includeFontPadding="false" />
+
+        <!-- Weather description -->
+        <TextView
+            android:id="@+id/tv_weather_desc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Nắng đẹp"
+            android:textSize="11sp"
+            android:textColor="#B3FFFFFF" />
+
+        <!-- Hi / Lo range -->
+        <TextView
+            android:id="@+id/tv_weather_range"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="↓ 25°  ↑ 34°"
+            android:textSize="9sp"
+            android:textColor="#80FFFFFF"
+            android:layout_marginTop="1dp" />
+
+    </LinearLayout>
+
+    <!-- ===== BOTTOM BADGE: Day rating ===== -->
+    <LinearLayout
+        android:id="@+id/badge_rating"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/widget_badge_bg"
+        android:paddingStart="8dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:id="@+id/tv_clock_rating_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✦"
+            android:textSize="11sp"
+            android:textColor="#81C784" />
+
+        <TextView
+            android:id="@+id/tv_clock_rating"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ngày Hoàng Đạo"
+            android:textSize="10sp"
+            android:textColor="#CCFFFFFF"
+            android:layout_marginStart="4dp" />
+
+    </LinearLayout>
+
+</RelativeLayout>

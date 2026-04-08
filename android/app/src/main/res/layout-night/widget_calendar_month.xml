@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget 4×4 — Lịch Tháng (DARK theme) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_cal_bg_dark">
+
+    <!-- ===== HEADER (dark red gradient) ===== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/widget_cal_header_bg_dark"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="6dp">
+
+        <!-- Prev month button -->
+        <TextView
+            android:id="@+id/btn_prev_month"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:text="◀"
+            android:textSize="16sp"
+            android:textColor="#CCFFFFFF"
+            android:background="?android:attr/selectableItemBackgroundBorderless" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp">
+
+            <TextView
+                android:id="@+id/tv_cal_month_title" android:fontFamily="sans-serif-medium"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tháng 4, 2026"
+                android:textSize="18sp"
+                android:textColor="#FFFFFF" />
+
+            <TextView
+                android:id="@+id/tv_cal_lunar_month"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tháng 3 Âm lịch · Ất Tỵ"
+                android:textSize="12sp"
+                android:fontFamily="serif"
+                android:textColor="#B8860B"
+                android:layout_marginTop="1dp" />
+        </LinearLayout>
+
+        <!-- Next month button -->
+        <TextView
+            android:id="@+id/btn_next_month"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:text="▶"
+            android:textSize="16sp"
+            android:textColor="#CCFFFFFF"
+            android:background="?android:attr/selectableItemBackgroundBorderless" />
+
+        <!-- Today button -->
+        <TextView
+            android:id="@+id/tv_cal_today_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hôm nay"
+            android:textSize="11sp"
+            android:textColor="#CCFFFFFF"
+            android:background="@drawable/widget_badge_bg"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:layout_marginStart="4dp" />
+    </LinearLayout>
+
+    <!-- ===== WEEKDAY HEADER ===== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="2dp"
+        android:paddingEnd="2dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="4dp">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="T2" android:textSize="13sp" android:textStyle="bold" android:textColor="#B3FFFFFF" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="T3" android:textSize="13sp" android:textStyle="bold" android:textColor="#B3FFFFFF" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="T4" android:textSize="13sp" android:textStyle="bold" android:textColor="#B3FFFFFF" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="T5" android:textSize="13sp" android:textStyle="bold" android:textColor="#B3FFFFFF" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="T6" android:textSize="13sp" android:textStyle="bold" android:textColor="#B3FFFFFF" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="T7" android:textSize="13sp" android:textStyle="bold" android:textColor="#FF6B6B" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="CN" android:textSize="13sp" android:textStyle="bold" android:textColor="#FF6B6B" />
+    </LinearLayout>
+
+    <!-- ===== CALENDAR GRID — 6 rows × 7 cells ===== -->
+    <!-- Row 0 -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:paddingStart="4dp" android:paddingEnd="4dp">
+        <TextView android:id="@+id/cell_0_0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_0_1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_0_2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_0_3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_0_4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_0_5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#FF6B6B" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_0_6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#FF6B6B" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+    </LinearLayout>
+    <!-- Row 1 -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:paddingStart="4dp" android:paddingEnd="4dp">
+        <TextView android:id="@+id/cell_1_0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_1_1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_1_2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_1_3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_1_4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_1_5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#FF6B6B" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_1_6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#FF6B6B" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+    </LinearLayout>
+    <!-- Row 2 -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:paddingStart="4dp" android:paddingEnd="4dp">
+        <TextView android:id="@+id/cell_2_0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_2_1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_2_2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_2_3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_2_4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_2_5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#FF6B6B" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_2_6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#FF6B6B" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+    </LinearLayout>
+    <!-- Row 3 -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:paddingStart="4dp" android:paddingEnd="4dp">
+        <TextView android:id="@+id/cell_3_0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_3_1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_3_2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_3_3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_3_4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_3_5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#FF6B6B" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_3_6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#FF6B6B" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+    </LinearLayout>
+    <!-- Row 4 -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:paddingStart="4dp" android:paddingEnd="4dp">
+        <TextView android:id="@+id/cell_4_0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_4_1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_4_2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_4_3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_4_4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_4_5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#FF6B6B" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_4_6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#FF6B6B" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+    </LinearLayout>
+    <!-- Row 5 -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:paddingStart="4dp" android:paddingEnd="4dp" android:paddingBottom="4dp">
+        <TextView android:id="@+id/cell_5_0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_5_1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_5_2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_5_3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_5_4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#E0E0E0" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_5_5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#FF6B6B" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+        <TextView android:id="@+id/cell_5_6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-medium" android:textSize="14sp" android:textColor="#FF6B6B" android:maxLines="2" android:includeFontPadding="false" android:lineSpacingMultiplier="0.85" />
+    </LinearLayout>
+
+</LinearLayout>

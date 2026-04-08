@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Preview layout cho Month Calendar Widget -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_cal_bg">
+
+    <!-- ===== HEADER ===== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/widget_cal_header_bg"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:text="◀"
+            android:textSize="14sp"
+            android:textColor="#CCFFFFFF" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tháng 4, 2026"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tháng 2 Âm lịch · Bính Ngọ"
+                android:textSize="10sp"
+                android:textColor="#E6FFD700"
+                android:layout_marginTop="1dp" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:text="▶"
+            android:textSize="14sp"
+            android:textColor="#CCFFFFFF" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hôm nay"
+            android:textSize="10sp"
+            android:textColor="#CCFFFFFF"
+            android:background="@drawable/widget_badge_bg"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:layout_marginStart="4dp" />
+    </LinearLayout>
+
+    <!-- ===== WEEKDAY HEADER ===== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="2dp">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="T2" android:textSize="10sp" android:textStyle="bold" android:textColor="#857371" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="T3" android:textSize="10sp" android:textStyle="bold" android:textColor="#857371" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="T4" android:textSize="10sp" android:textStyle="bold" android:textColor="#857371" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="T5" android:textSize="10sp" android:textStyle="bold" android:textColor="#857371" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="T6" android:textSize="10sp" android:textStyle="bold" android:textColor="#857371" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="T7" android:textSize="10sp" android:textStyle="bold" android:textColor="#B71C1C" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="CN" android:textSize="10sp" android:textStyle="bold" android:textColor="#B71C1C" />
+    </LinearLayout>
+
+    <!-- ===== ROW 0 (30,31 Mar + 1-5 Apr) ===== -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:paddingStart="4dp" android:paddingEnd="4dp">
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="30\n12" android:textSize="10sp" android:textColor="#999999" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="31\n13" android:textSize="10sp" android:textColor="#999999" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="1\n14" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="2\n15" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="3\n16" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="4\n17" android:textSize="10sp" android:textColor="#B71C1C" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="5\n18" android:textSize="10sp" android:textColor="#B71C1C" android:maxLines="2" android:includeFontPadding="false" />
+    </LinearLayout>
+    <!-- ROW 1 -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:paddingStart="4dp" android:paddingEnd="4dp">
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="6\n19" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="7\n20" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" android:background="@drawable/widget_cal_today_bg" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="8\n21" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="9\n22" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="10\n23" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="11\n24" android:textSize="10sp" android:textColor="#B71C1C" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="12\n25" android:textSize="10sp" android:textColor="#B71C1C" android:maxLines="2" android:includeFontPadding="false" />
+    </LinearLayout>
+    <!-- ROW 2 -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:paddingStart="4dp" android:paddingEnd="4dp">
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="13\n26" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="14\n27" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="15\n28" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="16\n29" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="17\n1/3" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="18\n2" android:textSize="10sp" android:textColor="#B71C1C" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="19\n3" android:textSize="10sp" android:textColor="#B71C1C" android:maxLines="2" android:includeFontPadding="false" />
+    </LinearLayout>
+    <!-- ROW 3 -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:paddingStart="4dp" android:paddingEnd="4dp">
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="20\n4" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="21\n5" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="22\n6" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="23\n7" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="24\n8" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="25\n9" android:textSize="10sp" android:textColor="#B71C1C" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="26\n10" android:textSize="10sp" android:textColor="#B71C1C" android:maxLines="2" android:includeFontPadding="false" />
+    </LinearLayout>
+    <!-- ROW 4 -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:paddingStart="4dp" android:paddingEnd="4dp">
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="27\n11" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="28\n12" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="29\n13" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="30\n14" android:textSize="10sp" android:textColor="#1C1B1F" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="1\n15" android:textSize="10sp" android:textColor="#999999" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="2\n16" android:textSize="10sp" android:textColor="#999999" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="3\n17" android:textSize="10sp" android:textColor="#999999" android:maxLines="2" android:includeFontPadding="false" />
+    </LinearLayout>
+    <!-- ROW 5 -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:paddingStart="4dp" android:paddingEnd="4dp" android:paddingBottom="6dp">
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="4\n18" android:textSize="10sp" android:textColor="#999999" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="5\n19" android:textSize="10sp" android:textColor="#999999" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="6\n20" android:textSize="10sp" android:textColor="#999999" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="7\n21" android:textSize="10sp" android:textColor="#999999" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="8\n22" android:textSize="10sp" android:textColor="#999999" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="9\n23" android:textSize="10sp" android:textColor="#999999" android:maxLines="2" android:includeFontPadding="false" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="10\n24" android:textSize="10sp" android:textColor="#999999" android:maxLines="2" android:includeFontPadding="false" />
+    </LinearLayout>
+
+</LinearLayout>

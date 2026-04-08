@@ -3,4 +3,7 @@
     <string name="app_name">Lịch Số</string>
     <string name="widget_calendar_description">Lịch Vạn Niên — hiển thị ngày dương, âm lịch và can chi hôm nay</string>
     <string name="widget_ai_description">AI Tử Vi — hiển thị can chi, hướng tài lộc và đánh giá ngày hôm nay</string>
+    <string name="widget_clock_description">Đồng Hồ &amp; Lịch — hiển thị giờ, ngày dương, âm lịch, can chi</string>
+    <string name="widget_calendar_month_description">Lịch Tháng — hiển thị lịch tháng với ngày dương và âm lịch</string>
+    <string name="widget_clock2_description">Đồng Hồ Sáng/Tối — tự đổi màu theo giao diện hệ thống</string>
 </resources>

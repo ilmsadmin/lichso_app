@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Preview for Clock2 widget (light mode) -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_clock2_bg_light"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:id="@+id/section_left"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_alignParentStart="true"
+        android:layout_toStartOf="@+id/divider"
+        android:orientation="vertical"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="14:30"
+            android:textSize="46sp"
+            android:textStyle="bold"
+            android:textColor="#1C1B1F"
+            android:includeFontPadding="false" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Thứ Ba, 07/04/2026"
+            android:textSize="13sp"
+            android:textColor="#534340"
+            android:layout_marginTop="2dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="☽ 20/02 Âm · Tân Hợi"
+            android:textSize="11sp"
+            android:textColor="#B8860B"
+            android:layout_marginTop="1dp" />
+
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/divider"
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="#15000000" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_toEndOf="@+id/divider"
+        android:layout_alignParentEnd="true"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingStart="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⛅"
+            android:textSize="36sp"
+            android:includeFontPadding="false" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="28°"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:textColor="#1C1B1F"
+            android:includeFontPadding="false" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Có mây"
+            android:textSize="11sp"
+            android:textColor="#857371" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="💧 75%  💨 12 km/h"
+            android:textSize="9sp"
+            android:textColor="#A08C8A"
+            android:layout_marginTop="1dp" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/widget_clock2_badge_light"
+        android:paddingStart="8dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✦"
+            android:textSize="11sp"
+            android:textColor="#2E7D32" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ngày Hoàng Đạo"
+            android:textSize="10sp"
+            android:textColor="#534340"
+            android:layout_marginStart="4dp" />
+
+    </LinearLayout>
+
+</RelativeLayout>

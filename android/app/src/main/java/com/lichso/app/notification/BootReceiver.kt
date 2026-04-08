@@ -6,6 +6,7 @@ import android.content.Intent
 import com.lichso.app.data.local.LichSoDatabase
 import com.lichso.app.ui.screen.settings.SettingsKeys
 import com.lichso.app.ui.screen.settings.settingsDataStore
+import com.lichso.app.widget.CalendarWidgetScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -48,6 +49,10 @@ class BootReceiver : BroadcastReceiver() {
                 if (festivalReminderEnabled) {
                     FestivalReminderWorker.schedule(context)
                 }
+
+                // Reschedule widget updates + midnight alarm
+                CalendarWidgetScheduler.scheduleWidgetUpdates(context)
+                CalendarWidgetScheduler.triggerImmediateUpdate(context)
             } finally {
                 pendingResult.finish()
             }
