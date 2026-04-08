@@ -4,6 +4,14 @@ android/app/build/
 android/.gradle/
 android/local.properties
 
+# iOS build & derived data
+ios/.build/
+ios/build/
+ios/DerivedData/
+ios/LichSo.xcodeproj/xcuserdata/
+ios/LichSo.xcodeproj/project.xcworkspace/xcuserdata/
+ios/.swiftpm/
+
 # iOS secrets
 ios/LichSo/Secrets.xcconfig
 
