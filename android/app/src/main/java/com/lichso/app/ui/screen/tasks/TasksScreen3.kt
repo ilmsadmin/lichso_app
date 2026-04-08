@@ -9,6 +9,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.EventNote
+import androidx.compose.material.icons.automirrored.outlined.Label
+import androidx.compose.material.icons.automirrored.outlined.StickyNote2
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -336,7 +339,7 @@ private fun TabRow(selectedTab: NTRTab, onTabSelected: (NTRTab) -> Unit) {
             onClick = { onTabSelected(NTRTab.REMINDERS) }
         )
         TabButton(
-            icon = Icons.Outlined.StickyNote2,
+            icon = Icons.AutoMirrored.Outlined.StickyNote2,
             label = "Ghi chú",
             isActive = selectedTab == NTRTab.NOTES,
             activeColor = NoteBlue,
@@ -478,7 +481,7 @@ private fun NoteListV3(notes: List<NoteEntity>, viewModel: TasksViewModel, onAdd
 
     if (notes.isEmpty()) {
         EmptyStateV3(
-            icon = Icons.Outlined.StickyNote2,
+            icon = Icons.AutoMirrored.Outlined.StickyNote2,
             title = "Chưa có ghi chú nào",
             subtitle = "Tạo ghi chú đầu tiên của bạn",
             onAddClick = onAddClick,
@@ -654,7 +657,7 @@ private fun NoteCardV3(note: NoteEntity, viewModel: TasksViewModel, isPinned: Bo
                         else -> Color(0xFF7B1FA2)
                     }
                     InfoChip(
-                        icon = Icons.Outlined.Label,
+                        icon = Icons.AutoMirrored.Outlined.Label,
                         text = label,
                         bgColor = labelColor.copy(alpha = 0.08f),
                         textColor = labelColor
@@ -865,7 +868,7 @@ private fun TaskCardV3(task: TaskEntity, viewModel: TasksViewModel) {
                             else -> NoteBlue
                         }
                         InfoChip(
-                            icon = Icons.Outlined.Label,
+                            icon = Icons.AutoMirrored.Outlined.Label,
                             text = label,
                             bgColor = labelColor.copy(alpha = 0.08f),
                             textColor = labelColor
@@ -1082,7 +1085,7 @@ private fun ReminderCardV3(reminder: ReminderEntity, viewModel: TasksViewModel) 
                             else -> NoteBlue
                         }
                         InfoChip(
-                            icon = Icons.Outlined.Label,
+                            icon = Icons.AutoMirrored.Outlined.Label,
                             text = label,
                             bgColor = labelColor.copy(alpha = 0.08f),
                             textColor = labelColor
@@ -1267,7 +1270,7 @@ private fun getReminderTypeInfo(reminder: ReminderEntity): ReminderTypeInfo {
         0 -> ReminderTypeInfo(Icons.Outlined.Celebration, Color(0xFFE65100), Color(0xFFFFF3E0))  // Holiday
         1 -> ReminderTypeInfo(Icons.Outlined.Cake, Color(0xFF7B1FA2), Color(0xFFF3E5F5))          // Birthday
         2 -> ReminderTypeInfo(Icons.Outlined.DarkMode, Color(0xFFF57F17), Color(0xFFFFF8E1))      // Lunar
-        3 -> ReminderTypeInfo(Icons.Outlined.EventNote, Color(0xFF1565C0), Color(0xFFE3F2FD))     // Personal
+        3 -> ReminderTypeInfo(Icons.AutoMirrored.Outlined.EventNote, Color(0xFF1565C0), Color(0xFFE3F2FD))     // Personal
         4 -> ReminderTypeInfo(Icons.Outlined.LocalFireDepartment, Color(0xFFC62828), Color(0xFFFFEBEE))  // Memorial (Ngày giỗ)
         else -> {
             // Fallback: auto-detect by title keywords
@@ -1282,7 +1285,7 @@ private fun getReminderTypeInfo(reminder: ReminderEntity): ReminderTypeInfo {
                 title.contains("rằm") || title.contains("mùng") ->
                     ReminderTypeInfo(Icons.Outlined.DarkMode, Color(0xFFF57F17), Color(0xFFFFF8E1))
                 else ->
-                    ReminderTypeInfo(Icons.Outlined.EventNote, Color(0xFF1565C0), Color(0xFFE3F2FD))
+                    ReminderTypeInfo(Icons.AutoMirrored.Outlined.EventNote, Color(0xFF1565C0), Color(0xFFE3F2FD))
             }
         }
     }

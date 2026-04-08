@@ -13,7 +13,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -259,7 +262,7 @@ fun ProfileScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (state.allBookmarks.isNotEmpty()) {
                         IconButton(onClick = onBookmarksClick, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Filled.OpenInNew, contentDescription = "Xem tất cả", tint = c.outline, modifier = Modifier.size(18.dp))
+                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Xem tất cả", tint = c.outline, modifier = Modifier.size(18.dp))
                         }
                     }
                     IconButton(onClick = { viewModel.showAddSavedDay() }, modifier = Modifier.size(32.dp)) {
@@ -1042,7 +1045,7 @@ private fun AddBookmarkSheet(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(14.dp),
-                leadingIcon = { Icon(Icons.Filled.Label, null, tint = c.outline, modifier = Modifier.size(20.dp)) },
+                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Label, null, tint = c.outline, modifier = Modifier.size(20.dp)) },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = c.primary,
                     unfocusedBorderColor = c.outlineVariant,
@@ -1132,7 +1135,7 @@ private fun AddBookmarkSheet(
                 modifier = Modifier.fillMaxWidth().height(90.dp),
                 shape = RoundedCornerShape(14.dp),
                 maxLines = 3,
-                leadingIcon = { Icon(Icons.Filled.Notes, null, tint = c.outline, modifier = Modifier.size(20.dp)) },
+                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Notes, null, tint = c.outline, modifier = Modifier.size(20.dp)) },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = c.primary,
                     unfocusedBorderColor = c.outlineVariant,

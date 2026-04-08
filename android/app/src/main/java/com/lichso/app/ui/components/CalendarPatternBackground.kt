@@ -132,7 +132,7 @@ private fun DrawScope.drawArtworkLotusVine(
         val cx = vineX + (if (i % 2 == 0) 8.dp.toPx() else -4.dp.toPx())
         val path = Path().apply {
             moveTo(vineX, y1)
-            quadraticBezierTo(cx, (y1 + y2) / 2, vineX, y2)
+            quadraticTo(cx, (y1 + y2) / 2, vineX, y2)
         }
         drawPath(path, os, style = Stroke(vineStroke, cap = StrokeCap.Round))
 
@@ -153,7 +153,7 @@ private fun DrawScope.drawArtworkLotusVine(
         val cx = vineXr + (if (i % 2 == 0) -8.dp.toPx() else 4.dp.toPx())
         val path = Path().apply {
             moveTo(vineXr, y1)
-            quadraticBezierTo(cx, (y1 + y2) / 2, vineXr, y2)
+            quadraticTo(cx, (y1 + y2) / 2, vineXr, y2)
         }
         drawPath(path, os, style = Stroke(vineStroke, cap = StrokeCap.Round))
 
@@ -468,7 +468,7 @@ private fun DrawScope.drawScrollCorner(center: Offset, size: Float, color: Color
     val path = Path().apply {
         moveTo(center.x + r * sx, center.y - r * sy)
         lineTo(center.x - r * sx, center.y - r * sy)
-        quadraticBezierTo(center.x - r * sx * 1.1f, center.y - r * sy * 0.3f, center.x - r * sx, center.y + r * sy * 0.2f)
+        quadraticTo(center.x - r * sx * 1.1f, center.y - r * sy * 0.3f, center.x - r * sx, center.y + r * sy * 0.2f)
     }
     drawPath(path, color, style = Stroke(1.5.dp.toPx(), cap = StrokeCap.Round))
 
@@ -485,7 +485,7 @@ private fun DrawScope.drawScrollCorner(center: Offset, size: Float, color: Color
         val ccx = center.x - r * sx * 0.6f
         val ccy = center.y - r * sy * 0.6f
         moveTo(ccx, ccy)
-        quadraticBezierTo(ccx + 4.dp.toPx() * sx, ccy, ccx + 4.dp.toPx() * sx, ccy + 4.dp.toPx() * sy)
+        quadraticTo(ccx + 4.dp.toPx() * sx, ccy, ccx + 4.dp.toPx() * sx, ccy + 4.dp.toPx() * sy)
     }
     drawPath(curlPath, color.copy(alpha = color.alpha * 0.6f), style = Stroke(0.8.dp.toPx(), cap = StrokeCap.Round))
 }
@@ -509,12 +509,12 @@ private fun DrawScope.drawLotusPetal(center: Offset, size: Float, color: Color, 
         val py = center.y + sin(angle) * size * 0.45f
         val path = Path().apply {
             moveTo(center.x, center.y)
-            quadraticBezierTo(
+            quadraticTo(
                 center.x + cos(angle + 0.3f) * size * 0.3f,
                 center.y + sin(angle + 0.3f) * size * 0.3f,
                 px, py
             )
-            quadraticBezierTo(
+            quadraticTo(
                 center.x + cos(angle - 0.3f) * size * 0.3f,
                 center.y + sin(angle - 0.3f) * size * 0.3f,
                 center.x, center.y
@@ -534,12 +534,12 @@ private fun DrawScope.drawMiniLotus(center: Offset, size: Float, color: Color) {
         val py = center.y + sin(angle) * size * 0.5f
         val path = Path().apply {
             moveTo(center.x, center.y)
-            quadraticBezierTo(
+            quadraticTo(
                 center.x + cos(angle + 0.4f) * size * 0.35f,
                 center.y + sin(angle + 0.4f) * size * 0.35f,
                 px, py
             )
-            quadraticBezierTo(
+            quadraticTo(
                 center.x + cos(angle - 0.4f) * size * 0.35f,
                 center.y + sin(angle - 0.4f) * size * 0.35f,
                 center.x, center.y
@@ -557,12 +557,12 @@ private fun DrawScope.drawLeafShape(center: Offset, size: Float, color: Color, a
     val tipY = center.y + sin(angle) * size
     val path = Path().apply {
         moveTo(center.x, center.y)
-        quadraticBezierTo(
+        quadraticTo(
             center.x + cos(angle + 0.6f) * size * 0.6f,
             center.y + sin(angle + 0.6f) * size * 0.6f,
             tipX, tipY
         )
-        quadraticBezierTo(
+        quadraticTo(
             center.x + cos(angle - 0.6f) * size * 0.6f,
             center.y + sin(angle - 0.6f) * size * 0.6f,
             center.x, center.y
@@ -599,7 +599,7 @@ private fun DrawScope.drawWaveLine(x1: Float, x2: Float, y: Float, amp: Float, w
             val nextX = (x + wavelength / 2).coerceAtMost(x2)
             val midX = (x + nextX) / 2
             val dir = if (((x - x1) / (wavelength / 2)).toInt() % 2 == 0) -1f else 1f
-            quadraticBezierTo(midX, y + amp * dir, nextX, y)
+            quadraticTo(midX, y + amp * dir, nextX, y)
             x = nextX
         }
     }
@@ -621,9 +621,9 @@ private fun DrawScope.drawStylizedCloud(center: Offset, size: Float, color: Colo
     val r = size * 0.25f
     val path = Path().apply {
         moveTo(center.x - size * 0.4f, center.y)
-        quadraticBezierTo(center.x - size * 0.3f, center.y - r, center.x - size * 0.1f, center.y - r * 0.8f)
-        quadraticBezierTo(center.x, center.y - r * 1.3f, center.x + size * 0.1f, center.y - r * 0.8f)
-        quadraticBezierTo(center.x + size * 0.3f, center.y - r, center.x + size * 0.4f, center.y)
+        quadraticTo(center.x - size * 0.3f, center.y - r, center.x - size * 0.1f, center.y - r * 0.8f)
+        quadraticTo(center.x, center.y - r * 1.3f, center.x + size * 0.1f, center.y - r * 0.8f)
+        quadraticTo(center.x + size * 0.3f, center.y - r, center.x + size * 0.4f, center.y)
     }
     drawPath(path, color, style = Stroke(1.dp.toPx(), cap = StrokeCap.Round))
 }
@@ -655,7 +655,7 @@ private fun DrawScope.drawFeatherFan(center: Offset, size: Float, baseAngle: Flo
         val tipY = center.y + sin(angle) * size
         val path = Path().apply {
             moveTo(center.x, center.y)
-            quadraticBezierTo(
+            quadraticTo(
                 center.x + cos(angle + 0.15f) * size * 0.7f,
                 center.y + sin(angle + 0.15f) * size * 0.7f,
                 tipX, tipY
@@ -711,7 +711,7 @@ private fun DrawScope.drawDragonClaw(center: Offset, size: Float, quadrant: Int,
         val rad = angle * PI.toFloat() / 180f
         val path = Path().apply {
             moveTo(center.x, center.y)
-            quadraticBezierTo(
+            quadraticTo(
                 center.x + cos(rad) * size * 0.5f, center.y + sin(rad) * size * 0.5f,
                 center.x + cos(rad) * size * 0.8f, center.y + sin(rad) * size * 0.8f
             )
@@ -734,7 +734,7 @@ private fun DrawScope.drawDragonPearl(center: Offset, size: Float, color: Color)
         val ctrl = Offset(center.x + cos(angle + 0.3f) * size * 1.25f, center.y + sin(angle + 0.3f) * size * 1.2f)
         val path = Path().apply {
             moveTo(start.x, start.y)
-            quadraticBezierTo(ctrl.x, ctrl.y, end.x, end.y)
+            quadraticTo(ctrl.x, ctrl.y, end.x, end.y)
         }
         drawPath(path, color, style = Stroke(0.6.dp.toPx(), cap = StrokeCap.Round))
     }
@@ -780,7 +780,7 @@ private fun DrawScope.drawTassel(center: Offset, size: Float, quadrant: Int, col
         val endY = center.y + (8.dp.toPx() + i * 2.dp.toPx()) * sy
         val path = Path().apply {
             moveTo(center.x, center.y)
-            quadraticBezierTo(center.x + 2.dp.toPx() * sx, (center.y + endY) / 2, endX, endY)
+            quadraticTo(center.x + 2.dp.toPx() * sx, (center.y + endY) / 2, endX, endY)
         }
         drawPath(path, color2, style = Stroke(0.6.dp.toPx(), cap = StrokeCap.Round))
     }

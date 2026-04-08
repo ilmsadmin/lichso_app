@@ -10,7 +10,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,14 +21,11 @@ private const val TAG = "WeatherApi"
  * Fallback sang wttr.in nếu Open-Meteo gặp lỗi.
  */
 @Singleton
-class WeatherApi @Inject constructor() {
+class WeatherApi @Inject constructor(
+    private val client: OkHttpClient
+) {
 
     private val gson = Gson()
-
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .build()
 
     /**
      * Lấy thời tiết hiện tại — thử Open-Meteo trước, fallback sang wttr.in

@@ -8,6 +8,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -138,7 +140,7 @@ fun MemorialDetailScreen(
 
             // Prayer link
             item {
-                MemorialSectionTitle("Văn khấn", Icons.Filled.MenuBook, c)
+                MemorialSectionTitle("Văn khấn", Icons.AutoMirrored.Filled.MenuBook, c)
                 PrayerLinkCard(c, onClick = { onPrayersClick(1) }) // 1 = "Văn khấn cúng giỗ"
             }
 
@@ -209,7 +211,7 @@ fun MemorialDetailScreen(
         LichSoDialog(
             onDismiss = { showAddChecklistDialog = false; newChecklistText = "" },
             title = "Thêm mục chuẩn bị",
-            icon = Icons.Filled.PlaylistAdd,
+            icon = Icons.AutoMirrored.Filled.PlaylistAdd,
             iconTint = Color(0xFF2E7D32),
             iconBgColor = Color(0xFFE8F5E9),
             confirmText = "Thêm",

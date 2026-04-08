@@ -13,8 +13,7 @@
 }
 
 # ── Hilt / Dagger ──
--keep class dagger.** { *; }
--keep class javax.inject.** { *; }
+# Hilt handles its own ProGuard rules via bundled META-INF, minimal keep needed
 -dontwarn dagger.internal.codegen.**
 
 # ── ViewModel ──
@@ -34,9 +33,8 @@
 
 # ── Gson (JSON parsing) ──
 -keepattributes Signature
--keepattributes EnclosingMethod
--keep class sun.misc.Unsafe { *; }
 -keep class com.google.gson.** { *; }
+# Keep only classes actually used for JSON deserialization
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
@@ -79,7 +77,6 @@
 # ── Kotlin ──
 -dontwarn kotlin.**
 -keep class kotlin.Metadata { *; }
--keep class kotlin.reflect.** { *; }
 
 # ── DataStore ──
 -dontwarn androidx.datastore.**

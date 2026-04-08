@@ -9,6 +9,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -655,7 +656,7 @@ private fun LunarConverterCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Filled.ArrowForward,
+                    Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = "Chuyển đổi",
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
@@ -977,7 +978,7 @@ private fun GoToDateCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Filled.ArrowForward,
+                    Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = "Đi đến",
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)

@@ -9,6 +9,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.FormatListBulleted
+import androidx.compose.material.icons.automirrored.outlined.Label
+import androidx.compose.material.icons.automirrored.outlined.StickyNote2
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -193,7 +197,7 @@ fun NoteTaskEditScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBackClick) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại", tint = c.textPrimary)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = c.textPrimary)
             }
             Text(
                 topTitle,
@@ -323,7 +327,7 @@ fun NoteTaskEditScreen(
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             TypeChip(
-                icon = Icons.Outlined.StickyNote2,
+                icon = Icons.AutoMirrored.Outlined.StickyNote2,
                 label = "Ghi chú",
                 isActive = selectedType == EditItemType.NOTE,
                 activeColor = EditNoteBlue,
@@ -649,7 +653,7 @@ private fun LabelRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Icon(
-                        labelIcons[label] ?: Icons.Outlined.Label,
+                        labelIcons[label] ?: Icons.AutoMirrored.Outlined.Label,
                         contentDescription = null,
                         tint = if (isSelected) accentColor else c.textSecondary,
                         modifier = Modifier.size(14.dp)
@@ -955,7 +959,7 @@ private fun TaskEditPanel(
 
     // Notes
     FormRow(
-        icon = Icons.Outlined.StickyNote2,
+        icon = Icons.AutoMirrored.Outlined.StickyNote2,
         label = "Ghi chú thêm"
     ) {
         BasicTextField(
@@ -1119,7 +1123,7 @@ private fun ReminderEditPanel(
 
     // Notes
     FormRow(
-        icon = Icons.Outlined.StickyNote2,
+        icon = Icons.AutoMirrored.Outlined.StickyNote2,
         label = "Ghi chú",
         showDivider = false
     ) {
@@ -1559,7 +1563,7 @@ private fun NoteColorToolbar(
                 onClick = onInsertBold
             )
             ToolButton(
-                icon = Icons.Outlined.FormatListBulleted,
+                icon = Icons.AutoMirrored.Outlined.FormatListBulleted,
                 onClick = onInsertList
             )
             Spacer(modifier = Modifier.weight(1f))

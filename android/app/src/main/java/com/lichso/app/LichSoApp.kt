@@ -11,13 +11,20 @@ import com.lichso.app.ui.screen.settings.SettingsKeys
 import com.lichso.app.ui.screen.settings.settingsDataStore
 import com.lichso.app.widget.CalendarWidgetScheduler
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class LichSoApp : Application() {
+
+    // Structured coroutine scope tied to app lifecycle
+    private val appScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, _ -> }
+    )
     override fun onCreate() {
         super.onCreate()
         NotificationHelper.createChannels(this)
@@ -32,7 +39,7 @@ class LichSoApp : Application() {
      */
     private fun scheduleWorkersFromSettings() {
         val context = this
-        CoroutineScope(Dispatchers.IO).launch {
+        appScope.launch {
             try {
                 val prefs = context.settingsDataStore.data.first()
                 val notifyEnabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true

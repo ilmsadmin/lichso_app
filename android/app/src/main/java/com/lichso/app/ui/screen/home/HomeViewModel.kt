@@ -181,21 +181,15 @@ class HomeViewModel @Inject constructor(
         val dd = selectedDate.dayOfMonth
         val mm = selectedDate.monthValue
         val yy = selectedDate.year
-        val weekStartSunday = _uiState.value.weekStartSunday
-        _uiState.value = HomeUiState(
+        val current = _uiState.value
+        val weekStartSunday = current.weekStartSunday
+        _uiState.value = current.copy(
             currentYear = year,
             currentMonth = month,
             selectedDate = selectedDate,
             dayInfo = dayInfoProvider.getDayInfo(dd, mm, yy),
             calendarDays = dayInfoProvider.getCalendarDays(year, month, weekStartSunday),
             upcomingEvents = dayInfoProvider.getUpcomingEvents(dd, mm, yy),
-            showLunarBadge = _uiState.value.showLunarBadge,
-            showQuote = _uiState.value.showQuote,
-            showFestival = _uiState.value.showFestival,
-            showHoangDao = _uiState.value.showHoangDao,
-            weekStartSunday = weekStartSunday,
-            tempUnit = _uiState.value.tempUnit,
-            weatherState = _uiState.value.weatherState
         )
     }
 }

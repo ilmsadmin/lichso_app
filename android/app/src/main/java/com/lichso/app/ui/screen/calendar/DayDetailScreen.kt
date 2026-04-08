@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.StickyNote2
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -370,7 +371,7 @@ private fun DayNoteTaskReminderSection(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Filled.StickyNote2,
+                        Icons.AutoMirrored.Filled.StickyNote2,
                         contentDescription = null,
                         tint = accentColor,
                         modifier = Modifier.size(20.dp)

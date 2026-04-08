@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -1942,7 +1943,7 @@ private fun MemorialCard(memorial: MemorialDay, c: LichSoColors, onClick: () -> 
             // Action chips
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                MemorialActionChip("Văn khấn", Icons.Filled.MenuBook, isPrimary = true, c = c, onClick = onPrayersClick)
+                MemorialActionChip("Văn khấn", Icons.AutoMirrored.Filled.MenuBook, isPrimary = true, c = c, onClick = onPrayersClick)
                 MemorialActionChip("Nhắc nhở", Icons.Filled.Notifications, isPrimary = false, c = c, onClick = onReminderClick)
                 MemorialActionChip("Ghi chú", Icons.Filled.EditNote, isPrimary = false, c = c, onClick = onNoteClick)
             }

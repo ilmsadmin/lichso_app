@@ -2,7 +2,6 @@ package com.lichso.app
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -51,28 +50,6 @@ class MainActivity : ComponentActivity() {
                 "dark" -> true
                 "light" -> false
                 else -> systemDark
-            }
-
-            // Update edge-to-edge styles reactively when dark mode changes
-            LaunchedEffect(darkMode) {
-                enableEdgeToEdge(
-                    statusBarStyle = if (darkMode) {
-                        SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-                    } else {
-                        SystemBarStyle.light(
-                            android.graphics.Color.TRANSPARENT,
-                            android.graphics.Color.TRANSPARENT
-                        )
-                    },
-                    navigationBarStyle = if (darkMode) {
-                        SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-                    } else {
-                        SystemBarStyle.light(
-                            android.graphics.Color.TRANSPARENT,
-                            android.graphics.Color.TRANSPARENT
-                        )
-                    }
-                )
             }
 
             // Track which screen to show

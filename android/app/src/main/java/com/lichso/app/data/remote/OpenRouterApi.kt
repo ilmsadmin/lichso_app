@@ -10,7 +10,6 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,7 +31,8 @@ data class OpenRouterResponse(
 
 @Singleton
 class OpenRouterApi @Inject constructor(
-    private val apiKeyProvider: ApiKeyProvider
+    private val apiKeyProvider: ApiKeyProvider,
+    private val client: OkHttpClient
 ) {
 
     companion object {
@@ -40,12 +40,6 @@ class OpenRouterApi @Inject constructor(
     }
 
     private val gson = Gson()
-
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        .build()
 
     private fun buildSystemPrompt(): String {
         val today = LocalDate.now()

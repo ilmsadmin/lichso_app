@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -189,8 +191,7 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
 
         // AI FAB — only show when bottom bar is visible
         if (!hideBottomBar) {
-            val navBarInsets = WindowInsets.navigationBars.asPaddingValues()
-            val fabBottom = 100.dp + navBarInsets.calculateBottomPadding()
+            val fabBottom = bottomBarTotalHeight + 8.dp
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -278,7 +279,7 @@ private fun DrawerMenuContent(
     val exploreItems = listOf(
         DrawerMenuItem("history", "Ngày này năm xưa", Icons.Outlined.HistoryEdu, Icons.Filled.HistoryEdu),
         DrawerMenuItem("familytree", "Cây gia phả", Icons.Outlined.AccountTree, Icons.Filled.AccountTree),
-        DrawerMenuItem("prayers", "Các bài văn khấn", Icons.Outlined.MenuBook, Icons.Filled.MenuBook),
+        DrawerMenuItem("prayers", "Các bài văn khấn", Icons.AutoMirrored.Outlined.MenuBook, Icons.AutoMirrored.Filled.MenuBook),
     )
 
     val bottomItems = listOf(
@@ -615,7 +616,7 @@ private fun BottomNavBar(
         NavItem("tasks", "Ghi chú", Icons.Outlined.EditNote, Icons.Filled.EditNote),
     )
     val rightItems = listOf(
-        NavItem("prayers", "Văn Khấn", Icons.Outlined.MenuBook, Icons.Filled.MenuBook),
+        NavItem("prayers", "Văn Khấn", Icons.AutoMirrored.Outlined.MenuBook, Icons.AutoMirrored.Filled.MenuBook),
         NavItem("profile", "Cá nhân", Icons.Outlined.Person, Icons.Filled.Person),
     )
 

@@ -25,8 +25,8 @@ android {
         applicationId = "com.lichso.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 13
-        versionName = "1.6.1"
+        versionCode = 15
+        versionName = "1.6.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -56,6 +56,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Faster debug builds
+            isMinifyEnabled = false
+            isShrinkResources = false
+            // Skip PNG crunching for faster debug builds
+            androidResources.noCompress += listOf("png")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -77,6 +84,9 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+        freeCompilerArgs += listOf(
+            "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+        )
     }
     buildFeatures {
         compose = true
@@ -85,6 +95,13 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/NOTICE.md"
+            excludes += "/META-INF/LICENSE.md"
+            excludes += "/META-INF/DEPENDENCIES"
+            excludes += "/META-INF/INDEX.LIST"
+            excludes += "/META-INF/*.kotlin_module"
+            excludes += "DebugProbesKt.bin"
+            excludes += "kotlin-tooling-metadata.json"
         }
     }
 
