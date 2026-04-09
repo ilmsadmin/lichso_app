@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lịch Số iOS — Chi tiết ngày giỗ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet">
+    <style>
+        :root { --primary:#B71C1C; --on-primary:#fff; --surface:#FFFBF5; --on-surface:#1C1B1F; --surface-variant:#F5DDD8; --on-surface-variant:#534340; --surface-container:#FFF8F0; --surface-container-high:#FFF0E8; --outline:#857371; --outline-variant:#D8C2BF; --gold:#D4A017; --deep-red:#8B0000; --primary-container:#FFDAD6; }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body { font-family:'Inter','SF Pro Display',system-ui,sans-serif; background:#1a1a1a; overflow:hidden; height:100vh; width:100vw; display:flex; justify-content:center; align-items:center; }
+        .phone-frame { width:393px; height:852px; border-radius:44px; overflow:hidden; position:relative; background:var(--surface); box-shadow:0 0 0 3px #2a2a2a,0 0 0 6px #1a1a1a,0 20px 60px rgba(0,0,0,0.5); }
+        .dynamic-island { position:absolute; top:10px; left:50%; transform:translateX(-50%); width:126px; height:36px; background:#000; border-radius:20px; z-index:200; }
+        .status-bar { position:absolute; top:0; left:0; right:0; height:54px; display:flex; justify-content:space-between; align-items:center; padding:12px 32px 0; z-index:100; color:#fff; }
+        .status-bar .time { font-size:15px; font-weight:600; }
+        .status-bar .icons { display:flex; gap:6px; }
+        .status-bar .icons span { font-size:17px; }
+        .screen { width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+        .scroll-content { flex:1; overflow-y:auto; }
+
+        .hero { padding:54px 16px 24px; background:linear-gradient(135deg,#E65100 0%,#FF6F00 50%,#FF8F00 100%); position:relative; overflow:hidden; }
+        .hero::before { content:''; position:absolute; top:-30px; right:-20px; width:180px; height:180px; background:radial-gradient(circle,rgba(255,255,255,0.08) 0%,transparent 70%); border-radius:50%; }
+        .hero-nav { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; position:relative; z-index:1; }
+        .hero-btn { width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.15); border:none; color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; backdrop-filter:blur(10px); }
+        .hero-actions { display:flex; gap:8px; }
+        .hero-title { font-size:22px; font-weight:700; color:#fff; position:relative; z-index:1; }
+        .hero-subtitle { font-size:13px; color:rgba(255,255,255,0.75); margin-top:4px; position:relative; z-index:1; }
+        .countdown-box { display:inline-flex; align-items:center; gap:8px; padding:8px 16px; border-radius:16px; background:rgba(255,255,255,0.15); backdrop-filter:blur(10px); margin-top:12px; position:relative; z-index:1; }
+        .countdown-number { font-size:24px; font-weight:800; color:#fff; }
+        .countdown-label { font-size:12px; color:rgba(255,255,255,0.8); }
+
+        .content { padding:16px; }
+        .section-label { font-size:12px; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.5px; margin:16px 0 10px; display:flex; align-items:center; gap:6px; }
+        .section-label .material-symbols-rounded { font-size:16px; }
+
+        .date-cards { display:flex; gap:10px; margin-bottom:12px; }
+        .date-card { flex:1; padding:14px 12px; border-radius:16px; background:var(--surface-container); border:1px solid var(--outline-variant); text-align:center; }
+        .date-card.lunar { background:linear-gradient(135deg,var(--surface-container-high),var(--primary-container)); border-color:var(--primary-container); }
+        .date-card-icon { font-size:22px; margin-bottom:4px; }
+        .date-card-day { font-size:22px; font-weight:800; color:var(--on-surface); }
+        .date-card-month { font-size:12px; color:var(--outline); margin-top:2px; font-weight:500; }
+        .date-card-label { font-size:9px; color:var(--outline); margin-top:4px; text-transform:uppercase; letter-spacing:0.5px; font-weight:600; }
+
+        .person-card { display:flex; align-items:center; gap:14px; padding:16px; border-radius:16px; background:var(--surface-container); border:1px solid var(--outline-variant); margin-bottom:12px; cursor:pointer; }
+        .person-avatar { width:52px; height:52px; border-radius:50%; background:linear-gradient(135deg,var(--gold),#B8860B); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; color:#fff; font-family:'Noto Serif',serif; }
+        .person-info { flex:1; }
+        .person-name { font-size:15px; font-weight:600; color:var(--on-surface); }
+        .person-meta { font-size:12px; color:var(--outline); margin-top:2px; }
+        .person-arrow .material-symbols-rounded { font-size:20px; color:var(--outline-variant); }
+
+        .offerings-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px; }
+        .offer-item { padding:10px 4px; border-radius:14px; background:var(--surface-container); border:1px solid var(--outline-variant); text-align:center; }
+        .offer-icon { font-size:26px; margin-bottom:4px; }
+        .offer-name { font-size:10px; color:var(--on-surface-variant); font-weight:500; }
+
+        .checklist { background:var(--surface-container); border-radius:16px; border:1px solid var(--outline-variant); overflow:hidden; margin-bottom:12px; }
+        .check-item { display:flex; align-items:center; padding:14px 16px; border-bottom:1px solid var(--outline-variant); gap:12px; cursor:pointer; }
+        .check-item:last-child { border-bottom:none; }
+        .check-box { width:22px; height:22px; border-radius:6px; border:2px solid var(--outline); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .check-box.done { background:#4CAF50; border-color:#4CAF50; }
+        .check-box.done .material-symbols-rounded { font-size:16px; color:#fff; }
+        .check-text { font-size:14px; color:var(--on-surface); flex:1; }
+        .check-text.done { text-decoration:line-through; color:var(--outline); }
+
+        .prayer-link { display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:16px; background:linear-gradient(135deg,var(--surface-container-high),var(--primary-container)); border:1px solid var(--outline-variant); margin-bottom:12px; cursor:pointer; }
+        .prayer-icon-box { width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg,var(--primary),var(--deep-red)); display:flex; align-items:center; justify-content:center; }
+        .prayer-icon-box .material-symbols-rounded { font-size:22px; color:#fff; }
+        .prayer-info { flex:1; }
+        .prayer-title { font-size:14px; font-weight:600; color:var(--on-surface); }
+        .prayer-desc { font-size:11px; color:var(--outline); margin-top:1px; }
+        .prayer-arrow .material-symbols-rounded { font-size:20px; color:var(--outline-variant); }
+
+        .reminder-card { display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:14px; background:var(--surface-container); border:1px solid var(--outline-variant); margin-bottom:8px; }
+        .reminder-icon-box { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .reminder-icon-box .material-symbols-rounded { font-size:20px; }
+        .reminder-icon-box.bell { background:#FFF3E0; color:#E65100; }
+        .reminder-icon-box.noti { background:#E3F2FD; color:#1565C0; }
+        .reminder-info { flex:1; }
+        .reminder-title { font-size:13px; font-weight:500; color:var(--on-surface); }
+        .reminder-time { font-size:11px; color:var(--outline); }
+        .toggle-switch { width:48px; height:28px; border-radius:14px; background:var(--outline-variant); position:relative; cursor:pointer; transition:background 0.3s; flex-shrink:0; }
+        .toggle-switch.on { background:#4CAF50; }
+        .toggle-thumb { width:22px; height:22px; border-radius:50%; background:#fff; position:absolute; top:3px; left:3px; transition:transform 0.3s; box-shadow:0 1px 3px rgba(0,0,0,0.15); }
+        .toggle-switch.on .toggle-thumb { transform:translateX(20px); }
+
+        .notes-box { padding:14px 16px; border-radius:14px; background:var(--surface-container); border:1px solid var(--outline-variant); margin-bottom:12px; }
+        .notes-text { font-size:13px; color:var(--on-surface-variant); line-height:1.6; }
+
+        .quote-card { padding:16px; border-radius:16px; background:linear-gradient(135deg,#FFF8E1,#FFECB3); border:1px solid #FFD54F; text-align:center; margin-bottom:24px; }
+        .quote-text { font-size:14px; font-style:italic; color:#5D4037; line-height:1.6; font-family:'Noto Serif',serif; }
+        ::-webkit-scrollbar { display:none; }
+    </style>
+</head>
+<body>
+<div class="phone-frame">
+    <div class="dynamic-island"></div>
+    <div class="status-bar"><span class="time">9:41</span><div class="icons"><span class="material-symbols-rounded" style="font-size:15px">signal_cellular_alt</span><span class="material-symbols-rounded" style="font-size:15px">wifi</span><span class="material-symbols-rounded" style="font-size:15px">battery_full</span></div></div>
+    <div class="screen">
+        <div class="scroll-content">
+            <div class="hero">
+                <div class="hero-nav"><button class="hero-btn"><span class="material-symbols-rounded">arrow_back_ios_new</span></button><div class="hero-actions"><button class="hero-btn"><span class="material-symbols-rounded">ios_share</span></button><button class="hero-btn"><span class="material-symbols-rounded">more_horiz</span></button></div></div>
+                <div class="hero-title">Giỗ Ông nội Nguyễn Văn An</div>
+                <div class="hero-subtitle">Ngày giỗ thường niên — Lần thứ 8</div>
+                <div class="countdown-box"><div><div class="countdown-number">45</div></div><div><div class="countdown-label">ngày nữa đến<br>ngày giỗ</div></div></div>
+            </div>
+            <div class="content">
+                <div class="section-label"><span class="material-symbols-rounded">calendar_month</span>Ngày giỗ</div>
+                <div class="date-cards">
+                    <div class="date-card lunar"><div class="date-card-icon">🌙</div><div class="date-card-day">15</div><div class="date-card-month">Tháng 7</div><div class="date-card-label">Âm lịch</div></div>
+                    <div class="date-card"><div class="date-card-icon">☀️</div><div class="date-card-day">18</div><div class="date-card-month">Tháng 8, 2026</div><div class="date-card-label">Dương lịch</div></div>
+                </div>
+
+                <div class="section-label"><span class="material-symbols-rounded">person</span>Người được tưởng nhớ</div>
+                <div class="person-card"><div class="person-avatar">An</div><div class="person-info"><div class="person-name">Nguyễn Văn An</div><div class="person-meta">1940 — 2018 • Thế hệ 1 • Ông nội</div></div><div class="person-arrow"><span class="material-symbols-rounded">chevron_right</span></div></div>
+
+                <div class="section-label"><span class="material-symbols-rounded">restaurant</span>Lễ vật cúng giỗ</div>
+                <div class="offerings-grid">
+                    <div class="offer-item"><div class="offer-icon">🍚</div><div class="offer-name">Cơm</div></div>
+                    <div class="offer-item"><div class="offer-icon">🐔</div><div class="offer-name">Gà luộc</div></div>
+                    <div class="offer-item"><div class="offer-icon">🍲</div><div class="offer-name">Canh</div></div>
+                    <div class="offer-item"><div class="offer-icon">🍖</div><div class="offer-name">Thịt</div></div>
+                    <div class="offer-item"><div class="offer-icon">🍌</div><div class="offer-name">Trái cây</div></div>
+                    <div class="offer-item"><div class="offer-icon">🪷</div><div class="offer-name">Hoa</div></div>
+                    <div class="offer-item"><div class="offer-icon">🪔</div><div class="offer-name">Nhang đèn</div></div>
+                    <div class="offer-item"><div class="offer-icon">🍵</div><div class="offer-name">Trà rượu</div></div>
+                </div>
+
+                <div class="section-label"><span class="material-symbols-rounded">checklist</span>Việc cần làm</div>
+                <div class="checklist">
+                    <div class="check-item"><div class="check-box done"><span class="material-symbols-rounded">check</span></div><div class="check-text done">Mua hoa tươi, nhang đèn</div></div>
+                    <div class="check-item"><div class="check-box done"><span class="material-symbols-rounded">check</span></div><div class="check-text done">Đặt gà luộc, xôi</div></div>
+                    <div class="check-item"><div class="check-box"></div><div class="check-text">Nấu cơm cúng, canh</div></div>
+                    <div class="check-item"><div class="check-box"></div><div class="check-text">Dọn bàn thờ, lau chùi</div></div>
+                    <div class="check-item"><div class="check-box"></div><div class="check-text">Mời anh em, họ hàng</div></div>
+                </div>
+
+                <div class="section-label"><span class="material-symbols-rounded">menu_book</span>Bài cúng</div>
+                <div class="prayer-link"><div class="prayer-icon-box"><span class="material-symbols-rounded">menu_book</span></div><div class="prayer-info"><div class="prayer-title">Văn khấn cúng giỗ</div><div class="prayer-desc">Bài khấn đầy đủ cho ngày giỗ</div></div><div class="prayer-arrow"><span class="material-symbols-rounded">chevron_right</span></div></div>
+
+                <div class="section-label"><span class="material-symbols-rounded">notifications</span>Nhắc nhở</div>
+                <div class="reminder-card"><div class="reminder-icon-box bell"><span class="material-symbols-rounded">notifications_active</span></div><div class="reminder-info"><div class="reminder-title">Nhắc trước 3 ngày</div><div class="reminder-time">15/08/2026 lúc 08:00</div></div><div class="toggle-switch on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div></div>
+                <div class="reminder-card"><div class="reminder-icon-box noti"><span class="material-symbols-rounded">alarm</span></div><div class="reminder-info"><div class="reminder-title">Nhắc ngay ngày giỗ</div><div class="reminder-time">18/08/2026 lúc 06:00</div></div><div class="toggle-switch on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div></div>
+
+                <div class="section-label"><span class="material-symbols-rounded">sticky_note_2</span>Ghi chú</div>
+                <div class="notes-box"><div class="notes-text">Ông mất ngày 15 tháng 7 Âm lịch năm 2018. Hàng năm cả gia đình tập trung tại nhà lớn ở Hà Nam để cúng giỗ. Anh Đức phụ trách chính việc cúng giỗ.</div></div>
+
+                <div class="quote-card"><div class="quote-text">"Cây có cội, nước có nguồn.<br>Con người có tổ có tông."</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

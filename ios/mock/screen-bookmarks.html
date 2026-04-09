@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lịch Số iOS — Ngày đã lưu</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet">
+    <style>
+        :root { --primary:#B71C1C; --on-primary:#fff; --primary-container:#FFDAD6; --surface:#FFFBF5; --on-surface:#1C1B1F; --surface-variant:#F5DDD8; --on-surface-variant:#534340; --surface-container:#FFF8F0; --surface-container-high:#FFF0E8; --outline:#857371; --outline-variant:#D8C2BF; --gold:#D4A017; --deep-red:#8B0000; }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body { font-family:'Inter','SF Pro Display',system-ui,sans-serif; background:#1a1a1a; overflow:hidden; height:100vh; width:100vw; display:flex; justify-content:center; align-items:center; }
+        .phone-frame { width:393px; height:852px; border-radius:44px; overflow:hidden; position:relative; background:var(--surface); box-shadow:0 0 0 3px #2a2a2a,0 0 0 6px #1a1a1a,0 20px 60px rgba(0,0,0,0.5); }
+        .dynamic-island { position:absolute; top:10px; left:50%; transform:translateX(-50%); width:126px; height:36px; background:#000; border-radius:20px; z-index:200; }
+        .status-bar { position:absolute; top:0; left:0; right:0; height:54px; display:flex; justify-content:space-between; align-items:center; padding:12px 32px 0; z-index:100; color:var(--on-primary); }
+        .status-bar .time { font-size:15px; font-weight:600; }
+        .status-bar .icons { display:flex; gap:6px; }
+        .status-bar .icons span { font-size:17px; }
+        .screen { width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+
+        .bm-header { background:linear-gradient(135deg,var(--deep-red) 0%,var(--primary) 50%,#D32F2F 100%); padding:60px 24px 22px; flex-shrink:0; position:relative; overflow:hidden; }
+        .bm-header::before { content:''; position:absolute; top:-40px; right:-20px; width:180px; height:180px; background:radial-gradient(circle,rgba(212,160,23,0.12) 0%,transparent 70%); border-radius:50%; }
+        .bm-header::after { content:'💾'; position:absolute; top:62px; right:22px; font-size:52px; opacity:0.1; }
+        .header-row { display:flex; align-items:center; gap:12px; position:relative; z-index:1; }
+        .back-btn { width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.12); border:none; color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+        .header-title { font-size:20px; font-weight:700; color:#fff; flex:1; }
+        .header-action { width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.12); border:none; color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+        .header-subtitle { font-size:12px; color:rgba(255,255,255,0.65); margin-left:52px; margin-top:3px; position:relative; z-index:1; }
+
+        .stats-row { display:flex; gap:8px; padding:14px 16px 6px; flex-shrink:0; }
+        .stat-card { flex:1; padding:12px 8px; border-radius:16px; background:var(--surface-container); border:1px solid var(--outline-variant); text-align:center; cursor:pointer; transition:all 0.2s; }
+        .stat-card.active { background:var(--primary-container); border-color:var(--primary); }
+        .stat-icon { font-size:20px; margin-bottom:2px; }
+        .stat-val { font-size:22px; font-weight:700; line-height:1; color:var(--primary); }
+        .stat-lbl { font-size:9px; font-weight:600; color:var(--outline); margin-top:3px; text-transform:uppercase; letter-spacing:0.3px; }
+
+        .chip-scroll { display:flex; gap:8px; padding:10px 16px; overflow-x:auto; flex-shrink:0; }
+        .filter-chip { padding:7px 14px; border-radius:20px; font-size:12px; font-weight:600; white-space:nowrap; cursor:pointer; border:1.5px solid var(--outline-variant); background:var(--surface); color:var(--on-surface-variant); display:flex; align-items:center; gap:5px; transition:all 0.2s; font-family:inherit; }
+        .filter-chip.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+        .filter-chip .material-symbols-rounded { font-size:16px; }
+
+        .search-row { display:flex; align-items:center; gap:8px; padding:2px 16px 8px; flex-shrink:0; }
+        .search-box { flex:1; display:flex; align-items:center; gap:8px; padding:10px 14px; border-radius:14px; background:var(--surface-container); border:1.5px solid var(--outline-variant); }
+        .search-box .material-symbols-rounded { font-size:20px; color:var(--outline); }
+        .search-box input { flex:1; border:none; background:transparent; font-size:14px; font-family:inherit; color:var(--on-surface); outline:none; }
+        .search-box input::placeholder { color:var(--outline); }
+        .sort-btn { width:42px; height:42px; border-radius:12px; border:1.5px solid var(--outline-variant); background:var(--surface-container); color:var(--on-surface-variant); display:flex; align-items:center; justify-content:center; cursor:pointer; }
+
+        .bm-list { flex:1; overflow-y:auto; padding:0 16px 32px; }
+        .bm-section { font-size:11px; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.5px; margin:14px 4px 8px; display:flex; align-items:center; gap:8px; }
+        .bm-section-line { flex:1; height:1px; background:var(--outline-variant); }
+
+        .bm-card { display:flex; gap:12px; padding:14px; margin-bottom:8px; border-radius:18px; background:var(--surface-container); border:1px solid var(--outline-variant); cursor:pointer; transition:all 0.2s; }
+        .bm-card:active { background:var(--surface-variant); }
+        .bm-date-box { width:50px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:12px; padding:8px 4px; flex-shrink:0; }
+        .bm-date-box.good { background:linear-gradient(135deg,#E8F5E9,#C8E6C9); }
+        .bm-date-box.normal { background:linear-gradient(135deg,#FFF8E1,#FFECB3); }
+        .bm-date-box.holiday { background:linear-gradient(135deg,#FFEBEE,#FFCDD2); }
+        .bm-day-num { font-size:20px; font-weight:800; line-height:1; }
+        .bm-date-box.good .bm-day-num { color:#2E7D32; }
+        .bm-date-box.normal .bm-day-num { color:#F57F17; }
+        .bm-date-box.holiday .bm-day-num { color:#C62828; }
+        .bm-day-name { font-size:8px; font-weight:700; text-transform:uppercase; margin-top:2px; }
+        .bm-info { flex:1; min-width:0; }
+        .bm-title { font-size:14px; font-weight:600; color:var(--on-surface); }
+        .bm-desc { font-size:11px; color:var(--on-surface-variant); margin-top:2px; line-height:1.3; }
+        .bm-tags { display:flex; gap:4px; margin-top:6px; flex-wrap:wrap; }
+        .bm-tag { font-size:9px; font-weight:600; padding:2px 7px; border-radius:6px; }
+        .bm-tag.good { background:#E8F5E9; color:#2E7D32; }
+        .bm-tag.hol { background:#FFF3E0; color:#E65100; }
+        .bm-tag.wedding { background:#F3E5F5; color:#7B1FA2; }
+        .bm-tag.lunar { background:#FFF8E1; color:#F57F17; }
+        .bm-bookmark-icon { flex-shrink:0; color:var(--gold); }
+        ::-webkit-scrollbar { display:none; }
+    </style>
+</head>
+<body>
+<div class="phone-frame">
+    <div class="dynamic-island"></div>
+    <div class="status-bar"><span class="time">9:41</span><div class="icons"><span class="material-symbols-rounded" style="font-size:15px">signal_cellular_alt</span><span class="material-symbols-rounded" style="font-size:15px">wifi</span><span class="material-symbols-rounded" style="font-size:15px">battery_full</span></div></div>
+    <div class="screen">
+        <div class="bm-header">
+            <div class="header-row">
+                <button class="back-btn"><span class="material-symbols-rounded">arrow_back_ios_new</span></button>
+                <div class="header-title">Ngày đã lưu</div>
+                <button class="header-action"><span class="material-symbols-rounded">ios_share</span></button>
+            </div>
+            <div class="header-subtitle">12 ngày đã đánh dấu</div>
+        </div>
+        <div class="stats-row">
+            <div class="stat-card active"><div class="stat-icon">📌</div><div class="stat-val">12</div><div class="stat-lbl">Tất cả</div></div>
+            <div class="stat-card"><div class="stat-icon">✨</div><div class="stat-val">5</div><div class="stat-lbl">Ngày tốt</div></div>
+            <div class="stat-card"><div class="stat-icon">🎉</div><div class="stat-val">4</div><div class="stat-lbl">Ngày lễ</div></div>
+            <div class="stat-card"><div class="stat-icon">💍</div><div class="stat-val">3</div><div class="stat-lbl">Cưới hỏi</div></div>
+        </div>
+        <div class="chip-scroll">
+            <button class="filter-chip active"><span class="material-symbols-rounded">bookmark</span>Tất cả</button>
+            <button class="filter-chip">✨ Hoàng Đạo</button>
+            <button class="filter-chip">🎉 Lễ hội</button>
+            <button class="filter-chip">💍 Cưới hỏi</button>
+            <button class="filter-chip">🌙 Âm lịch</button>
+        </div>
+        <div class="search-row">
+            <div class="search-box"><span class="material-symbols-rounded">search</span><input placeholder="Tìm trong ngày đã lưu..."></div>
+            <button class="sort-btn"><span class="material-symbols-rounded">swap_vert</span></button>
+        </div>
+        <div class="bm-list">
+            <div class="bm-section">Tháng 4, 2026 <div class="bm-section-line"></div></div>
+            <div class="bm-card">
+                <div class="bm-date-box holiday"><div class="bm-day-num">10</div><div class="bm-day-name">Th6</div></div>
+                <div class="bm-info">
+                    <div class="bm-title">Giỗ Tổ Hùng Vương</div>
+                    <div class="bm-desc">10/3 Âm lịch · Hoàng Đạo · Nghỉ lễ chính thức</div>
+                    <div class="bm-tags"><span class="bm-tag hol">🎉 Nghỉ lễ</span><span class="bm-tag good">✨ Hoàng Đạo</span></div>
+                </div>
+                <span class="material-symbols-rounded bm-bookmark-icon">bookmark</span>
+            </div>
+            <div class="bm-card">
+                <div class="bm-date-box good"><div class="bm-day-num">08</div><div class="bm-day-name">Th4</div></div>
+                <div class="bm-info">
+                    <div class="bm-title">Ngày tốt khai trương</div>
+                    <div class="bm-desc">Quý Mùi · Hoàng Đạo · Hợp tuổi Canh Thân</div>
+                    <div class="bm-tags"><span class="bm-tag good">✨ Hoàng Đạo</span><span class="bm-tag lunar">🌙 8/3 Âm</span></div>
+                </div>
+                <span class="material-symbols-rounded bm-bookmark-icon">bookmark</span>
+            </div>
+            <div class="bm-card">
+                <div class="bm-date-box normal"><div class="bm-day-num">30</div><div class="bm-day-name">Th5</div></div>
+                <div class="bm-info">
+                    <div class="bm-title">Ngày Giải phóng miền Nam</div>
+                    <div class="bm-desc">Nghỉ lễ chính thức · Ngày thường</div>
+                    <div class="bm-tags"><span class="bm-tag hol">🎉 Nghỉ lễ</span></div>
+                </div>
+                <span class="material-symbols-rounded bm-bookmark-icon">bookmark</span>
+            </div>
+
+            <div class="bm-section">Tháng 5, 2026 <div class="bm-section-line"></div></div>
+            <div class="bm-card">
+                <div class="bm-date-box good"><div class="bm-day-num">12</div><div class="bm-day-name">Th3</div></div>
+                <div class="bm-info">
+                    <div class="bm-title">Ngày cưới hỏi đẹp</div>
+                    <div class="bm-desc">Hoàng Đạo · Thiên Đức · Rất tốt cho cưới hỏi</div>
+                    <div class="bm-tags"><span class="bm-tag wedding">💍 Cưới hỏi</span><span class="bm-tag good">✨ Hoàng Đạo</span></div>
+                </div>
+                <span class="material-symbols-rounded bm-bookmark-icon">bookmark</span>
+            </div>
+            <div class="bm-card">
+                <div class="bm-date-box good"><div class="bm-day-num">18</div><div class="bm-day-name">Th2</div></div>
+                <div class="bm-info">
+                    <div class="bm-title">Ngày đẹp cưới hỏi #2</div>
+                    <div class="bm-desc">Thiên Đức · Hợp tuổi Canh Thân · AI khuyên dùng</div>
+                    <div class="bm-tags"><span class="bm-tag wedding">💍 Cưới hỏi</span><span class="bm-tag good">✨ Thiên Đức</span></div>
+                </div>
+                <span class="material-symbols-rounded bm-bookmark-icon">bookmark</span>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lịch Số iOS — Chi tiết thành viên</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet">
+    <style>
+        :root { --primary:#B71C1C; --on-primary:#fff; --surface:#FFFBF5; --on-surface:#1C1B1F; --surface-variant:#F5DDD8; --on-surface-variant:#534340; --surface-container:#FFF8F0; --surface-container-high:#FFF0E8; --outline:#857371; --outline-variant:#D8C2BF; --gold:#D4A017; --deep-red:#8B0000; --primary-container:#FFDAD6; }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body { font-family:'Inter','SF Pro Display',system-ui,sans-serif; background:#1a1a1a; overflow:hidden; height:100vh; width:100vw; display:flex; justify-content:center; align-items:center; }
+        .phone-frame { width:393px; height:852px; border-radius:44px; overflow:hidden; position:relative; background:var(--surface); box-shadow:0 0 0 3px #2a2a2a,0 0 0 6px #1a1a1a,0 20px 60px rgba(0,0,0,0.5); }
+        .dynamic-island { position:absolute; top:10px; left:50%; transform:translateX(-50%); width:126px; height:36px; background:#000; border-radius:20px; z-index:200; }
+        .status-bar { position:absolute; top:0; left:0; right:0; height:54px; display:flex; justify-content:space-between; align-items:center; padding:12px 32px 0; z-index:100; color:#fff; }
+        .status-bar .time { font-size:15px; font-weight:600; }
+        .status-bar .icons { display:flex; gap:6px; }
+        .status-bar .icons span { font-size:17px; }
+        .screen { width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+        .scroll-content { flex:1; overflow-y:auto; }
+
+        .hero { padding:54px 16px 20px; background:linear-gradient(135deg,#3E2723 0%,#4E342E 50%,#5D4037 100%); position:relative; overflow:hidden; }
+        .hero::before { content:''; position:absolute; top:-40px; right:-40px; width:180px; height:180px; background:radial-gradient(circle,rgba(212,160,23,0.1) 0%,transparent 70%); border-radius:50%; }
+        .hero-nav { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; position:relative; z-index:1; }
+        .hero-btn { width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.12); border:none; color:rgba(255,255,255,0.9); display:flex; align-items:center; justify-content:center; cursor:pointer; backdrop-filter:blur(10px); }
+        .hero-actions { display:flex; gap:8px; }
+        .hero-profile { display:flex; align-items:center; gap:16px; position:relative; z-index:1; margin-bottom:16px; }
+        .hero-avatar { width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg,var(--gold),#B8860B); display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:700; color:#fff; border:3px solid rgba(255,255,255,0.25); font-family:'Noto Serif',serif; }
+        .hero-info { flex:1; }
+        .hero-name { font-size:22px; font-weight:700; color:#fff; }
+        .hero-role { font-size:13px; color:rgba(255,255,255,0.6); margin-top:2px; }
+        .hero-chips { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+        .hero-chip { padding:4px 12px; border-radius:12px; background:rgba(255,255,255,0.1); font-size:11px; font-weight:500; color:rgba(255,255,255,0.8); backdrop-filter:blur(10px); }
+        .hero-chip.gold { background:rgba(212,160,23,0.2); color:var(--gold); }
+        .hero-stats { display:flex; gap:20px; position:relative; z-index:1; }
+        .hero-stat { text-align:center; }
+        .hero-stat-num { font-size:18px; font-weight:700; color:#fff; }
+        .hero-stat-label { font-size:10px; color:rgba(255,255,255,0.5); margin-top:1px; }
+
+        .content-body { padding:16px; }
+        .section-title { font-size:12px; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.5px; margin:16px 0 10px; display:flex; align-items:center; gap:6px; }
+        .section-title .material-symbols-rounded { font-size:16px; }
+
+        .canchi-card { padding:16px; border-radius:16px; background:linear-gradient(135deg,var(--surface-container-high),var(--primary-container)); border:1px solid var(--outline-variant); display:flex; align-items:center; gap:14px; margin-bottom:12px; }
+        .canchi-badge { width:48px; height:48px; border-radius:14px; background:linear-gradient(135deg,var(--gold),#B8860B); display:flex; align-items:center; justify-content:center; }
+        .canchi-badge .material-symbols-rounded { font-size:24px; color:#fff; }
+        .canchi-info { flex:1; }
+        .canchi-main { font-size:16px; font-weight:700; color:var(--primary); }
+        .canchi-sub { font-size:12px; color:var(--outline); margin-top:2px; }
+
+        .memorial-mini { padding:14px 16px; border-radius:16px; background:linear-gradient(135deg,#FFF3E0,#FFE0B2); border:1px solid #FFD180; display:flex; align-items:center; gap:12px; margin-bottom:12px; cursor:pointer; }
+        .memorial-icon-box { width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,#FF6F00,#E65100); display:flex; align-items:center; justify-content:center; }
+        .memorial-icon-box .material-symbols-rounded { font-size:22px; color:#fff; }
+        .memorial-info { flex:1; }
+        .memorial-label { font-size:13px; font-weight:600; color:var(--on-surface); }
+        .memorial-date { font-size:11px; color:var(--outline); margin-top:1px; }
+        .memorial-count { padding:4px 10px; border-radius:10px; background:rgba(230,81,0,0.1); font-size:11px; font-weight:700; color:#E65100; }
+
+        .info-group { background:var(--surface-container); border-radius:16px; border:1px solid var(--outline-variant); overflow:hidden; margin-bottom:12px; }
+        .info-row { display:flex; align-items:center; padding:14px 16px; border-bottom:1px solid var(--outline-variant); }
+        .info-row:last-child { border-bottom:none; }
+        .info-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; margin-right:12px; flex-shrink:0; }
+        .info-icon .material-symbols-rounded { font-size:18px; }
+        .info-icon.red { background:#FFEBEE; color:#C62828; }
+        .info-icon.blue { background:#E3F2FD; color:#1565C0; }
+        .info-icon.green { background:#E8F5E9; color:#2E7D32; }
+        .info-icon.amber { background:#FFF8E1; color:#F57F17; }
+        .info-icon.purple { background:#F3E5F5; color:#7B1FA2; }
+        .info-icon.brown { background:#EFEBE9; color:#5D4037; }
+        .info-label { font-size:12px; color:var(--outline); }
+        .info-value { font-size:14px; font-weight:500; color:var(--on-surface); }
+
+        .relations-grid { display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; margin-bottom:12px; }
+        .relation-card { min-width:110px; padding:14px 10px; border-radius:16px; background:var(--surface-container); border:1px solid var(--outline-variant); text-align:center; flex-shrink:0; cursor:pointer; }
+        .relation-avatar { width:48px; height:48px; border-radius:50%; margin:0 auto 8px; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; color:#fff; }
+        .relation-avatar.male { background:linear-gradient(135deg,#42A5F5,#1565C0); }
+        .relation-avatar.female { background:linear-gradient(135deg,#EC407A,#AD1457); }
+        .relation-name { font-size:12px; font-weight:600; color:var(--on-surface); }
+        .relation-type { font-size:10px; color:var(--outline); margin-top:2px; }
+
+        .photo-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:12px; }
+        .photo-thumb { aspect-ratio:1; border-radius:12px; background:var(--surface-container-high); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+        .photo-thumb .material-symbols-rounded { font-size:28px; color:var(--outline-variant); }
+        .photo-add { border:2px dashed var(--outline-variant); }
+        .photo-add .material-symbols-rounded { font-size:28px; color:var(--outline); }
+
+        .notes-box { padding:14px 16px; border-radius:14px; background:var(--surface-container); border:1px solid var(--outline-variant); margin-bottom:12px; }
+        .notes-text { font-size:13px; color:var(--on-surface-variant); line-height:1.6; }
+
+        .action-bar { display:flex; gap:10px; padding:12px 16px; border-top:1px solid var(--outline-variant); background:var(--surface); flex-shrink:0; }
+        .action-btn { flex:1; padding:12px; border-radius:14px; border:none; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; }
+        .action-btn.edit { background:var(--primary); color:#fff; }
+        .action-btn.delete { background:#FFF5F5; color:#C62828; border:1.5px solid #FFCDD2; }
+        .action-btn .material-symbols-rounded { font-size:18px; }
+        ::-webkit-scrollbar { display:none; }
+    </style>
+</head>
+<body>
+<div class="phone-frame">
+    <div class="dynamic-island"></div>
+    <div class="status-bar"><span class="time">9:41</span><div class="icons"><span class="material-symbols-rounded" style="font-size:15px">signal_cellular_alt</span><span class="material-symbols-rounded" style="font-size:15px">wifi</span><span class="material-symbols-rounded" style="font-size:15px">battery_full</span></div></div>
+    <div class="screen">
+        <div class="scroll-content">
+            <div class="hero">
+                <div class="hero-nav"><button class="hero-btn"><span class="material-symbols-rounded">arrow_back_ios_new</span></button><div class="hero-actions"><button class="hero-btn"><span class="material-symbols-rounded">ios_share</span></button><button class="hero-btn"><span class="material-symbols-rounded">more_horiz</span></button></div></div>
+                <div class="hero-profile"><div class="hero-avatar">VĐ</div><div class="hero-info"><div class="hero-name">Nguyễn Văn Đức</div><div class="hero-role">Con trai — Thế hệ 3</div><div class="hero-chips"><span class="hero-chip">🐂 Sửu</span><span class="hero-chip gold">Kim</span><span class="hero-chip">39 tuổi</span></div></div></div>
+                <div class="hero-stats"><div class="hero-stat"><div class="hero-stat-num">2</div><div class="hero-stat-label">Con</div></div><div class="hero-stat"><div class="hero-stat-num">1</div><div class="hero-stat-label">Vợ</div></div><div class="hero-stat"><div class="hero-stat-num">5</div><div class="hero-stat-label">Ảnh</div></div></div>
+            </div>
+            <div class="content-body">
+                <div class="section-title"><span class="material-symbols-rounded">auto_awesome</span>Can Chi & Mệnh</div>
+                <div class="canchi-card"><div class="canchi-badge"><span class="material-symbols-rounded">auto_awesome</span></div><div class="canchi-info"><div class="canchi-main">Ất Sửu — Hải Trung Kim</div><div class="canchi-sub">Mệnh Kim — Vàng trong biển • Tuổi Sửu</div></div></div>
+
+                <div class="section-title"><span class="material-symbols-rounded">local_fire_department</span>Ngày giỗ</div>
+                <div class="memorial-mini"><div class="memorial-icon-box"><span class="material-symbols-rounded">local_fire_department</span></div><div class="memorial-info"><div class="memorial-label">Giỗ Ông nội Nguyễn Văn An</div><div class="memorial-date">15 tháng 7 Âm lịch — Còn 45 ngày</div></div><span class="memorial-count">45</span></div>
+
+                <div class="section-title"><span class="material-symbols-rounded">info</span>Thông tin cá nhân</div>
+                <div class="info-group">
+                    <div class="info-row"><div class="info-icon red"><span class="material-symbols-rounded">calendar_month</span></div><div><div class="info-label">Ngày sinh Âm lịch</div><div class="info-value">15/01/1985 (Ất Sửu)</div></div></div>
+                    <div class="info-row"><div class="info-icon blue"><span class="material-symbols-rounded">event</span></div><div><div class="info-label">Ngày sinh Dương lịch</div><div class="info-value">04/02/1985</div></div></div>
+                    <div class="info-row"><div class="info-icon green"><span class="material-symbols-rounded">work</span></div><div><div class="info-label">Nghề nghiệp</div><div class="info-value">Kỹ sư phần mềm</div></div></div>
+                    <div class="info-row"><div class="info-icon amber"><span class="material-symbols-rounded">location_on</span></div><div><div class="info-label">Nơi ở</div><div class="info-value">TP. Hồ Chí Minh</div></div></div>
+                    <div class="info-row"><div class="info-icon purple"><span class="material-symbols-rounded">phone</span></div><div><div class="info-label">Số điện thoại</div><div class="info-value">0912 345 678</div></div></div>
+                </div>
+
+                <div class="section-title"><span class="material-symbols-rounded">people</span>Quan hệ gia đình</div>
+                <div class="relations-grid">
+                    <div class="relation-card"><div class="relation-avatar male">A</div><div class="relation-name">Văn An</div><div class="relation-type">Cha</div></div>
+                    <div class="relation-card"><div class="relation-avatar female">H</div><div class="relation-name">Thu Hà</div><div class="relation-type">Vợ</div></div>
+                    <div class="relation-card"><div class="relation-avatar male">M</div><div class="relation-name">Gia Minh</div><div class="relation-type">Con trai</div></div>
+                    <div class="relation-card"><div class="relation-avatar female">L</div><div class="relation-name">Bảo Linh</div><div class="relation-type">Con gái</div></div>
+                </div>
+
+                <div class="section-title"><span class="material-symbols-rounded">photo_library</span>Ảnh</div>
+                <div class="photo-grid"><div class="photo-thumb"><span class="material-symbols-rounded">image</span></div><div class="photo-thumb"><span class="material-symbols-rounded">image</span></div><div class="photo-thumb"><span class="material-symbols-rounded">image</span></div><div class="photo-thumb"><span class="material-symbols-rounded">image</span></div><div class="photo-thumb"><span class="material-symbols-rounded">image</span></div><div class="photo-thumb photo-add"><span class="material-symbols-rounded">add_photo_alternate</span></div></div>
+
+                <div class="section-title"><span class="material-symbols-rounded">sticky_note_2</span>Ghi chú</div>
+                <div class="notes-box"><div class="notes-text">Anh Đức hiện đang sinh sống và làm việc tại TP. Hồ Chí Minh. Là trưởng nam trong gia đình, phụ trách việc thờ cúng và giỗ chạp hàng năm.</div></div>
+                <div style="height:16px"></div>
+            </div>
+        </div>
+        <div class="action-bar"><button class="action-btn edit"><span class="material-symbols-rounded">edit</span>Chỉnh sửa</button><button class="action-btn delete"><span class="material-symbols-rounded">delete</span>Xoá</button></div>
+    </div>
+</div>
+</body>
+</html>
