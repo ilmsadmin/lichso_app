@@ -7,17 +7,17 @@ import SwiftData
 // Shows date attachment card + AI conversation
 // ═══════════════════════════════════════════
 
-private let PrimaryRed = Color(hex: "B71C1C")
-private let DeepRed = Color(hex: "8B0000")
-private let GoldAccent = Color(hex: "D4A017")
-private let SurfaceBg = Color(hex: "FFFBF5")
-private let SurfaceContainer = Color(hex: "FFF8F0")
-private let SurfaceContainerHigh = Color(hex: "FFF0E8")
-private let TextMain = Color(hex: "1C1B1F")
-private let TextSub = Color(hex: "534340")
-private let TextDim = Color(hex: "857371")
-private let OutlineVariant = Color(hex: "D8C2BF")
-private let GoodGreen = Color(hex: "2E7D32")
+private var PrimaryRed: Color { LSTheme.primary }
+private var DeepRed: Color { LSTheme.deepRed }
+private var GoldAccent: Color { LSTheme.gold }
+private var SurfaceBg: Color { LSTheme.bg }
+private var SurfaceContainer: Color { LSTheme.surfaceContainer }
+private var SurfaceContainerHigh: Color { LSTheme.surfaceContainerHigh }
+private var TextMain: Color { LSTheme.textPrimary }
+private var TextSub: Color { LSTheme.textSecondary }
+private var TextDim: Color { LSTheme.textTertiary }
+private var OutlineVariant: Color { LSTheme.outlineVariant }
+private var GoodGreen: Color { LSTheme.goodGreen }
 
 struct AIChatDayScreen: View {
     @Environment(\.modelContext) private var modelContext
@@ -294,7 +294,7 @@ private struct DateAttachmentCard: View {
             .padding(12)
             .background(
                 LinearGradient(
-                    colors: [Color(hex: "FFF8F0"), Color(hex: "FFF0E8")],
+                    colors: [Color(hex: "1A1814"), Color(hex: "2A2720")],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )

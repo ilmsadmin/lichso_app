@@ -5,16 +5,16 @@ import SwiftUI
 // Matches screen-search.html design
 // ═══════════════════════════════════════════
 
-private let PrimaryRed = Color(hex: "B71C1C")
-private let PrimaryContainer = Color(hex: "FFDAD6")
-private let SurfaceBg = Color(hex: "FFFBF5")
-private let SurfaceContainer = Color(hex: "FFF8F0")
-private let SurfaceContainerHigh = Color(hex: "FFF0E8")
-private let TextMain = Color(hex: "1C1B1F")
-private let TextSub = Color(hex: "534340")
-private let TextDim = Color(hex: "857371")
-private let OutlineVariant = Color(hex: "D8C2BF")
-private let GoldAccent = Color(hex: "D4A017")
+private var PrimaryRed: Color { LSTheme.primary }
+private var PrimaryContainer: Color { LSTheme.primaryContainer }
+private var SurfaceBg: Color { LSTheme.bg }
+private var SurfaceContainer: Color { LSTheme.surfaceContainer }
+private var SurfaceContainerHigh: Color { LSTheme.surfaceContainerHigh }
+private var TextMain: Color { LSTheme.textPrimary }
+private var TextSub: Color { LSTheme.textSecondary }
+private var TextDim: Color { LSTheme.textTertiary }
+private var OutlineVariant: Color { LSTheme.outlineVariant }
+private var GoldAccent: Color { LSTheme.gold }
 
 struct SearchScreen: View {
     @Environment(\.dismiss) private var dismiss
@@ -50,7 +50,7 @@ struct SearchScreen: View {
                                 .font(.system(size: 18))
                                 .foregroundColor(TextDim)
                                 .frame(width: 32, height: 32)
-                                .background(Color(hex: "F5DDD8"))
+                                .background(Color(hex: "2A2720"))
                                 .clipShape(Circle())
                         }
                     }

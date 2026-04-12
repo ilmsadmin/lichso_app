@@ -184,6 +184,8 @@ class ChatViewModel @Inject constructor(
 
     fun sendMessage(text: String) {
         if (text.isBlank()) return
+        // Prevent sending while already processing (rate limiting)
+        if (_uiState.value.isTyping) return
         viewModelScope.launch {
             chatMessageDao.insert(ChatMessageEntity(content = text.trim(), isUser = true))
             _uiState.update { it.copy(isTyping = true) }

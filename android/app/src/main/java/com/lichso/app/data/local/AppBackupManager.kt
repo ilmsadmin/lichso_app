@@ -3,6 +3,7 @@ package com.lichso.app.data.local
 import android.content.Context
 import android.net.Uri
 import android.util.Base64
+import android.util.Log
 import androidx.datastore.preferences.core.*
 import com.google.gson.GsonBuilder
 import com.google.gson.annotations.SerializedName
@@ -323,7 +324,23 @@ object AppBackupManager {
     }
 
     fun parseBackupJson(json: String): AppBackupData {
-        return GsonBuilder().create().fromJson(json, AppBackupData::class.java)
+        // Guard against excessively large backups (max 50MB)
+        if (json.length > 50 * 1024 * 1024) {
+            throw IllegalStateException("File sao lưu quá lớn (>50MB)")
+        }
+        val data = GsonBuilder().create().fromJson(json, AppBackupData::class.java)
+            ?: throw IllegalStateException("Không thể đọc dữ liệu sao lưu")
+
+        // Validate schema
+        if (data.appId != "com.lichso.app") {
+            throw IllegalStateException("File không phải bản sao lưu Lịch Số")
+        }
+        // Sanity limits to prevent OOM
+        if (data.familyMembers.size > 5000 || data.chatMessages.size > 50000 ||
+            data.memberPhotos.size > 10000) {
+            throw IllegalStateException("Dữ liệu sao lưu vượt quá giới hạn cho phép")
+        }
+        return data
     }
 
     // ══════════════════════════════════════════

@@ -64,7 +64,7 @@ class ReminderScheduler(private val context: Context) {
         }
         return PendingIntent.getBroadcast(
             context,
-            reminder.id.toInt(),
+            (reminder.id and 0x7FFFFFFF).toInt(), // Safe conversion: mask to positive int range
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

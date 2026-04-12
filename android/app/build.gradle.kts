@@ -25,8 +25,8 @@ android {
         applicationId = "com.lichso.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 15
-        versionName = "1.6.3"
+        versionCode = 19
+        versionName = "1.7.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -71,9 +71,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Strip debug symbols from native libs to reduce APK size
             ndk {
-                // FULL: upload cả unstripped .so để Google Play có thể symbolicate crash
-                debugSymbolLevel = "FULL"
+                debugSymbolLevel = "SYMBOL_TABLE"
             }
         }
     }
@@ -86,6 +86,7 @@ android {
         jvmTarget = "17"
         freeCompilerArgs += listOf(
             "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
+            "-Xjvm-default=all",           // faster default interface methods
         )
     }
     buildFeatures {
@@ -123,7 +124,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0")
     implementation("androidx.activity:activity-compose:1.10.1")
-    implementation(platform("androidx.compose:compose-bom:2025.02.00"))
+    implementation(platform("androidx.compose:compose-bom:2025.04.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -131,7 +132,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.navigation:navigation-compose:2.8.5")
+    implementation("androidx.navigation:navigation-compose:2.8.9")
     implementation("com.google.dagger:hilt-android:2.55")
     ksp("com.google.dagger:hilt-compiler:2.55")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
@@ -150,6 +151,7 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("androidx.exifinterface:exifinterface:1.3.7")
     implementation("com.google.android.play:review-ktx:2.0.2")
+    implementation("com.google.android.play:app-update-ktx:2.1.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")

@@ -6,24 +6,26 @@ import SwiftUI
 // Triggers EditProfileScreen as full-screen modal
 // ═══════════════════════════════════════════
 
-private let PrimaryRed = Color(hex: "B71C1C")
-private let DeepRed = Color(hex: "8B0000")
-private let GoldAccent = Color(hex: "D4A017")
-private let SurfaceBg = Color(hex: "FFFBF5")
-private let SurfaceContainer = Color(hex: "FFF8F0")
-private let SurfaceContainerHigh = Color(hex: "FFF0E8")
-private let PrimaryContainer = Color(hex: "FFDAD6")
-private let TextMain = Color(hex: "1C1B1F")
-private let TextSub = Color(hex: "534340")
-private let TextDim = Color(hex: "857371")
-private let OutlineColor = Color(hex: "857371")
-private let OutlineVariant = Color(hex: "D8C2BF")
+private var PrimaryRed: Color { LSTheme.primary }
+private var DeepRed: Color { LSTheme.deepRed }
+private var GoldAccent: Color { LSTheme.gold }
+private var SurfaceBg: Color { LSTheme.bg }
+private var SurfaceContainer: Color { LSTheme.surfaceContainer }
+private var SurfaceContainerHigh: Color { LSTheme.surfaceContainerHigh }
+private var PrimaryContainer: Color { LSTheme.primaryContainer }
+private var TextMain: Color { LSTheme.textPrimary }
+private var TextSub: Color { LSTheme.textSecondary }
+private var TextDim: Color { LSTheme.textTertiary }
+private var OutlineColor: Color { LSTheme.textTertiary }
+private var OutlineVariant: Color { LSTheme.outlineVariant }
 
 struct ProfileScreen: View {
     @State private var showEditProfile = false
     @State private var showSettings = false
     @State private var showSearch = false
     @State private var showNotifications = false
+    @State private var showFamilySettings = false
+    @State private var showPickMember = false
 
     // Reactive profile data from UserDefaults
     @AppStorage("displayName") private var displayName = "Người dùng"
@@ -66,6 +68,11 @@ struct ProfileScreen: View {
                     onSearchTap: { showSearch = true }
                 )
 
+                FamilyTreeMenuSection(
+                    onFamilySettingsTap: { showFamilySettings = true },
+                    onPickMemberTap: { showPickMember = true }
+                )
+
                 SettingsMenuSection(onSettingsTap: { showSettings = true })
 
                 Spacer().frame(height: 100)
@@ -87,6 +94,18 @@ struct ProfileScreen: View {
         .sheet(isPresented: $showSearch) {
             NavigationStack {
                 SearchScreen()
+            }
+        }
+        .sheet(isPresented: $showFamilySettings) {
+            NavigationStack {
+                FamilySettingsScreen(viewModel: FamilyTreeViewModel())
+            }
+        }
+        .sheet(isPresented: $showPickMember) {
+            NavigationStack {
+                PickMemberScreen(viewModel: FamilyTreeViewModel(), onSelect: { _ in
+                    showPickMember = false
+                })
             }
         }
     }
@@ -363,6 +382,27 @@ private struct PersonalMenuSection: View {
                 MenuItem(iconBg: Color(hex: "E8F5E9"), iconColor: Color(hex: "2E7D32"),
                          icon: "magnifyingglass", title: "Tìm kiếm", desc: "Tra cứu ngày, lễ, âm lịch",
                          action: onSearchTap)
+            }
+        }
+    }
+}
+
+private struct FamilyTreeMenuSection: View {
+    var onFamilySettingsTap: () -> Void = {}
+    var onPickMemberTap: () -> Void = {}
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(icon: "person.3.fill", title: "Gia phả")
+
+            MenuCard {
+                MenuItem(iconBg: Color(hex: "EFEBE9"), iconColor: Color(hex: "5D4037"),
+                         icon: "person.3.fill", title: "Thành viên gia phả", desc: "Xem & quản lý thành viên",
+                         action: onPickMemberTap)
+                MenuDivider()
+                MenuItem(iconBg: Color(hex: "FFF8E1"), iconColor: Color(hex: "D4A017"),
+                         icon: "gearshape.2.fill", title: "Cài đặt gia phả", desc: "Tên dòng họ, hiển thị, nhắc nhở",
+                         action: onFamilySettingsTap)
             }
         }
     }

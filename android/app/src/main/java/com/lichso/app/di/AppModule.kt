@@ -26,6 +26,12 @@ object AppModule {
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
+        // Security: cleartext traffic is blocked via network_security_config.xml
+        // Certificate pinning is NOT used here because:
+        //   1. This client is shared between OpenRouter, Open-Meteo, and wttr.in
+        //   2. Cloud services (Cloudflare CDN) rotate certificates frequently
+        //   3. A stale pin would brick the app for ALL users until an update is released
+        //   4. The proper fix is proxying API calls through our own backend
         .build()
 
     @Provides

@@ -40,7 +40,14 @@ struct OpenRouterResponse: Codable {
 class OpenRouterService: ObservableObject {
     static let shared = OpenRouterService()
     
-    private let apiKey = "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"
+    private let apiKey: String = {
+        guard let path = Bundle.main.path(forResource: "Secrets", ofType: "plist"),
+              let dict = NSDictionary(contentsOfFile: path),
+              let key = dict["OPENROUTER_API_KEY"] as? String else {
+            fatalError("⚠️ Missing Secrets.plist or OPENROUTER_API_KEY. See README.")
+        }
+        return key
+    }()
     private let baseURL = "https://openrouter.ai/api/v1/chat/completions"
     
     private var systemPrompt: String {

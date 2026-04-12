@@ -56,43 +56,49 @@ class WeatherApi @Inject constructor(
 
     private fun fetchFromOpenMeteo(location: LocationInfo): Result<WeatherInfo> {
         return try {
+            // Validate coordinates to prevent URL injection
+            val lat = location.latitude.coerceIn(-90.0, 90.0)
+            val lon = location.longitude.coerceIn(-180.0, 180.0)
+
             val url = buildString {
                 append("https://api.open-meteo.com/v1/forecast?")
-                append("latitude=${location.latitude}")
-                append("&longitude=${location.longitude}")
+                append("latitude=$lat")
+                append("&longitude=$lon")
                 append("&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m,uv_index")
                 append("&timezone=Asia/Ho_Chi_Minh")
             }
 
             val request = Request.Builder().url(url).get().build()
             val response = client.newCall(request).execute()
-            val body = response.body?.string()
+            response.use { resp ->
+                val body = resp.body?.string()
 
-            if (!response.isSuccessful || body.isNullOrBlank()) {
-                return Result.failure(Exception("HTTP ${response.code}"))
-            }
+                if (!resp.isSuccessful || body.isNullOrBlank()) {
+                    return Result.failure(Exception("HTTP ${resp.code}"))
+                }
 
-            val weatherResponse = gson.fromJson(body, OpenMeteoResponse::class.java)
-            val current = weatherResponse.current
-                ?: return Result.failure(Exception("No current data"))
+                val weatherResponse = gson.fromJson(body, OpenMeteoResponse::class.java)
+                val current = weatherResponse.current
+                    ?: return Result.failure(Exception("No current data"))
 
-            val isDay = (current.isDay ?: 1) == 1
-            val (description, icon) = WeatherInfo.fromWeatherCode(current.weatherCode ?: 0, isDay)
+                val isDay = (current.isDay ?: 1) == 1
+                val (description, icon) = WeatherInfo.fromWeatherCode(current.weatherCode ?: 0, isDay)
 
-            Result.success(
-                WeatherInfo(
-                    temperature = current.temperature ?: 0.0,
-                    weatherCode = current.weatherCode ?: 0,
-                    humidity = current.humidity ?: 0,
-                    windSpeed = current.windSpeed ?: 0.0,
-                    cityName = location.cityName,
-                    description = description,
-                    icon = icon,
-                    isDay = isDay,
-                    feelsLike = current.apparentTemperature,
-                    uvIndex = current.uvIndex
+                Result.success(
+                    WeatherInfo(
+                        temperature = current.temperature ?: 0.0,
+                        weatherCode = current.weatherCode ?: 0,
+                        humidity = current.humidity ?: 0,
+                        windSpeed = current.windSpeed ?: 0.0,
+                        cityName = location.cityName,
+                        description = description,
+                        icon = icon,
+                        isDay = isDay,
+                        feelsLike = current.apparentTemperature,
+                        uvIndex = current.uvIndex
+                    )
                 )
-            )
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -110,45 +116,47 @@ class WeatherApi @Inject constructor(
                 .build()
 
             val response = client.newCall(request).execute()
-            val body = response.body?.string()
+            response.use { resp ->
+                val body = resp.body?.string()
 
-            if (!response.isSuccessful || body.isNullOrBlank()) {
-                return Result.failure(Exception("wttr.in HTTP ${response.code}"))
-            }
+                if (!resp.isSuccessful || body.isNullOrBlank()) {
+                    return Result.failure(Exception("wttr.in HTTP ${resp.code}"))
+                }
 
-            val root = JsonParser.parseString(body).asJsonObject
-            val currentArray = root.getAsJsonArray("current_condition")
-            if (currentArray == null || currentArray.size() == 0) {
-                return Result.failure(Exception("wttr.in: no current_condition"))
-            }
-            val current = currentArray[0].asJsonObject
+                val root = JsonParser.parseString(body).asJsonObject
+                val currentArray = root.getAsJsonArray("current_condition")
+                if (currentArray == null || currentArray.size() == 0) {
+                    return Result.failure(Exception("wttr.in: no current_condition"))
+                }
+                val current = currentArray[0].asJsonObject
 
-            val tempC = current.get("temp_C")?.asDouble ?: 0.0
-            val humidity = current.get("humidity")?.asInt ?: 0
-            val windSpeedKmph = current.get("windspeedKmph")?.asDouble ?: 0.0
-            val feelsLike = current.get("FeelsLikeC")?.asDouble
-            val uvIndex = current.get("uvIndex")?.asDouble
-            val wttrWeatherCode = current.get("weatherCode")?.asInt ?: 0
+                val tempC = current.get("temp_C")?.asDouble ?: 0.0
+                val humidity = current.get("humidity")?.asInt ?: 0
+                val windSpeedKmph = current.get("windspeedKmph")?.asDouble ?: 0.0
+                val feelsLike = current.get("FeelsLikeC")?.asDouble
+                val uvIndex = current.get("uvIndex")?.asDouble
+                val wttrWeatherCode = current.get("weatherCode")?.asInt ?: 0
 
-            // wttr.in dùng WWO weather codes, map sang WMO
-            val wmoCode = mapWwoToWmo(wttrWeatherCode)
-            val isDay = isDaytime()
-            val (description, icon) = WeatherInfo.fromWeatherCode(wmoCode, isDay)
+                // wttr.in dùng WWO weather codes, map sang WMO
+                val wmoCode = mapWwoToWmo(wttrWeatherCode)
+                val isDay = isDaytime()
+                val (description, icon) = WeatherInfo.fromWeatherCode(wmoCode, isDay)
 
-            Result.success(
-                WeatherInfo(
-                    temperature = tempC,
-                    weatherCode = wmoCode,
-                    humidity = humidity,
-                    windSpeed = windSpeedKmph,
-                    cityName = location.cityName,
-                    description = description,
-                    icon = icon,
-                    isDay = isDay,
-                    feelsLike = feelsLike,
-                    uvIndex = uvIndex
+                Result.success(
+                    WeatherInfo(
+                        temperature = tempC,
+                        weatherCode = wmoCode,
+                        humidity = humidity,
+                        windSpeed = windSpeedKmph,
+                        cityName = location.cityName,
+                        description = description,
+                        icon = icon,
+                        isDay = isDay,
+                        feelsLike = feelsLike,
+                        uvIndex = uvIndex
+                    )
                 )
-            )
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

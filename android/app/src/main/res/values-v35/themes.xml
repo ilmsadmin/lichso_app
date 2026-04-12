@@ -3,19 +3,19 @@
     <!--
         Android 15 (API 35) enforces edge-to-edge by default.
         statusBarColor and navigationBarColor are ignored on API 35+.
-        The app handles insets via WindowInsets in Compose.
+        The app handles insets via WindowInsets in Compose + enableEdgeToEdge().
     -->
     <style name="Theme.LichSo" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">#FFFFFBF5</item>
-        <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowOptOutEdgeToEdgeEnforcement">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">always</item>
     </style>
 
     <style name="Theme.LichSo.Splash" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/splash_background</item>
-        <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowSplashScreenBackground">@color/splash_background</item>
         <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         <item name="android:windowOptOutEdgeToEdgeEnforcement">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">always</item>
     </style>
 </resources>

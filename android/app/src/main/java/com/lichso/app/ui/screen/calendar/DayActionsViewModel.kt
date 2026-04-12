@@ -10,7 +10,10 @@ import com.lichso.app.data.local.entity.BookmarkEntity
 import com.lichso.app.data.local.entity.NoteEntity
 import com.lichso.app.data.local.entity.ReminderEntity
 import com.lichso.app.data.local.entity.TaskEntity
+import com.lichso.app.util.ReviewHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import android.content.Context
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -49,6 +52,7 @@ data class DayActionsUiState(
 
 @HiltViewModel
 class DayActionsViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val bookmarkDao: BookmarkDao,
     private val noteDao: NoteDao,
     private val reminderDao: ReminderDao,
@@ -166,6 +170,8 @@ class DayActionsViewModel @Inject constructor(
                     )
                 )
                 _uiState.update { it.copy(toastMessage = "Đã đánh dấu ngày ${"%02d".format(day)}/${"%02d".format(month)}") }
+                // Happy action: user bookmarked a day → trigger smart rating
+                ReviewHelper.triggerAfterAction(appContext)
             }
         }
     }
@@ -197,6 +203,8 @@ class DayActionsViewModel @Inject constructor(
                     toastMessage = "Đã lưu \"$label\""
                 )
             }
+            // Happy action: user saved a labelled bookmark
+            ReviewHelper.triggerAfterAction(appContext, weight = 2)
         }
     }
 

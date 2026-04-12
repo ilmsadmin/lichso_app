@@ -138,6 +138,8 @@ abstract class LichSoDatabase : RoomDatabase() {
                         // that we don't need to support. Current users on v9 are safe.
                         1, 2, 3, 4, 5, 6, 7, 8
                     )
+                    // Safety net: prevent crash on unexpected version mismatch (e.g., downgrade)
+                    .fallbackToDestructiveMigrationOnDowngrade()
                     .build()
                     .also { INSTANCE = it }
             }

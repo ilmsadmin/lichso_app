@@ -1,6 +1,8 @@
 package com.lichso.app.ui.theme
 
-import android.app.Activity
+import android.graphics.Color as AndroidColor
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -9,7 +11,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
+import androidx.activity.ComponentActivity
 
 private val LichSoDarkColorScheme = darkColorScheme(
     primary = Color(0xFFEF5350),
@@ -68,10 +70,20 @@ fun LichSoTheme(
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as Activity).window
-            val insetsController = WindowCompat.getInsetsController(window, view)
-            insetsController.isAppearanceLightStatusBars = !darkTheme
-            insetsController.isAppearanceLightNavigationBars = !darkTheme
+            val activity = view.context as? ComponentActivity ?: return@SideEffect
+            // Use enableEdgeToEdge() to control system bar appearance
+            // This avoids deprecated setStatusBarColor / setNavigationBarColor
+            if (darkTheme) {
+                activity.enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
+                    navigationBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT)
+                )
+            } else {
+                activity.enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
+                    navigationBarStyle = SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
+                )
+            }
         }
     }
 

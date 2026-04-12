@@ -422,15 +422,32 @@ class ProfileViewModel @Inject constructor(
 
     fun saveProfile() {
         val s = _uiState.value
+        // Validate birth date before saving (0 = not set, preserve this convention)
+        val birthDay = s.editBirthDay.toIntOrNull()?.takeIf { it > 0 }?.coerceIn(1, 31) ?: 0
+        val birthMonth = s.editBirthMonth.toIntOrNull()?.takeIf { it > 0 }?.coerceIn(1, 12) ?: 0
+        val birthYear = s.editBirthYear.toIntOrNull()?.takeIf { it > 0 }?.coerceIn(1900, 2100) ?: 0
+        val birthHour = s.editBirthHour.toIntOrNull()?.takeIf { it >= 0 }?.coerceIn(0, 23) ?: -1
+        val birthMinute = s.editBirthMinute.toIntOrNull()?.takeIf { it >= 0 }?.coerceIn(0, 59) ?: -1
+
+        // Validate: if partial date is given, ensure it's valid
+        if (birthDay > 0 && birthMonth > 0 && birthYear > 0) {
+            try {
+                java.time.LocalDate.of(birthYear, birthMonth, birthDay)
+            } catch (_: Exception) {
+                _uiState.update { it.copy(toastMessage = "Ngày sinh không hợp lệ") }
+                return
+            }
+        }
+
         viewModelScope.launch {
             dataStore.edit { prefs ->
-                prefs[ProfileKeys.DISPLAY_NAME] = s.editName.ifBlank { "Người dùng" }
-                prefs[ProfileKeys.EMAIL] = s.editEmail
-                prefs[ProfileKeys.BIRTH_DAY] = s.editBirthDay.toIntOrNull() ?: 0
-                prefs[ProfileKeys.BIRTH_MONTH] = s.editBirthMonth.toIntOrNull() ?: 0
-                prefs[ProfileKeys.BIRTH_YEAR] = s.editBirthYear.toIntOrNull() ?: 0
-                prefs[ProfileKeys.BIRTH_HOUR] = s.editBirthHour.toIntOrNull() ?: -1
-                prefs[ProfileKeys.BIRTH_MINUTE] = s.editBirthMinute.toIntOrNull() ?: -1
+                prefs[ProfileKeys.DISPLAY_NAME] = s.editName.trim().ifBlank { "Người dùng" }
+                prefs[ProfileKeys.EMAIL] = s.editEmail.trim()
+                prefs[ProfileKeys.BIRTH_DAY] = birthDay
+                prefs[ProfileKeys.BIRTH_MONTH] = birthMonth
+                prefs[ProfileKeys.BIRTH_YEAR] = birthYear
+                prefs[ProfileKeys.BIRTH_HOUR] = birthHour
+                prefs[ProfileKeys.BIRTH_MINUTE] = birthMinute
                 prefs[ProfileKeys.GENDER] = s.editGender
             }
             _uiState.update {
@@ -518,6 +535,12 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val savedPath = withContext(Dispatchers.IO) {
+                    // Check file size first to prevent OOM (max 10MB)
+                    val fileSize = context.contentResolver.openInputStream(uri)?.use { it.available().toLong() } ?: 0L
+                    if (fileSize > 10 * 1024 * 1024) {
+                        throw IllegalStateException("Ảnh quá lớn (tối đa 10MB)")
+                    }
+
                     val avatarDir = File(context.filesDir, "avatars")
                     if (!avatarDir.exists()) avatarDir.mkdirs()
 

@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Reschedule tất cả reminders và workers đang enabled sau khi device reboot.
@@ -22,7 +23,9 @@ class BootReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val prefs = context.settingsDataStore.data.first()
+                // Limit to 8 seconds to stay within BroadcastReceiver 10s limit
+                withTimeoutOrNull(8_000L) {
+                    val prefs = context.settingsDataStore.data.first()
                 val notifyEnabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
                 val gioDaiCatEnabled = prefs[SettingsKeys.GIO_DAI_CAT] ?: false
                 val festivalReminderEnabled = prefs[SettingsKeys.FESTIVAL_REMINDER] ?: true
@@ -53,6 +56,9 @@ class BootReceiver : BroadcastReceiver() {
                 // Reschedule widget updates + midnight alarm
                 CalendarWidgetScheduler.scheduleWidgetUpdates(context)
                 CalendarWidgetScheduler.triggerImmediateUpdate(context)
+                } // end withTimeoutOrNull
+            } catch (e: Exception) {
+                android.util.Log.e("BootReceiver", "Error rescheduling: ${e.message}")
             } finally {
                 pendingResult.finish()
             }

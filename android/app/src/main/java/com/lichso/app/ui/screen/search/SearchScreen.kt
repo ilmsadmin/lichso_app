@@ -5,10 +5,11 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -22,7 +23,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -53,7 +53,6 @@ fun SearchScreen(
     val c = LichSoThemeColors.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val focusRequester = remember { FocusRequester() }
-    val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
     // Lunar converter state
@@ -76,7 +75,16 @@ fun SearchScreen(
 
     // Auto-focus search bar
     LaunchedEffect(Unit) {
+        // Reset ViewModel state when entering SearchScreen
+        viewModel.clearQuery()
         focusRequester.requestFocus()
+    }
+
+    // Clean up when leaving SearchScreen
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.clearQuery()
+        }
     }
 
     Column(
@@ -110,14 +118,20 @@ fun SearchScreen(
             exit = fadeOut() + shrinkVertically()
         ) {
             QuickActionsSection(
-                onConvertClick = { showLunarConverter = !showLunarConverter },
+                onConvertClick = {
+                    showLunarConverter = !showLunarConverter
+                    showZodiacDialog = false
+                    showGoToDateDialog = false
+                },
                 onGoodDaysClick = onGoodDaysClick,
                 onZodiacClick = {
                     showZodiacDialog = !showZodiacDialog
+                    showLunarConverter = false
                     showGoToDateDialog = false
                 },
                 onGoToDateClick = {
                     showGoToDateDialog = !showGoToDateDialog
+                    showLunarConverter = false
                     showZodiacDialog = false
                 }
             )
@@ -596,13 +610,16 @@ private fun LunarConverterCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Day input
+            val lunarDayInteraction = remember { MutableInteractionSource() }
+            val lunarDayFocused by lunarDayInteraction.collectIsFocusedAsState()
             OutlinedTextField(
                 value = lunarDay,
-                onValueChange = { if (it.length <= 2) onLunarDayChange(it.filter { ch -> ch.isDigit() }) },
+                onValueChange = { newVal -> if (newVal.length <= 2) onLunarDayChange(newVal.filter { ch -> ch.isDigit() }) },
                 modifier = Modifier.weight(1f),
-                placeholder = {
+                interactionSource = lunarDayInteraction,
+                placeholder = if (!lunarDayFocused) {{
                     Text("Ngày", style = TextStyle(fontSize = 14.sp, color = c.outline, textAlign = TextAlign.Center))
-                },
+                }} else null,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
                     imeAction = ImeAction.Next
@@ -622,13 +639,16 @@ private fun LunarConverterCard(
             Text("/", style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD4A017)))
 
             // Month input
+            val lunarMonthInteraction = remember { MutableInteractionSource() }
+            val lunarMonthFocused by lunarMonthInteraction.collectIsFocusedAsState()
             OutlinedTextField(
                 value = lunarMonth,
-                onValueChange = { if (it.length <= 2) onLunarMonthChange(it.filter { ch -> ch.isDigit() }) },
+                onValueChange = { newVal -> if (newVal.length <= 2) onLunarMonthChange(newVal.filter { ch -> ch.isDigit() }) },
                 modifier = Modifier.weight(1f),
-                placeholder = {
+                interactionSource = lunarMonthInteraction,
+                placeholder = if (!lunarMonthFocused) {{
                     Text("Tháng", style = TextStyle(fontSize = 14.sp, color = c.outline, textAlign = TextAlign.Center))
-                },
+                }} else null,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
                     imeAction = ImeAction.Done
@@ -895,14 +915,24 @@ private fun GoToDateCard(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             // Day
+            val dayInteraction = remember { MutableInteractionSource() }
+            val dayFocused by dayInteraction.collectIsFocusedAsState()
             OutlinedTextField(
                 value = day,
-                onValueChange = { if (it.length <= 2) onDayChange(it.filter { ch -> ch.isDigit() }) },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Ngày", style = TextStyle(fontSize = 14.sp, color = c.outline, textAlign = TextAlign.Center)) },
+                onValueChange = { newVal -> if (newVal.length <= 2) onDayChange(newVal.filter { ch -> ch.isDigit() }) },
+                modifier = Modifier.weight(2f),
+                interactionSource = dayInteraction,
+                placeholder = if (!dayFocused) {{
+                    Text(
+                        "DD",
+                        style = TextStyle(fontSize = 12.sp, color = c.outline, textAlign = TextAlign.Center),
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip
+                    )
+                }} else null,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
                     imeAction = ImeAction.Next
@@ -919,14 +949,24 @@ private fun GoToDateCard(
                 textStyle = TextStyle(fontSize = 14.sp, color = c.textPrimary, textAlign = TextAlign.Center)
             )
 
-            Text("/", style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0)))
+            Text("/", style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0)))
 
             // Month
+            val monthInteraction = remember { MutableInteractionSource() }
+            val monthFocused by monthInteraction.collectIsFocusedAsState()
             OutlinedTextField(
                 value = month,
-                onValueChange = { if (it.length <= 2) onMonthChange(it.filter { ch -> ch.isDigit() }) },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Tháng", style = TextStyle(fontSize = 14.sp, color = c.outline, textAlign = TextAlign.Center)) },
+                onValueChange = { newVal -> if (newVal.length <= 2) onMonthChange(newVal.filter { ch -> ch.isDigit() }) },
+                modifier = Modifier.weight(2f),
+                interactionSource = monthInteraction,
+                placeholder = if (!monthFocused) {{
+                    Text(
+                        "MM",
+                        style = TextStyle(fontSize = 12.sp, color = c.outline, textAlign = TextAlign.Center),
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip
+                    )
+                }} else null,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
                     imeAction = ImeAction.Next
@@ -943,14 +983,24 @@ private fun GoToDateCard(
                 textStyle = TextStyle(fontSize = 14.sp, color = c.textPrimary, textAlign = TextAlign.Center)
             )
 
-            Text("/", style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0)))
+            Text("/", style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0)))
 
             // Year
+            val yearInteraction = remember { MutableInteractionSource() }
+            val yearFocused by yearInteraction.collectIsFocusedAsState()
             OutlinedTextField(
                 value = year,
-                onValueChange = { if (it.length <= 4) onYearChange(it.filter { ch -> ch.isDigit() }) },
-                modifier = Modifier.weight(1.5f),
-                placeholder = { Text("Năm", style = TextStyle(fontSize = 14.sp, color = c.outline, textAlign = TextAlign.Center)) },
+                onValueChange = { newVal -> if (newVal.length <= 4) onYearChange(newVal.filter { ch -> ch.isDigit() }) },
+                modifier = Modifier.weight(3f),
+                interactionSource = yearInteraction,
+                placeholder = if (!yearFocused) {{
+                    Text(
+                        "YYYY",
+                        style = TextStyle(fontSize = 12.sp, color = c.outline, textAlign = TextAlign.Center),
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip
+                    )
+                }} else null,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
                     imeAction = ImeAction.Done
@@ -1165,11 +1215,16 @@ private fun ZodiacCompatCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            val zodiacYear1Interaction = remember { MutableInteractionSource() }
+            val zodiacYear1Focused by zodiacYear1Interaction.collectIsFocusedAsState()
             OutlinedTextField(
                 value = year1,
-                onValueChange = { if (it.length <= 4) onYear1Change(it.filter { ch -> ch.isDigit() }) },
+                onValueChange = { newVal -> if (newVal.length <= 4) onYear1Change(newVal.filter { ch -> ch.isDigit() }) },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Năm sinh 1", style = TextStyle(fontSize = 13.sp, color = c.outline, textAlign = TextAlign.Center)) },
+                interactionSource = zodiacYear1Interaction,
+                placeholder = if (!zodiacYear1Focused) {{
+                    Text("Năm sinh 1", style = TextStyle(fontSize = 13.sp, color = c.outline, textAlign = TextAlign.Center))
+                }} else null,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
                     imeAction = ImeAction.Next
@@ -1193,11 +1248,16 @@ private fun ZodiacCompatCard(
                 modifier = Modifier.size(20.dp)
             )
 
+            val zodiacYear2Interaction = remember { MutableInteractionSource() }
+            val zodiacYear2Focused by zodiacYear2Interaction.collectIsFocusedAsState()
             OutlinedTextField(
                 value = year2,
-                onValueChange = { if (it.length <= 4) onYear2Change(it.filter { ch -> ch.isDigit() }) },
+                onValueChange = { newVal -> if (newVal.length <= 4) onYear2Change(newVal.filter { ch -> ch.isDigit() }) },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Năm sinh 2", style = TextStyle(fontSize = 13.sp, color = c.outline, textAlign = TextAlign.Center)) },
+                interactionSource = zodiacYear2Interaction,
+                placeholder = if (!zodiacYear2Focused) {{
+                    Text("Năm sinh 2", style = TextStyle(fontSize = 13.sp, color = c.outline, textAlign = TextAlign.Center))
+                }} else null,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
                     imeAction = ImeAction.Done

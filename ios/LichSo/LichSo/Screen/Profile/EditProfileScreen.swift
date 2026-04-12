@@ -6,18 +6,18 @@ import PhotosUI
 // Full-screen modal with real data persistence
 // ═══════════════════════════════════════════
 
-private let PrimaryRed = Color(hex: "B71C1C")
-private let DeepRed = Color(hex: "8B0000")
-private let GoldAccent = Color(hex: "D4A017")
-private let SurfaceBg = Color(hex: "FFFBF5")
-private let SurfaceContainer = Color(hex: "FFF8F0")
-private let SurfaceContainerHigh = Color(hex: "FFF0E8")
-private let PrimaryContainer = Color(hex: "FFDAD6")
-private let TextMain = Color(hex: "1C1B1F")
-private let TextSub = Color(hex: "534340")
-private let TextDim = Color(hex: "857371")
-private let OutlineColor = Color(hex: "857371")
-private let OutlineVariant = Color(hex: "D8C2BF")
+private var PrimaryRed: Color { LSTheme.primary }
+private var DeepRed: Color { LSTheme.deepRed }
+private var GoldAccent: Color { LSTheme.gold }
+private var SurfaceBg: Color { LSTheme.bg }
+private var SurfaceContainer: Color { LSTheme.surfaceContainer }
+private var SurfaceContainerHigh: Color { LSTheme.surfaceContainerHigh }
+private var PrimaryContainer: Color { LSTheme.primaryContainer }
+private var TextMain: Color { LSTheme.textPrimary }
+private var TextSub: Color { LSTheme.textSecondary }
+private var TextDim: Color { LSTheme.textTertiary }
+private var OutlineColor: Color { LSTheme.textTertiary }
+private var OutlineVariant: Color { LSTheme.outlineVariant }
 
 struct EditProfileScreen: View {
     @Environment(\.dismiss) private var dismiss

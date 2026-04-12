@@ -103,4 +103,20 @@ object ReviewHelper {
             launchReviewFlow(activity)
         }
     }
+
+    /**
+     * Trigger smart rating dialog sau khi user hoàn thành một "happy action".
+     *
+     * Gọi hàm này sau các tác vụ mang lại cảm xúc tích cực:
+     * - Lưu bookmark ngày tốt
+     * - Thêm thành viên gia phả
+     * - Lưu văn khấn yêu thích
+     * - Hoàn thành tra cứu ngày tốt cho sự kiện
+     *
+     * @param context Android context
+     * @param weight Trọng số của action (mặc định 1, action quan trọng hơn dùng 2)
+     */
+    suspend fun triggerAfterAction(context: Context, weight: Int = 1) {
+        SmartRatingManager.recordHappyAction(context, weight)
+    }
 }

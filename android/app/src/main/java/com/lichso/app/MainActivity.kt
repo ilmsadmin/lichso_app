@@ -1,7 +1,9 @@
 package com.lichso.app
 
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -29,7 +31,18 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Switch from splash theme (red background) to normal theme
         setTheme(R.style.Theme_LichSo)
-        enableEdgeToEdge()
+        // Edge-to-edge with fully transparent system bars
+        // Using SystemBarStyle to avoid deprecated setStatusBarColor/setNavigationBarColor
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(
+                Color.TRANSPARENT,
+                Color.TRANSPARENT
+            ),
+            navigationBarStyle = SystemBarStyle.light(
+                Color.TRANSPARENT,
+                Color.TRANSPARENT
+            )
+        )
 
         // Determine if launched from widget with a specific destination
         val widgetRoute = when (intent?.action) {
@@ -67,10 +80,11 @@ class MainActivity : ComponentActivity() {
                     AppScreen.SPLASH -> {
                         SplashScreen(
                             onSplashFinished = {
-                                currentScreen = if (onboardingCompleted == true) {
-                                    AppScreen.MAIN
-                                } else {
-                                    AppScreen.ONBOARDING
+                                currentScreen = when (onboardingCompleted) {
+                                    true -> AppScreen.MAIN
+                                    false -> AppScreen.ONBOARDING
+                                    // null = still loading from DataStore, default to MAIN to avoid blank screen
+                                    null -> AppScreen.MAIN
                                 }
                             }
                         )

@@ -42,7 +42,24 @@ data class GoodDayItem(
     val gioTot: String,
     val tags: List<GoodDayTag>,
     val nenLam: List<String>,
-    val khongNen: List<String>
+    val khongNen: List<String>,
+    // Extra detail fields
+    val yearCanChi: String = "",
+    val monthCanChi: String = "",
+    val trucNgay: String = "",
+    val trucNgayRating: String = "",
+    val saoChieu: String = "",
+    val saoChieuRating: String = "",
+    val huongThanTai: String = "",
+    val huongHyThan: String = "",
+    val huongHungThan: String = "",
+    val allGioHoangDao: List<Pair<String, String>> = emptyList(), // name, time
+    val dayRatingPercent: Int = 50,
+    val solarHoliday: String? = null,
+    val lunarHoliday: String? = null,
+    val tietKhi: String? = null,
+    val moonPhase: String = "",
+    val solarDate: String = ""
 )
 
 data class GoodDayTag(
@@ -66,6 +83,7 @@ fun GoodDaysScreen(onBackClick: () -> Unit = {}, viewModel: HomeViewModel = hilt
     var selectedFilter by remember { mutableIntStateOf(0) }
     var showFilterSheet by remember { mutableStateOf(false) }
     var qualityFilter by remember { mutableStateOf<DayQuality?>(null) } // null = all
+    var selectedDay by remember { mutableStateOf<GoodDayItem?>(null) }
 
     val filters = listOf(
         FilterChipData(Icons.Outlined.CalendarToday, "Tháng này", "all"),
@@ -193,7 +211,7 @@ fun GoodDaysScreen(onBackClick: () -> Unit = {}, viewModel: HomeViewModel = hilt
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
                 items(filteredDays) { day ->
-                    DayCard(day = day)
+                    DayCard(day = day, onClick = { selectedDay = day })
                 }
             }
         }
@@ -221,10 +239,18 @@ fun GoodDaysScreen(onBackClick: () -> Unit = {}, viewModel: HomeViewModel = hilt
             onDismiss = { showFilterSheet = false }
         )
     }
+
+    // ═══ DAY DETAIL BOTTOM SHEET ═══
+    selectedDay?.let { day ->
+        GoodDayDetailSheet(
+            day = day,
+            onDismiss = { selectedDay = null }
+        )
+    }
 }
 
 @Composable
-private fun DayCard(day: GoodDayItem) {
+private fun DayCard(day: GoodDayItem, onClick: () -> Unit = {}) {
     val c = LichSoThemeColors.current
 
     Row(
@@ -233,7 +259,7 @@ private fun DayCard(day: GoodDayItem) {
             .background(c.surfaceContainer, RoundedCornerShape(20.dp))
             .border(1.dp, c.outlineVariant, RoundedCornerShape(20.dp))
             .clip(RoundedCornerShape(20.dp))
-            .clickable { }
+            .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.Top
@@ -406,8 +432,388 @@ private fun buildGoodDaysFromReal(year: Int, month: Int): List<GoodDayItem> {
             gioTot = gioTot,
             tags = tags,
             nenLam = info.activities.nenLam,
-            khongNen = info.activities.khongNen
+            khongNen = info.activities.khongNen,
+            // Detail fields
+            yearCanChi = info.yearCanChi,
+            monthCanChi = info.monthCanChi,
+            trucNgay = info.trucNgay.name,
+            trucNgayRating = info.trucNgay.rating,
+            saoChieu = info.saoChieu.name,
+            saoChieuRating = info.saoChieu.rating,
+            huongThanTai = info.huong.thanTai,
+            huongHyThan = info.huong.hyThan,
+            huongHungThan = info.huong.hungThan,
+            allGioHoangDao = info.gioHoangDao.map { it.name to it.time },
+            dayRatingPercent = info.dayRating.percent,
+            solarHoliday = info.solarHoliday,
+            lunarHoliday = info.lunarHoliday,
+            tietKhi = info.tietKhi.currentName,
+            moonPhase = "${info.moonPhase.icon} ${info.moonPhase.name}",
+            solarDate = "%02d/%02d/%d".format(d, month, year)
         )
+    }
+}
+
+// ══════════════════════════════════════════
+// DAY DETAIL BOTTOM SHEET
+// ══════════════════════════════════════════
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GoodDayDetailSheet(day: GoodDayItem, onDismiss: () -> Unit) {
+    val c = LichSoThemeColors.current
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val qualityColor = when (day.quality) {
+        DayQuality.GOOD -> if (c.isDark) Color(0xFF81C784) else Color(0xFF2E7D32)
+        DayQuality.BAD -> if (c.isDark) Color(0xFFEF5350) else Color(0xFFC62828)
+        DayQuality.NEUTRAL -> if (c.isDark) Color(0xFFFFD54F) else Color(0xFFF57F17)
+    }
+    val qualityBg = when (day.quality) {
+        DayQuality.GOOD -> if (c.isDark) Color(0xFF1B3A2F) else Color(0xFFE8F5E9)
+        DayQuality.BAD -> if (c.isDark) Color(0xFF3A1B1B) else Color(0xFFFFEBEE)
+        DayQuality.NEUTRAL -> if (c.isDark) Color(0xFF3A3010) else Color(0xFFFFF8E1)
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = c.bg,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 40.dp)
+        ) {
+            // ── Header ──
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Big day number
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .background(qualityBg, RoundedCornerShape(16.dp))
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                ) {
+                    Text(
+                        day.dayNum,
+                        style = TextStyle(
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = qualityColor,
+                            lineHeight = 36.sp
+                        )
+                    )
+                    Text(
+                        day.weekday,
+                        style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium, color = c.textTertiary)
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    // Quality badge
+                    QualityBadge(quality = day.quality, label = day.qualityLabel)
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        "${day.solarDate} · ${day.lunarDate}",
+                        style = TextStyle(fontSize = 13.sp, color = c.textSecondary)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        day.canChi,
+                        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = c.textPrimary)
+                    )
+                    if (day.moonPhase.isNotBlank()) {
+                        Text(
+                            day.moonPhase,
+                            style = TextStyle(fontSize = 11.sp, color = c.textTertiary)
+                        )
+                    }
+                }
+            }
+
+            // Holidays
+            if (day.solarHoliday != null || day.lunarHoliday != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            if (c.isDark) Color(0xFF1B2A3A) else Color(0xFFE3F2FD),
+                            RoundedCornerShape(12.dp)
+                        )
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.Celebration,
+                        contentDescription = null,
+                        tint = if (c.isDark) Color(0xFF64B5F6) else Color(0xFF1565C0),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Column {
+                        day.solarHoliday?.let {
+                            Text(it, style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = c.textPrimary))
+                        }
+                        day.lunarHoliday?.let {
+                            Text(it, style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = c.textPrimary))
+                        }
+                    }
+                }
+            }
+
+            // ── Day Rating Progress ──
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "Đánh giá ngày",
+                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = c.textSecondary)
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    "${day.dayRatingPercent}%",
+                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = qualityColor)
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            LinearProgressIndicator(
+                progress = { day.dayRatingPercent / 100f },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = qualityColor,
+                trackColor = c.outlineVariant.copy(alpha = 0.3f),
+            )
+
+            // ── Can Chi / Truc / Sao ──
+            Spacer(modifier = Modifier.height(16.dp))
+            DetailSectionHeader(icon = Icons.Outlined.AutoAwesome, title = "Can Chi & Trực · Sao")
+            Spacer(modifier = Modifier.height(8.dp))
+            DetailInfoGrid(
+                items = listOf(
+                    "Năm" to day.yearCanChi,
+                    "Tháng" to day.monthCanChi,
+                    "Ngày" to day.canChi,
+                    "Trực" to "${day.trucNgay} (${day.trucNgayRating})",
+                    "Sao" to "${day.saoChieu} (${day.saoChieuRating})",
+                    "Tiết khí" to (day.tietKhi ?: "—")
+                )
+            )
+
+            // ── Hướng tốt ──
+            Spacer(modifier = Modifier.height(16.dp))
+            DetailSectionHeader(icon = Icons.Outlined.Explore, title = "Hướng xuất hành")
+            Spacer(modifier = Modifier.height(8.dp))
+            DetailInfoGrid(
+                items = listOf(
+                    "Thần Tài" to day.huongThanTai,
+                    "Hỷ Thần" to day.huongHyThan,
+                    "Hạc Thần" to day.huongHungThan,
+                )
+            )
+
+            // ── Giờ hoàng đạo ──
+            Spacer(modifier = Modifier.height(16.dp))
+            DetailSectionHeader(icon = Icons.Outlined.AccessTime, title = "Giờ hoàng đạo")
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                day.allGioHoangDao.forEach { (name, time) ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(
+                                if (c.isDark) Color(0xFF1B3A2F) else Color(0xFFF1F8E9),
+                                RoundedCornerShape(10.dp)
+                            )
+                            .padding(vertical = 8.dp, horizontal = 4.dp)
+                    ) {
+                        Text(
+                            name,
+                            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = qualityColor)
+                        )
+                        Text(
+                            time,
+                            style = TextStyle(fontSize = 10.sp, color = c.textTertiary)
+                        )
+                    }
+                }
+            }
+
+            // ── Nên làm ──
+            if (day.nenLam.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                DetailSectionHeader(
+                    icon = Icons.Filled.CheckCircle,
+                    title = "Nên làm",
+                    iconTint = if (c.isDark) Color(0xFF81C784) else Color(0xFF2E7D32)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    day.nenLam.forEach { activity ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    if (c.isDark) Color(0xFF1B3A2F).copy(alpha = 0.5f) else Color(0xFFE8F5E9).copy(alpha = 0.7f),
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = null,
+                                tint = if (c.isDark) Color(0xFF81C784) else Color(0xFF43A047),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                activity,
+                                style = TextStyle(fontSize = 13.sp, color = c.textPrimary)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ── Không nên ──
+            if (day.khongNen.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                DetailSectionHeader(
+                    icon = Icons.Filled.Cancel,
+                    title = "Không nên",
+                    iconTint = if (c.isDark) Color(0xFFEF5350) else Color(0xFFC62828)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    day.khongNen.forEach { activity ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    if (c.isDark) Color(0xFF3A1B1B).copy(alpha = 0.5f) else Color(0xFFFFEBEE).copy(alpha = 0.7f),
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = null,
+                                tint = if (c.isDark) Color(0xFFEF5350) else Color(0xFFE53935),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                activity,
+                                style = TextStyle(fontSize = 13.sp, color = c.textPrimary)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ── Tags ──
+            if (day.tags.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                DetailSectionHeader(icon = Icons.Outlined.Tag, title = "Nhãn")
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    day.tags.forEach { tag ->
+                        val (tagBg, tagColor) = when (tag.type) {
+                            TagType.GOOD -> (if (c.isDark) Color(0xFF1B3A2F) else Color(0xFFE8F5E9)) to (if (c.isDark) Color(0xFF81C784) else Color(0xFF2E7D32))
+                            TagType.AVOID -> (if (c.isDark) Color(0xFF3A2A1B) else Color(0xFFFFF3E0)) to (if (c.isDark) Color(0xFFE8A06A) else Color(0xFFE65100))
+                            TagType.EVENT -> (if (c.isDark) Color(0xFF1B2A3A) else Color(0xFFE3F2FD)) to (if (c.isDark) Color(0xFF64B5F6) else Color(0xFF1565C0))
+                        }
+                        Box(
+                            modifier = Modifier
+                                .background(tagBg, RoundedCornerShape(8.dp))
+                                .padding(horizontal = 10.dp, vertical = 5.dp)
+                        ) {
+                            Text(
+                                tag.text,
+                                style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = tagColor)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailSectionHeader(
+    icon: ImageVector,
+    title: String,
+    iconTint: Color = LichSoThemeColors.current.primary
+) {
+    val c = LichSoThemeColors.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
+        Text(
+            title,
+            style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = c.textPrimary)
+        )
+    }
+}
+
+@Composable
+private fun DetailInfoGrid(items: List<Pair<String, String>>) {
+    val c = LichSoThemeColors.current
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        items.chunked(2).forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                row.forEach { (label, value) ->
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(c.surfaceContainer, RoundedCornerShape(10.dp))
+                            .border(1.dp, c.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            label,
+                            style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Medium, color = c.textTertiary)
+                        )
+                        Text(
+                            value,
+                            style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = c.textPrimary)
+                        )
+                    }
+                }
+                // If odd number, fill remaining space
+                if (row.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
     }
 }
 

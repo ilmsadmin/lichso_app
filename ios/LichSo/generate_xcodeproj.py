@@ -65,6 +65,10 @@ assets_variant_group = uid()
 preview_group_uid = uid()
 preview_assets_ref_uid = uid()
 
+# Secrets.plist resource
+secrets_plist_ref_uid = uid()
+secrets_plist_build_uid = uid()
+
 # File references and build files for .swift
 file_ref_uids = {}
 build_file_uids = {}
@@ -102,6 +106,8 @@ for sf in swift_files:
 root_src_group["children"].append(assets_ref_uid)
 # Add Preview Content group
 root_src_group["children"].append(preview_group_uid)
+# Add Secrets.plist to root group
+root_src_group["children"].append(secrets_plist_ref_uid)
 
 # ── Generate PBX sections ──
 
@@ -126,6 +132,9 @@ for sf in swift_files:
 lines_file_ref.append(f'\t\t{assets_ref_uid} /* {ASSETS_CATALOG} */ = {{isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = {ASSETS_CATALOG}; sourceTree = "<group>"; }};')
 # Preview Assets
 lines_file_ref.append(f'\t\t{preview_assets_ref_uid} /* Preview Assets.xcassets */ = {{isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; }};')
+# Secrets.plist
+lines_file_ref.append(f'\t\t{secrets_plist_ref_uid} /* Secrets.plist */ = {{isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Secrets.plist; sourceTree = "<group>"; }};')
+lines_build_file.append(f'\t\t{secrets_plist_build_uid} /* Secrets.plist in Resources */ = {{isa = PBXBuildFile; fileRef = {secrets_plist_ref_uid} /* Secrets.plist */; }};')
 # Product
 lines_file_ref.append(f'\t\t{product_ref_uid} /* {PROJECT_NAME}.app */ = {{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = {PROJECT_NAME}.app; sourceTree = BUILT_PRODUCTS_DIR; }};')
 
@@ -288,6 +297,7 @@ pbxproj = f"""// !$*UTF8*$!
 \t\t\tisa = PBXResourcesBuildPhase;
 \t\t\tbuildActionMask = 2147483647;
 \t\t\tfiles = (
+\t\t\t\t{secrets_plist_build_uid} /* Secrets.plist in Resources */,
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t}};

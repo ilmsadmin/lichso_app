@@ -291,7 +291,12 @@ private fun CategoryChips(
                     .clickable { onSelect(cat.id) }
                     .padding(horizontal = 14.dp, vertical = 7.dp)
             ) {
-                Text(cat.emoji, fontSize = 14.sp)
+                Icon(
+                    imageVector = PrayerIcons.fromEmoji(cat.emoji),
+                    contentDescription = null,
+                    tint = if (isActive) Color.White else c.textSecondary,
+                    modifier = Modifier.size(16.dp)
+                )
                 Text(
                     cat.label,
                     style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = textColor)
@@ -339,7 +344,12 @@ private fun FeaturedCard(prayer: PrayerItem, onClick: () -> Unit) {
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(prayer.emoji, fontSize = 28.sp)
+                Icon(
+                    imageVector = PrayerIcons.fromEmoji(prayer.emoji, prayer.emojiStyle),
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(30.dp)
+                )
             }
 
             Column(modifier = Modifier.weight(1f)) {
@@ -449,7 +459,24 @@ private fun PrayerCard(prayer: PrayerItem, onClick: () -> Unit) {
                 .background(emojiBg, RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Text(prayer.emoji, fontSize = 24.sp)
+            val iconTint = when (prayer.emojiStyle) {
+                "gio" -> if (c.isDark) Color(0xFFFFAB40) else Color(0xFFE65100)
+                "ram" -> if (c.isDark) Color(0xFFCE93D8) else Color(0xFF7B1FA2)
+                "tet" -> if (c.isDark) Color(0xFFEF9A9A) else Color(0xFFC62828)
+                "khai" -> if (c.isDark) Color(0xFFA5D6A7) else Color(0xFF2E7D32)
+                "nhap" -> if (c.isDark) Color(0xFF90CAF9) else Color(0xFF1565C0)
+                "cong" -> if (c.isDark) Color(0xFFFFE082) else Color(0xFFE65100)
+                "xe" -> if (c.isDark) Color(0xFFB0BEC5) else Color(0xFF37474F)
+                "chua" -> if (c.isDark) Color(0xFFF48FB1) else Color(0xFFC2185B)
+                "than" -> if (c.isDark) Color(0xFFBDBDBD) else Color(0xFF424242)
+                else -> c.textSecondary
+            }
+            Icon(
+                imageVector = PrayerIcons.fromEmoji(prayer.emoji, prayer.emojiStyle),
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(24.dp)
+            )
         }
 
         // Info
@@ -488,11 +515,29 @@ private fun PrayerCard(prayer: PrayerItem, onClick: () -> Unit) {
                         PrayerTagType.NEW -> c.goodGreen
                         PrayerTagType.NORMAL -> c.textSecondary
                     }
-                    Box(
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
                         modifier = Modifier
                             .background(tagBg, RoundedCornerShape(6.dp))
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
+                        // Hot/New indicator dot instead of emoji
+                        if (tag.type == PrayerTagType.HOT) {
+                            Icon(
+                                Icons.Filled.LocalFireDepartment,
+                                contentDescription = null,
+                                tint = tagColor,
+                                modifier = Modifier.size(10.dp)
+                            )
+                        } else if (tag.type == PrayerTagType.NEW) {
+                            Icon(
+                                Icons.Filled.FiberNew,
+                                contentDescription = null,
+                                tint = tagColor,
+                                modifier = Modifier.size(10.dp)
+                            )
+                        }
                         Text(
                             tag.label,
                             style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = tagColor)

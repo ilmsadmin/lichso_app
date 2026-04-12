@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Network Security Configuration.
+    - Block all cleartext (HTTP) traffic to protect user data in transit
+    - Only HTTPS connections are allowed
+-->
+<network-security-config>
+    <!-- Disallow cleartext (HTTP) traffic globally -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -7,11 +7,11 @@ import SwiftUI
 
 private let BgDeepRed = Color(hex: "6D0B0B")
 private let BgRed = Color(hex: "9B1B1B")
-private let BgCrimson = Color(hex: "C62828")
+private var BgCrimson: Color { LSTheme.badRed }
 
 private let Gold50 = Color(hex: "FFF8E1")
 private let Gold200 = Color(hex: "E6C361")
-private let Gold400 = Color(hex: "D4A017")
+private var Gold400: Color { LSTheme.gold }
 private let Gold600 = Color(hex: "B8860B")
 private let Gold800 = Color(hex: "8B6914")
 

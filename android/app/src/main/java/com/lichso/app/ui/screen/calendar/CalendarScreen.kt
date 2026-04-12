@@ -3,6 +3,7 @@ package com.lichso.app.ui.screen.calendar
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -35,6 +37,7 @@ import com.lichso.app.ui.components.HeaderIconButton
 import com.lichso.app.ui.components.LichSoDialog
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 
 @Composable
 fun CalendarScreen(
@@ -235,6 +238,7 @@ private fun CalendarContent(
 ) {
     val c = LichSoThemeColors.current
     var showSearchDialog by remember { mutableStateOf(false) }
+    var showMonthYearPicker by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -278,11 +282,23 @@ private fun CalendarContent(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    "Tháng ${uiState.currentMonth}, ${uiState.currentYear}",
-                    style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = c.primary)
-                )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clickable { showMonthYearPicker = true }
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Tháng ${uiState.currentMonth}, ${uiState.currentYear}",
+                        style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = c.primary)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        Icons.Filled.ArrowDropDown,
+                        contentDescription = "Chọn tháng",
+                        tint = c.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
                 Text(
                     "Tháng ${uiState.dayInfo?.lunar?.month ?: ""} Âm lịch",
                     style = TextStyle(fontSize = 11.sp, color = c.textTertiary)
@@ -301,7 +317,10 @@ private fun CalendarContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // ═══ CALENDAR GRID ═══
+        // ═══ CALENDAR GRID (with swipe left/right to change month) ═══
+        val swipeThreshold = 80f
+        var swipeCumulativeDrag by remember { mutableStateOf(0f) }
+
         CalendarGrid(
             days = uiState.calendarDays,
             selectedDate = uiState.selectedDate,
@@ -314,6 +333,23 @@ private fun CalendarContent(
                 .fillMaxWidth()
                 .weight(1f)
                 .padding(horizontal = 16.dp)
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onDragStart = { swipeCumulativeDrag = 0f },
+                        onDragEnd = {
+                            if (swipeCumulativeDrag > swipeThreshold) {
+                                viewModel.prevMonth()
+                            } else if (swipeCumulativeDrag < -swipeThreshold) {
+                                viewModel.nextMonth()
+                            }
+                            swipeCumulativeDrag = 0f
+                        },
+                        onDragCancel = { swipeCumulativeDrag = 0f },
+                        onHorizontalDrag = { _, dragAmount ->
+                            swipeCumulativeDrag += dragAmount
+                        }
+                    )
+                }
         )
 
         // ═══ SELECTED DAY DETAIL PANEL (inline, matching HTML) ═══
@@ -344,6 +380,19 @@ private fun CalendarContent(
             onConfirm = { year, month, day ->
                 viewModel.goToDate(year, month, day)
                 showSearchDialog = false
+            }
+        )
+    }
+
+    // ═══ MONTH/YEAR PICKER DIALOG ═══
+    if (showMonthYearPicker) {
+        MonthYearPickerDialog(
+            currentMonth = uiState.currentMonth,
+            currentYear = uiState.currentYear,
+            onDismiss = { showMonthYearPicker = false },
+            onMonthYearSelected = { year, month ->
+                viewModel.goToMonth(year, month)
+                showMonthYearPicker = false
             }
         )
     }
@@ -431,6 +480,234 @@ private fun JumpToDateDialog(
             Text(it, style = TextStyle(fontSize = 12.sp, color = Color(0xFFE53935)))
         }
     }
+}
+
+// ═══ Month/Year Picker Dialog ═══
+
+private enum class PickerMode { MONTH, YEAR }
+
+@Composable
+private fun MonthYearPickerDialog(
+    currentMonth: Int,
+    currentYear: Int,
+    onDismiss: () -> Unit,
+    onMonthYearSelected: (year: Int, month: Int) -> Unit
+) {
+    val c = LichSoThemeColors.current
+    var pickerMode by remember { mutableStateOf(PickerMode.MONTH) }
+    var pickerYear by remember { mutableStateOf(currentYear) }
+    val today = java.time.LocalDate.now()
+
+    val monthNames = listOf(
+        "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4",
+        "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8",
+        "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = c.bg,
+        shape = RoundedCornerShape(24.dp),
+        title = null,
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                AnimatedContent(
+                    targetState = pickerMode,
+                    transitionSpec = {
+                        fadeIn(tween(200)) + slideInVertically { if (targetState == PickerMode.YEAR) -it / 4 else it / 4 } togetherWith
+                        fadeOut(tween(200)) + slideOutVertically { if (targetState == PickerMode.YEAR) it / 4 else -it / 4 }
+                    },
+                    label = "picker_mode"
+                ) { mode ->
+                    when (mode) {
+                        PickerMode.MONTH -> {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                // Year header — clickable to switch to year picker
+                                Row(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable { pickerMode = PickerMode.YEAR }
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        "Năm $pickerYear",
+                                        style = TextStyle(
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = c.primary
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        Icons.Filled.ArrowDropDown,
+                                        contentDescription = "Chọn năm",
+                                        tint = c.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                // 12 months in 3x4 grid
+                                for (row in 0 until 4) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        for (col in 0 until 3) {
+                                            val month = row * 3 + col + 1
+                                            val isSelected = month == currentMonth && pickerYear == currentYear
+                                            val isCurrent = month == today.monthValue && pickerYear == today.year
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(
+                                                        when {
+                                                            isSelected -> c.primary
+                                                            isCurrent -> c.primary.copy(alpha = 0.12f)
+                                                            else -> Color.Transparent
+                                                        }
+                                                    )
+                                                    .then(
+                                                        if (isCurrent && !isSelected) Modifier.border(1.dp, c.primary, RoundedCornerShape(12.dp))
+                                                        else Modifier
+                                                    )
+                                                    .clickable { onMonthYearSelected(pickerYear, month) }
+                                                    .padding(vertical = 14.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    monthNames[month - 1],
+                                                    style = TextStyle(
+                                                        fontSize = 13.sp,
+                                                        fontWeight = if (isSelected || isCurrent) FontWeight.Bold else FontWeight.Medium,
+                                                        color = when {
+                                                            isSelected -> Color.White
+                                                            isCurrent -> c.primary
+                                                            else -> c.textPrimary
+                                                        }
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                    if (row < 3) Spacer(modifier = Modifier.height(8.dp))
+                                }
+                            }
+                        }
+
+                        PickerMode.YEAR -> {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                // Back to month view
+                                Row(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable { pickerMode = PickerMode.MONTH }
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Filled.ArrowDropUp,
+                                        contentDescription = "Quay lại",
+                                        tint = c.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        "Chọn năm",
+                                        style = TextStyle(
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = c.primary
+                                        )
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                // 16 years in 4x4 grid centered around pickerYear
+                                val startYear = pickerYear - 7
+                                for (row in 0 until 4) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        for (col in 0 until 4) {
+                                            val year = startYear + row * 4 + col
+                                            val isSelected = year == currentYear
+                                            val isCurrent = year == today.year
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(
+                                                        when {
+                                                            isSelected -> c.primary
+                                                            isCurrent -> c.primary.copy(alpha = 0.12f)
+                                                            else -> Color.Transparent
+                                                        }
+                                                    )
+                                                    .then(
+                                                        if (isCurrent && !isSelected) Modifier.border(1.dp, c.primary, RoundedCornerShape(12.dp))
+                                                        else Modifier
+                                                    )
+                                                    .clickable {
+                                                        pickerYear = year
+                                                        pickerMode = PickerMode.MONTH
+                                                    }
+                                                    .padding(vertical = 14.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    "$year",
+                                                    style = TextStyle(
+                                                        fontSize = 14.sp,
+                                                        fontWeight = if (isSelected || isCurrent) FontWeight.Bold else FontWeight.Medium,
+                                                        color = when {
+                                                            isSelected -> Color.White
+                                                            isCurrent -> c.primary
+                                                            else -> c.textPrimary
+                                                        }
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                    if (row < 3) Spacer(modifier = Modifier.height(8.dp))
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                // Navigation: Previous/Next 16 years
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    TextButton(onClick = { pickerYear -= 16 }) {
+                                        Icon(Icons.Filled.ChevronLeft, contentDescription = null, tint = c.primary, modifier = Modifier.size(18.dp))
+                                        Text("${startYear - 16}–${startYear - 1}", style = TextStyle(fontSize = 12.sp, color = c.primary))
+                                    }
+                                    TextButton(onClick = { pickerYear += 16 }) {
+                                        Text("${startYear + 16}–${startYear + 31}", style = TextStyle(fontSize = 12.sp, color = c.primary))
+                                        Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = c.primary, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Đóng", color = c.textTertiary)
+            }
+        }
+    )
 }
 
 // ═══ Selected Day Detail Panel (inline, matches HTML day-detail) ═══

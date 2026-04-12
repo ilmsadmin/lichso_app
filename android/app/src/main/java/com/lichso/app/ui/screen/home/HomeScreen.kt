@@ -36,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lichso.app.data.remote.WeatherState
 import com.lichso.app.domain.model.*
+import com.lichso.app.domain.HistoricalEventProvider
 import com.lichso.app.ui.theme.*
 import com.lichso.app.ui.components.AppTopBar
 import com.lichso.app.ui.components.CalendarPatternBackground
@@ -265,45 +266,56 @@ fun HomeScreen(
 @Composable
 private fun SwipeHint() {
     val c = LichSoThemeColors.current
-    val infiniteTransition = rememberInfiniteTransition(label = "swipeHint")
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 0.5f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = EaseInOutSine),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "hintAlpha"
-    )
-    val offsetY by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 4f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = EaseInOutSine),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "hintOffset"
-    )
-
-    Row(
-        modifier = Modifier
-            .graphicsLayer {
-                this.alpha = alpha
-                translationY = offsetY
-            },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    // Only animate for a limited time then let it disappear — saves CPU/battery
+    var visible by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(4000)
+        visible = false
+    }
+    AnimatedVisibility(
+        visible = visible,
+        exit = fadeOut(tween(600))
     ) {
-        Icon(
-            Icons.Filled.SwipeVertical,
-            contentDescription = null,
-            tint = c.textTertiary,
-            modifier = Modifier.size(16.dp)
+        val infiniteTransition = rememberInfiniteTransition(label = "swipeHint")
+        val alpha by infiniteTransition.animateFloat(
+            initialValue = 0.2f,
+            targetValue = 0.5f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(2500, easing = EaseInOutSine),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "hintAlpha"
         )
-        Text(
-            "Vuốt để lật lịch",
-            style = TextStyle(fontSize = 10.sp, color = c.textTertiary)
+        val offsetY by infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 4f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1200, easing = EaseInOutSine),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "hintOffset"
         )
+
+        Row(
+            modifier = Modifier
+                .graphicsLayer {
+                    this.alpha = alpha
+                    translationY = offsetY
+                },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                Icons.Filled.SwipeVertical,
+                contentDescription = null,
+                tint = c.textTertiary,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                "Vuốt để lật lịch",
+                style = TextStyle(fontSize = 10.sp, color = c.textTertiary)
+            )
+        }
     }
 }
 
@@ -790,6 +802,12 @@ private fun QuoteSection(selectedDate: java.time.LocalDate) {
 private fun EventChips(info: DayInfo, showFestival: Boolean = true, onHistoryClick: () -> Unit = {}) {
     val c = LichSoThemeColors.current
     val holiday = info.solarHoliday ?: info.lunarHoliday
+    val hasHistoryEvents = remember(info.solar.dd, info.solar.mm) {
+        HistoricalEventProvider.getEvents(info.solar.dd, info.solar.mm).isNotEmpty()
+    }
+
+    val showHoliday = showFestival && holiday != null
+    if (!showHoliday && !hasHistoryEvents) return
 
     Row(
         modifier = Modifier
@@ -797,24 +815,26 @@ private fun EventChips(info: DayInfo, showFestival: Boolean = true, onHistoryCli
             .padding(horizontal = 20.dp),
         horizontalArrangement = Arrangement.Center
     ) {
-        if (showFestival && holiday != null) {
+        if (showHoliday) {
             EventChip(
                 icon = Icons.Filled.Celebration,
-                text = holiday,
+                text = holiday!!,
                 bgColor = if (c.isDark) Color(0xFF3D2A10) else Color(0xFFFFF3E0),
                 textColor = if (c.isDark) Color(0xFFE8A06A) else Color(0xFFE65100),
                 borderColor = if (c.isDark) Color(0xFF5C3D1A) else Color(0xFFFFB74D)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            if (hasHistoryEvents) Spacer(modifier = Modifier.width(8.dp))
         }
-        EventChip(
-            icon = Icons.Filled.HistoryEdu,
-            text = "Ngày này năm xưa",
-            bgColor = if (c.isDark) Color(0xFF1A2E1A) else Color(0xFFE8F5E9),
-            textColor = if (c.isDark) Color(0xFF81C784) else Color(0xFF2E7D32),
-            borderColor = if (c.isDark) Color(0xFF2E4A2E) else Color(0xFF81C784),
-            onClick = onHistoryClick
-        )
+        if (hasHistoryEvents) {
+            EventChip(
+                icon = Icons.Filled.HistoryEdu,
+                text = "Ngày này năm xưa",
+                bgColor = if (c.isDark) Color(0xFF1A2E1A) else Color(0xFFE8F5E9),
+                textColor = if (c.isDark) Color(0xFF81C784) else Color(0xFF2E7D32),
+                borderColor = if (c.isDark) Color(0xFF2E4A2E) else Color(0xFF81C784),
+                onClick = onHistoryClick
+            )
+        }
     }
 }
 

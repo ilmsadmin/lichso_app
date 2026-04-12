@@ -109,7 +109,7 @@ class NotificationsViewModel: ObservableObject {
         case "reminder": return NotifTypeInfo(icon: "bell.fill", color: Color(hex: "1565C0"), bgColor: Color(hex: "E3F2FD"))
         case "system":   return NotifTypeInfo(icon: "arrow.down.circle.fill", color: Color(hex: "616161"), bgColor: Color(hex: "F5F5F5"))
         case "good_day": return NotifTypeInfo(icon: "calendar.badge.checkmark", color: Color(hex: "F57F17"), bgColor: Color(hex: "FFF8E1"))
-        default:         return NotifTypeInfo(icon: "bell.fill", color: Color(hex: "857371"), bgColor: Color(hex: "F5F5F5"))
+        default:         return NotifTypeInfo(icon: "bell.fill", color: Color(hex: "8A7E62"), bgColor: Color(hex: "F5F5F5"))
         }
     }
 
@@ -119,28 +119,19 @@ class NotificationsViewModel: ObservableObject {
         return f.string(from: date)
     }
 
-    // ── Seed sample notifications (for first launch) ──
+    // ── Generate real notifications from calendar data ──
+
+    /// Tạo thông báo thật cho lần đầu mở app (dữ liệu thật từ lịch)
     func seedIfEmpty() {
         guard notifications.isEmpty, let ctx = modelContext else { return }
-        let now = Int64(Date().timeIntervalSince1970 * 1000)
-        let hour: Int64 = 3_600_000
+        NotificationService.shared.seedInitialNotifications(context: ctx)
+        loadNotifications()
+    }
 
-        let samples: [(String, String, String, Int64, Bool)] = [
-            ("Chào buổi sáng! Hôm nay là ngày mới", "Xem thông tin lịch âm dương, giờ hoàng đạo và hướng xuất hành tốt nhất cho ngày hôm nay.", "daily", now - hour, false),
-            ("🏯 Ngày lễ sắp đến!", "Kiểm tra các ngày lễ và sự kiện quan trọng sắp tới trong tháng này.", "holiday", now - 2*hour, false),
-            ("AI Tử Vi: Phân tích tuần mới", "Tuần này có nhiều ngày Hoàng Đạo. Xem chi tiết để biết ngày nào phù hợp nhất.", "ai", now - 3*hour, false),
-            ("Nhắc nhở: Sự kiện quan trọng", "Bạn có sự kiện quan trọng sắp tới. Đừng quên chuẩn bị nhé!", "reminder", now - 24*hour - 2*hour, true),
-            ("Ngày tốt cho khai trương", "Ngày mai rất tốt cho khai trương, xuất hành. Xem chi tiết →", "good_day", now - 24*hour - 6*hour, true),
-            ("Cập nhật ứng dụng v1.0.0", "Phiên bản mới với tính năng AI Tử Vi và giao diện cải tiến.", "system", now - 48*hour, true),
-        ]
-
-        for (title, desc, type, time, isRead) in samples {
-            let n = NotificationEntity(id: time, title: title, notificationDescription: desc, type: type)
-            n.createdAt = time
-            n.isRead = isRead
-            ctx.insert(n)
-        }
-        try? ctx.save()
+    /// Tạo thông báo mới cho ngày hôm nay (gọi mỗi lần mở app)
+    func generateTodayNotifications() {
+        guard let ctx = modelContext else { return }
+        NotificationService.shared.generateAllNotifications(context: ctx)
         loadNotifications()
     }
 }

@@ -7,23 +7,30 @@ import SwiftData
 // Matches screen-notes.html design
 // ═══════════════════════════════════════════
 
-private let PrimaryRed = Color(hex: "B71C1C")
-private let SurfaceBg = Color(hex: "FFFBF5")
-private let SurfaceContainer = Color(hex: "FFF8F0")
-private let SurfaceContainerHigh = Color(hex: "FFF0E8")
-private let TextMain = Color(hex: "1C1B1F")
-private let TextSub = Color(hex: "534340")
-private let TextDim = Color(hex: "857371")
-private let OutlineVariant = Color(hex: "D8C2BF")
-private let NoteBlue = Color(hex: "1565C0")
-private let TaskGreen = Color(hex: "2E7D32")
-private let RemindOrange = Color(hex: "E65100")
-private let GoldAccent = Color(hex: "D4A017")
+private var PrimaryRed: Color { LSTheme.primary }
+private var SurfaceBg: Color { LSTheme.bg }
+private var SurfaceContainer: Color { LSTheme.surfaceContainer }
+private var SurfaceContainerHigh: Color { LSTheme.surfaceContainerHigh }
+private var TextMain: Color { LSTheme.textPrimary }
+private var TextSub: Color { LSTheme.textSecondary }
+private var TextDim: Color { LSTheme.textTertiary }
+private var OutlineVariant: Color { LSTheme.outlineVariant }
+private var NoteBlue : Color { LSTheme.noteBlue }
+private var TaskGreen: Color { LSTheme.goodGreen }
+private var RemindOrange : Color { LSTheme.remindOrange }
+private var GoldAccent: Color { LSTheme.gold }
 
 struct NotesScreen: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var vm = NotesViewModel()
     @State private var showCreateSheet = false
+    @State private var selectedNote: NoteEntity?
+    @State private var selectedTask: TaskEntity?
+    @State private var selectedReminder: ReminderEntity?
+    @State private var showNoteDetail = false
+    @State private var showTaskDetail = false
+    @State private var showReminderDetail = false
+    @State private var showCreateEdit = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -52,9 +59,21 @@ struct NotesScreen: View {
             // ═══ CONTENT ═══
             ScrollView(.vertical, showsIndicators: false) {
                 switch vm.selectedTab {
-                case .notes:   NotesListView(vm: vm)
-                case .tasks:   TasksListView(vm: vm)
-                case .reminders: RemindersListView(vm: vm)
+                case .notes:
+                    NotesListView(vm: vm, onSelect: { note in
+                        selectedNote = note
+                        showNoteDetail = true
+                    })
+                case .tasks:
+                    TasksListView(vm: vm, onSelect: { task in
+                        selectedTask = task
+                        showTaskDetail = true
+                    })
+                case .reminders:
+                    RemindersListView(vm: vm, onSelect: { reminder in
+                        selectedReminder = reminder
+                        showReminderDetail = true
+                    })
                 }
                 Spacer().frame(height: 100)
             }
@@ -62,13 +81,40 @@ struct NotesScreen: View {
         }
         .background(SurfaceBg)
         .overlay(alignment: .bottomTrailing) {
-            FabButton(tab: vm.selectedTab) { showCreateSheet = true }
+            FabButton(tab: vm.selectedTab) { showCreateEdit = true }
                 .padding(.trailing, 20)
                 .padding(.bottom, 100)
         }
-        .sheet(isPresented: $showCreateSheet) {
-            CreateSheet(tab: vm.selectedTab, vm: vm)
-                .presentationDetents([.medium, .large])
+        // ── Navigation to Detail screens ──
+        .fullScreenCover(isPresented: $showNoteDetail) {
+            if let note = selectedNote {
+                NavigationStack {
+                    NoteDetailScreen(note: note, vm: vm)
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $showTaskDetail) {
+            if let task = selectedTask {
+                NavigationStack {
+                    TaskDetailScreen(task: task, vm: vm)
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $showReminderDetail) {
+            if let reminder = selectedReminder {
+                NavigationStack {
+                    ReminderDetailScreen(reminder: reminder, vm: vm)
+                }
+            }
+        }
+        // ── Create new (Edit screen in create mode) ──
+        .fullScreenCover(isPresented: $showCreateEdit) {
+            NavigationStack {
+                NoteEditScreen(
+                    initialType: EditItemType(rawValue: vm.selectedTab.rawValue) ?? .note,
+                    vm: vm
+                )
+            }
         }
         .onAppear { vm.setModelContext(modelContext) }
     }
@@ -194,6 +240,7 @@ private struct SearchRow: View {
 
 private struct NotesListView: View {
     @ObservedObject var vm: NotesViewModel
+    var onSelect: (NoteEntity) -> Void
 
     private var pinned: [NoteEntity] { vm.filteredNotes.filter { $0.isPinned } }
     private var others: [NoteEntity] { vm.filteredNotes.filter { !$0.isPinned } }
@@ -207,12 +254,14 @@ private struct NotesListView: View {
                     SectionDivider(text: "Đã ghim")
                     ForEach(pinned, id: \.id) { note in
                         NoteCard(note: note, onPin: { vm.togglePin(note) }, onDelete: { vm.deleteNote(note) })
+                            .onTapGesture { onSelect(note) }
                     }
                 }
                 if !others.isEmpty {
                     SectionDivider(text: pinned.isEmpty ? "Tất cả ghi chú" : "Khác")
                     ForEach(others, id: \.id) { note in
                         NoteCard(note: note, onPin: { vm.togglePin(note) }, onDelete: { vm.deleteNote(note) })
+                            .onTapGesture { onSelect(note) }
                     }
                 }
             }
@@ -293,6 +342,7 @@ private struct NoteCard: View {
 
 private struct TasksListView: View {
     @ObservedObject var vm: NotesViewModel
+    var onSelect: (TaskEntity) -> Void
 
     private var pending: [TaskEntity] { vm.filteredTasks.filter { !$0.isDone } }
     private var done: [TaskEntity] { vm.filteredTasks.filter { $0.isDone } }
@@ -306,12 +356,14 @@ private struct TasksListView: View {
                     SectionDivider(text: "Đang làm · \(pending.count)")
                     ForEach(pending, id: \.id) { task in
                         TaskCard(task: task, onToggle: { vm.toggleTask(task) }, onDelete: { vm.deleteTask(task) })
+                            .onTapGesture { onSelect(task) }
                     }
                 }
                 if !done.isEmpty {
                     SectionDivider(text: "Hoàn thành · \(done.count)")
                     ForEach(done, id: \.id) { task in
                         TaskCard(task: task, onToggle: { vm.toggleTask(task) }, onDelete: { vm.deleteTask(task) })
+                            .onTapGesture { onSelect(task) }
                     }
                 }
             }
@@ -415,6 +467,7 @@ private struct TaskCard: View {
 
 private struct RemindersListView: View {
     @ObservedObject var vm: NotesViewModel
+    var onSelect: (ReminderEntity) -> Void
 
     var body: some View {
         LazyVStack(spacing: 0) {
@@ -423,6 +476,7 @@ private struct RemindersListView: View {
             } else {
                 ForEach(vm.filteredReminders, id: \.id) { reminder in
                     ReminderCard(reminder: reminder, onToggle: { vm.toggleReminder(reminder) }, onDelete: { vm.deleteReminder(reminder) })
+                        .onTapGesture { onSelect(reminder) }
                 }
             }
         }
@@ -554,95 +608,6 @@ private struct FabButton: View {
 }
 
 // ══════════════════════════════════════════
-// CREATE SHEET
+// CREATE — now uses NoteEditScreen (fullScreenCover)
+// Old CreateSheet removed
 // ══════════════════════════════════════════
-
-private struct CreateSheet: View {
-    let tab: NotesTab
-    @ObservedObject var vm: NotesViewModel
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var title = ""
-    @State private var content = ""
-    @State private var priority = 1
-    @State private var dueDate = Date()
-    @State private var hasDueDate = false
-    @State private var reminderDate = Date().addingTimeInterval(3600)
-    @State private var repeatType = 0
-    @State private var category = 3 // Personal
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                switch tab {
-                case .notes:
-                    Section("Ghi chú mới") {
-                        TextField("Tiêu đề", text: $title)
-                        TextEditor(text: $content)
-                            .frame(minHeight: 120)
-                    }
-                case .tasks:
-                    Section("Việc cần làm mới") {
-                        TextField("Tiêu đề", text: $title)
-                        Picker("Ưu tiên", selection: $priority) {
-                            Text("Thấp").tag(1)
-                            Text("Trung bình").tag(2)
-                            Text("Cao").tag(3)
-                        }
-                        Toggle("Ngày hạn", isOn: $hasDueDate)
-                        if hasDueDate {
-                            DatePicker("Hạn", selection: $dueDate, displayedComponents: .date)
-                                .environment(\.locale, Locale(identifier: "vi_VN"))
-                        }
-                    }
-                case .reminders:
-                    Section("Nhắc nhở mới") {
-                        TextField("Tiêu đề", text: $title)
-                        DatePicker("Thời gian", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
-                            .environment(\.locale, Locale(identifier: "vi_VN"))
-                        Picker("Lặp lại", selection: $repeatType) {
-                            ForEach(0..<NotesViewModel.repeatLabels.count, id: \.self) { i in
-                                Text(NotesViewModel.repeatLabels[i]).tag(i)
-                            }
-                        }
-                        Picker("Danh mục", selection: $category) {
-                            Text("Ngày lễ").tag(0)
-                            Text("Sinh nhật").tag(1)
-                            Text("Âm lịch").tag(2)
-                            Text("Cá nhân").tag(3)
-                            Text("Tưởng niệm").tag(4)
-                        }
-                    }
-                }
-            }
-            .navigationTitle(tab == .notes ? "Ghi chú mới" : tab == .tasks ? "Việc mới" : "Nhắc nhở mới")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Hủy") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Lưu") {
-                        save()
-                        dismiss()
-                    }
-                    .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
-                    .fontWeight(.semibold)
-                }
-            }
-        }
-    }
-
-    private func save() {
-        let t = title.trimmingCharacters(in: .whitespaces)
-        guard !t.isEmpty else { return }
-        switch tab {
-        case .notes:
-            vm.createNote(title: t, content: content)
-        case .tasks:
-            vm.createTask(title: t, priority: priority, dueDate: hasDueDate ? dueDate : nil)
-        case .reminders:
-            vm.createReminder(title: t, triggerTime: reminderDate, repeatType: repeatType, category: category)
-        }
-    }
-}

@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * BroadcastReceiver nhận AlarmManager intent và fire notification nhắc nhở.
@@ -33,12 +34,15 @@ class ReminderReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val db = LichSoDatabase.getInstance(context)
-                val reminder = db.reminderDao().getAllReminders().first().find { it.id == id }
-                if (reminder != null && reminder.isEnabled && reminder.repeatType != 0) {
-                    // repeatType != 0 → lặp lại → schedule alarm tiếp theo
-                    val scheduler = ReminderScheduler(context)
-                    scheduler.schedule(reminder)
+                // Limit DB operations to 5 seconds to avoid ANR (goAsync has 10s limit)
+                withTimeoutOrNull(5_000L) {
+                    val db = LichSoDatabase.getInstance(context)
+                    val reminder = db.reminderDao().getAllReminders().first().find { it.id == id }
+                    if (reminder != null && reminder.isEnabled && reminder.repeatType != 0) {
+                        // repeatType != 0 → lặp lại → schedule alarm tiếp theo
+                        val scheduler = ReminderScheduler(context)
+                        scheduler.schedule(reminder)
+                    }
                 }
             } catch (_: Exception) {
                 // Ignore errors — notification đã được gửi rồi

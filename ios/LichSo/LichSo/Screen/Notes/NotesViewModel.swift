@@ -60,6 +60,17 @@ class NotesViewModel: ObservableObject {
         loadNotes()
     }
 
+    func updateNote(_ note: NoteEntity, title: String, content: String, colorIndex: Int, isPinned: Bool, labels: String) {
+        note.title = title
+        note.content = content
+        note.colorIndex = colorIndex
+        note.isPinned = isPinned
+        note.labels = labels
+        note.updatedAt = Int64(Date().timeIntervalSince1970 * 1000)
+        try? modelContext?.save()
+        loadNotes()
+    }
+
     func deleteNote(_ note: NoteEntity) {
         guard let ctx = modelContext else { return }
         ctx.delete(note)
@@ -112,6 +123,18 @@ class NotesViewModel: ObservableObject {
         loadTasks()
     }
 
+    func updateTask(_ task: TaskEntity, title: String, description: String, priority: Int, dueDate: Date?, hasReminder: Bool, labels: String) {
+        task.title = title
+        task.taskDescription = description
+        task.priority = priority
+        task.dueDate = dueDate.map { Int64($0.timeIntervalSince1970 * 1000) }
+        task.hasReminder = hasReminder
+        task.labels = labels
+        task.updatedAt = Int64(Date().timeIntervalSince1970 * 1000)
+        try? modelContext?.save()
+        loadTasks()
+    }
+
     func deleteTask(_ task: TaskEntity) {
         guard let ctx = modelContext else { return }
         ctx.delete(task)
@@ -143,6 +166,20 @@ class NotesViewModel: ObservableObject {
 
     func toggleReminder(_ reminder: ReminderEntity) {
         reminder.isEnabled.toggle()
+        try? modelContext?.save()
+        loadReminders()
+    }
+
+    func updateReminder(_ reminder: ReminderEntity, title: String, subtitle: String, triggerTime: Date, repeatType: Int, useLunar: Bool, advanceDays: Int, category: Int, isEnabled: Bool, labels: String) {
+        reminder.title = title
+        reminder.subtitle = subtitle
+        reminder.triggerTime = Int64(triggerTime.timeIntervalSince1970 * 1000)
+        reminder.repeatType = repeatType
+        reminder.useLunar = useLunar
+        reminder.advanceDays = advanceDays
+        reminder.category = category
+        reminder.isEnabled = isEnabled
+        reminder.labels = labels
         try? modelContext?.save()
         loadReminders()
     }

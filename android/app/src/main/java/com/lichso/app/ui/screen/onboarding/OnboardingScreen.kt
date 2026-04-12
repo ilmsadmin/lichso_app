@@ -152,12 +152,14 @@ fun OnboardingScreen(
 ) {
     val permissionsPageIndex = onboardingPages.size       // page 5
     val profilePageIndex = onboardingPages.size + 1       // page 6
-    val totalPages = onboardingPages.size + 2             // +1 permissions +1 profile
+    val widgetPageIndex = onboardingPages.size + 2        // page 7
+    val totalPages = onboardingPages.size + 3             // +1 permissions +1 profile +1 widget
     val pagerState = rememberPagerState(pageCount = { totalPages })
     val coroutineScope = rememberCoroutineScope()
     val isLastPage = pagerState.currentPage == totalPages - 1
     val isProfilePage = pagerState.currentPage == profilePageIndex
     val isPermissionsPage = pagerState.currentPage == permissionsPageIndex
+    val isWidgetPage = pagerState.currentPage == widgetPageIndex
     val context = LocalContext.current
 
     // ── Profile form state ──
@@ -204,7 +206,7 @@ fun OnboardingScreen(
                     totalPages = totalPages,
                     currentPage = permissionsPageIndex
                 )
-            } else {
+            } else if (pageIndex == profilePageIndex) {
                 // ── Profile Setup Page ──
                 ProfileSetupPage(
                     inputName = inputName,
@@ -223,7 +225,11 @@ fun OnboardingScreen(
                     onGenderChange = { inputGender = it },
                     nameError = nameError,
                     yearError = yearError,
-                    onSkip = { onFinish() },
+                    onSkip = {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(widgetPageIndex)
+                        }
+                    },
                     onFinish = {
                         val nameTrimmed = inputName.trim()
                         val yearInt = inputBirthYear.toIntOrNull() ?: 0
@@ -247,17 +253,24 @@ fun OnboardingScreen(
                                 prefs[ProfileKeys.BIRTH_MINUTE] = inputBirthMinute.toIntOrNull() ?: -1
                                 prefs[ProfileKeys.GENDER] = inputGender
                             }
-                            onFinish()
+                            pagerState.animateScrollToPage(widgetPageIndex)
                         }
                     },
                     totalPages = totalPages,
                     currentPage = profilePageIndex
                 )
+            } else {
+                // ── Widget Setup Page ──
+                WidgetSetupPage(
+                    onFinish = onFinish,
+                    totalPages = totalPages,
+                    currentPage = widgetPageIndex
+                )
             }
         }
 
-        // ── Bottom controls (hidden on profile & permissions pages — buttons are inline there) ──
-        if (!isProfilePage && !isPermissionsPage) Column(
+        // ── Bottom controls (hidden on profile & permissions & widget pages — buttons are inline there) ──
+        if (!isProfilePage && !isPermissionsPage && !isWidgetPage) Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
@@ -279,6 +292,7 @@ fun OnboardingScreen(
                     val accentColor = when {
                         index < onboardingPages.size -> onboardingPages[index].accentColor
                         index == permissionsPageIndex -> Color(0xFF1565C0)
+                        index == widgetPageIndex -> PrimaryRed
                         else -> PrimaryRed
                     }
                     val dotColor by animateColorAsState(
@@ -1638,6 +1652,392 @@ private fun OnboardingFormField(
                     fontSize = 11.sp,
                     color = Color(0xFFB71C1C)
                 )
+            )
+        }
+    }
+}
+
+// ══════════════════════════════════════════
+// WIDGET SETUP PAGE
+// ══════════════════════════════════════════
+
+@Composable
+private fun WidgetSetupPage(
+    onFinish: () -> Unit,
+    totalPages: Int,
+    currentPage: Int
+) {
+    val context = LocalContext.current
+    val pinSupported = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            android.appwidget.AppWidgetManager.getInstance(context).isRequestPinAppWidgetSupported
+        } else false
+    }
+
+    // Track which widget was just pinned to show visual feedback
+    var pinnedIndex by remember { mutableStateOf<Int?>(null) }
+
+    val widgets = com.lichso.app.widget.WidgetPinHelper.allWidgets
+
+    // Widget accent color
+    val accentColor = PrimaryRed
+    val accentGradient = listOf(PrimaryRed, DeepRed)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(SurfaceBg)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+    ) {
+        // ── Progress dots ──
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 20.dp, start = 24.dp, end = 24.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(totalPages) { index ->
+                val isActive = index == currentPage
+                val dotWidth by animateDpAsState(
+                    targetValue = if (isActive) 28.dp else 8.dp,
+                    animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
+                    label = "dotWidth"
+                )
+                val dotColor by animateColorAsState(
+                    targetValue = if (isActive) PrimaryRed else Outline,
+                    animationSpec = tween(300),
+                    label = "dotColor"
+                )
+                Box(
+                    modifier = Modifier
+                        .height(8.dp)
+                        .width(dotWidth)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(dotColor)
+                )
+                if (index < totalPages - 1) Spacer(modifier = Modifier.width(8.dp))
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // ── Hero Icon ──
+            Box(contentAlignment = Alignment.Center) {
+                // Outer glow ring
+                Box(
+                    modifier = Modifier
+                        .size(130.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.radialGradient(
+                                listOf(PrimaryRed.copy(alpha = 0.15f), Color.Transparent)
+                            )
+                        )
+                )
+                // Inner icon circle
+                Box(
+                    modifier = Modifier
+                        .size(92.dp)
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(accentGradient)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.Widgets,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // ── Title ──
+            Text(
+                "Thêm Widget\nvào Màn Hình",
+                style = TextStyle(
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = TextMain,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 34.sp
+                )
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                "Xem lịch âm dương ngay trên màn hình chính\nmà không cần mở ứng dụng.",
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    color = TextSub,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 20.sp
+                )
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ── Widget list ──
+            if (pinSupported) {
+                // API hỗ trợ pin → hiện danh sách các nút thêm trực tiếp
+                Text(
+                    "Chọn widget bạn muốn thêm:",
+                    style = TextStyle(
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextDim
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp)
+                )
+
+                widgets.forEachIndexed { index, widget ->
+                    val isPinned = pinnedIndex == index
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 5.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(
+                                if (isPinned) PrimaryRed.copy(alpha = 0.08f)
+                                else Color.White
+                            )
+                            .border(
+                                width = if (isPinned) 1.5.dp else 1.dp,
+                                color = if (isPinned) PrimaryRed.copy(alpha = 0.4f) else Outline,
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                            .clickable(enabled = !isPinned) {
+                                val success = com.lichso.app.widget.WidgetPinHelper.requestPin(context, widget)
+                                if (success) pinnedIndex = index
+                            }
+                            .padding(horizontal = 16.dp, vertical = 13.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        // Icon
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(11.dp))
+                                .background(
+                                    if (isPinned) PrimaryRed
+                                    else PrimaryRed.copy(alpha = 0.10f)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.Widgets,
+                                contentDescription = null,
+                                tint = if (isPinned) Color.White else PrimaryRed,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        // Text
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                widget.label,
+                                style = TextStyle(
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isPinned) PrimaryRed else TextMain
+                                )
+                            )
+                            Text(
+                                widget.description,
+                                style = TextStyle(
+                                    fontSize = 12.sp,
+                                    color = TextDim
+                                ),
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        }
+
+                        // Add / Done icon
+                        AnimatedContent(
+                            targetState = isPinned,
+                            transitionSpec = {
+                                fadeIn(tween(200)) togetherWith fadeOut(tween(150))
+                            },
+                            label = "pinIcon"
+                        ) { pinned ->
+                            if (pinned) {
+                                Icon(
+                                    Icons.Filled.CheckCircle,
+                                    contentDescription = "Đã thêm",
+                                    tint = PrimaryRed,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Filled.AddCircleOutline,
+                                    contentDescription = "Thêm widget",
+                                    tint = PrimaryRed.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Launcher không hỗ trợ pin API → hướng dẫn thủ công
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color.White)
+                        .border(1.dp, Outline, RoundedCornerShape(18.dp))
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    val steps = listOf(
+                        Icons.Filled.TouchApp to "Chạm và giữ vùng trống trên màn hình chính.",
+                        Icons.Filled.Widgets to "Chọn \"Widget\" hoặc \"Tiện ích\" xuất hiện.",
+                        Icons.Filled.Search to "Tìm \"Lịch Số\" trong danh sách widget.",
+                        Icons.Filled.OpenWith to "Giữ và kéo widget đến vị trí mong muốn.",
+                        Icons.Filled.CheckCircle to "Widget đã được thêm thành công!"
+                    )
+                    steps.forEachIndexed { i, (icon, text) ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(PrimaryRed.copy(alpha = 0.10f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    icon,
+                                    contentDescription = null,
+                                    tint = PrimaryRed,
+                                    modifier = Modifier.size(17.dp)
+                                )
+                            }
+                            Column {
+                                Text(
+                                    "Bước ${i + 1}",
+                                    style = TextStyle(
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = PrimaryRed
+                                    )
+                                )
+                                Text(
+                                    text,
+                                    style = TextStyle(
+                                        fontSize = 13.sp,
+                                        color = TextMain,
+                                        lineHeight = 18.sp
+                                    )
+                                )
+                            }
+                        }
+                        if (i < steps.lastIndex) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(start = 15.dp)
+                                    .width(2.dp)
+                                    .height(6.dp)
+                                    .background(Outline)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(GoldAccent.copy(alpha = 0.08f))
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Icon(
+                        Icons.Filled.Lightbulb,
+                        contentDescription = null,
+                        tint = GoldAccent,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        "Trên Samsung, Xiaomi, Oppo... tên mục có thể khác một chút.",
+                        style = TextStyle(fontSize = 12.sp, color = TextSub, lineHeight = 16.sp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        // ── Bottom buttons ──
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Primary CTA
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(Brush.linearGradient(accentGradient))
+                    .clickable { onFinish() }
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.RocketLaunch,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        "Bắt đầu sử dụng",
+                        style = TextStyle(
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    )
+                }
+            }
+
+            // Skip link
+            Text(
+                "Bỏ qua, thêm sau trong Cài đặt",
+                style = TextStyle(
+                    fontSize = 13.sp,
+                    color = TextDim,
+                    textAlign = TextAlign.Center
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable { onFinish() }
+                    .padding(vertical = 8.dp)
             )
         }
     }

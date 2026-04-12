@@ -75,7 +75,7 @@ class PrayersViewModel @Inject constructor() : ViewModel() {
         name = "Văn khấn Rằm tháng Bảy",
         description = "Bài cúng Vu Lan — Xá tội vong nhân, báo hiếu cha mẹ, cúng chúng sinh",
         categoryId = "ram",
-        tags = listOf(PrayerTag("🔥 Phổ biến", PrayerTagType.HOT)),
+        tags = listOf(PrayerTag("Phổ biến", PrayerTagType.HOT)),
         isPopular = true,
         content = """Nam mô A Di Đà Phật! (3 lần)
 
@@ -112,7 +112,7 @@ Nam mô A Di Đà Phật! (3 lần, 3 vái)""",
             name = "Văn khấn cúng giỗ (ngày giỗ thường)",
             description = "Bài khấn cúng giỗ Ông Bà, Cha Mẹ, người thân đã khuất vào ngày giỗ hàng năm",
             categoryId = "gio",
-            tags = listOf(PrayerTag("🔥 Phổ biến", PrayerTagType.HOT), PrayerTag("Giỗ")),
+            tags = listOf(PrayerTag("Phổ biến", PrayerTagType.HOT), PrayerTag("Giỗ")),
             isPopular = true,
             content = """Nam mô A Di Đà Phật! (3 lần)
 
@@ -289,7 +289,7 @@ Nam mô A Di Đà Phật! (3 lần)""",
             name = "Văn khấn cúng Rằm hàng tháng",
             description = "Bài khấn ngày rằm (15 Âm lịch) tại gia, cúng Phật, Thần Tài, Thổ Công, gia tiên",
             categoryId = "ram",
-            tags = listOf(PrayerTag("🔥 Phổ biến", PrayerTagType.HOT), PrayerTag("Rằm")),
+            tags = listOf(PrayerTag("Phổ biến", PrayerTagType.HOT), PrayerTag("Rằm")),
             isPopular = true,
             content = """Nam mô A Di Đà Phật! (3 lần)
 
@@ -354,7 +354,7 @@ Nam mô A Di Đà Phật! (3 lần, 3 vái)""",
             name = "Văn khấn Rằm tháng Giêng (Tết Nguyên Tiêu)",
             description = "Bài khấn Tết Nguyên Tiêu — Rằm tháng Giêng, lễ lớn đầu năm",
             categoryId = "ram",
-            tags = listOf(PrayerTag("🔥 Phổ biến", PrayerTagType.HOT), PrayerTag("Rằm")),
+            tags = listOf(PrayerTag("Phổ biến", PrayerTagType.HOT), PrayerTag("Rằm")),
             isPopular = true,
             content = """Nam mô A Di Đà Phật! (3 lần)
 
@@ -395,7 +395,7 @@ Nam mô A Di Đà Phật! (3 lần, 3 vái)""",
             name = "Văn khấn cúng Giao Thừa (ngoài trời)",
             description = "Bài khấn đêm Giao Thừa ngoài trời — tiễn Ông Hành Khiển cũ, đón Ông Hành Khiển mới",
             categoryId = "tet",
-            tags = listOf(PrayerTag("🔥 Phổ biến", PrayerTagType.HOT), PrayerTag("Tết")),
+            tags = listOf(PrayerTag("Phổ biến", PrayerTagType.HOT), PrayerTag("Tết")),
             isPopular = true,
             content = """Nam mô A Di Đà Phật! (3 lần)
 
@@ -461,7 +461,7 @@ Nam mô A Di Đà Phật! (3 lần, 3 vái)""",
             name = "Văn khấn Mùng 1 Tết Nguyên Đán",
             description = "Bài khấn sáng mùng 1 Tết — nguyện cầu năm mới bình an, vạn sự như ý",
             categoryId = "tet",
-            tags = listOf(PrayerTag("🔥 Phổ biến", PrayerTagType.HOT), PrayerTag("Tết")),
+            tags = listOf(PrayerTag("Phổ biến", PrayerTagType.HOT), PrayerTag("Tết")),
             isPopular = true,
             content = """Nam mô A Di Đà Phật! (3 lần)
 
@@ -498,7 +498,7 @@ Nam mô A Di Đà Phật! (3 lần, 3 vái)""",
             name = "Văn khấn cúng Ông Công Ông Táo (23 tháng Chạp)",
             description = "Bài khấn tiễn Ông Táo về trời ngày 23 tháng Chạp — tục lệ quan trọng trước Tết",
             categoryId = "tet",
-            tags = listOf(PrayerTag("🔥 Phổ biến", PrayerTagType.HOT), PrayerTag("Tết")),
+            tags = listOf(PrayerTag("Phổ biến", PrayerTagType.HOT), PrayerTag("Tết")),
             isPopular = true,
             content = """Nam mô A Di Đà Phật! (3 lần)
 
@@ -740,7 +740,7 @@ Nam mô A Di Đà Phật! (3 lần, 3 vái)""",
             name = "Văn khấn ban Tam Bảo (chùa)",
             description = "Bài khấn khi đi chùa lễ Phật — khấn trước ban Tam Bảo (Phật — Pháp — Tăng)",
             categoryId = "chua",
-            tags = listOf(PrayerTag("🔥 Phổ biến", PrayerTagType.HOT), PrayerTag("Đi chùa")),
+            tags = listOf(PrayerTag("Phổ biến", PrayerTagType.HOT), PrayerTag("Đi chùa")),
             isPopular = true,
             content = """Nam mô A Di Đà Phật! (3 lần)
 
@@ -810,7 +810,7 @@ Nam mô A Di Đà Phật! (3 lần, 3 vái)""",
             name = "Văn khấn Thần Tài — Thổ Địa",
             description = "Bài khấn cúng Ông Thần Tài, Ông Thổ Địa tại nhà hoặc nơi kinh doanh",
             categoryId = "chua",
-            tags = listOf(PrayerTag("🔥 Phổ biến", PrayerTagType.HOT), PrayerTag("Tài lộc")),
+            tags = listOf(PrayerTag("Phổ biến", PrayerTagType.HOT), PrayerTag("Tài lộc")),
             isPopular = true,
             content = """Nam mô A Di Đà Phật! (3 lần)
 
@@ -982,7 +982,7 @@ Nam mô A Di Đà Phật! (3 lần, 3 vái)""",
             name = "Văn khấn gia tiên ngày cưới (nhà trai)",
             description = "Bài khấn trước bàn thờ gia tiên nhà trai trong ngày cưới — xin phép Ông Bà cho con trai đón vợ",
             categoryId = "gia",
-            tags = listOf(PrayerTag("🔥 Phổ biến", PrayerTagType.HOT), PrayerTag("Cưới hỏi")),
+            tags = listOf(PrayerTag("Phổ biến", PrayerTagType.HOT), PrayerTag("Cưới hỏi")),
             isPopular = true,
             content = """Nam mô A Di Đà Phật! (3 lần)
 
@@ -1284,7 +1284,7 @@ Nam mô Dược Sư Lưu Ly Quang Vương Phật! (3 lần, 3 vái)""",
             name = "Văn khấn cúng đất (động thổ)",
             description = "Bài khấn lễ động thổ — khởi công xây nhà, xin phép Thổ Thần, Long Mạch",
             categoryId = "dat",
-            tags = listOf(PrayerTag("🔥 Phổ biến", PrayerTagType.HOT), PrayerTag("Xây dựng")),
+            tags = listOf(PrayerTag("Phổ biến", PrayerTagType.HOT), PrayerTag("Xây dựng")),
             isPopular = true,
             content = """Nam mô A Di Đà Phật! (3 lần)
 
@@ -1389,7 +1389,7 @@ Nam mô A Di Đà Phật! (3 lần, 3 vái)
             name = "Văn khấn ngày vía Thần Tài (mùng 10 tháng Giêng)",
             description = "Bài khấn ngày vía Thần Tài — cầu tài lộc đầu năm, mua vàng cầu may",
             categoryId = "dat",
-            tags = listOf(PrayerTag("🔥 Phổ biến", PrayerTagType.HOT), PrayerTag("Tài lộc")),
+            tags = listOf(PrayerTag("Phổ biến", PrayerTagType.HOT), PrayerTag("Tài lộc")),
             isPopular = true,
             content = """Nam mô A Di Đà Phật! (3 lần)
 
@@ -1634,15 +1634,15 @@ Nam mô A Di Đà Phật! (3 lần, 3 vái)
     }
 
     fun getCategoryLabel(categoryId: String): Pair<String, String> = when (categoryId) {
-        "gio" -> "🔥" to "Cúng giỗ & Tâm linh"
-        "ram" -> "🌙" to "Rằm & Mùng 1"
-        "tet" -> "🎊" to "Tết & Lễ lớn"
-        "nhap" -> "🏠" to "Nhà cửa & Công việc"
-        "khai" -> "🏪" to "Nhà cửa & Công việc"
-        "xe" -> "🚗" to "Nhà cửa & Công việc"
-        "chua" -> "⛩️" to "Đi chùa & Đi lễ"
-        "gia" -> "👶" to "Gia đình & Hỷ sự"
-        "dat" -> "🌾" to "Cúng đất & Xây dựng"
-        else -> "📋" to "Khác"
+        "gio" -> "candle" to "Cúng giỗ & Tâm linh"
+        "ram" -> "moon" to "Rằm & Mùng 1"
+        "tet" -> "lantern" to "Tết & Lễ lớn"
+        "nhap" -> "house" to "Nhà cửa & Công việc"
+        "khai" -> "store" to "Nhà cửa & Công việc"
+        "xe" -> "car" to "Nhà cửa & Công việc"
+        "chua" -> "temple" to "Đi chùa & Đi lễ"
+        "gia" -> "baby" to "Gia đình & Hỷ sự"
+        "dat" -> "rice" to "Cúng đất & Xây dựng"
+        else -> "all" to "Khác"
     }
 }

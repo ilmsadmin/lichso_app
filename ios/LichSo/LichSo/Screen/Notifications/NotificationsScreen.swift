@@ -6,14 +6,14 @@ import SwiftData
 // Matches screen-notifications.html design
 // ═══════════════════════════════════════════
 
-private let PrimaryRed = Color(hex: "B71C1C")
-private let PrimaryContainer = Color(hex: "FFDAD6")
-private let SurfaceBg = Color(hex: "FFFBF5")
-private let SurfaceContainer = Color(hex: "FFF8F0")
-private let TextMain = Color(hex: "1C1B1F")
-private let TextSub = Color(hex: "534340")
-private let TextDim = Color(hex: "857371")
-private let OutlineVariant = Color(hex: "D8C2BF")
+private var PrimaryRed: Color { LSTheme.primary }
+private var PrimaryContainer: Color { LSTheme.primaryContainer }
+private var SurfaceBg: Color { LSTheme.bg }
+private var SurfaceContainer: Color { LSTheme.surfaceContainer }
+private var TextMain: Color { LSTheme.textPrimary }
+private var TextSub: Color { LSTheme.textSecondary }
+private var TextDim: Color { LSTheme.textTertiary }
+private var OutlineVariant: Color { LSTheme.outlineVariant }
 
 struct NotificationsScreen: View {
     @Environment(\.modelContext) private var modelContext
@@ -94,6 +94,7 @@ struct NotificationsScreen: View {
         .onAppear {
             vm.setModelContext(modelContext)
             vm.seedIfEmpty()
+            vm.generateTodayNotifications()
         }
     }
 }
@@ -106,13 +107,23 @@ private struct NotifCard: View {
     let notif: NotificationEntity
     let onTap: () -> Void
     let onDelete: () -> Void
+    @State private var isExpanded = false
 
     private var info: NotificationsViewModel.NotifTypeInfo {
         NotificationsViewModel.typeInfo(for: notif.type)
     }
 
+    private var hasMultipleLines: Bool {
+        notif.notificationDescription.contains("\n")
+    }
+
     var body: some View {
-        Button(action: onTap) {
+        Button {
+            if hasMultipleLines {
+                withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
+            }
+            onTap()
+        } label: {
             HStack(alignment: .top, spacing: 12) {
                 // Type icon
                 Image(systemName: info.icon)
@@ -123,7 +134,7 @@ private struct NotifCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 // Content
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(notif.title)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(TextMain)
@@ -134,14 +145,23 @@ private struct NotifCard: View {
                         Text(notif.notificationDescription)
                             .font(.system(size: 12))
                             .foregroundColor(TextSub)
-                            .lineLimit(2)
+                            .lineLimit(isExpanded ? nil : 3)
                             .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: isExpanded)
                     }
 
-                    Text(NotificationsViewModel.formatTime(notif.createdAt))
-                        .font(.system(size: 10))
-                        .foregroundColor(TextDim)
-                        .padding(.top, 2)
+                    HStack(spacing: 6) {
+                        Text(NotificationsViewModel.formatTime(notif.createdAt))
+                            .font(.system(size: 10))
+                            .foregroundColor(TextDim)
+
+                        if hasMultipleLines {
+                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(TextDim)
+                        }
+                    }
+                    .padding(.top, 2)
                 }
 
                 Spacer(minLength: 0)

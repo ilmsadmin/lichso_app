@@ -30,9 +30,9 @@ class ApiKeyProvider @Inject constructor() {
         // BuildConfig value — R8 will inline & obfuscate since we no longer -keep BuildConfig
         val raw = BuildConfig.OPENROUTER_API_KEY
         if (raw.isBlank()) {
-            throw IllegalStateException(
-                "OPENROUTER_API_KEY is not set. Add it to local.properties."
-            )
+            // Return empty string instead of crashing — callers should handle gracefully
+            android.util.Log.w("ApiKeyProvider", "OPENROUTER_API_KEY is not set.")
+            return ""
         }
         return raw
     }

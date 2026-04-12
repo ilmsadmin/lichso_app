@@ -14,8 +14,6 @@ struct HomeUiState {
     var dayInfo: DayInfo?
     var calendarDays: [CalendarDay]
     var upcomingEvents: [UpcomingEvent]
-    var showQuote: Bool
-    var showFestival: Bool
     var notificationUnreadCount: Int
 
     init() {
@@ -29,8 +27,6 @@ struct HomeUiState {
         dayInfo = nil
         calendarDays = []
         upcomingEvents = []
-        showQuote = true
-        showFestival = true
         notificationUnreadCount = 0
     }
 }
@@ -39,6 +35,7 @@ struct HomeUiState {
 class HomeViewModel: ObservableObject {
     @Published var state = HomeUiState()
     private let provider = DayInfoProvider.shared
+    @AppStorage("setting_week_start") private var weekStart: String = "Thứ 2"
 
     init() {
         loadCurrentDate()
@@ -92,7 +89,10 @@ class HomeViewModel: ObservableObject {
         state.selectedMonth = month
         state.selectedYear = year
         state.dayInfo = provider.getDayInfo(dd: day, mm: month, yy: year)
-        state.calendarDays = provider.getCalendarDays(year: year, month: month, weekStartSunday: false)
+        state.calendarDays = provider.getCalendarDays(
+            year: year, month: month,
+            weekStartSunday: weekStart == "Chủ nhật"
+        )
         state.upcomingEvents = provider.getUpcomingEvents(dd: day, mm: month, yy: year)
     }
 }

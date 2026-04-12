@@ -13,6 +13,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -79,7 +81,9 @@ class SearchViewModel @Inject constructor(
     fun onQueryChange(query: String) {
         _uiState.update { it.copy(query = query) }
         if (query.isNotBlank()) {
-            performSearch(query.trim())
+            viewModelScope.launch {
+                withContext(Dispatchers.Default) { performSearch(query.trim()) }
+            }
         } else {
             _uiState.update { it.copy(results = emptyList(), lunarConversion = null) }
         }

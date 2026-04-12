@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+        Edge-to-edge is handled by enableEdgeToEdge() in MainActivity.
+        Do NOT set statusBarColor / navigationBarColor — deprecated on API 35.
+    -->
     <style name="Theme.LichSo" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">#FFFFFBF5</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">always</item>
     </style>
 
     <!-- Splash theme for Android 12+: solid red, no icon -->
     <style name="Theme.LichSo.Splash" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/splash_background</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">always</item>
         <!-- Android 12+ Splash Screen API -->
         <item name="android:windowSplashScreenBackground">@color/splash_background</item>
         <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>

@@ -47,6 +47,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import com.lichso.app.util.ReviewHelper
+import com.lichso.app.util.SmartRatingManager
+import com.lichso.app.ui.components.SmartRatingDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,6 +72,13 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
             ReviewHelper.tryShowReview(activity)
         }
     }
+
+    // ── Smart Rating Dialog ──
+    val showRatingDialog by SmartRatingManager.shouldShow.collectAsState()
+    SmartRatingDialog(
+        visible = showRatingDialog,
+        onDismiss = { SmartRatingManager.dismiss() }
+    )
 
     val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays") || prayerDetailShowing || taskEditShowing
 
@@ -271,15 +280,12 @@ private fun DrawerMenuContent(
 
     val mainItems = listOf(
         DrawerMenuItem("home", "Trang chủ", Icons.Outlined.Today, Icons.Filled.Today),
-        DrawerMenuItem("calendar", "Lịch tháng", Icons.Outlined.CalendarMonth, Icons.Filled.CalendarMonth),
-        DrawerMenuItem("gooddays", "Ngày tốt / xấu", Icons.Outlined.EventAvailable, Icons.Filled.EventAvailable),
         DrawerMenuItem("bookmarks", "Ngày đã lưu", Icons.Outlined.Bookmarks, Icons.Filled.Bookmarks),
     )
 
     val exploreItems = listOf(
         DrawerMenuItem("history", "Ngày này năm xưa", Icons.Outlined.HistoryEdu, Icons.Filled.HistoryEdu),
         DrawerMenuItem("familytree", "Cây gia phả", Icons.Outlined.AccountTree, Icons.Filled.AccountTree),
-        DrawerMenuItem("prayers", "Các bài văn khấn", Icons.AutoMirrored.Outlined.MenuBook, Icons.AutoMirrored.Filled.MenuBook),
     )
 
     val bottomItems = listOf(
@@ -431,8 +437,7 @@ private fun DrawerMenuContent(
                     title = "Đánh giá ứng dụng",
                     c = c
                 ) {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.lichso.app"))
-                    context.startActivity(intent)
+                    SmartRatingManager.triggerManually()
                 }
 
                 DrawerActionItem(
@@ -440,12 +445,15 @@ private fun DrawerMenuContent(
                     title = "Chia sẻ ứng dụng",
                     c = c
                 ) {
-                    val sendIntent = Intent().apply {
-                        action = Intent.ACTION_SEND
-                        putExtra(Intent.EXTRA_TEXT, "Lịch Số - Lịch Vạn Niên, Cây Gia Phả, AI Tử Vi\nhttps://play.google.com/store/apps/details?id=com.lichso.app")
+                    val shareUrl = "https://play.google.com/store/apps/details?id=com.lichso.app"
+                    val shareText = "Lịch Số - Lịch vạn niên số 1 Việt Nam 🇻🇳\n\n" +
+                        "Xem ngày âm lịch, ngày tốt xấu, văn khấn, cây gia phả và nhiều tính năng hữu ích khác. " +
+                        "Tải ngay:\n$shareUrl"
+                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
                         type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, shareText)
                     }
-                    context.startActivity(Intent.createChooser(sendIntent, "Chia sẻ"))
+                    context.startActivity(Intent.createChooser(sendIntent, null))
                 }
 
                 DrawerActionItem(

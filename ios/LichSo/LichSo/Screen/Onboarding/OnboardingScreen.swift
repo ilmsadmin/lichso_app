@@ -1,18 +1,19 @@
 import SwiftUI
+import UserNotifications
 
 // ═══════════════════════════════════════════
 // Onboarding Screen — Port from Android
 // ═══════════════════════════════════════════
 
-private let PrimaryRed = Color(hex: "B71C1C")
-private let DeepRed = Color(hex: "8B0000")
-private let GoldAccent = Color(hex: "D4A017")
-private let GoldLight = Color(hex: "E8C84A")
-private let SurfaceBg = Color(hex: "FFFBF5")
-private let TextMain = Color(hex: "1C1B1F")
-private let TextSub = Color(hex: "534340")
-private let TextDim = Color(hex: "857371")
-private let Outline = Color(hex: "D8C2BF")
+private var PrimaryRed: Color { LSTheme.primary }
+private var DeepRed: Color { LSTheme.deepRed }
+private var GoldAccent: Color { LSTheme.gold }
+private var GoldLight: Color { LSTheme.gold2 }
+private var SurfaceBg: Color { LSTheme.bg }
+private var TextMain: Color { LSTheme.textPrimary }
+private var TextSub: Color { LSTheme.textSecondary }
+private var TextDim: Color { LSTheme.textTertiary }
+private var Outline: Color { LSTheme.outlineVariant }
 
 // ── Onboarding page data ──
 
@@ -400,6 +401,8 @@ struct PermissionsSetupPage: View {
     @Binding var currentPage: Int
 
     @State private var notificationGranted = false
+    @State private var notificationDenied = false
+    @State private var showDeniedAlert = false
 
     var body: some View {
         ScrollView {
@@ -465,8 +468,11 @@ struct PermissionsSetupPage: View {
                     icon: "bell.fill",
                     iconColor: Color(hex: "E65100"),
                     title: "Thông báo",
-                    description: "Nhận nhắc nhở tờ lịch hàng ngày, ngày lễ âm lịch, giờ hoàng đạo và nhắc nhở cá nhân đúng giờ.",
+                    description: notificationDenied
+                        ? "Quyền thông báo đã bị từ chối. Nhấn để mở Cài đặt và bật lại."
+                        : "Nhận nhắc nhở tờ lịch hàng ngày, ngày lễ âm lịch, giờ hoàng đạo và nhắc nhở cá nhân đúng giờ.",
                     isGranted: notificationGranted,
+                    isDenied: notificationDenied,
                     onRequest: {
                         requestNotificationPermission()
                     }
@@ -534,6 +540,19 @@ struct PermissionsSetupPage: View {
             .padding(.horizontal, 32)
             .padding(.bottom, 32)
         }
+        .onAppear {
+            checkNotificationStatus()
+        }
+        .alert("Thông báo bị từ chối", isPresented: $showDeniedAlert) {
+            Button("Mở Cài đặt") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Để sau", role: .cancel) { }
+        } message: {
+            Text("Bạn đã từ chối quyền thông báo trước đó. Để nhận nhắc nhở ngày lễ, giờ hoàng đạo, vui lòng vào Cài đặt → Thông báo để bật lại.")
+        }
     }
 
     private func accentColorFor(_ index: Int) -> Color {
@@ -542,10 +561,40 @@ struct PermissionsSetupPage: View {
         return PrimaryRed
     }
 
+    private func checkNotificationStatus() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                switch settings.authorizationStatus {
+                case .authorized, .provisional, .ephemeral:
+                    notificationGranted = true
+                    notificationDenied = false
+                case .denied:
+                    notificationGranted = false
+                    notificationDenied = true
+                default:
+                    notificationGranted = false
+                    notificationDenied = false
+                }
+            }
+        }
+    }
+
     private func requestNotificationPermission() {
+        // Nếu đã bị denied trước đó → mở Settings
+        if notificationDenied {
+            showDeniedAlert = true
+            return
+        }
+
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
             DispatchQueue.main.async {
                 notificationGranted = granted
+                notificationDenied = !granted
+
+                // Nếu cấp quyền thành công → lên lịch thông báo ngay
+                if granted {
+                    NotificationScheduler.shared.setupAllNotifications()
+                }
             }
         }
     }
@@ -561,51 +610,56 @@ struct PermissionItemCard: View {
     let title: String
     let description: String
     let isGranted: Bool
+    var isDenied: Bool = false
     let onRequest: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
             Circle()
-                .fill(isGranted ? Color(hex: "C8E6C9") : iconColor.opacity(0.12))
+                .fill(isGranted ? Color(hex: "C8E6C9") : isDenied ? Color(hex: "FFCDD2") : iconColor.opacity(0.12))
                 .frame(width: 44, height: 44)
                 .overlay(
-                    Image(systemName: isGranted ? "checkmark" : icon)
+                    Image(systemName: isGranted ? "checkmark" : isDenied ? "xmark" : icon)
                         .font(.system(size: 20))
-                        .foregroundColor(isGranted ? Color(hex: "388E3C") : iconColor)
+                        .foregroundColor(isGranted ? Color(hex: "388E3C") : isDenied ? Color(hex: "C62828") : iconColor)
                 )
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
                     Text(title)
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(isGranted ? Color(hex: "2E7D32") : TextMain)
+                        .foregroundColor(isGranted ? Color(hex: "2E7D32") : isDenied ? Color(hex: "C62828") : TextMain)
                     if isGranted {
                         Text("✓ Đã cấp")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(Color(hex: "388E3C"))
+                    } else if isDenied {
+                        Text("✗ Đã từ chối")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(Color(hex: "C62828"))
                     }
                 }
                 Text(description)
                     .font(.system(size: 12))
-                    .foregroundColor(isGranted ? Color(hex: "33691E") : TextSub)
+                    .foregroundColor(isGranted ? Color(hex: "33691E") : isDenied ? Color(hex: "B71C1C") : TextSub)
                     .lineSpacing(4)
 
                 if !isGranted {
-                    Button("Cấp quyền") { onRequest() }
+                    Button(isDenied ? "Mở Cài đặt" : "Cấp quyền") { onRequest() }
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(iconColor)
+                        .foregroundColor(isDenied ? Color(hex: "C62828") : iconColor)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(iconColor.opacity(0.1))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(iconColor.opacity(0.3), lineWidth: 1))
+                        .background(isDenied ? Color(hex: "C62828").opacity(0.1) : iconColor.opacity(0.1))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(isDenied ? Color(hex: "C62828").opacity(0.3) : iconColor.opacity(0.3), lineWidth: 1))
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                         .padding(.top, 6)
                 }
             }
         }
         .padding(16)
-        .background(isGranted ? Color(hex: "F1F8E9") : Color.white)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(isGranted ? Color(hex: "A5D6A7") : Outline, lineWidth: 1))
+        .background(isGranted ? Color(hex: "F1F8E9") : isDenied ? Color(hex: "FFF5F5") : Color.white)
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(isGranted ? Color(hex: "A5D6A7") : isDenied ? Color(hex: "EF9A9A") : Outline, lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }

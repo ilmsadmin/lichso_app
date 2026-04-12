@@ -19,7 +19,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -56,43 +59,43 @@ class HomeViewModel @Inject constructor(
         loadCurrentDate()
         // Lắng nghe số thông báo chưa đọc
         notificationDao.getUnreadCount()
-            .onEach { count -> _uiState.value = _uiState.value.copy(notificationUnreadCount = count) }
+            .onEach { count -> _uiState.update { it.copy(notificationUnreadCount = count) } }
             .launchIn(viewModelScope)
         // Lắng nghe thay đổi setting lịch âm
         appSettings.lunarBadgeEnabled
-            .onEach { enabled -> _uiState.value = _uiState.value.copy(showLunarBadge = enabled) }
+            .onEach { enabled -> _uiState.update { it.copy(showLunarBadge = enabled) } }
             .launchIn(viewModelScope)
         // Lắng nghe thay đổi setting câu danh ngôn
         appSettings.quoteEnabled
-            .onEach { enabled -> _uiState.value = _uiState.value.copy(showQuote = enabled) }
+            .onEach { enabled -> _uiState.update { it.copy(showQuote = enabled) } }
             .launchIn(viewModelScope)
         // Lắng nghe thay đổi setting ngày lễ / sự kiện
         appSettings.festivalEnabled
-            .onEach { enabled -> _uiState.value = _uiState.value.copy(showFestival = enabled) }
+            .onEach { enabled -> _uiState.update { it.copy(showFestival = enabled) } }
             .launchIn(viewModelScope)
         // Lắng nghe thay đổi đơn vị nhiệt độ
         appSettings.tempUnit
-            .onEach { unit -> _uiState.value = _uiState.value.copy(tempUnit = unit) }
+            .onEach { unit -> _uiState.update { it.copy(tempUnit = unit) } }
             .launchIn(viewModelScope)
         // Lắng nghe thay đổi thời tiết
         weatherRepository.weatherState
-            .onEach { state -> _uiState.value = _uiState.value.copy(weatherState = state) }
+            .onEach { state -> _uiState.update { it.copy(weatherState = state) } }
             .launchIn(viewModelScope)
         // Lắng nghe thay đổi ngày bắt đầu tuần
         appSettings.weekStart
             .onEach { ws ->
                 val sunday = ws == "Chủ Nhật"
-                _uiState.value = _uiState.value.copy(weekStartSunday = sunday)
-                // Rebuild calendar grid with new week start
+                _uiState.update { it.copy(weekStartSunday = sunday) }
                 val s = _uiState.value
-                _uiState.value = s.copy(
-                    calendarDays = dayInfoProvider.getCalendarDays(s.currentYear, s.currentMonth, sunday)
-                )
+                val calDays = withContext(Dispatchers.Default) {
+                    dayInfoProvider.getCalendarDays(s.currentYear, s.currentMonth, sunday)
+                }
+                _uiState.update { it.copy(calendarDays = calDays) }
             }
             .launchIn(viewModelScope)
         // Lắng nghe thay đổi setting ngày hoàng đạo
         appSettings.gioDaiCatEnabled
-            .onEach { enabled -> _uiState.value = _uiState.value.copy(showHoangDao = enabled) }
+            .onEach { enabled -> _uiState.update { it.copy(showHoangDao = enabled) } }
             .launchIn(viewModelScope)
         // Lắng nghe thay đổi vị trí → tải lại thời tiết
         appSettings.locationName
@@ -107,7 +110,7 @@ class HomeViewModel @Inject constructor(
 
     private fun loadCurrentDate() {
         val today = LocalDate.now()
-        updateState(today.year, today.monthValue, today)
+        viewModelScope.launch { updateState(today.year, today.monthValue, today) }
     }
 
     fun loadWeather(forceRefresh: Boolean = false) {
@@ -134,21 +137,21 @@ class HomeViewModel @Inject constructor(
 
     fun selectDay(day: Int, month: Int, year: Int) {
         val date = LocalDate.of(year, month, day)
-        _uiState.value = _uiState.value.copy(
-            selectedDate = date,
-            dayInfo = dayInfoProvider.getDayInfo(day, month, year),
-            upcomingEvents = dayInfoProvider.getUpcomingEvents(day, month, year)
-        )
+        viewModelScope.launch {
+            val info = withContext(Dispatchers.Default) { dayInfoProvider.getDayInfo(day, month, year) }
+            val events = withContext(Dispatchers.Default) { dayInfoProvider.getUpcomingEvents(day, month, year) }
+            _uiState.update { it.copy(selectedDate = date, dayInfo = info, upcomingEvents = events) }
+        }
     }
 
     fun prevDay() {
         val newDate = _uiState.value.selectedDate.minusDays(1)
-        updateState(newDate.year, newDate.monthValue, newDate)
+        viewModelScope.launch { updateState(newDate.year, newDate.monthValue, newDate) }
     }
 
     fun nextDay() {
         val newDate = _uiState.value.selectedDate.plusDays(1)
-        updateState(newDate.year, newDate.monthValue, newDate)
+        viewModelScope.launch { updateState(newDate.year, newDate.monthValue, newDate) }
     }
 
     fun prevMonth() {
@@ -156,7 +159,7 @@ class HomeViewModel @Inject constructor(
         var newMonth = current.currentMonth - 1
         var newYear = current.currentYear
         if (newMonth < 1) { newMonth = 12; newYear-- }
-        updateState(newYear, newMonth, current.selectedDate)
+        viewModelScope.launch { updateState(newYear, newMonth, current.selectedDate) }
     }
 
     fun nextMonth() {
@@ -164,32 +167,48 @@ class HomeViewModel @Inject constructor(
         var newMonth = current.currentMonth + 1
         var newYear = current.currentYear
         if (newMonth > 12) { newMonth = 1; newYear++ }
-        updateState(newYear, newMonth, current.selectedDate)
+        viewModelScope.launch { updateState(newYear, newMonth, current.selectedDate) }
     }
 
     fun goToToday() {
         val today = LocalDate.now()
-        updateState(today.year, today.monthValue, today)
+        viewModelScope.launch { updateState(today.year, today.monthValue, today) }
     }
 
     fun goToDate(year: Int, month: Int, day: Int) {
         val date = LocalDate.of(year, month, day)
-        updateState(date.year, date.monthValue, date)
+        viewModelScope.launch { updateState(date.year, date.monthValue, date) }
     }
 
-    private fun updateState(year: Int, month: Int, selectedDate: LocalDate) {
+    fun goToMonth(year: Int, month: Int) {
+        val current = _uiState.value
+        val day = current.selectedDate.dayOfMonth.coerceAtMost(
+            java.time.YearMonth.of(year, month).lengthOfMonth()
+        )
+        val date = LocalDate.of(year, month, day)
+        viewModelScope.launch { updateState(year, month, date) }
+    }
+
+    private suspend fun updateState(year: Int, month: Int, selectedDate: LocalDate) {
         val dd = selectedDate.dayOfMonth
         val mm = selectedDate.monthValue
         val yy = selectedDate.year
-        val current = _uiState.value
-        val weekStartSunday = current.weekStartSunday
-        _uiState.value = current.copy(
-            currentYear = year,
-            currentMonth = month,
-            selectedDate = selectedDate,
-            dayInfo = dayInfoProvider.getDayInfo(dd, mm, yy),
-            calendarDays = dayInfoProvider.getCalendarDays(year, month, weekStartSunday),
-            upcomingEvents = dayInfoProvider.getUpcomingEvents(dd, mm, yy),
-        )
+        val (dayInfo, calDays, events) = withContext(Dispatchers.Default) {
+            Triple(
+                dayInfoProvider.getDayInfo(dd, mm, yy),
+                dayInfoProvider.getCalendarDays(year, month, _uiState.value.weekStartSunday),
+                dayInfoProvider.getUpcomingEvents(dd, mm, yy)
+            )
+        }
+        _uiState.update { current ->
+            current.copy(
+                currentYear = year,
+                currentMonth = month,
+                selectedDate = selectedDate,
+                dayInfo = dayInfo,
+                calendarDays = calDays,
+                upcomingEvents = events,
+            )
+        }
     }
 }

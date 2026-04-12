@@ -2,6 +2,7 @@ package com.lichso.app
 
 import android.app.Application
 import com.lichso.app.data.local.LichSoDatabase
+import com.lichso.app.notification.AppUpdateChecker
 import com.lichso.app.notification.DailyNotificationWorker
 import com.lichso.app.notification.FestivalReminderWorker
 import com.lichso.app.notification.GioDaiCatWorker
@@ -11,7 +12,6 @@ import com.lichso.app.ui.screen.settings.SettingsKeys
 import com.lichso.app.ui.screen.settings.settingsDataStore
 import com.lichso.app.widget.CalendarWidgetScheduler
 import dagger.hilt.android.HiltAndroidApp
-import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -21,16 +21,16 @@ import kotlinx.coroutines.launch
 @HiltAndroidApp
 class LichSoApp : Application() {
 
-    // Structured coroutine scope tied to app lifecycle
-    private val appScope = CoroutineScope(
-        SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, _ -> }
-    )
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     override fun onCreate() {
         super.onCreate()
+
         NotificationHelper.createChannels(this)
         scheduleWorkersFromSettings()
         // Schedule widget updates
         CalendarWidgetScheduler.scheduleWidgetUpdates(this)
+        // Schedule daily update check
+        AppUpdateChecker.schedule(this)
     }
 
     /**

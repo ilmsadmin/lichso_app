@@ -2,8 +2,6 @@
 -keepattributes *Annotation*
 
 # ── BuildConfig ──
-# NOTE: Không keep BuildConfig để R8 obfuscate API key fields.
-# Chỉ keep các field cần thiết (không bao gồm OPENROUTER_API_KEY)
 -keep class com.lichso.app.BuildConfig {
     public static final boolean DEBUG;
     public static final java.lang.String APPLICATION_ID;
@@ -13,7 +11,6 @@
 }
 
 # ── Hilt / Dagger ──
-# Hilt handles its own ProGuard rules via bundled META-INF, minimal keep needed
 -dontwarn dagger.internal.codegen.**
 
 # ── ViewModel ──
@@ -33,11 +30,11 @@
 
 # ── Gson (JSON parsing) ──
 -keepattributes Signature
--keep class com.google.gson.** { *; }
-# Keep only classes actually used for JSON deserialization
+# Only keep what R8 can't infer from code (TypeAdapters)
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
+-dontwarn com.google.gson.**
 
 # ── OpenRouter AI API models ──
 -keep class com.lichso.app.data.remote.ChatMessage { *; }
@@ -51,6 +48,10 @@
 -keep class com.lichso.app.data.remote.OpenMeteoCurrent { *; }
 -keep class com.lichso.app.domain.model.WeatherInfo { *; }
 -keep class com.lichso.app.domain.model.LocationInfo { *; }
+
+# ── Backup / Export data models (Gson reflection) ──
+-keep class com.lichso.app.data.local.AppBackupManager$* { *; }
+-keep class com.lichso.app.data.local.FamilyTreeExportImport$* { *; }
 
 # ── OkHttp / Okio ──
 -dontwarn okhttp3.**
@@ -67,7 +68,6 @@
 -dontwarn androidx.work.**
 
 # ── Firebase / Google Sign-In ──
-# Only keep what's actually used (Firebase Auth, Credentials)
 -keep class com.google.firebase.auth.** { *; }
 -keep class com.google.android.gms.auth.** { *; }
 -keep class com.google.android.libraries.identity.googleid.** { *; }
@@ -80,3 +80,13 @@
 
 # ── DataStore ──
 -dontwarn androidx.datastore.**
+
+# ── Coil (image loading) ──
+-dontwarn coil.**
+
+# ── Remove all logging in release ──
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+}

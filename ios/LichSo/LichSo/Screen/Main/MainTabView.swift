@@ -5,9 +5,9 @@ import SwiftUI
 // Matches iOS HTML mock tab bar design
 // ═══════════════════════════════════════════
 
-private let PrimaryRed = Color(hex: "B71C1C")
-private let SurfaceBg = Color(hex: "FFFBF5")
-private let TabInactive = Color(hex: "857371")
+private var PrimaryRed  : Color { LSTheme.primary }
+private var SurfaceBg   : Color { LSTheme.bg }
+private var TabInactive : Color { LSTheme.textTertiary }
 
 enum MainTab: Int, CaseIterable {
     case calendar = 0
@@ -48,31 +48,125 @@ enum MainTab: Int, CaseIterable {
 }
 
 struct MainTabView: View {
+    @EnvironmentObject private var appState: AppState
     @State private var selectedTab: MainTab = .today
+    @State private var showAIChat = false
+    @State private var showSidebar = false
+    @State private var showSettings = false
+    @State private var showFamilyTree = false
+    @State private var showGoodDays = false
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Content
-            Group {
-                switch selectedTab {
-                case .calendar:
-                    PlaceholderScreen(title: "Lịch Tháng", icon: "calendar")
-                case .notes:
-                    NotesScreen()
-                case .today:
-                    HomeScreen()
-                case .prayers:
-                    PlaceholderScreen(title: "Văn Khấn", icon: "book.fill")
-                case .profile:
-                    ProfileScreen()
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        ZStack {
+            // Main content with tabs
+            mainContent
 
-            // Custom Tab Bar
-            CustomTabBar(selectedTab: $selectedTab)
+            // Sidebar overlay
+            SidebarView(isOpen: $showSidebar) { route in
+                handleSidebarNavigation(route)
+            }
+        }
+    }
+
+    // MARK: - Main Content
+
+    private var mainContent: some View {
+        GeometryReader { geometry in
+            let safeBottom = geometry.safeAreaInsets.bottom // home indicator height
+            let tabBarHeight: CGFloat = 54 // HStack row content height
+            let tabBarTopPad: CGFloat = 6
+            let tabBarBottomPad: CGFloat = safeBottom > 0 ? safeBottom : 20
+            let totalTabBarHeight = tabBarTopPad + tabBarHeight + tabBarBottomPad
+            // Content bottom = aligns border bottom with top edge of tab bar
+            let contentBottom = totalTabBarHeight
+            // FAB: right edge 5px inside border right, bottom edge 5px above border bottom
+            // Calendar border margin = 16px from content edge
+            let borderMargin: CGFloat = 16
+            let fabInset: CGFloat = 5
+            let fabTrailing = borderMargin + fabInset + 3 // +3 for border stroke width
+            let fabBottomOffset = contentBottom + borderMargin + fabInset + 3
+
+            ZStack(alignment: .bottom) {
+                // Content
+                Group {
+                    switch selectedTab {
+                    case .calendar:
+                        CalendarScreen()
+                    case .notes:
+                        NotesScreen()
+                    case .today:
+                        HomeScreen(onMenuClick: { showSidebar = true })
+                    case .prayers:
+                        PrayersScreen()
+                    case .profile:
+                        ProfileScreen()
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.bottom, contentBottom)
+
+                // ═══ AI FAB (floating above tab bar) ═══
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        AiFab { showAIChat = true }
+                    }
+                    .padding(.trailing, fabTrailing)
+                    .padding(.bottom, fabBottomOffset)
+                }
+
+                // Custom Tab Bar
+                CustomTabBar(selectedTab: $selectedTab, bottomInset: tabBarBottomPad)
+            }
         }
         .edgesIgnoringSafeArea(.bottom)
+        .fullScreenCover(isPresented: $showAIChat) {
+            AIChatScreen()
+        }
+        .sheet(isPresented: $showSettings) {
+            NavigationStack {
+                SettingsScreen()
+            }
+            .preferredColorScheme(appState.preferredColorScheme)
+        }
+        .fullScreenCover(isPresented: $showFamilyTree) {
+            NavigationStack {
+                FamilyTreeScreen()
+            }
+        }
+        .fullScreenCover(isPresented: $showGoodDays) {
+            NavigationStack {
+                GoodDaysScreen()
+            }
+        }
+    }
+
+    // MARK: - Sidebar Navigation
+
+    private func handleSidebarNavigation(_ route: String) {
+        switch route {
+        case "home":
+            selectedTab = .today
+        case "calendar":
+            selectedTab = .calendar
+        case "prayers":
+            selectedTab = .prayers
+        case "settings":
+            showSettings = true
+        case "gooddays":
+            showGoodDays = true
+        case "bookmarks":
+            // TODO: Navigate to bookmarks screen
+            break
+        case "history":
+            // TODO: Navigate to history screen
+            break
+        case "familytree":
+            showFamilyTree = true
+        default:
+            break
+        }
     }
 }
 
@@ -82,6 +176,7 @@ struct MainTabView: View {
 
 struct CustomTabBar: View {
     @Binding var selectedTab: MainTab
+    var bottomInset: CGFloat = 30
 
     var body: some View {
         HStack(spacing: 0) {
@@ -104,12 +199,10 @@ struct CustomTabBar: View {
         }
         .padding(.horizontal, 8)
         .padding(.top, 6)
-        .padding(.bottom, 30) // home indicator padding
-        .background(
-            SurfaceBg.opacity(0.95)
-                .background(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.06), radius: 1, y: -0.5)
-        )
+        .padding(.bottom, bottomInset)
+        .background(SurfaceBg.opacity(0.97))
+        .background(.ultraThinMaterial)
+        .shadow(color: Color.black.opacity(0.15), radius: 1, y: -0.5)
     }
 }
 
@@ -194,10 +287,10 @@ struct PlaceholderScreen: View {
                 .foregroundColor(PrimaryRed.opacity(0.4))
             Text(title)
                 .font(.system(size: 24, weight: .bold))
-                .foregroundColor(Color(hex: "1C1B1F"))
+                .foregroundColor(Color(hex: "F0E8D0"))
             Text("Đang phát triển...")
                 .font(.system(size: 14))
-                .foregroundColor(Color(hex: "857371"))
+                .foregroundColor(Color(hex: "8A7E62"))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(SurfaceBg)

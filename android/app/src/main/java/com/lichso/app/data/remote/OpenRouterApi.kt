@@ -159,19 +159,23 @@ QUY TẮC FORMAT BẮT BUỘC (rất quan trọng, phải tuân thủ tuyệt đ
                 .build()
 
             val response = client.newCall(request).execute()
-            val body = response.body?.string()
+            response.use { resp ->
+                val body = resp.body?.string()
 
-            if (response.isSuccessful && body != null) {
-                val parsed = gson.fromJson(body, OpenRouterResponse::class.java)
-                val content = parsed.choices?.firstOrNull()?.message?.content
-                if (content != null) {
-                    Result.success(content.trim())
+                if (resp.isSuccessful && body != null) {
+                    val parsed = gson.fromJson(body, OpenRouterResponse::class.java)
+                    val content = parsed.choices?.firstOrNull()?.message?.content
+                    if (content != null) {
+                        Result.success(content.trim())
+                    } else {
+                        Result.failure(Exception("Empty response from AI"))
+                    }
                 } else {
-                    Result.failure(Exception("Empty response from AI"))
+                    Result.failure(Exception("API error ${resp.code}: ${body?.take(200)}"))
                 }
-            } else {
-                Result.failure(Exception("API error ${response.code}: ${body?.take(200)}"))
             }
+        } catch (e: java.io.IOException) {
+            Result.failure(Exception("Lỗi kết nối mạng: ${e.message}"))
         } catch (e: Exception) {
             Result.failure(e)
         }

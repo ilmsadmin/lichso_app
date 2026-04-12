@@ -1,7 +1,10 @@
 package com.lichso.app.ui.screen.settings
 
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.webkit.WebView
 import android.widget.Toast
 import androidx.compose.foundation.*
@@ -10,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -37,6 +41,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lichso.app.ui.theme.*
 import com.lichso.app.ui.components.AppTopBar
 import com.lichso.app.util.ReviewHelper
+import com.lichso.app.widget.WidgetPinHelper
 
 // ══════════════════════════════════════════════════════════
 // Settings Screen — Material 3, matching screen-settings.html
@@ -282,31 +287,9 @@ fun SettingsScreen(
                 ) { viewModel.showClearCacheDialog() }
             }
 
-            // ── HỖ TRỢ ──
-            SectionTitle("Hỗ trợ")
-            SettingsGroup {
-                SettingsArrowItem(
-                    icon = Icons.Filled.Star, iconColor = IconWrapColor(Color(0xFFFFF8E1), Color(0xFFF9A825)),
-                    title = "Đánh giá ứng dụng", desc = "Đánh giá 5 sao trên Google Play"
-                ) {
-                    val activity = context as? android.app.Activity
-                    if (activity != null) {
-                        ReviewHelper.launchReviewFlow(activity)
-                    }
-                }
-                SettingsItemDivider()
-                SettingsArrowItem(
-                    icon = Icons.Filled.Share, iconColor = iconBlue,
-                    title = "Chia sẻ ứng dụng", desc = "Giới thiệu cho bạn bè & người thân"
-                ) {
-                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_SUBJECT, "Lịch Số - Lịch Vạn Niên & Phong Thủy")
-                        putExtra(Intent.EXTRA_TEXT, "Lịch Số - Ứng dụng lịch vạn niên, phong thủy, gia phả số miễn phí!\n\nhttps://play.google.com/store/apps/details?id=com.lichso.app")
-                    }
-                    context.startActivity(Intent.createChooser(shareIntent, "Chia sẻ ứng dụng"))
-                }
-            }
+            // ── WIDGET ──
+            SectionTitle("Widget")
+            WidgetSection(context = context, iconGreen = iconGreen, iconBlue = iconBlue, iconOrange = iconOrange, iconPurple = iconPurple, iconTeal = iconTeal)
 
             Spacer(modifier = Modifier.height(32.dp))
         }
@@ -1452,4 +1435,230 @@ private fun ClearCacheConfirmDialog(
             }
         }
     )
+}
+
+// ──────────────────────────────────────────────────────────
+// WIDGET SECTION
+// ──────────────────────────────────────────────────────────
+
+@Composable
+private fun WidgetSection(
+    context: android.content.Context,
+    iconGreen: IconWrapColor,
+    iconBlue: IconWrapColor,
+    iconOrange: IconWrapColor,
+    iconPurple: IconWrapColor,
+    iconTeal: IconWrapColor,
+) {
+    val c = LichSoThemeColors.current
+    val pinSupported = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            AppWidgetManager.getInstance(context).isRequestPinAppWidgetSupported
+        } else false
+    }
+    var showGuideDialog by remember { mutableStateOf(false) }
+
+    if (showGuideDialog) {
+        WidgetGuideDialog(onDismiss = { showGuideDialog = false })
+    }
+
+    SettingsGroup {
+        // Header mô tả
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(iconPurple.bg, RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Filled.Widgets,
+                    contentDescription = null,
+                    tint = iconPurple.fg,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Thêm widget vào màn hình",
+                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium, color = c.textPrimary)
+                )
+                Text(
+                    if (pinSupported) "Nhấn nút để thêm ngay — launcher sẽ xác nhận"
+                    else "Nhấn để xem hướng dẫn thêm widget thủ công",
+                    style = TextStyle(fontSize = 12.sp, color = c.textSecondary)
+                )
+            }
+        }
+
+        Divider(color = c.outlineVariant, thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 18.dp))
+
+        // Danh sách widget
+        val widgetIconColors = listOf(iconGreen, iconBlue, iconOrange, iconTeal, iconPurple)
+        WidgetPinHelper.allWidgets.forEachIndexed { index, widget ->
+            WidgetPinItem(
+                widget = widget,
+                iconColor = widgetIconColors[index % widgetIconColors.size],
+                pinSupported = pinSupported,
+                onPin = {
+                    if (pinSupported) {
+                        val success = WidgetPinHelper.requestPin(context, widget)
+                        if (!success) showGuideDialog = true
+                    } else {
+                        showGuideDialog = true
+                    }
+                }
+            )
+            if (index < WidgetPinHelper.allWidgets.lastIndex) {
+                Divider(color = c.outlineVariant, thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 18.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun WidgetPinItem(
+    widget: WidgetPinHelper.WidgetInfo,
+    iconColor: IconWrapColor,
+    pinSupported: Boolean,
+    onPin: () -> Unit,
+) {
+    val c = LichSoThemeColors.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onPin)
+            .padding(horizontal = 18.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(iconColor.bg, RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Filled.Widgets,
+                contentDescription = null,
+                tint = iconColor.fg,
+                modifier = Modifier.size(19.dp)
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                widget.label,
+                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium, color = c.textPrimary)
+            )
+            Text(
+                widget.description,
+                style = TextStyle(fontSize = 12.sp, color = c.textSecondary),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        if (pinSupported) {
+            Icon(
+                Icons.Filled.AddCircleOutline,
+                contentDescription = "Thêm widget",
+                tint = c.primary,
+                modifier = Modifier.size(22.dp)
+            )
+        } else {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "Hướng dẫn",
+                tint = c.textTertiary,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun WidgetGuideDialog(onDismiss: () -> Unit) {
+    val c = LichSoThemeColors.current
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .background(c.surfaceContainer, RoundedCornerShape(24.dp))
+                .padding(24.dp)
+        ) {
+            // Title
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
+                Icon(Icons.Filled.Widgets, contentDescription = null, tint = c.primary, modifier = Modifier.size(24.dp))
+                Text(
+                    "Cách thêm Widget",
+                    style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = c.textPrimary)
+                )
+            }
+
+            // Steps
+            val steps = listOf(
+                "Chạm và giữ vào vùng trống trên màn hình chính.",
+                "Chọn mục \"Widget\" (hoặc \"Tiện ích\") xuất hiện phía dưới.",
+                "Cuộn tìm ứng dụng \"Lịch Số\" trong danh sách.",
+                "Nhấn giữ widget muốn dùng, kéo đến vị trí mong muốn rồi thả ra.",
+                "Widget đã được thêm thành công!"
+            )
+            steps.forEachIndexed { i, step ->
+                Row(
+                    modifier = Modifier.padding(vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .background(c.primary.copy(alpha = 0.15f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "${i + 1}",
+                            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = c.primary)
+                        )
+                    }
+                    Text(
+                        step,
+                        style = TextStyle(fontSize = 13.sp, color = c.textSecondary),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            // Note
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                "💡 Lưu ý: Trên một số máy Samsung, Xiaomi, Oppo... tên và vị trí có thể khác nhau một chút.",
+                style = TextStyle(fontSize = 12.sp, color = c.textTertiary),
+                modifier = Modifier
+                    .background(c.primary.copy(alpha = 0.07f), RoundedCornerShape(10.dp))
+                    .padding(10.dp)
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = c.primary)
+            ) {
+                Text("Đã hiểu", style = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 15.sp))
+            }
+        }
+    }
 }
