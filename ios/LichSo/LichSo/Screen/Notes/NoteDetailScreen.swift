@@ -52,8 +52,10 @@ struct NoteDetailScreen: View {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(TextMain)
+                        .foregroundColor(.white)
                         .frame(width: 40, height: 40)
+                        .background(Color.white.opacity(0.15))
+                        .clipShape(Circle())
                 }
 
                 Spacer()
@@ -61,21 +63,25 @@ struct NoteDetailScreen: View {
                 if note.isPinned {
                     Image(systemName: "pin.fill")
                         .font(.system(size: 14))
-                        .foregroundColor(PrimaryRed)
+                        .foregroundColor(.white)
                 }
 
                 Button { vm.togglePin(note) } label: {
                     Image(systemName: note.isPinned ? "pin.slash" : "pin")
                         .font(.system(size: 16))
-                        .foregroundColor(TextSub)
+                        .foregroundColor(.white)
                         .frame(width: 38, height: 38)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Circle())
                 }
 
                 Button { showEdit = true } label: {
                     Image(systemName: "pencil")
                         .font(.system(size: 16))
-                        .foregroundColor(TextSub)
+                        .foregroundColor(.white)
                         .frame(width: 38, height: 38)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Circle())
                 }
 
                 Menu {
@@ -91,12 +97,22 @@ struct NoteDetailScreen: View {
                 } label: {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 16))
-                        .foregroundColor(TextSub)
+                        .foregroundColor(.white)
                         .frame(width: 38, height: 38)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Circle())
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 8)
+            .padding(.top, 12)
+            .padding(.bottom, 12)
+            .background(
+                LinearGradient(
+                    colors: [Color(red: 0.773, green: 0.157, blue: 0.157),
+                             Color(red: 0.545, green: 0, blue: 0)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            )
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 12) {
@@ -203,21 +219,25 @@ struct TaskDetailScreen: View {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(TextMain)
+                        .foregroundColor(.white)
                         .frame(width: 40, height: 40)
+                        .background(Color.white.opacity(0.15))
+                        .clipShape(Circle())
                 }
 
                 Text("Chi tiết công việc")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(TextMain)
+                    .foregroundColor(.white)
 
                 Spacer()
 
                 Button { showEdit = true } label: {
                     Image(systemName: "pencil")
                         .font(.system(size: 16))
-                        .foregroundColor(TextSub)
+                        .foregroundColor(.white)
                         .frame(width: 38, height: 38)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Circle())
                 }
 
                 Menu {
@@ -230,12 +250,22 @@ struct TaskDetailScreen: View {
                 } label: {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 16))
-                        .foregroundColor(TextSub)
+                        .foregroundColor(.white)
                         .frame(width: 38, height: 38)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Circle())
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 8)
+            .padding(.top, 12)
+            .padding(.bottom, 12)
+            .background(
+                LinearGradient(
+                    colors: [Color(red: 0.773, green: 0.157, blue: 0.157),
+                             Color(red: 0.545, green: 0, blue: 0)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            )
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
@@ -493,7 +523,11 @@ struct ReminderDetailScreen: View {
                 .padding(.vertical, 20)
             }
             .background(
-                LinearGradient(colors: [Color(hex: "E65100"), Color(hex: "EF6C00"), Color(hex: "F57C00")], startPoint: .topLeading, endPoint: .bottomTrailing)
+                LinearGradient(
+                    colors: [Color(red: 0.773, green: 0.157, blue: 0.157),
+                             Color(red: 0.545, green: 0, blue: 0)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
             )
 
             ScrollView(.vertical, showsIndicators: false) {

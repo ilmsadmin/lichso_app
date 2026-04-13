@@ -107,19 +107,29 @@ private struct CalendarTopBar: View {
 
     var body: some View {
         HStack {
+            Text("Lịch")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.white)
             Spacer()
-            HStack(spacing: 4) {
-                Button(action: onSearchTap) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 20))
-                        .foregroundColor(TextSub)
-                        .frame(width: 36, height: 36)
-                }
+            Button(action: onSearchTap) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.white)
+                    .frame(width: 36, height: 36)
+                    .background(Color.white.opacity(0.15))
+                    .clipShape(Circle())
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .padding(.bottom, 4)
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 12)
+        .background(
+            LinearGradient(
+                colors: [Color(red: 0.773, green: 0.157, blue: 0.157),
+                         Color(red: 0.545, green: 0, blue: 0)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        )
     }
 }
 

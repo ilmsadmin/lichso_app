@@ -118,7 +118,7 @@ struct ProfileScreen: View {
         .sheet(isPresented: $showNotifications) { NavigationStack { NotificationsScreen() } }
         .sheet(isPresented: $showSearch)        { NavigationStack { SearchScreen() } }
         .sheet(isPresented: $showFamilyTree) {
-            NavigationStack { FamilyTreeScreen(viewModel: FamilyTreeViewModel()) }
+            NavigationStack { FamilyTreeScreen() }
         }
         .sheet(isPresented: $showFamilySettings) {
             NavigationStack { FamilySettingsScreen(viewModel: FamilyTreeViewModel()) }

@@ -27,13 +27,15 @@ struct NotificationsScreen: View {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(TextMain)
+                        .foregroundColor(.white)
                         .frame(width: 40, height: 40)
+                        .background(Color.white.opacity(0.15))
+                        .clipShape(Circle())
                 }
 
                 Text("Thông báo")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(TextMain)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.white)
 
                 Spacer()
 
@@ -41,13 +43,24 @@ struct NotificationsScreen: View {
                     Button { vm.markAllAsRead() } label: {
                         Text("Đọc hết")
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(PrimaryRed)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
+                            .background(Color.white.opacity(0.2))
+                            .clipShape(Capsule())
                     }
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
             .padding(.bottom, 16)
+            .background(
+                LinearGradient(
+                    colors: [Color(red: 0.773, green: 0.157, blue: 0.157),
+                             Color(red: 0.545, green: 0, blue: 0)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            )
 
             // ═══ CONTENT ═══
             if vm.notifications.isEmpty {

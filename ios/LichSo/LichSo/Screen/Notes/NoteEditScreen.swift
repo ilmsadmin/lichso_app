@@ -169,41 +169,31 @@ struct NoteEditScreen: View {
     // MARK: — Top Bar
     // ──────────────────────────────────────
     private var topBar: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 8) {
             Button { dismiss() } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(TextMain)
+                    .foregroundColor(.white)
                     .frame(width: 40, height: 40)
+                    .background(Color.white.opacity(0.15))
+                    .clipShape(Circle())
             }
 
             Text(screenTitle)
                 .font(.system(size: 18, weight: .bold))
-                .foregroundColor(TextMain)
+                .foregroundColor(.white)
 
             Spacer()
-
-            // Undo / Redo (placeholder)
-            Button {} label: {
-                Image(systemName: "arrow.uturn.backward")
-                    .font(.system(size: 16))
-                    .foregroundColor(TextSub)
-                    .frame(width: 38, height: 38)
-            }
-            Button {} label: {
-                Image(systemName: "arrow.uturn.forward")
-                    .font(.system(size: 16))
-                    .foregroundColor(TextSub)
-                    .frame(width: 38, height: 38)
-            }
 
             // Pin button (note only)
             if itemType == .note {
                 Button { isPinned.toggle() } label: {
                     Image(systemName: isPinned ? "pin.fill" : "pin")
                         .font(.system(size: 16))
-                        .foregroundColor(isPinned ? PrimaryRed : TextSub)
+                        .foregroundColor(.white)
                         .frame(width: 38, height: 38)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Circle())
                 }
             }
 
@@ -211,18 +201,25 @@ struct NoteEditScreen: View {
             Button(action: save) {
                 Text("Lưu")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Color(red: 0.773, green: 0.157, blue: 0.157))
                     .padding(.horizontal, 18)
                     .padding(.vertical, 7)
-                    .background(PrimaryRed)
+                    .background(Color.white)
                     .clipShape(Capsule())
             }
             .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
             .opacity(title.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
         }
         .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 8)
+        .padding(.top, 12)
+        .padding(.bottom, 12)
+        .background(
+            LinearGradient(
+                colors: [Color(red: 0.773, green: 0.157, blue: 0.157),
+                         Color(red: 0.545, green: 0, blue: 0)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        )
     }
 
     // ──────────────────────────────────────

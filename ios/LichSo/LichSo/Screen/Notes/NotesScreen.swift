@@ -128,13 +128,20 @@ private struct NotesTopBar: View {
     var body: some View {
         HStack(spacing: 12) {
             Text("Ghi chú & Việc cần làm")
-                .font(.system(size: 22, weight: .bold))
-                .foregroundColor(TextMain)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.white)
             Spacer()
         }
         .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .padding(.bottom, 10)
+        .padding(.top, 12)
+        .padding(.bottom, 14)
+        .background(
+            LinearGradient(
+                colors: [Color(red: 0.773, green: 0.157, blue: 0.157),
+                         Color(red: 0.545, green: 0, blue: 0)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        )
     }
 }
 

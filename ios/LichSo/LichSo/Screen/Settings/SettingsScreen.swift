@@ -372,20 +372,28 @@ private struct SettingsTopBar: View {
     var body: some View {
         HStack(spacing: 12) {
             Button(action: onBack) {
-                Image(systemName: "arrow.left")
+                Image(systemName: "chevron.left")
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(cs.textMain)
+                    .foregroundColor(.white)
                     .frame(width: 40, height: 40)
-                    .contentShape(Rectangle())
+                    .background(Color.white.opacity(0.15))
+                    .clipShape(Circle())
             }
             Text("Cài đặt")
-                .font(.system(size: 22, weight: .bold))
-                .foregroundColor(cs.textMain)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.white)
             Spacer()
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
         .padding(.bottom, 16)
+        .background(
+            LinearGradient(
+                colors: [Color(red: 0.773, green: 0.157, blue: 0.157),
+                         Color(red: 0.545, green: 0, blue: 0)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        )
     }
 }
 

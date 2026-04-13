@@ -41,20 +41,26 @@ struct FamilySettingsScreen: View {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(TextMain)
+                        .foregroundColor(.white)
                         .frame(width: 40, height: 40)
+                        .background(Color.white.opacity(0.15))
+                        .clipShape(Circle())
                 }
                 Text("Cài đặt gia phả")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(TextMain)
+                    .foregroundColor(.white)
                 Spacer()
             }
             .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 14)
-            .overlay(alignment: .bottom) {
-                Divider()
-            }
+            .padding(.top, 12)
+            .padding(.bottom, 16)
+            .background(
+                LinearGradient(
+                    colors: [Color(red: 0.773, green: 0.157, blue: 0.157),
+                             Color(red: 0.545, green: 0, blue: 0)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            )
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {

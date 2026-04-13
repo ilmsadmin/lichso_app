@@ -135,42 +135,41 @@ private struct FormHeader: View {
 
     var body: some View {
         HStack {
-            HStack(spacing: 8) {
-                Button(action: onClose) {
-                    Circle()
-                        .fill(SurfaceContainer)
-                        .frame(width: 36, height: 36)
-                        .overlay(
-                            Image(systemName: "xmark")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(TextMain)
-                        )
-                }
-
-                Text("Sửa hồ sơ")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(TextMain)
+            Button(action: onClose) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 36, height: 36)
+                    .background(Color.white.opacity(0.15))
+                    .clipShape(Circle())
             }
+
+            Text("Sửa hồ sơ")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.white)
 
             Spacer()
 
             Button(action: onSave) {
                 Text("Lưu")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Color(red: 0.773, green: 0.157, blue: 0.157))
                     .padding(.horizontal, 20)
                     .padding(.vertical, 8)
-                    .background(PrimaryRed)
+                    .background(Color.white)
                     .clipShape(Capsule())
             }
         }
         .padding(.horizontal, 16)
         .padding(.top, 14)
         .padding(.bottom, 14)
-        .background(SurfaceBg)
-        .overlay(alignment: .bottom) {
-            Divider().foregroundColor(OutlineVariant)
-        }
+        .background(
+            LinearGradient(
+                colors: [Color(red: 0.773, green: 0.157, blue: 0.157),
+                         Color(red: 0.545, green: 0, blue: 0)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        )
     }
 }
 

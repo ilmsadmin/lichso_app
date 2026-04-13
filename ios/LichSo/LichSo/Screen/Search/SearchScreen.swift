@@ -28,10 +28,12 @@ struct SearchScreen: View {
                 HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 20))
-                        .foregroundColor(PrimaryRed)
+                        .foregroundColor(.white)
 
                     TextField("Tìm ngày, sự kiện, ngày lễ...", text: $vm.query)
                         .font(.system(size: 15))
+                        .foregroundColor(.white)
+                        .tint(.white)
                         .focused($isSearchFocused)
                         .onSubmit {
                             vm.performSearch()
@@ -48,28 +50,32 @@ struct SearchScreen: View {
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 18))
-                                .foregroundColor(TextDim)
-                                .frame(width: 32, height: 32)
-                                .background(Color(hex: "2A2720"))
-                                .clipShape(Circle())
+                                .foregroundColor(.white.opacity(0.7))
                         }
                     }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(SurfaceContainerHigh)
+                .background(Color.white.opacity(0.2))
                 .clipShape(RoundedRectangle(cornerRadius: 28))
-                .overlay(RoundedRectangle(cornerRadius: 28).stroke(PrimaryRed, lineWidth: 2))
+                .overlay(RoundedRectangle(cornerRadius: 28).stroke(Color.white.opacity(0.4), lineWidth: 1.5))
 
                 Button { dismiss() } label: {
                     Text("Hủy")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(PrimaryRed)
+                        .foregroundColor(.white)
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 12)
+            .padding(.top, 12)
+            .padding(.bottom, 14)
+            .background(
+                LinearGradient(
+                    colors: [Color(red: 0.773, green: 0.157, blue: 0.157),
+                             Color(red: 0.545, green: 0, blue: 0)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+            )
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
