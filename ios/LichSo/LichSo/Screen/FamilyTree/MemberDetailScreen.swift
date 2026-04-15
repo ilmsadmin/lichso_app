@@ -122,7 +122,9 @@ struct MemberDetailScreen: View {
             Text("Bạn chắc chắn muốn xoá \(member.name)? Hành động này không thể hoàn tác.")
         }
         .sheet(isPresented: $showEditSheet) {
-            EditMemberSheet(member: member, viewModel: viewModel)
+            NavigationStack {
+                EditMemberScreen(viewModel: viewModel, member: member)
+            }
         }
         .sheet(item: $selectedMemorial) { memorial in
             NavigationStack {
@@ -652,85 +654,4 @@ private struct ActionBar: View {
     }
 }
 
-// ══════════════════════════════════════════
-// EDIT MEMBER SHEET (simple inline editor)
-// ══════════════════════════════════════════
-
-struct EditMemberSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    let member: FamilyMemberEntity
-    @ObservedObject var viewModel: FamilyTreeViewModel
-
-    @State private var name: String = ""
-    @State private var role: String = ""
-    @State private var gender: String = "MALE"
-    @State private var generation: Int = 1
-    @State private var birthYear: String = ""
-    @State private var deathYear: String = ""
-    @State private var occupation: String = ""
-    @State private var hometown: String = ""
-    @State private var note: String = ""
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Thông tin cơ bản") {
-                    TextField("Họ và tên", text: $name)
-                    TextField("Vai trò (cha, mẹ, con...)", text: $role)
-                    Picker("Giới tính", selection: $gender) {
-                        Text("Nam").tag("MALE")
-                        Text("Nữ").tag("FEMALE")
-                    }
-                    Stepper("Thế hệ: \(generation)", value: $generation, in: 1...20)
-                }
-
-                Section("Chi tiết") {
-                    TextField("Năm sinh", text: $birthYear)
-                        .keyboardType(.numberPad)
-                    TextField("Năm mất (nếu có)", text: $deathYear)
-                        .keyboardType(.numberPad)
-                    TextField("Nghề nghiệp", text: $occupation)
-                    TextField("Quê quán / Nơi ở", text: $hometown)
-                }
-
-                Section("Ghi chú") {
-                    TextEditor(text: $note)
-                        .frame(minHeight: 80)
-                }
-            }
-            .navigationTitle("Chỉnh sửa thành viên")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Huỷ") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Lưu") {
-                        member.name = name
-                        member.role = role
-                        member.gender = gender
-                        member.generation = generation
-                        member.birthYear = Int(birthYear)
-                        member.deathYear = deathYear.isEmpty ? nil : Int(deathYear)
-                        member.occupation = occupation.isEmpty ? nil : occupation
-                        member.hometown = hometown.isEmpty ? nil : hometown
-                        member.note = note.isEmpty ? nil : note
-                        viewModel.updateMember(member)
-                        dismiss()
-                    }
-                }
-            }
-            .onAppear {
-                name = member.name
-                role = member.role
-                gender = member.gender
-                generation = member.generation
-                birthYear = member.birthYear.map { String($0) } ?? ""
-                deathYear = member.deathYear.map { String($0) } ?? ""
-                occupation = member.occupation ?? ""
-                hometown = member.hometown ?? ""
-                note = member.note ?? ""
-            }
-        }
-    }
-}
+// Old EditMemberSheet removed — replaced by EditMemberScreen.swift

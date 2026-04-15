@@ -57,6 +57,8 @@
 		C19E42A495DF03B63216AABE /* SearchScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12DB4917B8694FDD8E389F93 /* SearchScreen.swift */; };
 		C7194F7491EB04FCECF5A46B /* DayDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F04C1781DFA14FF739BF0D /* DayDetailScreen.swift */; };
 		C8374A03883940EF3561842A /* PickMemberScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97EA404C8E80570B04688E29 /* PickMemberScreen.swift */; };
+		AA02ADDM001000000000001 /* AddMemberScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02ADDM001000000000002 /* AddMemberScreen.swift */; };
+		AA02EDTM001000000000001 /* EditMemberScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02EDTM001000000000002 /* EditMemberScreen.swift */; };
 		CEC58F66914F60BECBEAFC1B /* SaoChieuCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87CB1F33B0C81A7CE2AABEFB /* SaoChieuCalculator.swift */; };
 		AA1B2C3D4E5F6A7B8C9D0E1F /* HistoricalEventProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A /* HistoricalEventProvider.swift */; };
 		D561458390001824FCBE4272 /* SearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E24E11B097F4278BBEC8D0 /* SearchViewModel.swift */; };
@@ -99,6 +101,8 @@
 		8E614F1B87F1874B106B9D67 /* EditProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = EditProfileViewModel.swift; path = LichSo/Screen/Profile/EditProfileViewModel.swift; sourceTree = SOURCE_ROOT; };
 		8F4EBF59381267B3E0EC88C3 /* LichSoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LichSoApp.swift; sourceTree = "<group>"; };
 		97EA404C8E80570B04688E29 /* PickMemberScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PickMemberScreen.swift; path = LichSo/Screen/FamilyTree/PickMemberScreen.swift; sourceTree = SOURCE_ROOT; };
+		AA02ADDM001000000000002 /* AddMemberScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AddMemberScreen.swift; path = LichSo/Screen/FamilyTree/AddMemberScreen.swift; sourceTree = SOURCE_ROOT; };
+		AA02EDTM001000000000002 /* EditMemberScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = EditMemberScreen.swift; path = LichSo/Screen/FamilyTree/EditMemberScreen.swift; sourceTree = SOURCE_ROOT; };
 		9CCA4D6089F2262E10C41278 /* AIChatDayScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AIChatDayScreen.swift; path = LichSo/Screen/Chat/AIChatDayScreen.swift; sourceTree = SOURCE_ROOT; };
 		A1595F6D47D2E7C1A756811A /* HomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeScreen.swift; sourceTree = "<group>"; };
 		DD4E5F6A7B8C9D0E1F2A3B4C /* ThisDayInHistoryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThisDayInHistoryScreen.swift; sourceTree = "<group>"; };
@@ -299,6 +303,8 @@
 				69274792B596D206737D3E9B /* MemberDetailScreen.swift */,
 				077446619D5AA93C29C5149B /* MemorialDetailScreen.swift */,
 				97EA404C8E80570B04688E29 /* PickMemberScreen.swift */,
+				AA02ADDM001000000000002 /* AddMemberScreen.swift */,
+				AA02EDTM001000000000002 /* EditMemberScreen.swift */,
 				BB244C1F99CA389E42E4CA8E /* NoteDetailScreen.swift */,
 				C31D4DA0A453819A007E2A4F /* NoteEditScreen.swift */,
 				BFDD48B09A79D3F64129346A /* NotesScreen.swift */,
@@ -433,6 +439,8 @@
 				E42640B18CDCAE66EAD461A3 /* MemberDetailScreen.swift in Sources */,
 				878143DA80EBF6745451A1C6 /* MemorialDetailScreen.swift in Sources */,
 				C8374A03883940EF3561842A /* PickMemberScreen.swift in Sources */,
+				AA02ADDM001000000000001 /* AddMemberScreen.swift in Sources */,
+				AA02EDTM001000000000001 /* EditMemberScreen.swift in Sources */,
 				9EA04B8796E1332CC4B84AF8 /* NoteDetailScreen.swift in Sources */,
 				B6194038AC8F2BF81D9679BE /* NoteEditScreen.swift in Sources */,
 				4492407CAC0ABB63A9878699 /* NotesScreen.swift in Sources */,

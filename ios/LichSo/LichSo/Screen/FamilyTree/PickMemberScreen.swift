@@ -23,11 +23,29 @@ struct PickMemberScreen: View {
     @Environment(\.modelContext) private var modelContext
     @ObservedObject var viewModel: FamilyTreeViewModel
 
+    /// Member IDs to exclude from the list (e.g., self, already-selected member)
+    var excludeMemberIds: Set<String> = []
+
+    /// When non-empty, ONLY these member IDs are shown (allowlist mode).
+    /// Used when picking a second parent — only show spouses of the first parent.
+    var allowMemberIds: Set<String>? = nil
+
     @State private var selectedMemberId: String?
     @State private var searchText = ""
     @State private var activeFilter: FamilyTreeViewModel.MemberFilter = .all
 
     var onSelect: (FamilyMemberEntity) -> Void
+
+    /// Filtered members: exclude IDs, and if allowlist is set, only keep those IDs
+    private func filteredGenMembers(_ gen: Int) -> [FamilyMemberEntity] {
+        viewModel.membersForGeneration(gen).filter { member in
+            if excludeMemberIds.contains(member.id) { return false }
+            if let allow = allowMemberIds, !allow.isEmpty {
+                return allow.contains(member.id)
+            }
+            return true
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -121,7 +139,7 @@ struct PickMemberScreen: View {
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(viewModel.generations, id: \.self) { gen in
-                        let genMembers = viewModel.membersForGeneration(gen)
+                        let genMembers = filteredGenMembers(gen)
                         if !genMembers.isEmpty {
                             // Generation header
                             HStack(spacing: 6) {
