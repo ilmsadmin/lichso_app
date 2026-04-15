@@ -20,7 +20,11 @@ class NotificationsViewModel: ObservableObject {
         let descriptor = FetchDescriptor<NotificationEntity>(sortBy: [
             SortDescriptor(\.createdAt, order: .reverse)
         ])
-        do { notifications = try ctx.fetch(descriptor) } catch { print("Notif fetch error: \(error)") }
+        do { notifications = try ctx.fetch(descriptor) } catch {
+            #if DEBUG
+            print("Notif fetch error: \(error)")
+            #endif
+        }
     }
 
     // ── Date-grouped ──

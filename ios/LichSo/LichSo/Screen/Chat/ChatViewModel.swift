@@ -42,7 +42,9 @@ class ChatViewModel: ObservableObject {
                 addGreetingMessage()
             }
         } catch {
+            #if DEBUG
             print("Failed to load messages: \(error)")
+            #endif
         }
     }
     
@@ -179,7 +181,9 @@ class ChatViewModel: ObservableObject {
             followUpSuggestions = []
             addGreetingMessage()
         } catch {
+            #if DEBUG
             print("Failed to clear chat: \(error)")
+            #endif
         }
     }
     
@@ -256,17 +260,23 @@ class ChatViewModel: ObservableObject {
             return (content, [])
         }
         
-        let suggestionsRange = Range(match.range(at: 1), in: content)!
+        guard let suggestionsRange = Range(match.range(at: 1), in: content) else {
+            return (content, [])
+        }
         let suggestionsBlock = String(content[suggestionsRange])
         let itemPattern = "📌\\s*(.+)"
-        let itemRegex = try! NSRegularExpression(pattern: itemPattern)
+        guard let itemRegex = try? NSRegularExpression(pattern: itemPattern) else {
+            return (content, [])
+        }
         let suggestions = itemRegex.matches(in: suggestionsBlock, range: NSRange(suggestionsBlock.startIndex..., in: suggestionsBlock)).compactMap { m -> String? in
             guard let range = Range(m.range(at: 1), in: suggestionsBlock) else { return nil }
             return String(suggestionsBlock[range]).trimmingCharacters(in: .whitespaces)
         }
         
         if suggestions.isEmpty { return (content, []) }
-        let fullMatchRange = Range(match.range, in: content)!
+        guard let fullMatchRange = Range(match.range, in: content) else {
+            return (content, suggestions)
+        }
         let cleaned = content.replacingCharacters(in: fullMatchRange, with: "").trimmingCharacters(in: .whitespacesAndNewlines)
         return (cleaned, suggestions)
     }

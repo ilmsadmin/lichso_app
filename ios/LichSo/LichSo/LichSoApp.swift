@@ -38,7 +38,15 @@ struct LichSoApp: App {
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            // Nếu database bị hỏng, thử xóa và tạo lại với in-memory
+            print("⚠️ Could not create ModelContainer: \(error). Falling back to in-memory store.")
+            let fallbackConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            do {
+                return try ModelContainer(for: schema, configurations: [fallbackConfig])
+            } catch {
+                // Trường hợp cuối cùng — tạo schema tối thiểu
+                fatalError("Critical: Could not create any ModelContainer: \(error)")
+            }
         }
     }()
 

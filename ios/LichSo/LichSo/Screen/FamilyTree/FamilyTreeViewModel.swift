@@ -56,12 +56,23 @@ class FamilyTreeViewModel: ObservableObject {
     func loadSettings() {
         guard let ctx = modelContext else { return }
         let descriptor = FetchDescriptor<FamilySettingsEntity>()
-        settings = (try? ctx.fetch(descriptor))?.first
-        if settings == nil {
+        let fetched = (try? ctx.fetch(descriptor)) ?? []
+        #if DEBUG
+        print("🔍 loadSettings: fetched \(fetched.count) settings entities")
+        #endif
+        if let existing = fetched.first {
+            settings = existing
+            #if DEBUG
+            print("🔍 loadSettings: familyName=\(existing.familyName), crest=\(existing.familyCrest), hometown=\(existing.hometown)")
+            #endif
+        } else {
             let newSettings = FamilySettingsEntity()
             ctx.insert(newSettings)
             try? ctx.save()
             settings = newSettings
+            #if DEBUG
+            print("🔍 loadSettings: created new default settings")
+            #endif
         }
     }
 
@@ -272,9 +283,35 @@ class FamilyTreeViewModel: ObservableObject {
     // ── CRUD: Settings ──
 
     func updateSettings() {
-        guard let ctx = modelContext else { return }
-        settings?.updatedAt = Int64(Date().timeIntervalSince1970 * 1000)
-        try? ctx.save()
+        guard let ctx = modelContext else {
+            #if DEBUG
+            print("⚠️ updateSettings: modelContext is nil")
+            #endif
+            return
+        }
+        guard let s = settings else {
+            #if DEBUG
+            print("⚠️ updateSettings: settings is nil")
+            #endif
+            return
+        }
+        s.updatedAt = Int64(Date().timeIntervalSince1970 * 1000)
+        do {
+            try ctx.save()
+            #if DEBUG
+            print("✅ updateSettings saved — familyName: \(s.familyName), crest: \(s.familyCrest), hometown: \(s.hometown)")
+            #endif
+        } catch {
+            #if DEBUG
+            print("⚠️ updateSettings save error: \(error)")
+            #endif
+        }
+        // Force @Published to fire by re-assigning the reference.
+        // Simply calling objectWillChange.send() is not always enough
+        // because SwiftUI may not detect nested-property mutations.
+        let current = settings
+        settings = nil
+        settings = current
     }
 
     func deleteAllFamilyData() {

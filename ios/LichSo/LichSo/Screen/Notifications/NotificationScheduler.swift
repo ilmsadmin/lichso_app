@@ -21,7 +21,9 @@ class NotificationScheduler: ObservableObject {
             let granted = try await notificationCenter.requestAuthorization(options: [.alert, .sound, .badge])
             return granted
         } catch {
+            #if DEBUG
             print("Notification permission error: \(error)")
+            #endif
             return false
         }
     }
@@ -49,7 +51,9 @@ class NotificationScheduler: ObservableObject {
         let request = UNNotificationRequest(identifier: "daily_morning", content: content, trigger: trigger)
 
         notificationCenter.add(request) { error in
+            #if DEBUG
             if let error { print("Schedule daily error: \(error)") }
+            #endif
         }
     }
 
@@ -75,7 +79,9 @@ class NotificationScheduler: ObservableObject {
         let request = UNNotificationRequest(identifier: "gio_hoang_dao", content: content, trigger: trigger)
 
         notificationCenter.add(request) { error in
+            #if DEBUG
             if let error { print("Schedule gio hoang dao error: \(error)") }
+            #endif
         }
     }
 
@@ -98,7 +104,9 @@ class NotificationScheduler: ObservableObject {
         let request = UNNotificationRequest(identifier: "festival_evening", content: content, trigger: trigger)
 
         notificationCenter.add(request) { error in
+            #if DEBUG
             if let error { print("Schedule festival error: \(error)") }
+            #endif
         }
     }
 
@@ -160,7 +168,9 @@ class NotificationScheduler: ObservableObject {
             )
 
             notificationCenter.add(request) { error in
+                #if DEBUG
                 if let error { print("Schedule festival \(dd)/\(mm) error: \(error)") }
+                #endif
             }
         }
     }
@@ -207,7 +217,9 @@ class NotificationScheduler: ObservableObject {
             )
 
             notificationCenter.add(request) { error in
+                #if DEBUG
                 if let error { print("Schedule \(label) error: \(error)") }
+                #endif
             }
         }
     }

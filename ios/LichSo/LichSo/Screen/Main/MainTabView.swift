@@ -56,6 +56,7 @@ struct MainTabView: View {
     @State private var showFamilyTree = false
     @State private var showGoodDays = false
     @State private var showHistory = false
+    @State private var showBookmarks = false
 
     var body: some View {
         ZStack {
@@ -145,6 +146,11 @@ struct MainTabView: View {
                 ThisDayInHistoryScreen()
             }
         }
+        .sheet(isPresented: $showBookmarks) {
+            NavigationStack {
+                SearchScreen()
+            }
+        }
     }
 
     // MARK: - Sidebar Navigation
@@ -162,8 +168,7 @@ struct MainTabView: View {
         case "gooddays":
             showGoodDays = true
         case "bookmarks":
-            // TODO: Navigate to bookmarks screen
-            break
+            showBookmarks = true
         case "history":
             showHistory = true
         case "familytree":

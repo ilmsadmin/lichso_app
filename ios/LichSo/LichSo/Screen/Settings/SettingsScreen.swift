@@ -207,7 +207,7 @@ struct SettingsScreen: View {
                                  iconBg: Color(hex: "FFF8E1"), iconFg: Color(hex: "F57F17"),
                                  icon: "star.fill",
                                  title: "Đánh giá trên App Store") {
-                            if let url = URL(string: "itms-apps://itunes.apple.com/app/id0000000000?action=write-review") {
+                            if let url = URL(string: "itms-apps://itunes.apple.com/app/id6740048518?action=write-review") {
                                 UIApplication.shared.open(url)
                             }
                         }
@@ -218,7 +218,7 @@ struct SettingsScreen: View {
                                  iconBg: Color(hex: "E3F2FD"), iconFg: Color(hex: "1565C0"),
                                  icon: "lock.shield.fill",
                                  title: "Chính sách bảo mật") {
-                            if let url = URL(string: "https://lichso.com/privacy") {
+                            if let url = URL(string: "https://apps.zenix.vn/privacy-policy") {
                                 UIApplication.shared.open(url)
                             }
                         }

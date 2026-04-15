@@ -34,6 +34,7 @@ struct ProfileScreen: View {
     @State private var showFamilySettings = false
     @State private var showPickMember = false
     @State private var showAddBookmark = false
+    @StateObject private var familyTreeVM = FamilyTreeViewModel()
 
     @AppStorage("displayName")         private var displayName = "Người dùng"
     @AppStorage("profile_email")       private var email       = ""
@@ -121,11 +122,11 @@ struct ProfileScreen: View {
             NavigationStack { FamilyTreeScreen() }
         }
         .sheet(isPresented: $showFamilySettings) {
-            NavigationStack { FamilySettingsScreen(viewModel: FamilyTreeViewModel()) }
+            NavigationStack { FamilySettingsScreen(viewModel: familyTreeVM) }
         }
         .sheet(isPresented: $showPickMember) {
             NavigationStack {
-                PickMemberScreen(viewModel: FamilyTreeViewModel(), onSelect: { _ in showPickMember = false })
+                PickMemberScreen(viewModel: familyTreeVM, onSelect: { _ in showPickMember = false })
             }
         }
         .sheet(isPresented: $showAddBookmark) {

@@ -43,8 +43,13 @@ class OpenRouterService: ObservableObject {
     private let apiKey: String = {
         guard let path = Bundle.main.path(forResource: "Secrets", ofType: "plist"),
               let dict = NSDictionary(contentsOfFile: path),
-              let key = dict["OPENROUTER_API_KEY"] as? String else {
-            fatalError("⚠️ Missing Secrets.plist or OPENROUTER_API_KEY. See README.")
+              let key = dict["OPENROUTER_API_KEY"] as? String,
+              !key.isEmpty else {
+            // Graceful fallback — không crash, AI chat sẽ trả lời cục bộ
+            #if DEBUG
+            print("⚠️ Missing Secrets.plist or OPENROUTER_API_KEY. AI chat will use local responses.")
+            #endif
+            return ""
         }
         return key
     }()
@@ -105,6 +110,11 @@ class OpenRouterService: ObservableObject {
         profileContext: String = "",
         history: [ChatMessage] = []
     ) async -> Result<String, Error> {
+        // Kiểm tra API key trước khi gọi
+        guard !apiKey.isEmpty else {
+            return .failure(NSError(domain: "OpenRouter", code: -4, userInfo: [NSLocalizedDescriptionKey: "API key chưa được cấu hình. Vui lòng thử lại sau."]))
+        }
+        
         var messages: [ChatMessage] = []
         messages.append(ChatMessage(role: "system", content: systemPrompt))
         

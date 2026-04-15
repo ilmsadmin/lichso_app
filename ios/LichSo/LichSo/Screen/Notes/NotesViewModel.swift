@@ -48,7 +48,11 @@ class NotesViewModel: ObservableObject {
                 if a.isPinned != b.isPinned { return a.isPinned }
                 return a.updatedAt > b.updatedAt
             }
-        } catch { print("Notes fetch error: \(error)") }
+        } catch {
+            #if DEBUG
+            print("Notes fetch error: \(error)")
+            #endif
+        }
     }
 
     func createNote(title: String, content: String, colorIndex: Int = 0) {
@@ -100,7 +104,11 @@ class NotesViewModel: ObservableObject {
                 if a.priority != b.priority { return a.priority > b.priority }
                 return a.createdAt > b.createdAt
             }
-        } catch { print("Tasks fetch error: \(error)") }
+        } catch {
+            #if DEBUG
+            print("Tasks fetch error: \(error)")
+            #endif
+        }
     }
 
     func createTask(title: String, description: String = "", priority: Int = 1, dueDate: Date? = nil) {
@@ -148,7 +156,11 @@ class NotesViewModel: ObservableObject {
         let descriptor = FetchDescriptor<ReminderEntity>(sortBy: [
             SortDescriptor(\.triggerTime, order: .forward)
         ])
-        do { reminders = try ctx.fetch(descriptor) } catch { print("Reminders fetch error: \(error)") }
+        do { reminders = try ctx.fetch(descriptor) } catch {
+            #if DEBUG
+            print("Reminders fetch error: \(error)")
+            #endif
+        }
     }
 
     func createReminder(title: String, subtitle: String = "", triggerTime: Date, repeatType: Int = 0, category: Int = 3) {
