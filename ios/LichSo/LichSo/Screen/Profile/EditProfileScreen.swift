@@ -65,7 +65,7 @@ struct EditProfileScreen: View {
                     FieldGroup(label: "GIỚI TÍNH") {
                         GenderSelector(selected: $viewModel.gender)
                     }
-                    .onChange(of: viewModel.gender) { _ in
+                    .onChange(of: viewModel.gender) {
                         viewModel.recalculateBirthInfo()
                     }
 
@@ -78,9 +78,9 @@ struct EditProfileScreen: View {
                                 month: $viewModel.birthMonth,
                                 year: $viewModel.birthYear
                             )
-                            .onChange(of: viewModel.birthDay) { _ in viewModel.recalculateBirthInfo() }
-                            .onChange(of: viewModel.birthMonth) { _ in viewModel.recalculateBirthInfo() }
-                            .onChange(of: viewModel.birthYear) { _ in viewModel.recalculateBirthInfo() }
+                            .onChange(of: viewModel.birthDay) { viewModel.recalculateBirthInfo() }
+                            .onChange(of: viewModel.birthMonth) { viewModel.recalculateBirthInfo() }
+                            .onChange(of: viewModel.birthYear) { viewModel.recalculateBirthInfo() }
 
                             // Time row
                             TimeFieldRow(
@@ -88,8 +88,8 @@ struct EditProfileScreen: View {
                                 minute: $viewModel.birthMinute,
                                 unknownTime: $viewModel.unknownBirthTime
                             )
-                            .onChange(of: viewModel.birthHour) { _ in viewModel.recalculateBirthInfo() }
-                            .onChange(of: viewModel.unknownBirthTime) { _ in viewModel.recalculateBirthInfo() }
+                            .onChange(of: viewModel.birthHour) { viewModel.recalculateBirthInfo() }
+                            .onChange(of: viewModel.unknownBirthTime) { viewModel.recalculateBirthInfo() }
                         }
                     }
 
@@ -161,7 +161,7 @@ private struct FormHeader: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.top, 14)
+        .padding(.top, 8)
         .padding(.bottom, 14)
         .background(
             LinearGradient(
@@ -169,6 +169,7 @@ private struct FormHeader: View {
                          Color(red: 0.545, green: 0, blue: 0)],
                 startPoint: .topLeading, endPoint: .bottomTrailing
             )
+            .ignoresSafeArea(edges: .top)
         )
     }
 }

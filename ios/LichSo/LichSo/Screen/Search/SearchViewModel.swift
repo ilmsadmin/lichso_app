@@ -18,7 +18,7 @@ struct SearchResult: Identifiable {
 }
 
 // ── Good day result for weekly display ──
-struct GoodDayItem: Identifiable {
+struct WeekGoodDayItem: Identifiable {
     let id = UUID()
     let dd: Int
     let mm: Int
@@ -60,7 +60,7 @@ class SearchViewModel: ObservableObject {
     @Published var tuoiHopError = ""
 
     // ── Quick lookup: Ngày tốt tuần này ──
-    @Published var goodDaysThisWeek: [GoodDayItem] = []
+    @Published var goodDaysThisWeek: [WeekGoodDayItem] = []
 
     // ── Quick lookup: Đi đến ngày ──
     @Published var gotoDate = Date()
@@ -166,13 +166,13 @@ class SearchViewModel: ObservableObject {
         comps.weekday = 2 // Monday
         guard let monday = calendar.date(from: comps) else { return }
 
-        var items: [GoodDayItem] = []
+        var items: [WeekGoodDayItem] = []
         for offset in 0..<7 {
             guard let date = calendar.date(byAdding: .day, value: offset, to: monday) else { continue }
             let c = calendar.dateComponents([.year, .month, .day], from: date)
             guard let dd = c.day, let mm = c.month, let yy = c.year else { continue }
             let info = DayInfoProvider.shared.getDayInfo(dd: dd, mm: mm, yy: yy)
-            items.append(GoodDayItem(
+            items.append(WeekGoodDayItem(
                 dd: dd, mm: mm, yy: yy,
                 dayOfWeek: info.dayOfWeek,
                 ratingLabel: info.dayRating.label,
@@ -214,7 +214,7 @@ class SearchViewModel: ObservableObject {
         // Convert solar birth year to lunar year
         let lunarYear = year // Approx — lunar year shifts around Feb
         let zodiacIdx = (lunarYear + 8) % 12  // 0=Tý
-        let canIdx = (lunarYear + 6) % 10
+        _ = (lunarYear + 6) % 10
         tuoiHopUserZodiac = Self.zodiacNames[zodiacIdx]
         tuoiHopUserCanChi = CanChiCalculator.getYearCanChi(lunarYear: lunarYear)
 

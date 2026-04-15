@@ -66,7 +66,8 @@ struct DayRatingInfo {
     let percent: Int   // 0–100
 }
 
-struct DayInfo {
+struct DayInfo: Identifiable {
+    var id: Int { jd }
     let solar: SolarDate
     let lunar: LunarDate
     let jd: Int

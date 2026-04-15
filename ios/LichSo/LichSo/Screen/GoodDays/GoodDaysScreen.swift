@@ -24,7 +24,6 @@ struct GoodDaysScreen: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vm = GoodDaysViewModel()
     @State private var selectedDayInfo: DayInfo?
-    @State private var showDayDetail = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -50,10 +49,8 @@ struct GoodDaysScreen: View {
             }
         }
         .background(SurfaceBg)
-        .fullScreenCover(isPresented: $showDayDetail) {
-            if let info = selectedDayInfo {
-                DayDetailScreen(dayInfo: info, onDismiss: { showDayDetail = false })
-            }
+        .fullScreenCover(item: $selectedDayInfo) { (info: DayInfo) in
+            DayDetailScreen(dayInfo: info, onDismiss: { selectedDayInfo = nil })
         }
     }
 
@@ -82,7 +79,7 @@ struct GoodDaysScreen: View {
             Color.clear.frame(width: 40, height: 40)
         }
         .padding(.horizontal, 20)
-        .padding(.top, 12)
+        .padding(.top, 8)
         .padding(.bottom, 12)
         .background(
             LinearGradient(
@@ -90,6 +87,7 @@ struct GoodDaysScreen: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
+            .ignoresSafeArea(edges: .top)
         )
     }
 
@@ -162,7 +160,6 @@ struct GoodDaysScreen: View {
                 ForEach(vm.state.filteredDays) { item in
                     DayCardView(item: item) {
                         selectedDayInfo = item.dayInfo
-                        showDayDetail = true
                     }
                 }
             }

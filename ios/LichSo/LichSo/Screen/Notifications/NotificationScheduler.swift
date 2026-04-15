@@ -1,5 +1,5 @@
 import Foundation
-import UserNotifications
+@preconcurrency import UserNotifications
 import SwiftData
 
 // ═══════════════════════════════════════════
@@ -110,9 +110,10 @@ class NotificationScheduler: ObservableObject {
         let today = Date()
 
         // Xóa tất cả thông báo festival cũ
-        notificationCenter.getPendingNotificationRequests { [weak self] requests in
+        let center = notificationCenter
+        center.getPendingNotificationRequests { requests in
             let festivalIds = requests.filter { $0.identifier.hasPrefix("festival_") }.map(\.identifier)
-            self?.notificationCenter.removePendingNotificationRequests(withIdentifiers: festivalIds)
+            center.removePendingNotificationRequests(withIdentifiers: festivalIds)
         }
 
         // Scan 30 ngày tới

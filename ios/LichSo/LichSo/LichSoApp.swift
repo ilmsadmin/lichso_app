@@ -8,7 +8,17 @@ struct LichSoApp: App {
     @AppStorage("setting_daily_reminder") private var dailyReminder = true
     @AppStorage("setting_reminder_hour") private var reminderHour = 7
     @AppStorage("setting_reminder_minute") private var reminderMinute = 0
+    @AppStorage("setting_theme") private var themePreference: String = "Theo hệ thống"
     @StateObject private var appState = AppState()
+
+    /// Map setting string → UIKit interface style
+    private var uiStyle: UIUserInterfaceStyle {
+        switch themePreference {
+        case "Sáng": return .light
+        case "Tối":  return .dark
+        default:     return .unspecified   // follow system
+        }
+    }
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -34,26 +44,37 @@ struct LichSoApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if appState.isSplashActive {
-                SplashScreen {
-                    withAnimation(.easeInOut(duration: 0.5)) {
-                        appState.isSplashActive = false
+            Group {
+                if appState.isSplashActive {
+                    SplashScreen {
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            appState.isSplashActive = false
+                        }
                     }
-                }
-            } else if !hasCompletedOnboarding {
-                OnboardingScreen {
-                    hasCompletedOnboarding = true
-                }
-            } else {
-                MainTabView()
-                    .environmentObject(appState)
-                    .preferredColorScheme(appState.preferredColorScheme)
-                    .onAppear {
-                        setupNotifications()
+                } else if !hasCompletedOnboarding {
+                    OnboardingScreen {
+                        hasCompletedOnboarding = true
                     }
+                } else {
+                    MainTabView()
+                        .environmentObject(appState)
+                        .onAppear {
+                            setupNotifications()
+                        }
+                }
             }
+            .onAppear { applyTheme() }
+            .onChange(of: themePreference) { _, _ in applyTheme() }
         }
         .modelContainer(sharedModelContainer)
+    }
+
+    /// Apply theme via UIKit window style — instant, no view recreation
+    private func applyTheme() {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+        for window in windowScene.windows {
+            window.overrideUserInterfaceStyle = uiStyle
+        }
     }
 
     private func setupNotifications() {
@@ -67,31 +88,4 @@ struct LichSoApp: App {
 
 class AppState: ObservableObject {
     @Published var isSplashActive = true
-
-    // Published so any change triggers a re-render of views observing AppState
-    @Published var themePreference: String = UserDefaults.standard.string(forKey: "setting_theme") ?? "Theo hệ thống"
-
-    private var defaultsObserver: NSObjectProtocol?
-
-    init() {
-        // Watch UserDefaults so SettingsViewModel writes propagate here automatically
-        defaultsObserver = NotificationCenter.default.addObserver(
-            forName: UserDefaults.didChangeNotification,
-            object: UserDefaults.standard,
-            queue: .main
-        ) { [weak self] _ in
-            let newValue = UserDefaults.standard.string(forKey: "setting_theme") ?? "Theo hệ thống"
-            if self?.themePreference != newValue {
-                self?.themePreference = newValue
-            }
-        }
-    }
-
-    var preferredColorScheme: ColorScheme? {
-        switch themePreference {
-        case "Sáng": return .light
-        case "Tối":  return .dark
-        default:     return nil  // follows system
-        }
-    }
 }

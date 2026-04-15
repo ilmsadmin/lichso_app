@@ -129,73 +129,69 @@ private struct ChatDayHeader: View {
     let onMoreClick: () -> Void
     
     var body: some View {
-        ZStack {
+        HStack(spacing: 12) {
+            Button(action: onBackClick) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 36, height: 36)
+                    .background(Color.white.opacity(0.12))
+                    .clipShape(Circle())
+            }
+            
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.15))
+                    .frame(width: 40, height: 40)
+                Image(systemName: "sparkles")
+                    .font(.system(size: 20))
+                    .foregroundColor(GoldAccent)
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Trợ lý Phong Thủy AI")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(Color(hex: "4CAF50"))
+                        .frame(width: 6, height: 6)
+                    Text("Đang trực tuyến")
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+            }
+            
+            Spacer()
+            
+            Button(action: onMoreClick) {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 18))
+                    .foregroundColor(.white)
+                    .frame(width: 36, height: 36)
+                    .background(Color.white.opacity(0.12))
+                    .clipShape(Circle())
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(
             LinearGradient(
                 colors: [PrimaryRed, Color(hex: "C62828"), DeepRed],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            
+        )
+        .overlay(alignment: .topTrailing) {
             Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [Color.yellow.opacity(0.1), Color.clear],
-                        center: .center,
-                        startRadius: 0,
-                        endRadius: 80
-                    )
-                )
+                .fill(RadialGradient(
+                    colors: [Color.yellow.opacity(0.1), Color.clear],
+                    center: .center, startRadius: 0, endRadius: 80
+                ))
                 .frame(width: 160, height: 160)
-                .offset(x: 100, y: -30)
-            
-            HStack(spacing: 12) {
-                Button(action: onBackClick) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 36, height: 36)
-                        .background(Color.white.opacity(0.12))
-                        .clipShape(Circle())
-                }
-                
-                ZStack {
-                    Circle()
-                        .fill(Color.white.opacity(0.15))
-                        .frame(width: 40, height: 40)
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 20))
-                        .foregroundColor(GoldAccent)
-                }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Trợ lý Phong Thủy AI")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.white)
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(Color(hex: "4CAF50"))
-                            .frame(width: 6, height: 6)
-                        Text("Đang trực tuyến")
-                            .font(.system(size: 11))
-                            .foregroundColor(.white.opacity(0.7))
-                    }
-                }
-                
-                Spacer()
-                
-                Button(action: onMoreClick) {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 18))
-                        .foregroundColor(.white)
-                        .frame(width: 36, height: 36)
-                        .background(Color.white.opacity(0.12))
-                        .clipShape(Circle())
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 4)
+                .offset(x: 30, y: -30)
+                .allowsHitTesting(false)
         }
-        .frame(height: 76)
     }
 }
 

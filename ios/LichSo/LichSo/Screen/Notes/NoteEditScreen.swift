@@ -211,7 +211,7 @@ struct NoteEditScreen: View {
             .opacity(title.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
         }
         .padding(.horizontal, 16)
-        .padding(.top, 12)
+        .padding(.top, 8)
         .padding(.bottom, 12)
         .background(
             LinearGradient(
@@ -219,6 +219,7 @@ struct NoteEditScreen: View {
                          Color(red: 0.545, green: 0, blue: 0)],
                 startPoint: .topLeading, endPoint: .bottomTrailing
             )
+            .ignoresSafeArea(edges: .top)
         )
     }
 

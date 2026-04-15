@@ -56,7 +56,7 @@ struct DayDetailScreen: View {
                     DayQuoteCard(day: dayInfo.solar.dd, month: dayInfo.solar.mm)
 
                     // ── Ask AI Button ──
-                    AskAiButton()
+                    AskAiButton(day: dayInfo.solar.dd, month: dayInfo.solar.mm, year: dayInfo.solar.yy)
 
                     Spacer().frame(height: 20)
                 }
@@ -625,9 +625,15 @@ private struct DayQuoteCard: View {
 // ══════════════════════════════════════════
 
 private struct AskAiButton: View {
+    let day: Int
+    let month: Int
+    let year: Int
+    
+    @State private var showAIChatDay = false
+    
     var body: some View {
         Button(action: {
-            // TODO: Navigate to AI chat with this day context
+            showAIChatDay = true
         }) {
             HStack(spacing: 8) {
                 Image(systemName: "sparkles")
@@ -644,6 +650,9 @@ private struct AskAiButton: View {
                                startPoint: .leading, endPoint: .trailing)
             )
             .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .fullScreenCover(isPresented: $showAIChatDay) {
+            AIChatDayScreen(day: day, month: month, year: year)
         }
     }
 }

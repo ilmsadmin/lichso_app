@@ -55,6 +55,7 @@ struct MainTabView: View {
     @State private var showSettings = false
     @State private var showFamilyTree = false
     @State private var showGoodDays = false
+    @State private var showHistory = false
 
     var body: some View {
         ZStack {
@@ -128,7 +129,6 @@ struct MainTabView: View {
             NavigationStack {
                 SettingsScreen()
             }
-            .preferredColorScheme(appState.preferredColorScheme)
         }
         .fullScreenCover(isPresented: $showFamilyTree) {
             NavigationStack {
@@ -138,6 +138,11 @@ struct MainTabView: View {
         .fullScreenCover(isPresented: $showGoodDays) {
             NavigationStack {
                 GoodDaysScreen()
+            }
+        }
+        .fullScreenCover(isPresented: $showHistory) {
+            NavigationStack {
+                ThisDayInHistoryScreen()
             }
         }
     }
@@ -160,8 +165,7 @@ struct MainTabView: View {
             // TODO: Navigate to bookmarks screen
             break
         case "history":
-            // TODO: Navigate to history screen
-            break
+            showHistory = true
         case "familytree":
             showFamilyTree = true
         default:

@@ -21,9 +21,15 @@ private var GoodGreen            : Color { LSTheme.goodGreen }
 
 struct CalendarScreen: View {
     @StateObject private var vm = CalendarViewModel()
-    @State private var showDayDetail = false
+    @State private var detailDayInfo: DayInfo?
     @State private var showSearch = false
+    @State private var showMonthYearPicker = false
     @Environment(\.modelContext) private var modelContext
+
+    // ── Swipe state ──
+    @State private var dragOffset: CGFloat = 0
+    @State private var swipeTransitionOffset: CGFloat = 0
+    @State private var gridId = UUID()  // force re-render on month change
 
     // ── Display settings ──
     @AppStorage("setting_show_lunar")     private var showLunar: Bool = true
@@ -49,47 +55,108 @@ struct CalendarScreen: View {
                     month: vm.state.currentMonth,
                     lunarLabel: vm.state.lunarMonthLabel,
                     onPrev: { vm.previousMonth() },
-                    onNext: { vm.nextMonth() }
+                    onNext: { vm.nextMonth() },
+                    onTitleTap: { showMonthYearPicker = true }
                 )
 
                 // ═══ CALENDAR GRID ═══
-                CalendarGrid(
-                    days: vm.state.calendarDays,
-                    selectedDay: vm.state.selectedDay,
-                    selectedMonth: vm.state.selectedMonth,
-                    selectedYear: vm.state.selectedYear,
-                    bookmarkedDates: bookmarkedDatesSet,
-                    showLunar: showLunar,
-                    showHoangDao: showHoangDao,
-                    onDayTap: { day in
-                        vm.selectDay(day.solarDay, month: day.solarMonth, year: day.solarYear)
-                    },
-                    onDayDoubleTap: { day in
-                        vm.selectDay(day.solarDay, month: day.solarMonth, year: day.solarYear)
-                        showDayDetail = true
-                    }
-                )
+                GeometryReader { geo in
+                    CalendarGrid(
+                        days: vm.state.calendarDays,
+                        selectedDay: vm.state.selectedDay,
+                        selectedMonth: vm.state.selectedMonth,
+                        selectedYear: vm.state.selectedYear,
+                        bookmarkedDates: bookmarkedDatesSet,
+                        showLunar: showLunar,
+                        showHoangDao: showHoangDao,
+                        onDayTap: { day in
+                            vm.selectDay(day.solarDay, month: day.solarMonth, year: day.solarYear)
+                        },
+                        onDayDoubleTap: { day in
+                            vm.selectDay(day.solarDay, month: day.solarMonth, year: day.solarYear)
+                            detailDayInfo = vm.state.dayInfo
+                        }
+                    )
+                    .id(gridId)
+                    .offset(x: dragOffset + swipeTransitionOffset)
+                    .opacity(dragOffset == 0 && swipeTransitionOffset == 0 ? 1 : max(0.3, 1 - abs(dragOffset + swipeTransitionOffset) / 400))
+                    .gesture(
+                        DragGesture(minimumDistance: 20, coordinateSpace: .local)
+                            .onChanged { value in
+                                let h = value.translation.width
+                                let v = value.translation.height
+                                if abs(h) > abs(v) {
+                                    dragOffset = h * 0.4
+                                }
+                            }
+                            .onEnded { value in
+                                let h = value.translation.width
+                                let v = value.translation.height
+                                let velocity = value.predictedEndTranslation.width
+                                let screenW = geo.size.width
+
+                                if abs(h) > abs(v) && (abs(h) > 50 || abs(velocity) > 300) {
+                                    let isNext = h < 0
+
+                                    // Phase 1: Slide current grid out
+                                    withAnimation(.easeIn(duration: 0.15)) {
+                                        swipeTransitionOffset = isNext ? -screenW : screenW
+                                        dragOffset = 0
+                                    }
+
+                                    // Phase 2: Switch data, reposition, slide in
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                        if isNext {
+                                            vm.nextMonth()
+                                        } else {
+                                            vm.previousMonth()
+                                        }
+                                        gridId = UUID()
+                                        swipeTransitionOffset = isNext ? screenW : -screenW
+
+                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                            swipeTransitionOffset = 0
+                                        }
+                                    }
+                                } else {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                        dragOffset = 0
+                                    }
+                                }
+                            }
+                    )
+                }
+                .clipped()
 
                 // ═══ SELECTED DAY DETAIL (bottom bar) ═══
                 if let info = vm.state.dayInfo {
                     SelectedDayBar(
                         dayInfo: info,
-                        onTap: { showDayDetail = true }
+                        onTap: { detailDayInfo = info }
                     )
                 }
 
                 Spacer()
             }
         }
-        .fullScreenCover(isPresented: $showDayDetail) {
-            if let info = vm.state.dayInfo {
-                DayDetailScreen(dayInfo: info, onDismiss: { showDayDetail = false })
-            }
+        .fullScreenCover(item: $detailDayInfo) { (info: DayInfo) in
+            DayDetailScreen(dayInfo: info, onDismiss: { detailDayInfo = nil })
         }
         .sheet(isPresented: $showSearch) {
             NavigationStack {
                 SearchScreen()
             }
+        }
+        .sheet(isPresented: $showMonthYearPicker) {
+            MonthYearPickerSheet(
+                currentYear: vm.state.currentYear,
+                currentMonth: vm.state.currentMonth,
+                onSelect: { year, month in
+                    showMonthYearPicker = false
+                    vm.goToMonth(year: year, month: month)
+                }
+            )
+            .presentationDetents([.medium, .large])
         }
     }
 
@@ -143,6 +210,7 @@ private struct MonthSelector: View {
     let lunarLabel: String
     let onPrev: () -> Void
     let onNext: () -> Void
+    var onTitleTap: (() -> Void)? = nil
 
     private let monthNames = [
         "", "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4",
@@ -160,14 +228,24 @@ private struct MonthSelector: View {
                     .overlay(Circle().stroke(OutlineVar, lineWidth: 1))
             }
 
-            VStack(spacing: 2) {
-                Text("\(monthNames[month]), \(String(year))")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(PrimaryRed)
-                Text(lunarLabel)
-                    .font(.system(size: 11))
-                    .foregroundColor(TextSub)
+            Button {
+                onTitleTap?()
+            } label: {
+                VStack(spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text("\(monthNames[month]), \(String(year))")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundColor(PrimaryRed)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(PrimaryRed.opacity(0.6))
+                    }
+                    Text(lunarLabel)
+                        .font(.system(size: 11))
+                        .foregroundColor(TextSub)
+                }
             }
+            .buttonStyle(.plain)
             .frame(minWidth: 160)
 
             Button(action: onNext) {
@@ -269,10 +347,16 @@ private struct CalendarDayCell: View {
             RoundedRectangle(cornerRadius: 14)
                 .fill(cellBackground)
 
+            // Selected border ring (not today)
+            if isSelected && !day.isToday {
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(PrimaryRed.opacity(0.4), lineWidth: 1.5)
+            }
+
             VStack(spacing: 1) {
                 // Solar day number
                 Text("\(day.solarDay)")
-                    .font(.system(size: 16, weight: day.isToday || day.isHoliday ? .bold : .semibold))
+                    .font(.system(size: 16, weight: day.isToday || day.isHoliday || isSelected ? .bold : .semibold))
                     .foregroundColor(solarColor)
                     .lineLimit(1)
 
@@ -335,7 +419,7 @@ private struct CalendarDayCell: View {
         if day.isToday {
             return PrimaryRed
         } else if isSelected {
-            return Color(hex: "5D1212")
+            return PrimaryRed.opacity(0.12)
         } else {
             return .clear
         }
@@ -344,6 +428,9 @@ private struct CalendarDayCell: View {
     private var solarColor: Color {
         if day.isToday {
             return .white
+        }
+        if isSelected {
+            return PrimaryRed
         }
         if !day.isCurrentMonth {
             return OutlineVar
@@ -360,6 +447,9 @@ private struct CalendarDayCell: View {
     private var lunarColor: Color {
         if day.isToday {
             return .white.opacity(0.7)
+        }
+        if isSelected {
+            return PrimaryRed.opacity(0.6)
         }
         if !day.isCurrentMonth {
             return OutlineVar
@@ -439,6 +529,261 @@ private struct SelectedDayBar: View {
             }
             .buttonStyle(.plain)
         }
+    }
+}
+
+// ══════════════════════════════════════════
+// MONTH / YEAR PICKER SHEET
+// Level 1: 12 months grid → tap year header → Level 2: 16-year grid
+// ══════════════════════════════════════════
+
+private struct MonthYearPickerSheet: View {
+    let currentYear: Int
+    let currentMonth: Int
+    let onSelect: (Int, Int) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var displayYear: Int
+    @State private var showYearGrid = false
+
+    private let monthNames = [
+        "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4",
+        "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8",
+        "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
+    ]
+
+    init(currentYear: Int, currentMonth: Int, onSelect: @escaping (Int, Int) -> Void) {
+        self.currentYear = currentYear
+        self.currentMonth = currentMonth
+        self.onSelect = onSelect
+        self._displayYear = State(initialValue: currentYear)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                if showYearGrid {
+                    yearGridView
+                } else {
+                    monthGridView
+                }
+            }
+            .background(SurfaceBg)
+            .navigationTitle(showYearGrid ? "Chọn năm" : "Chọn tháng")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        if showYearGrid {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showYearGrid = false
+                            }
+                        } else {
+                            dismiss()
+                        }
+                    } label: {
+                        Image(systemName: showYearGrid ? "chevron.left" : "xmark")
+                            .foregroundColor(PrimaryRed)
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        let now = Date()
+                        let cal = Calendar.current
+                        onSelect(cal.component(.year, from: now), cal.component(.month, from: now))
+                    } label: {
+                        Text("Hôm nay")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(PrimaryRed)
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Level 1: Month Grid ──
+    private var monthGridView: some View {
+        VStack(spacing: 16) {
+            // Year header — tappable to go to year grid
+            HStack {
+                Button {
+                    displayYear -= 1
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(TextMain)
+                        .frame(width: 32, height: 32)
+                        .overlay(Circle().stroke(OutlineVar, lineWidth: 1))
+                }
+
+                Spacer()
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showYearGrid = true
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("Năm \(String(displayYear))")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(PrimaryRed)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(PrimaryRed.opacity(0.6))
+                    }
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                Button {
+                    displayYear += 1
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(TextMain)
+                        .frame(width: 32, height: 32)
+                        .overlay(Circle().stroke(OutlineVar, lineWidth: 1))
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+
+            // 12 months in 3×4 grid
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(0..<12, id: \.self) { index in
+                    let m = index + 1
+                    let isSelected = displayYear == currentYear && m == currentMonth
+                    let isCurrentMonth = isThisMonth(month: m, year: displayYear)
+
+                    Button {
+                        onSelect(displayYear, m)
+                    } label: {
+                        VStack(spacing: 4) {
+                            Text(monthNames[index])
+                                .font(.system(size: 14, weight: isSelected ? .bold : .medium))
+                                .foregroundColor(isSelected ? .white : (isCurrentMonth ? PrimaryRed : TextMain))
+
+                            // Lunar month label
+                            let lunar = LunarCalendarUtil.convertSolar2Lunar(dd: 15, mm: m, yy: displayYear)
+                            Text("Tháng \(lunar.lunarMonth) Âm")
+                                .font(.system(size: 10))
+                                .foregroundColor(isSelected ? .white.opacity(0.7) : TextDim)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(isSelected ? PrimaryRed : (isCurrentMonth ? PrimaryRed.opacity(0.08) : SurfaceContainer))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(isSelected ? PrimaryRed : (isCurrentMonth ? PrimaryRed.opacity(0.3) : OutlineVar), lineWidth: isSelected ? 2 : 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+
+            Spacer()
+        }
+    }
+
+    // ── Level 2: Year Grid (16 years) ──
+    private var yearGridView: some View {
+        let startYear = displayYear - 7
+        let years = Array(startYear...(startYear + 15))
+
+        return VStack(spacing: 16) {
+            // Range header with navigation
+            HStack {
+                Button {
+                    displayYear -= 16
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(TextMain)
+                        .frame(width: 32, height: 32)
+                        .overlay(Circle().stroke(OutlineVar, lineWidth: 1))
+                }
+
+                Spacer()
+
+                Text("\(String(years.first!)) – \(String(years.last!))")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(PrimaryRed)
+
+                Spacer()
+
+                Button {
+                    displayYear += 16
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(TextMain)
+                        .frame(width: 32, height: 32)
+                        .overlay(Circle().stroke(OutlineVar, lineWidth: 1))
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+
+            // 4×4 grid
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 4)
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(years, id: \.self) { year in
+                    let isSelected = year == currentYear
+                    let isThisYear = year == Calendar.current.component(.year, from: Date())
+
+                    Button {
+                        displayYear = year
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showYearGrid = false
+                        }
+                    } label: {
+                        VStack(spacing: 2) {
+                            Text(String(year))
+                                .font(.system(size: 15, weight: isSelected ? .bold : .medium))
+                                .foregroundColor(isSelected ? .white : (isThisYear ? PrimaryRed : TextMain))
+
+                            // Can chi of year
+                            Text(canChiOfYear(year))
+                                .font(.system(size: 10))
+                                .foregroundColor(isSelected ? .white.opacity(0.7) : TextDim)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(isSelected ? PrimaryRed : (isThisYear ? PrimaryRed.opacity(0.08) : SurfaceContainer))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(isSelected ? PrimaryRed : (isThisYear ? PrimaryRed.opacity(0.3) : OutlineVar), lineWidth: isSelected ? 2 : 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+
+            Spacer()
+        }
+    }
+
+    // ── Helpers ──
+    private func isThisMonth(month: Int, year: Int) -> Bool {
+        let now = Date()
+        let cal = Calendar.current
+        return cal.component(.year, from: now) == year && cal.component(.month, from: now) == month
+    }
+
+    private func canChiOfYear(_ year: Int) -> String {
+        let thienCan = ["Canh", "Tân", "Nhâm", "Quý", "Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ"]
+        let diaChi = ["Thân", "Dậu", "Tuất", "Hợi", "Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi"]
+        return "\(thienCan[year % 10]) \(diaChi[year % 12])"
     }
 }
 

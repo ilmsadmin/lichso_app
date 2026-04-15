@@ -23,14 +23,6 @@ struct SettingsScreen: View {
 
     private var cs: SettingsColorScheme { SettingsColorScheme(isDark: colorScheme == .dark) }
 
-    private var resolvedColorScheme: ColorScheme? {
-        switch vm.theme {
-        case "Sáng": return .light
-        case "Tối":  return .dark
-        default:     return nil
-        }
-    }
-
     var body: some View {
         VStack(spacing: 0) {
 
@@ -253,7 +245,6 @@ struct SettingsScreen: View {
         }
         .background(cs.bg.ignoresSafeArea())
         .navigationBarHidden(true)
-        .preferredColorScheme(resolvedColorScheme)
         .task { await vm.checkNotificationPermission() }
         // Push to iCloud whenever any setting changes
         .onChange(of: vm.weekStart)      { _, _ in vm.pushToICloud() }
@@ -385,7 +376,7 @@ private struct SettingsTopBar: View {
             Spacer()
         }
         .padding(.horizontal, 16)
-        .padding(.top, 12)
+        .padding(.top, 8)
         .padding(.bottom, 16)
         .background(
             LinearGradient(
@@ -393,6 +384,7 @@ private struct SettingsTopBar: View {
                          Color(red: 0.545, green: 0, blue: 0)],
                 startPoint: .topLeading, endPoint: .bottomTrailing
             )
+            .ignoresSafeArea(edges: .top)
         )
     }
 }

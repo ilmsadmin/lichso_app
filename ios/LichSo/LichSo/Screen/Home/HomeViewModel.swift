@@ -35,7 +35,9 @@ struct HomeUiState {
 class HomeViewModel: ObservableObject {
     @Published var state = HomeUiState()
     private let provider = DayInfoProvider.shared
-    @AppStorage("setting_week_start") private var weekStart: String = "Thứ 2"
+    @AppStorage("setting_week_start") private var weekStart: String = "Thứ 2" {
+        didSet { reloadCalendarDays() }
+    }
 
     init() {
         loadCurrentDate()
@@ -94,5 +96,12 @@ class HomeViewModel: ObservableObject {
             weekStartSunday: weekStart == "Chủ nhật"
         )
         state.upcomingEvents = provider.getUpcomingEvents(dd: day, mm: month, yy: year)
+    }
+
+    private func reloadCalendarDays() {
+        state.calendarDays = provider.getCalendarDays(
+            year: state.currentYear, month: state.currentMonth,
+            weekStartSunday: weekStart == "Chủ nhật"
+        )
     }
 }

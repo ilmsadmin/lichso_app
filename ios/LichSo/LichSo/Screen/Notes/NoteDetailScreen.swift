@@ -104,7 +104,7 @@ struct NoteDetailScreen: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 12)
+            .padding(.top, 8)
             .padding(.bottom, 12)
             .background(
                 LinearGradient(
@@ -112,6 +112,7 @@ struct NoteDetailScreen: View {
                              Color(red: 0.545, green: 0, blue: 0)],
                     startPoint: .topLeading, endPoint: .bottomTrailing
                 )
+                .ignoresSafeArea(edges: .top)
             )
 
             ScrollView(.vertical, showsIndicators: false) {
@@ -257,7 +258,7 @@ struct TaskDetailScreen: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 12)
+            .padding(.top, 8)
             .padding(.bottom, 12)
             .background(
                 LinearGradient(
@@ -265,6 +266,7 @@ struct TaskDetailScreen: View {
                              Color(red: 0.545, green: 0, blue: 0)],
                     startPoint: .topLeading, endPoint: .bottomTrailing
                 )
+                .ignoresSafeArea(edges: .top)
             )
 
             ScrollView(.vertical, showsIndicators: false) {

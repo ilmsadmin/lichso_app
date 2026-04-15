@@ -87,8 +87,8 @@ struct SidebarView: View {
             )
         }
         .animation(.easeInOut(duration: 0.28), value: isOpen)
-        .onChange(of: isOpen) { newValue in
-            if newValue { dragOffset = 0 }
+        .onChange(of: isOpen) {
+            if isOpen { dragOffset = 0 }
         }
     }
 

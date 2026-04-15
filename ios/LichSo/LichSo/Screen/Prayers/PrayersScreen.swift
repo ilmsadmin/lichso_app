@@ -110,7 +110,7 @@ private struct PrayersHeader: View {
                 .padding(.top, 2)
         }
         .padding(.horizontal, 24)
-        .padding(.top, 16)
+        .padding(.top, 8)
         .padding(.bottom, 20)
         .background(
             LinearGradient(
@@ -118,6 +118,7 @@ private struct PrayersHeader: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
+            .ignoresSafeArea(edges: .top)
         )
         .overlay(alignment: .topTrailing) {
             Image(systemName: "sun.max.fill")

@@ -44,6 +44,7 @@ struct NotesScreen: View {
                 StatCard(value: vm.activeReminderCount, label: "NHẮC NHỞ", color: RemindOrange)
             }
             .padding(.horizontal, 20)
+            .padding(.top, 14)
             .padding(.bottom, 10)
 
             // ═══ TAB BAR ═══
@@ -133,7 +134,7 @@ private struct NotesTopBar: View {
             Spacer()
         }
         .padding(.horizontal, 20)
-        .padding(.top, 12)
+        .padding(.top, 8)
         .padding(.bottom, 14)
         .background(
             LinearGradient(
@@ -141,6 +142,7 @@ private struct NotesTopBar: View {
                          Color(red: 0.545, green: 0, blue: 0)],
                 startPoint: .topLeading, endPoint: .bottomTrailing
             )
+            .ignoresSafeArea(edges: .top)
         )
     }
 }

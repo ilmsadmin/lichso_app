@@ -1,5 +1,7 @@
 import SwiftUI
 import UserNotifications
+import Foundation
+import Combine
 
 // ═══════════════════════════════════════════
 // Settings ViewModel
@@ -50,10 +52,33 @@ class SettingsViewModel: ObservableObject {
     let tempUnitOptions  = ["°C", "°F"]
 
     let locationOptions: [String] = [
-        "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng",
-        "Cần Thơ", "Biên Hoà", "Nha Trang", "Huế", "Buôn Ma Thuột",
-        "Thái Nguyên", "Vũng Tàu", "Quy Nhơn", "Bắc Ninh", "Hạ Long",
-        "Đà Lạt", "Mỹ Tho", "Vinh", "Nam Định", "Thanh Hoá", "Bảo Lộc"
+        // ── Thành phố trực thuộc Trung ương ──
+        "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ",
+        // ── Miền Bắc ──
+        "Hà Giang", "Cao Bằng", "Bắc Kạn", "Tuyên Quang", "Lào Cai",
+        "Điện Biên", "Lai Châu", "Sơn La", "Yên Bái", "Hoà Bình",
+        "Thái Nguyên", "Lạng Sơn", "Quảng Ninh", "Hạ Long", "Bắc Giang",
+        "Phú Thọ", "Vĩnh Phúc", "Bắc Ninh", "Hải Dương", "Hưng Yên",
+        "Thái Bình", "Hà Nam", "Nam Định", "Ninh Bình",
+        // ── Miền Trung ──
+        "Thanh Hoá", "Nghệ An", "Vinh", "Hà Tĩnh", "Quảng Bình", "Đồng Hới",
+        "Quảng Trị", "Huế", "Quảng Nam", "Hội An", "Quảng Ngãi",
+        "Bình Định", "Quy Nhơn", "Phú Yên", "Tuy Hoà",
+        "Khánh Hoà", "Nha Trang", "Ninh Thuận", "Phan Rang",
+        "Bình Thuận", "Phan Thiết",
+        // ── Tây Nguyên ──
+        "Kon Tum", "Gia Lai", "Pleiku", "Đắk Lắk", "Buôn Ma Thuột",
+        "Đắk Nông", "Gia Nghĩa", "Lâm Đồng", "Đà Lạt", "Bảo Lộc",
+        // ── Đông Nam Bộ ──
+        "Bình Phước", "Đồng Xoài", "Tây Ninh",
+        "Bình Dương", "Thủ Dầu Một", "Đồng Nai", "Biên Hoà",
+        "Bà Rịa - Vũng Tàu", "Vũng Tàu",
+        // ── Đồng bằng Sông Cửu Long ──
+        "Long An", "Tân An", "Tiền Giang", "Mỹ Tho",
+        "Bến Tre", "Trà Vinh", "Vĩnh Long",
+        "Đồng Tháp", "Cao Lãnh", "An Giang", "Long Xuyên", "Châu Đốc",
+        "Kiên Giang", "Rạch Giá", "Phú Quốc",
+        "Hậu Giang", "Vị Thanh", "Sóc Trăng", "Bạc Liêu", "Cà Mau"
     ]
 
     var reminderTimeString: String {

@@ -35,7 +35,9 @@ class CalendarViewModel: ObservableObject {
     @Published var state = CalendarUiState()
 
     private let provider = DayInfoProvider.shared
-    @AppStorage("setting_week_start") private var weekStart: String = "Thứ 2"
+    @AppStorage("setting_week_start") private var weekStart: String = "Thứ 2" {
+        didSet { reloadGrid() }
+    }
 
     init() {
         loadCurrentMonth()
@@ -90,6 +92,24 @@ class CalendarViewModel: ObservableObject {
     // ── Go to today ──
     func goToToday() {
         loadCurrentMonth()
+    }
+
+    // ── Go to specific month ──
+    func goToMonth(year: Int, month: Int) {
+        state.currentYear = year
+        state.currentMonth = month
+        reloadGrid()
+        // Select 1st day, or today if it's the current month
+        let now = Date()
+        let cal = Calendar.current
+        let todayY = cal.component(.year, from: now)
+        let todayM = cal.component(.month, from: now)
+        let todayD = cal.component(.day, from: now)
+        if year == todayY && month == todayM {
+            selectDay(todayD, month: month, year: year)
+        } else {
+            selectDay(1, month: month, year: year)
+        }
     }
 
     // ── Go to specific date ──

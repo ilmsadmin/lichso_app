@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 // ═══════════════════════════════════════════
 // Home Screen — Vietnamese Calendar Day Page
@@ -34,8 +35,13 @@ struct HomeScreen: View {
     var onMenuClick: () -> Void = {}
 
     @StateObject private var viewModel = HomeViewModel()
+    @ObservedObject private var weatherService = WeatherService.shared
+    @Query(filter: #Predicate<NotificationEntity> { !$0.isRead })
+    private var unreadNotifications: [NotificationEntity]
     @State private var showNotifications = false
     @State private var showGoodDays = false
+    @State private var showHistory = false
+    @State private var showWeather = false
     @State private var flipProgress: CGFloat = 0
     @State private var isDragging = false
     @State private var isAnimatingFlip = false
@@ -88,6 +94,18 @@ struct HomeScreen: View {
                 GoodDaysScreen()
             }
         }
+        .fullScreenCover(isPresented: $showHistory) {
+            NavigationStack {
+                ThisDayInHistoryScreen(
+                    initialDay: viewModel.state.selectedDay,
+                    initialMonth: viewModel.state.selectedMonth,
+                    initialYear: viewModel.state.selectedYear
+                )
+            }
+        }
+        .task {
+            await weatherService.fetchWeather(for: locationSetting, unit: tempUnitSetting)
+        }
     }
 
     // MARK: - Header
@@ -101,10 +119,12 @@ struct HomeScreen: View {
                 Spacer()
                 ZStack(alignment: .topTrailing) {
                     circleButton(icon: "bell") { showNotifications = true }
-                    Circle()
-                        .fill(Color(hex: "FF6B6B"))
-                        .frame(width: 7, height: 7)
-                        .offset(x: -6, y: 6)
+                    if !unreadNotifications.isEmpty {
+                        Circle()
+                            .fill(Color(hex: "FF6B6B"))
+                            .frame(width: 7, height: 7)
+                            .offset(x: -6, y: 6)
+                    }
                 }
             }
             .padding(.horizontal, 24)
@@ -153,15 +173,29 @@ struct HomeScreen: View {
     }
 
     private var weatherChip: some View {
-        HStack(spacing: 6) {
-            Text("⛅").font(.system(size: 18))
-            Text("31\(tempUnitSetting)").font(.system(size: 15, weight: .bold)).foregroundColor(.white)
-            Text(locationSetting).font(.system(size: 13, weight: .medium)).foregroundColor(.white)
+        Button {
+            showWeather = true
+        } label: {
+            HStack(spacing: 6) {
+                Text(WeatherService.weatherEmoji(for: weatherService.weather?.weatherCode ?? 2))
+                    .font(.system(size: 18))
+                Text(weatherService.weather.map { "\(Int($0.temperature.rounded()))\(tempUnitSetting)" } ?? "31\(tempUnitSetting)")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(.white)
+                Text(locationSetting)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.white)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+            .background(Color.white.opacity(0.15))
+            .clipShape(Capsule())
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 6)
-        .background(Color.white.opacity(0.15))
-        .clipShape(Capsule())
+        .sheet(isPresented: $showWeather) {
+            WeatherDetailSheet(city: locationSetting, unit: tempUnitSetting)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
     }
 
     // MARK: - Tear Line
@@ -253,7 +287,8 @@ struct HomeScreen: View {
                     showHoangDao: showHoangDaoSetting,
                     selectedDay: viewModel.state.selectedDay,
                     selectedMonth: viewModel.state.selectedMonth,
-                    onGoodDaysTap: { showGoodDays = true }
+                    onGoodDaysTap: { showGoodDays = true },
+                    onHistoryTap: { showHistory = true }
                 )
                 .rotation3DEffect(
                     .degrees(Double(progress) * -80),
@@ -342,6 +377,7 @@ private struct CalendarPageBody: View {
     let selectedDay: Int
     let selectedMonth: Int
     var onGoodDaysTap: () -> Void = {}
+    var onHistoryTap: () -> Void = {}
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -405,7 +441,11 @@ private struct CalendarPageBody: View {
 
                 // Event chips — controlled by setting
                 if showFestivals {
-                    eventChips
+                    let hasHistory = HistoricalEventProvider.hasEvents(day: info.solar.dd, month: info.solar.mm)
+                    let holiday = info.solarHoliday ?? info.lunarHoliday
+                    if holiday != nil || hasHistory {
+                        eventChips
+                    }
                 }
 
                 Spacer()
@@ -511,26 +551,52 @@ private struct CalendarPageBody: View {
 
     // MARK: Event Chips
 
+    // Adaptive chip colors — dark & light
+    private var holidayChipBg: Color {
+        Color(UIColor { t in t.userInterfaceStyle == .dark ? UIColor(hex: "3D2A10") : UIColor(hex: "FFF3E0") })
+    }
+    private var holidayChipFg: Color {
+        Color(UIColor { t in t.userInterfaceStyle == .dark ? UIColor(hex: "E8A06A") : UIColor(hex: "BF360C") })
+    }
+    private var holidayChipBorder: Color {
+        Color(UIColor { t in t.userInterfaceStyle == .dark ? UIColor(hex: "5C3D1A") : UIColor(hex: "FFCC80") })
+    }
+    private var historyChipBg: Color {
+        Color(UIColor { t in t.userInterfaceStyle == .dark ? UIColor(hex: "1A2E1A") : UIColor(hex: "E8F5E9") })
+    }
+    private var historyChipFg: Color {
+        Color(UIColor { t in t.userInterfaceStyle == .dark ? UIColor(hex: "81C784") : UIColor(hex: "2E7D32") })
+    }
+    private var historyChipBorder: Color {
+        Color(UIColor { t in t.userInterfaceStyle == .dark ? UIColor(hex: "2E4A2E") : UIColor(hex: "A5D6A7") })
+    }
+
     private var eventChips: some View {
         let holiday = info.solarHoliday ?? info.lunarHoliday
+        let hasHistory = HistoricalEventProvider.hasEvents(day: info.solar.dd, month: info.solar.mm)
 
         return HStack(spacing: 8) {
             if let holiday = holiday {
                 chipView(
                     icon: "party.popper",
                     text: holiday,
-                    bg: Color(hex: "3D2A10"),
-                    fg: Color(hex: "E8A06A"),
-                    border: Color(hex: "5C3D1A")
+                    bg: holidayChipBg,
+                    fg: holidayChipFg,
+                    border: holidayChipBorder
                 )
             }
-            chipView(
-                icon: "book.closed",
-                text: "Ngày này năm xưa",
-                bg: Color(hex: "1A2E1A"),
-                fg: Color(hex: "81C784"),
-                border: Color(hex: "2E4A2E")
-            )
+            if hasHistory {
+                Button(action: onHistoryTap) {
+                    chipView(
+                        icon: "book.closed",
+                        text: "Ngày này năm xưa",
+                        bg: historyChipBg,
+                        fg: historyChipFg,
+                        border: historyChipBorder
+                    )
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 

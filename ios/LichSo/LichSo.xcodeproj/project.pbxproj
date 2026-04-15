@@ -7,21 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		"'AACH110011002200AABB4401'" = {isa = PBXBuildFile; fileRef = AACH110011002200AABB4411; };
-		"'AACH110011002200AABB4402'" = {isa = PBXBuildFile; fileRef = AACH110011002200AABB4412; };
-		"'AACH110011002200AABB4403'" = {isa = PBXBuildFile; fileRef = AACH110011002200AABB4413; };
-		"'AACH110011002200AABB4404'" = {isa = PBXBuildFile; fileRef = AACH110011002200AABB4414; };
-		"'AACH110011002200AABB4405'" = {isa = PBXBuildFile; fileRef = AACH110011002200AABB4415; };
-		"'AACH110011002200AABB4406'" = {isa = PBXBuildFile; fileRef = AACH110011002200AABB4416; };
-		"'AAEP110011002200AABB3301'" = {isa = PBXBuildFile; fileRef = AAEP110011002200AABB3311; };
-		"'AAEP110011002200AABB3302'" = {isa = PBXBuildFile; fileRef = AAEP110011002200AABB3312; };
-		"'AAEP110011002200AABB3303'" = {isa = PBXBuildFile; fileRef = AAEP110011002200AABB3313; };
-		"'AANF110011002200AABB5601'" = {isa = PBXBuildFile; fileRef = AANF110011002200AABB5611; };
-		"'AANF110011002200AABB5602'" = {isa = PBXBuildFile; fileRef = AANF110011002200AABB5612; };
-		"'AANT110011002200AABB5501'" = {isa = PBXBuildFile; fileRef = AANT110011002200AABB5511; };
-		"'AANT110011002200AABB5502'" = {isa = PBXBuildFile; fileRef = AANT110011002200AABB5512; };
-		"'AASR110011002200AABB5701'" = {isa = PBXBuildFile; fileRef = AASR110011002200AABB5711; };
-		"'AASR110011002200AABB5702'" = {isa = PBXBuildFile; fileRef = AASR110011002200AABB5712; };
 		07164ACF967D1BEBE75E6CAA /* AIChatDayScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CCA4D6089F2262E10C41278 /* AIChatDayScreen.swift */; };
 		083F391244660A0B92F635DF /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB92FD1796F332D9CC4F3962 /* HomeViewModel.swift */; };
 		126047ACB473D41834F0169A /* AIChatScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 102744C983C7BF3CED3F22EF /* AIChatScreen.swift */; };
@@ -42,21 +27,30 @@
 		78344B9DB7E70CDD4130968E /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178E464E96819018EDC3340F /* SettingsViewModel.swift */; };
 		7D0EEB256A42C70D2C65306E /* MoonPhaseCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D82CFE583DC86F1FD737D149 /* MoonPhaseCalculator.swift */; };
 		83D747308D19E2B6F8C977E3 /* NotificationsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07BC46CC9C48D2FC978D47A7 /* NotificationsViewModel.swift */; };
-		AA11220033004400BB5501A1 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11220033004400BB5501B1 /* NotificationScheduler.swift */; };
-		AA11220033004400BB5502A2 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11220033004400BB5502B2 /* NotificationService.swift */; };
 		878143DA80EBF6745451A1C6 /* MemorialDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 077446619D5AA93C29C5149B /* MemorialDetailScreen.swift */; };
 		909F691CB1A7A1D98A44B7DB /* Entities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 384E327453421B361A297BF4 /* Entities.swift */; };
 		9149F1FD29AA189B42079DE7 /* TietKhiCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D302B129AE78B7255E89C491 /* TietKhiCalculator.swift */; };
 		9A243AA2B55F90CF0D0C721E /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03616500E4B8D15AF2F22457 /* MainTabView.swift */; };
-		AA1234560000000000000002 /* LichSoTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1234560000000000000001 /* LichSoTheme.swift */; };
 		9C71258BC3F8ABD81C583701 /* LichSoColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC7D8E08A26F12781192291C /* LichSoColors.swift */; };
 		9EA04B8796E1332CC4B84AF8 /* NoteDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB244C1F99CA389E42E4CA8E /* NoteDetailScreen.swift */; };
 		A0D36DCE908555B1166F94B3 /* DayInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE947F87F39132FFC0E15F79 /* DayInfo.swift */; };
 		A35925D4D1F8016A434E4C0B /* SplashScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F49EC5081E14B4837A0BF7EF /* SplashScreen.swift */; };
+		AA00BB11CC22DD33EE44FF55 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00BB11CC22DD33EE44FF56 /* WeatherService.swift */; };
+		AA00BB11CC22DD33EE44FF57 /* WeatherDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00BB11CC22DD33EE44FF58 /* WeatherDetailSheet.swift */; };
+		AA01FTREE001000000000001 /* FamilyTreeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01FTREE001000000000011 /* FamilyTreeScreen.swift */; };
+		AA01GDAY0001000000000001 /* GoodDaysScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01GDAY0001000000000011 /* GoodDaysScreen.swift */; };
+		AA01GDAY0001000000000002 /* GoodDaysViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01GDAY0001000000000012 /* GoodDaysViewModel.swift */; };
+		AA01PRAY0001000000000001 /* PrayersScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01PRAY0001000000000011 /* PrayersScreen.swift */; };
+		AA01PRAY0001000000000002 /* PrayerDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01PRAY0001000000000012 /* PrayerDetailScreen.swift */; };
+		AA01PRAY0001000000000003 /* PrayersData.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01PRAY0001000000000013 /* PrayersData.swift */; };
+		AA11220033004400BB5501A1 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11220033004400BB5501B1 /* NotificationScheduler.swift */; };
+		AA11220033004400BB5502A2 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11220033004400BB5502B2 /* NotificationService.swift */; };
 		AA11BB22CC33DD44EE55FF66 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4C0EBEA9930267D3177B4A14 /* Assets.xcassets */; };
+		AA1234560000000000000002 /* LichSoTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1234560000000000000001 /* LichSoTheme.swift */; };
 		AB894DADBB009AA2688B1C56 /* NotesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F3444A8CD07E311CC34122 /* NotesViewModel.swift */; };
 		ADD34CD9884D00DD20871840 /* CalendarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3A4D61A5D158A66EDEFA68 /* CalendarViewModel.swift */; };
 		B08B950DDB6B5D2F62A92082 /* HomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1595F6D47D2E7C1A756811A /* HomeScreen.swift */; };
+		CC3D4E5F6A7B8C9D0E1F2A3B /* ThisDayInHistoryScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4E5F6A7B8C9D0E1F2A3B4C /* ThisDayInHistoryScreen.swift */; };
 		B6194038AC8F2BF81D9679BE /* NoteEditScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C31D4DA0A453819A007E2A4F /* NoteEditScreen.swift */; };
 		BCAB42018C7C8E563BC44FFE /* EditProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E614F1B87F1874B106B9D67 /* EditProfileViewModel.swift */; };
 		BE49418CADDC00356B4DD46B /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA754D39BA49B7180EB81F8F /* SettingsScreen.swift */; };
@@ -64,6 +58,7 @@
 		C7194F7491EB04FCECF5A46B /* DayDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F04C1781DFA14FF739BF0D /* DayDetailScreen.swift */; };
 		C8374A03883940EF3561842A /* PickMemberScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97EA404C8E80570B04688E29 /* PickMemberScreen.swift */; };
 		CEC58F66914F60BECBEAFC1B /* SaoChieuCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87CB1F33B0C81A7CE2AABEFB /* SaoChieuCalculator.swift */; };
+		AA1B2C3D4E5F6A7B8C9D0E1F /* HistoricalEventProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2C3D4E5F6A7B8C9D0E1F2A /* HistoricalEventProvider.swift */; };
 		D561458390001824FCBE4272 /* SearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E24E11B097F4278BBEC8D0 /* SearchViewModel.swift */; };
 		D5ADCBCBD422558ACE63F14D /* LichSoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4EBF59381267B3E0EC88C3 /* LichSoApp.swift */; };
 		D9B33CE214A0AA66DE768084 /* HolidayUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 099297BE30BACA63D6819261 /* HolidayUtil.swift */; };
@@ -74,36 +69,13 @@
 		F08D42ED9E71D61546383BFE /* NotificationsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77BA4DF286B4F8C49B97CA5A /* NotificationsScreen.swift */; };
 		F0AF4184AA7E6CB71A95A60D /* EditProfileScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7F4553A3D09C4B5E55B957 /* EditProfileScreen.swift */; };
 		F9D0C10B01109877A9B6D0F5 /* OnboardingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0412CEDB02F81AA83BD67D0 /* OnboardingScreen.swift */; };
-		AA01PRAY0001000000000001 /* PrayersScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01PRAY0001000000000011 /* PrayersScreen.swift */; };
-		AA01PRAY0001000000000002 /* PrayerDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01PRAY0001000000000012 /* PrayerDetailScreen.swift */; };
-		AA01PRAY0001000000000003 /* PrayersData.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01PRAY0001000000000013 /* PrayersData.swift */; };
-		AA01FTREE001000000000001 /* FamilyTreeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01FTREE001000000000011 /* FamilyTreeScreen.swift */; };
-		AA01GDAY0001000000000001 /* GoodDaysScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01GDAY0001000000000011 /* GoodDaysScreen.swift */; };
-		AA01GDAY0001000000000002 /* GoodDaysViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01GDAY0001000000000012 /* GoodDaysViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		"'AACH110011002200AABB4411'" = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenRouterService.swift; sourceTree = "<group>"; };
-		"'AACH110011002200AABB4412'" = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
-		"'AACH110011002200AABB4413'" = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatScreen.swift; sourceTree = "<group>"; };
-		"'AACH110011002200AABB4414'" = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatDayScreen.swift; sourceTree = "<group>"; };
-		"'AACH110011002200AABB4415'" = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
-		"'AACH110011002200AABB4416'" = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
-		"'AAEP110011002200AABB3311'" = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileScreen.swift; sourceTree = "<group>"; };
-		"'AAEP110011002200AABB3312'" = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileViewModel.swift; sourceTree = "<group>"; };
-		"'AAEP110011002200AABB3313'" = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileScreen.swift; sourceTree = "<group>"; };
-		"'AANF110011002200AABB5611'" = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsViewModel.swift; sourceTree = "<group>"; };
-		"'AANF110011002200AABB5612'" = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsScreen.swift; sourceTree = "<group>"; };
-		"'AANT110011002200AABB5511'" = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesViewModel.swift; sourceTree = "<group>"; };
-		"'AANT110011002200AABB5512'" = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesScreen.swift; sourceTree = "<group>"; };
-		"'AASR110011002200AABB5711'" = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewModel.swift; sourceTree = "<group>"; };
-		"'AASR110011002200AABB5712'" = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchScreen.swift; sourceTree = "<group>"; };
 		03616500E4B8D15AF2F22457 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		06E24E11B097F4278BBEC8D0 /* SearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SearchViewModel.swift; path = LichSo/Screen/Search/SearchViewModel.swift; sourceTree = SOURCE_ROOT; };
 		077446619D5AA93C29C5149B /* MemorialDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MemorialDetailScreen.swift; path = LichSo/Screen/FamilyTree/MemorialDetailScreen.swift; sourceTree = SOURCE_ROOT; };
 		07BC46CC9C48D2FC978D47A7 /* NotificationsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NotificationsViewModel.swift; path = LichSo/Screen/Notifications/NotificationsViewModel.swift; sourceTree = SOURCE_ROOT; };
-		AA11220033004400BB5501B1 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NotificationScheduler.swift; path = LichSo/Screen/Notifications/NotificationScheduler.swift; sourceTree = SOURCE_ROOT; };
-		AA11220033004400BB5502B2 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NotificationService.swift; path = LichSo/Screen/Notifications/NotificationService.swift; sourceTree = SOURCE_ROOT; };
 		099297BE30BACA63D6819261 /* HolidayUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolidayUtil.swift; sourceTree = "<group>"; };
 		102744C983C7BF3CED3F22EF /* AIChatScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AIChatScreen.swift; path = LichSo/Screen/Chat/AIChatScreen.swift; sourceTree = SOURCE_ROOT; };
 		12DB4917B8694FDD8E389F93 /* SearchScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SearchScreen.swift; path = LichSo/Screen/Search/SearchScreen.swift; sourceTree = SOURCE_ROOT; };
@@ -122,12 +94,25 @@
 		77BA4DF286B4F8C49B97CA5A /* NotificationsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NotificationsScreen.swift; path = LichSo/Screen/Notifications/NotificationsScreen.swift; sourceTree = SOURCE_ROOT; };
 		7D43BC9D4538D432C4E34801 /* TrucNgayCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrucNgayCalculator.swift; sourceTree = "<group>"; };
 		87CB1F33B0C81A7CE2AABEFB /* SaoChieuCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaoChieuCalculator.swift; sourceTree = "<group>"; };
+		BB2C3D4E5F6A7B8C9D0E1F2A /* HistoricalEventProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoricalEventProvider.swift; sourceTree = "<group>"; };
 		8DB146AE97B2CBE790978D19 /* OpenRouterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = OpenRouterService.swift; path = LichSo/Data/AI/OpenRouterService.swift; sourceTree = SOURCE_ROOT; };
 		8E614F1B87F1874B106B9D67 /* EditProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = EditProfileViewModel.swift; path = LichSo/Screen/Profile/EditProfileViewModel.swift; sourceTree = SOURCE_ROOT; };
 		8F4EBF59381267B3E0EC88C3 /* LichSoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LichSoApp.swift; sourceTree = "<group>"; };
 		97EA404C8E80570B04688E29 /* PickMemberScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PickMemberScreen.swift; path = LichSo/Screen/FamilyTree/PickMemberScreen.swift; sourceTree = SOURCE_ROOT; };
 		9CCA4D6089F2262E10C41278 /* AIChatDayScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AIChatDayScreen.swift; path = LichSo/Screen/Chat/AIChatDayScreen.swift; sourceTree = SOURCE_ROOT; };
 		A1595F6D47D2E7C1A756811A /* HomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeScreen.swift; sourceTree = "<group>"; };
+		DD4E5F6A7B8C9D0E1F2A3B4C /* ThisDayInHistoryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThisDayInHistoryScreen.swift; sourceTree = "<group>"; };
+		AA00BB11CC22DD33EE44FF56 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WeatherService.swift; path = LichSo/Data/WeatherService.swift; sourceTree = SOURCE_ROOT; };
+		AA00BB11CC22DD33EE44FF58 /* WeatherDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WeatherDetailSheet.swift; path = LichSo/Screen/Home/WeatherDetailSheet.swift; sourceTree = SOURCE_ROOT; };
+		AA01FTREE001000000000011 /* FamilyTreeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FamilyTreeScreen.swift; path = LichSo/Screen/FamilyTree/FamilyTreeScreen.swift; sourceTree = SOURCE_ROOT; };
+		AA01GDAY0001000000000011 /* GoodDaysScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GoodDaysScreen.swift; path = LichSo/Screen/GoodDays/GoodDaysScreen.swift; sourceTree = SOURCE_ROOT; };
+		AA01GDAY0001000000000012 /* GoodDaysViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GoodDaysViewModel.swift; path = LichSo/Screen/GoodDays/GoodDaysViewModel.swift; sourceTree = SOURCE_ROOT; };
+		AA01PRAY0001000000000011 /* PrayersScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PrayersScreen.swift; path = LichSo/Screen/Prayers/PrayersScreen.swift; sourceTree = SOURCE_ROOT; };
+		AA01PRAY0001000000000012 /* PrayerDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PrayerDetailScreen.swift; path = LichSo/Screen/Prayers/PrayerDetailScreen.swift; sourceTree = SOURCE_ROOT; };
+		AA01PRAY0001000000000013 /* PrayersData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PrayersData.swift; path = LichSo/Screen/Prayers/PrayersData.swift; sourceTree = SOURCE_ROOT; };
+		AA11220033004400BB5501B1 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NotificationScheduler.swift; path = LichSo/Screen/Notifications/NotificationScheduler.swift; sourceTree = SOURCE_ROOT; };
+		AA11220033004400BB5502B2 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NotificationService.swift; path = LichSo/Screen/Notifications/NotificationService.swift; sourceTree = SOURCE_ROOT; };
+		AA1234560000000000000001 /* LichSoTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LichSoTheme.swift; sourceTree = "<group>"; };
 		AB3A4D61A5D158A66EDEFA68 /* CalendarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CalendarViewModel.swift; path = LichSo/Screen/Calendar/CalendarViewModel.swift; sourceTree = SOURCE_ROOT; };
 		AF014CF39A4E9058B8D49D47 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SidebarView.swift; path = LichSo/Screen/Main/SidebarView.swift; sourceTree = SOURCE_ROOT; };
 		B3294BE09561EDB812CCD8B8 /* FamilySettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FamilySettingsScreen.swift; path = LichSo/Screen/FamilyTree/FamilySettingsScreen.swift; sourceTree = SOURCE_ROOT; };
@@ -146,18 +131,11 @@
 		DB8546F89551EA1278C8FB29 /* AiFab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AiFab.swift; path = LichSo/Screen/Chat/AiFab.swift; sourceTree = SOURCE_ROOT; };
 		E111480CB485E4C09EC0D451 /* CalendarScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CalendarScreen.swift; path = LichSo/Screen/Calendar/CalendarScreen.swift; sourceTree = SOURCE_ROOT; };
 		EB92FD1796F332D9CC4F3962 /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
-		AA1234560000000000000001 /* LichSoTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LichSoTheme.swift; sourceTree = "<group>"; };
 		EC7D8E08A26F12781192291C /* LichSoColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LichSoColors.swift; sourceTree = "<group>"; };
 		EE947F87F39132FFC0E15F79 /* DayInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayInfo.swift; sourceTree = "<group>"; };
 		F49EC5081E14B4837A0BF7EF /* SplashScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreen.swift; sourceTree = "<group>"; };
 		F6048362607C3923B60C5DD6 /* LichSo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LichSo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F91A427DB01C4A41AD43182A /* ProfileScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ProfileScreen.swift; path = LichSo/Screen/Profile/ProfileScreen.swift; sourceTree = SOURCE_ROOT; };
-		AA01PRAY0001000000000011 /* PrayersScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PrayersScreen.swift; path = LichSo/Screen/Prayers/PrayersScreen.swift; sourceTree = SOURCE_ROOT; };
-		AA01PRAY0001000000000012 /* PrayerDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PrayerDetailScreen.swift; path = LichSo/Screen/Prayers/PrayerDetailScreen.swift; sourceTree = SOURCE_ROOT; };
-		AA01PRAY0001000000000013 /* PrayersData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PrayersData.swift; path = LichSo/Screen/Prayers/PrayersData.swift; sourceTree = SOURCE_ROOT; };
-		AA01FTREE001000000000011 /* FamilyTreeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FamilyTreeScreen.swift; path = LichSo/Screen/FamilyTree/FamilyTreeScreen.swift; sourceTree = SOURCE_ROOT; };
-		AA01GDAY0001000000000011 /* GoodDaysScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GoodDaysScreen.swift; path = LichSo/Screen/GoodDays/GoodDaysScreen.swift; sourceTree = SOURCE_ROOT; };
-		AA01GDAY0001000000000012 /* GoodDaysViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GoodDaysViewModel.swift; path = LichSo/Screen/GoodDays/GoodDaysViewModel.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -171,95 +149,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		"'AACH110011002200AABB4420'" = {
-			isa = PBXGroup;
-			children = (
-				AACH110011002200AABB4413,
-				AACH110011002200AABB4414,
-				AACH110011002200AABB4412,
-			);
-			path = Chat;
-			sourceTree = "<group>";
-		};
-		"'AACH110011002200AABB4430'" = {
-			isa = PBXGroup;
-			children = (
-				AACH110011002200AABB4415,
-				AACH110011002200AABB4416,
-			);
-			path = Settings;
-			sourceTree = "<group>";
-		};
-		"'AACH110011002200AABB4440'" = {
-			isa = PBXGroup;
-			children = (
-				AACH110011002200AABB4411,
-			);
-			path = AI;
-			sourceTree = "<group>";
-		};
-		"'AAEP110011002200AABB3320'" = {
-			isa = PBXGroup;
-			children = (
-				AAEP110011002200AABB3311,
-				AAEP110011002200AABB3312,
-				AAEP110011002200AABB3313,
-			);
-			path = Profile;
-			sourceTree = "<group>";
-		};
-		"'AANF110011002200AABB5620'" = {
-			isa = PBXGroup;
-			children = (
-				AANF110011002200AABB5612,
-				AANF110011002200AABB5611,
-			);
-			path = Notifications;
-			sourceTree = "<group>";
-		};
-		"'AANT110011002200AABB5520'" = {
-			isa = PBXGroup;
-			children = (
-				AANT110011002200AABB5512,
-				AANT110011002200AABB5511,
-			);
-			path = Notes;
-			sourceTree = "<group>";
-		};
-		"'AASR110011002200AABB5720'" = {
-			isa = PBXGroup;
-			children = (
-				AASR110011002200AABB5712,
-				AASR110011002200AABB5711,
-			);
-			path = Search;
-			sourceTree = "<group>";
-		};
 		0C3C93F150DA8A1073565D06 /* Screen */ = {
 			isa = PBXGroup;
 			children = (
-				AACH110011002200AABB4420,
 				AA01GDAY0001000000000020 /* GoodDays */,
 				4AA95412B2C73B3BD9686DB2 /* Home */,
 				1F102554A53A2636199B4B4C /* Main */,
-				AANT110011002200AABB5520,
-				AANF110011002200AABB5620,
 				135DB85CB8043ED52FB599E6 /* Onboarding */,
-				AAEP110011002200AABB3320,
-				AASR110011002200AABB5720,
-				AACH110011002200AABB4430,
 				0F4FB1B2A93BF06AF676932C /* Splash */,
 			);
 			path = Screen;
-			sourceTree = "<group>";
-		};
-		AA01GDAY0001000000000020 /* GoodDays */ = {
-			isa = PBXGroup;
-			children = (
-				AA01GDAY0001000000000011 /* GoodDaysScreen.swift */,
-				AA01GDAY0001000000000012 /* GoodDaysViewModel.swift */,
-			);
-			path = GoodDays;
 			sourceTree = "<group>";
 		};
 		0F4FB1B2A93BF06AF676932C /* Splash */ = {
@@ -298,7 +197,9 @@
 			isa = PBXGroup;
 			children = (
 				A1595F6D47D2E7C1A756811A /* HomeScreen.swift */,
+				DD4E5F6A7B8C9D0E1F2A3B4C /* ThisDayInHistoryScreen.swift */,
 				EB92FD1796F332D9CC4F3962 /* HomeViewModel.swift */,
+				AA00BB11CC22DD33EE44FF58 /* WeatherDetailSheet.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -347,12 +248,19 @@
 		7DE298DB1B1EF5E07555FF2B /* Data */ = {
 			isa = PBXGroup;
 			children = (
-				AACH110011002200AABB4440,
 				384E327453421B361A297BF4 /* Entities.swift */,
 				B3BB138D6E833D9409913E8C /* FamilyTreeEntities.swift */,
 				CA296EB4DBD79FC95C9A9D72 /* VietnameseQuotes.swift */,
+				AA00BB11CC22DD33EE44FF56 /* WeatherService.swift */,
 			);
 			path = Data;
+			sourceTree = "<group>";
+		};
+		AA01GDAY0001000000000020 /* GoodDays */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = GoodDays;
 			sourceTree = "<group>";
 		};
 		BCA07089D6033D3D9DC295AE /* Util */ = {
@@ -365,6 +273,7 @@
 				65FE395BFD668432AF96DAD3 /* LunarCalendarUtil.swift */,
 				D82CFE583DC86F1FD737D149 /* MoonPhaseCalculator.swift */,
 				87CB1F33B0C81A7CE2AABEFB /* SaoChieuCalculator.swift */,
+				BB2C3D4E5F6A7B8C9D0E1F2A /* HistoricalEventProvider.swift */,
 				D302B129AE78B7255E89C491 /* TietKhiCalculator.swift */,
 				7D43BC9D4538D432C4E34801 /* TrucNgayCalculator.swift */,
 			);
@@ -442,7 +351,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1540;
-				LastUpgradeCheck = 1540;
+				LastUpgradeCheck = 2640;
 				TargetAttributes = {
 					4E4964567EF33921EBF29527 = {
 						CreatedOnToolsVersion = 15.4;
@@ -487,10 +396,13 @@
 				909F691CB1A7A1D98A44B7DB /* Entities.swift in Sources */,
 				26EABB4051E3241A8826BE61 /* FamilyTreeEntities.swift in Sources */,
 				6EDCB3417BC82CEC44DCCE96 /* VietnameseQuotes.swift in Sources */,
+				AA00BB11CC22DD33EE44FF55 /* WeatherService.swift in Sources */,
+				AA00BB11CC22DD33EE44FF57 /* WeatherDetailSheet.swift in Sources */,
 				D5ADCBCBD422558ACE63F14D /* LichSoApp.swift in Sources */,
 				A0D36DCE908555B1166F94B3 /* DayInfo.swift in Sources */,
 				284C64AB8E85238D20DE64D4 /* DayInfoProvider.swift in Sources */,
 				B08B950DDB6B5D2F62A92082 /* HomeScreen.swift in Sources */,
+				CC3D4E5F6A7B8C9D0E1F2A3B /* ThisDayInHistoryScreen.swift in Sources */,
 				083F391244660A0B92F635DF /* HomeViewModel.swift in Sources */,
 				9A243AA2B55F90CF0D0C721E /* MainTabView.swift in Sources */,
 				F9D0C10B01109877A9B6D0F5 /* OnboardingScreen.swift in Sources */,
@@ -504,23 +416,9 @@
 				E8B751544C5F165CB0059C00 /* LunarCalendarUtil.swift in Sources */,
 				7D0EEB256A42C70D2C65306E /* MoonPhaseCalculator.swift in Sources */,
 				CEC58F66914F60BECBEAFC1B /* SaoChieuCalculator.swift in Sources */,
+				AA1B2C3D4E5F6A7B8C9D0E1F /* HistoricalEventProvider.swift in Sources */,
 				9149F1FD29AA189B42079DE7 /* TietKhiCalculator.swift in Sources */,
 				E50A97F24ACAE69962CFFC41 /* TrucNgayCalculator.swift in Sources */,
-				AAEP110011002200AABB3301,
-				AAEP110011002200AABB3302,
-				AAEP110011002200AABB3303,
-				AACH110011002200AABB4401,
-				AACH110011002200AABB4402,
-				AACH110011002200AABB4403,
-				AACH110011002200AABB4404,
-				AACH110011002200AABB4405,
-				AACH110011002200AABB4406,
-				AANT110011002200AABB5501,
-				AANT110011002200AABB5502,
-				AANF110011002200AABB5601,
-				AANF110011002200AABB5602,
-				AASR110011002200AABB5701,
-				AASR110011002200AABB5702,
 				63E044C9BBDD7791417F2ABE /* SidebarView.swift in Sources */,
 				630C404E8BD488E28BD57D08 /* OpenRouterService.swift in Sources */,
 				4319480BA3E7B9904EF69ADD /* CalendarScreen.swift in Sources */,
@@ -570,7 +468,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"LichSo/Preview Content\"";
-				DEVELOPMENT_TEAM = A759U6QWJ9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Lịch Số";
@@ -611,6 +508,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSTTAGS_COMPILATION_CONDITIONS = DEBUG;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -641,6 +539,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = A759U6QWJ9;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -663,6 +562,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -676,7 +576,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"LichSo/Preview Content\"";
-				DEVELOPMENT_TEAM = A759U6QWJ9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Lịch Số";
@@ -717,6 +616,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSTTAGS_COMPILATION_CONDITIONS = "";
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -747,6 +647,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = A759U6QWJ9;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -762,6 +663,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
