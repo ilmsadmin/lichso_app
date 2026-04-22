@@ -43,14 +43,21 @@ class BootReceiver : BroadcastReceiver() {
                     DailyNotificationWorker.schedule(context, reminderHour, reminderMinute)
                 }
 
-                // Reschedule giờ đại cát worker
-                if (gioDaiCatEnabled) {
+                // Giờ Hoàng Đạo: tôn trọng setting của user
+                if (gioDaiCatEnabled && notifyEnabled) {
                     GioDaiCatWorker.schedule(context, reminderHour, reminderMinute)
+                } else {
+                    GioDaiCatWorker.cancel(context)
                 }
 
                 // Reschedule festival reminder worker
-                if (festivalReminderEnabled) {
+                if (festivalReminderEnabled && notifyEnabled) {
                     FestivalReminderWorker.schedule(context)
+                }
+
+                // Reschedule AI Tử Vi nightly worker
+                if (notifyEnabled) {
+                    AiTuViWorker.schedule(context)
                 }
 
                 // Reschedule widget updates + midnight alarm

@@ -77,41 +77,27 @@ class DailyNotificationWorker(
         const val WORK_NAME = "daily_notification"
 
         /**
-         * Lên lịch worker chạy 1 lần vào đúng giờ người dùng chọn.
-         * Sau khi chạy xong, worker sẽ tự reschedule cho ngày hôm sau.
-         * Dùng OneTimeWorkRequest thay vì PeriodicWork để đảm bảo đúng giờ —
-         * PeriodicWork có flex window khiến notification bị lệch giờ.
+         * Lên lịch notification ngày mới.
+         *
+         * ⚠️ LƯU Ý: Đã chuyển từ WorkManager sang AlarmManager
+         * ([NotificationAlarmScheduler]) để tránh bị Doze mode làm trễ.
+         * Hàm này vẫn giữ signature cũ để không phải sửa call-site.
          */
         fun schedule(context: Context, hour: Int = 7, minute: Int = 0) {
-            scheduleNext(context, hour, minute)
+            // Huỷ worker cũ (nếu đã schedule từ version trước)
+            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            NotificationAlarmScheduler.schedule(
+                context, NotificationAlarmScheduler.TYPE_DAILY, hour, minute
+            )
         }
 
         internal fun scheduleNext(context: Context, hour: Int, minute: Int) {
-            val now = java.util.Calendar.getInstance()
-            val target = java.util.Calendar.getInstance().apply {
-                set(java.util.Calendar.HOUR_OF_DAY, hour)
-                set(java.util.Calendar.MINUTE, minute)
-                set(java.util.Calendar.SECOND, 0)
-                set(java.util.Calendar.MILLISECOND, 0)
-                // Luôn schedule cho lần chạy tiếp theo (nếu đã qua giờ hôm nay → ngày mai)
-                if (!after(now)) add(java.util.Calendar.DATE, 1)
-            }
-            val initialDelay = target.timeInMillis - now.timeInMillis
-
-            val request = OneTimeWorkRequestBuilder<DailyNotificationWorker>()
-                .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
-                .addTag(WORK_NAME)
-                .build()
-
-            WorkManager.getInstance(context).enqueueUniqueWork(
-                WORK_NAME,
-                ExistingWorkPolicy.REPLACE,
-                request
-            )
+            schedule(context, hour, minute)
         }
 
         fun cancel(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            NotificationAlarmScheduler.cancel(context, NotificationAlarmScheduler.TYPE_DAILY)
         }
     }
 }

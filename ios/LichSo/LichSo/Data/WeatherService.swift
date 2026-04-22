@@ -1,5 +1,4 @@
 import Foundation
-import CoreLocation
 
 // ═══════════════════════════════════════════
 // WeatherService — Fetches weather from Open-Meteo (free, no API key)

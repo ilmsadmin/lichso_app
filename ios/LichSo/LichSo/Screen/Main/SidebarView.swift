@@ -136,7 +136,7 @@ struct SidebarView: View {
                     sectionTitle("THÔNG TIN")
 
                     actionRow(icon: "star", title: "Đánh giá ứng dụng") {
-                        openURL("https://apps.apple.com/app/id6740048518")
+                        SmartRatingManager.shared.triggerManually()
                     }
                     actionRow(icon: "square.and.arrow.up", title: "Chia sẻ ứng dụng") {
                         shareApp()

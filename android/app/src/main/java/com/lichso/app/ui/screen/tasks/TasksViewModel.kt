@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import android.content.Context
 import com.lichso.app.data.ai.AiTaskService
 import com.lichso.app.data.ai.AiTemplates
+import com.lichso.app.analytics.Analytics
 import com.lichso.app.data.local.dao.NoteDao
 import com.lichso.app.data.local.dao.ReminderDao
 import com.lichso.app.data.local.dao.TaskDao
@@ -196,6 +197,10 @@ class TasksViewModel @Inject constructor(
             val id = reminderDao.insert(entity)
             // Schedule alarm notification
             reminderScheduler.schedule(entity.copy(id = id))
+            Analytics.logEvent("reminder_created", mapOf(
+                "repeat_type" to repeatType,
+                "source" to "tasks_screen"
+            ))
         }
     }
 

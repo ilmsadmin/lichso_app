@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AA04SRTM001000000000001 /* SmartRatingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA04SRTM001000000000002 /* SmartRatingManager.swift */; };
+		AA04SRTD001000000000001 /* SmartRatingDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA04SRTD001000000000002 /* SmartRatingDialog.swift */; };
+		AA03BKUP001000000000001 /* AppBackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA03BKUP001000000000002 /* AppBackupManager.swift */; };
 		07164ACF967D1BEBE75E6CAA /* AIChatDayScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CCA4D6089F2262E10C41278 /* AIChatDayScreen.swift */; };
 		083F391244660A0B92F635DF /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB92FD1796F332D9CC4F3962 /* HomeViewModel.swift */; };
 		126047ACB473D41834F0169A /* AIChatScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 102744C983C7BF3CED3F22EF /* AIChatScreen.swift */; };
@@ -46,6 +49,7 @@
 		AA11220033004400BB5501A1 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11220033004400BB5501B1 /* NotificationScheduler.swift */; };
 		AA11220033004400BB5502A2 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11220033004400BB5502B2 /* NotificationService.swift */; };
 		AA11BB22CC33DD44EE55FF66 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4C0EBEA9930267D3177B4A14 /* Assets.xcassets */; };
+		AA05SCRT001000000000001 /* Secrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = AA05SCRT001000000000002 /* Secrets.plist */; };
 		AA1234560000000000000002 /* LichSoTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1234560000000000000001 /* LichSoTheme.swift */; };
 		AB894DADBB009AA2688B1C56 /* NotesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34F3444A8CD07E311CC34122 /* NotesViewModel.swift */; };
 		ADD34CD9884D00DD20871840 /* CalendarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3A4D61A5D158A66EDEFA68 /* CalendarViewModel.swift */; };
@@ -74,6 +78,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		AA04SRTM001000000000002 /* SmartRatingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartRatingManager.swift; sourceTree = "<group>"; };
+		AA04SRTD001000000000002 /* SmartRatingDialog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartRatingDialog.swift; sourceTree = "<group>"; };
+		AA03BKUP001000000000002 /* AppBackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBackupManager.swift; sourceTree = "<group>"; };
 		03616500E4B8D15AF2F22457 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		06E24E11B097F4278BBEC8D0 /* SearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SearchViewModel.swift; path = LichSo/Screen/Search/SearchViewModel.swift; sourceTree = SOURCE_ROOT; };
 		077446619D5AA93C29C5149B /* MemorialDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MemorialDetailScreen.swift; path = LichSo/Screen/FamilyTree/MemorialDetailScreen.swift; sourceTree = SOURCE_ROOT; };
@@ -140,6 +147,7 @@
 		F49EC5081E14B4837A0BF7EF /* SplashScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreen.swift; sourceTree = "<group>"; };
 		F6048362607C3923B60C5DD6 /* LichSo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LichSo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F91A427DB01C4A41AD43182A /* ProfileScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ProfileScreen.swift; path = LichSo/Screen/Profile/ProfileScreen.swift; sourceTree = SOURCE_ROOT; };
+		AA05SCRT001000000000002 /* Secrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Secrets.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -218,6 +226,7 @@
 				6C8697CB2913A0B95E28CC0D /* Theme */,
 				BCA07089D6033D3D9DC295AE /* Util */,
 				4C0EBEA9930267D3177B4A14 /* Assets.xcassets */,
+				AA05SCRT001000000000002 /* Secrets.plist */,
 				6873208D2D2815CDDF38BC1F /* Preview Content */,
 			);
 			path = LichSo;
@@ -252,6 +261,7 @@
 		7DE298DB1B1EF5E07555FF2B /* Data */ = {
 			isa = PBXGroup;
 			children = (
+				AA03BKUP001000000000002 /* AppBackupManager.swift */,
 				384E327453421B361A297BF4 /* Entities.swift */,
 				B3BB138D6E833D9409913E8C /* FamilyTreeEntities.swift */,
 				CA296EB4DBD79FC95C9A9D72 /* VietnameseQuotes.swift */,
@@ -278,6 +288,8 @@
 				D82CFE583DC86F1FD737D149 /* MoonPhaseCalculator.swift */,
 				87CB1F33B0C81A7CE2AABEFB /* SaoChieuCalculator.swift */,
 				BB2C3D4E5F6A7B8C9D0E1F2A /* HistoricalEventProvider.swift */,
+				AA04SRTM001000000000002 /* SmartRatingManager.swift */,
+				AA04SRTD001000000000002 /* SmartRatingDialog.swift */,
 				D302B129AE78B7255E89C491 /* TietKhiCalculator.swift */,
 				7D43BC9D4538D432C4E34801 /* TrucNgayCalculator.swift */,
 			);
@@ -389,6 +401,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA11BB22CC33DD44EE55FF66 /* Assets.xcassets in Resources */,
+				AA05SCRT001000000000001 /* Secrets.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -399,6 +412,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA04SRTM001000000000001 /* SmartRatingManager.swift in Sources */,
+				AA04SRTD001000000000001 /* SmartRatingDialog.swift in Sources */,
+				AA03BKUP001000000000001 /* AppBackupManager.swift in Sources */,
 				909F691CB1A7A1D98A44B7DB /* Entities.swift in Sources */,
 				26EABB4051E3241A8826BE61 /* FamilyTreeEntities.swift in Sources */,
 				6EDCB3417BC82CEC44DCCE96 /* VietnameseQuotes.swift in Sources */,
@@ -479,6 +495,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Lịch Số";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Lịch Số cần truy cập thư viện ảnh để bạn chọn ảnh đại diện và ảnh thành viên gia phả.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -588,6 +605,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Lịch Số";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Lịch Số cần truy cập thư viện ảnh để bạn chọn ảnh đại diện và ảnh thành viên gia phả.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

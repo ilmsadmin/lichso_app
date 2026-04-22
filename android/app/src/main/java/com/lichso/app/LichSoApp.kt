@@ -1,7 +1,9 @@
 package com.lichso.app
 
 import android.app.Application
+import com.lichso.app.analytics.Analytics
 import com.lichso.app.data.local.LichSoDatabase
+import com.lichso.app.notification.AiTuViWorker
 import com.lichso.app.notification.AppUpdateChecker
 import com.lichso.app.notification.DailyNotificationWorker
 import com.lichso.app.notification.FestivalReminderWorker
@@ -26,6 +28,7 @@ class LichSoApp : Application() {
         super.onCreate()
 
         NotificationHelper.createChannels(this)
+        Analytics.init(this)
         scheduleWorkersFromSettings()
         // Schedule widget updates
         CalendarWidgetScheduler.scheduleWidgetUpdates(this)
@@ -54,12 +57,29 @@ class LichSoApp : Application() {
                     val db = LichSoDatabase.getInstance(context)
                     val scheduler = ReminderScheduler(context)
                     db.reminderDao().getEnabledReminders().first().forEach { scheduler.schedule(it) }
+                } else {
+                    DailyNotificationWorker.cancel(context)
                 }
-                if (gioDaiCatEnabled) {
+
+                // Giờ Hoàng Đạo: tôn trọng setting của user
+                if (gioDaiCatEnabled && notifyEnabled) {
                     GioDaiCatWorker.schedule(context, reminderHour, reminderMinute)
+                } else {
+                    GioDaiCatWorker.cancel(context)
                 }
-                if (festivalReminderEnabled) {
+
+                // Nhắc ngày lễ (20:00, chỉ fire khi ngày mai có lễ/rằm/mùng 1)
+                if (festivalReminderEnabled && notifyEnabled) {
                     FestivalReminderWorker.schedule(context)
+                } else {
+                    FestivalReminderWorker.cancel(context)
+                }
+
+                // AI Tử Vi — gợi ý buổi tối 21h (luôn bật nếu notification enabled)
+                if (notifyEnabled) {
+                    AiTuViWorker.schedule(context)
+                } else {
+                    AiTuViWorker.cancel(context)
                 }
             } catch (_: Exception) {
                 // Ignore errors during initial scheduling

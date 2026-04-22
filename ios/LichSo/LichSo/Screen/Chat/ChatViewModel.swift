@@ -93,14 +93,24 @@ class ChatViewModel: ObservableObject {
             case .failure(let error):
                 let errMsg = error.localizedDescription
                 let hint: String
-                if errMsg.contains("401") {
-                    hint = "⚠️ API key không hợp lệ hoặc đã hết hạn.\n\n"
+                if errMsg.contains("401") || errMsg.contains("User not found") {
+                    hint = "🔮 Thầy tử vi đang bận đi uống trà, chưa kịp trả lời!\nĐể tôi tra cứu sách vở giúp bạn trước nhé:\n\n"
+                } else if errMsg.contains("402") || errMsg.contains("insufficient") {
+                    hint = "💰 Thầy tử vi đang chờ nạp thêm linh khí (credit)!\nTạm thời tôi xem sách cổ giúp trước nhé:\n\n"
+                } else if errMsg.contains("403") || errMsg.contains("Forbidden") {
+                    hint = "🚫 Cánh cổng tâm linh tạm thời bị khóa!\nĐể tôi tra cứu sách vở giúp bạn trước:\n\n"
                 } else if errMsg.contains("429") {
-                    hint = "⚠️ Đã vượt giới hạn gọi AI. Thử lại sau vài phút.\n\n"
-                } else if errMsg.contains("timeout") || errMsg.contains("Timeout") {
-                    hint = "⚠️ Kết nối AI bị timeout. Kiểm tra mạng và thử lại.\n\n"
+                    hint = "🍵 Thầy đang nghỉ giải lao vì quá nhiều người hỏi!\nBạn thử quay lại sau vài phút nhé. Tạm thời tôi xem giúp:\n\n"
+                } else if errMsg.contains("500") || errMsg.contains("502") || errMsg.contains("503") {
+                    hint = "🏚️ Đền thờ AI đang bảo trì...\nThầy sẽ quay lại sớm thôi! Tạm xem nhanh:\n\n"
+                } else if errMsg.contains("timeout") || errMsg.contains("Timeout") || errMsg.contains("timed out") {
+                    hint = "🌫️ Đường truyền tâm linh hơi chập chờn...\nKiểm tra kết nối mạng rồi thử lại nhé! Tạm xem nhanh:\n\n"
+                } else if errMsg.contains("network") || errMsg.contains("not connected") || errMsg.contains("offline") {
+                    hint = "📡 Mất kết nối với thế giới tâm linh!\nKiểm tra WiFi/4G rồi thử lại nhé. Tạm xem sách cổ:\n\n"
+                } else if errMsg.contains("API key") || errMsg.contains("cấu hình") {
+                    hint = "🔑 Chìa khóa tâm linh chưa được kích hoạt!\nĐể tôi xem sách cổ trả lời trước nhé:\n\n"
                 } else {
-                    hint = "⚠️ Không thể kết nối AI. Đang dùng trả lời cục bộ.\n\n"
+                    hint = "🔮 Thầy tử vi đang đi vắng, để tôi xem sách cổ trả lời trước nhé!\n\n"
                 }
                 response = hint + generateLocalResponse(trimmed)
             }
@@ -159,7 +169,28 @@ class ChatViewModel: ObservableObject {
             switch result {
             case .success(let content): response = content
             case .failure(let error):
-                response = "⚠️ Không thể kết nối AI: \(error.localizedDescription)\n\n" + generateLocalDateResponse(dd: dd, mm: mm, yy: yy)
+                let errMsg = error.localizedDescription
+                let hint: String
+                if errMsg.contains("401") || errMsg.contains("User not found") {
+                    hint = "🔮 Thầy tử vi đang bận đi uống trà, chưa kịp trả lời!\nĐể tôi tra cứu sách vở giúp bạn trước nhé:\n\n"
+                } else if errMsg.contains("402") || errMsg.contains("insufficient") {
+                    hint = "💰 Thầy tử vi đang chờ nạp thêm linh khí (credit)!\nTạm thời tôi xem sách cổ giúp trước nhé:\n\n"
+                } else if errMsg.contains("403") || errMsg.contains("Forbidden") {
+                    hint = "🚫 Cánh cổng tâm linh tạm thời bị khóa!\nĐể tôi tra cứu sách vở giúp bạn trước:\n\n"
+                } else if errMsg.contains("429") {
+                    hint = "🍵 Thầy đang nghỉ giải lao vì quá nhiều người hỏi!\nBạn thử quay lại sau vài phút nhé. Tạm thời tôi xem giúp:\n\n"
+                } else if errMsg.contains("500") || errMsg.contains("502") || errMsg.contains("503") {
+                    hint = "🏚️ Đền thờ AI đang bảo trì...\nThầy sẽ quay lại sớm thôi! Tạm xem nhanh:\n\n"
+                } else if errMsg.contains("timeout") || errMsg.contains("Timeout") || errMsg.contains("timed out") {
+                    hint = "🌫️ Đường truyền tâm linh hơi chập chờn...\nKiểm tra kết nối mạng rồi thử lại nhé! Tạm xem nhanh:\n\n"
+                } else if errMsg.contains("network") || errMsg.contains("not connected") || errMsg.contains("offline") {
+                    hint = "📡 Mất kết nối với thế giới tâm linh!\nKiểm tra WiFi/4G rồi thử lại nhé. Tạm xem sách cổ:\n\n"
+                } else if errMsg.contains("API key") || errMsg.contains("cấu hình") {
+                    hint = "🔑 Chìa khóa tâm linh chưa được kích hoạt!\nĐể tôi xem sách cổ trả lời trước nhé:\n\n"
+                } else {
+                    hint = "🔮 Thầy tử vi đang đi vắng, để tôi xem sách cổ trả lời trước nhé!\n\n"
+                }
+                response = hint + generateLocalDateResponse(dd: dd, mm: mm, yy: yy)
             }
             
             let (cleanContent, suggestions) = extractFollowUpSuggestions(response)

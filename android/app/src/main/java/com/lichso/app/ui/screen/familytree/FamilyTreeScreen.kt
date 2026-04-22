@@ -1696,7 +1696,8 @@ private fun MemberListCard(member: FamilyMember, onClick: () -> Unit, onReminder
                 style = TextStyle(fontSize = 11.sp, color = c.textSecondary),
             )
             val dateText = when {
-                isDeceased -> "${member.birthYear} — ${member.deathYear} (thọ ${member.deathYear!! - member.birthYear!!} tuổi)"
+                isDeceased && member.birthYear != null -> "${member.birthYear} — ${member.deathYear} (thọ ${member.deathYear!! - member.birthYear} tuổi)"
+                isDeceased -> "Mất ${member.deathYear}"
                 member.birthYear != null -> "Sinh ${member.birthYear} · ${2026 - member.birthYear} tuổi"
                 else -> ""
             }

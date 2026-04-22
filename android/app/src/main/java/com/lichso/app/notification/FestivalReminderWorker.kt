@@ -65,39 +65,23 @@ class FestivalReminderWorker(
         const val WORK_NAME = "festival_reminder_daily"
 
         /**
-         * Lên lịch worker chạy 1 lần vào ~20h tối (nhắc trước 1 ngày).
-         * Sau khi chạy xong, worker sẽ tự reschedule cho ngày hôm sau.
-         * Dùng OneTimeWorkRequest thay vì PeriodicWork để đảm bảo đúng giờ.
+         * ⚠️ Đã chuyển sang AlarmManager ([NotificationAlarmScheduler]).
+         * Fire 20:00 mỗi ngày, chỉ hiển thị notification khi ngày mai có lễ.
          */
         fun schedule(context: Context) {
-            scheduleNext(context)
+            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            NotificationAlarmScheduler.schedule(
+                context, NotificationAlarmScheduler.TYPE_FESTIVAL, 20, 0
+            )
         }
 
         internal fun scheduleNext(context: Context) {
-            val now = java.util.Calendar.getInstance()
-            val target = java.util.Calendar.getInstance().apply {
-                set(java.util.Calendar.HOUR_OF_DAY, 20)
-                set(java.util.Calendar.MINUTE, 0)
-                set(java.util.Calendar.SECOND, 0)
-                set(java.util.Calendar.MILLISECOND, 0)
-                if (!after(now)) add(java.util.Calendar.DATE, 1)
-            }
-            val initialDelay = target.timeInMillis - now.timeInMillis
-
-            val request = OneTimeWorkRequestBuilder<FestivalReminderWorker>()
-                .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
-                .addTag(WORK_NAME)
-                .build()
-
-            WorkManager.getInstance(context).enqueueUniqueWork(
-                WORK_NAME,
-                ExistingWorkPolicy.REPLACE,
-                request
-            )
+            schedule(context)
         }
 
         fun cancel(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            NotificationAlarmScheduler.cancel(context, NotificationAlarmScheduler.TYPE_FESTIVAL)
         }
     }
 }

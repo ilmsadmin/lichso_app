@@ -60,39 +60,23 @@ class GioDaiCatWorker(
         const val WORK_NAME = "gio_dai_cat_daily"
 
         /**
-         * Lên lịch worker chạy 1 lần vào giờ được cấu hình.
-         * Sau khi chạy xong, worker sẽ tự reschedule cho ngày hôm sau.
-         * Dùng OneTimeWorkRequest thay vì PeriodicWork để đảm bảo đúng giờ.
+         * ⚠️ Đã chuyển từ WorkManager sang AlarmManager (xem [NotificationAlarmScheduler])
+         * để fire đúng giờ kể cả khi máy ở Doze mode. Hàm giữ signature cũ.
          */
         fun schedule(context: Context, hour: Int = 6, minute: Int = 0) {
-            scheduleNext(context, hour, minute)
+            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            NotificationAlarmScheduler.schedule(
+                context, NotificationAlarmScheduler.TYPE_GIO_DAI_CAT, hour, minute
+            )
         }
 
         internal fun scheduleNext(context: Context, hour: Int, minute: Int) {
-            val now = java.util.Calendar.getInstance()
-            val target = java.util.Calendar.getInstance().apply {
-                set(java.util.Calendar.HOUR_OF_DAY, hour)
-                set(java.util.Calendar.MINUTE, minute)
-                set(java.util.Calendar.SECOND, 0)
-                set(java.util.Calendar.MILLISECOND, 0)
-                if (!after(now)) add(java.util.Calendar.DATE, 1)
-            }
-            val initialDelay = target.timeInMillis - now.timeInMillis
-
-            val request = OneTimeWorkRequestBuilder<GioDaiCatWorker>()
-                .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
-                .addTag(WORK_NAME)
-                .build()
-
-            WorkManager.getInstance(context).enqueueUniqueWork(
-                WORK_NAME,
-                ExistingWorkPolicy.REPLACE,
-                request
-            )
+            schedule(context, hour, minute)
         }
 
         fun cancel(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            NotificationAlarmScheduler.cancel(context, NotificationAlarmScheduler.TYPE_GIO_DAI_CAT)
         }
     }
 }

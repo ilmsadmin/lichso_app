@@ -16,7 +16,7 @@ import javax.inject.Singleton
 data class ChatMessage(val role: String, val content: String)
 
 data class OpenRouterRequest(
-    val model: String = "google/gemini-2.0-flash-001",
+    val model: String = "google/gemini-2.5-flash",
     val messages: List<ChatMessage>,
     @SerializedName("max_tokens") val maxTokens: Int = 2048,
     val temperature: Double = 0.7
@@ -127,6 +127,11 @@ QUY TẮC FORMAT BẮT BUỘC (rất quan trọng, phải tuân thủ tuyệt đ
         history: List<ChatMessage> = emptyList()
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
+            val apiKey = apiKeyProvider.getOpenRouterApiKey()
+            if (apiKey.isBlank()) {
+                return@withContext Result.failure(Exception("API key chưa được cấu hình. Vui lòng thử lại sau."))
+            }
+
             val messages = mutableListOf<ChatMessage>()
             messages.add(ChatMessage("system", buildSystemPrompt()))
 
@@ -151,7 +156,7 @@ QUY TẮC FORMAT BẮT BUỘC (rất quan trọng, phải tuân thủ tuyệt đ
 
             val request = Request.Builder()
                 .url(BASE_URL)
-                .addHeader("Authorization", "Bearer ${apiKeyProvider.getOpenRouterApiKey()}")
+                .addHeader("Authorization", "Bearer $apiKey")
                 .addHeader("Content-Type", "application/json")
                 .addHeader("HTTP-Referer", "https://lichso.app")
                 .addHeader("X-Title", "Lich So - Lich Van Nien")

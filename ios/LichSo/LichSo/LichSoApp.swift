@@ -44,8 +44,12 @@ struct LichSoApp: App {
             do {
                 return try ModelContainer(for: schema, configurations: [fallbackConfig])
             } catch {
-                // Trường hợp cuối cùng — tạo schema tối thiểu
-                fatalError("Critical: Could not create any ModelContainer: \(error)")
+                // Trường hợp cuối cùng — tạo schema tối thiểu với in-memory (không crash)
+                print("❌ Critical: Could not create any ModelContainer: \(error). Using minimal in-memory store.")
+                let minimalSchema = Schema([])
+                let minimalConfig = ModelConfiguration(schema: minimalSchema, isStoredInMemoryOnly: true)
+                // Force try — nếu ngay cả empty schema cũng fail thì hệ thống có vấn đề nghiêm trọng
+                return try! ModelContainer(for: minimalSchema, configurations: [minimalConfig])
             }
         }
     }()
@@ -68,6 +72,8 @@ struct LichSoApp: App {
                         .environmentObject(appState)
                         .onAppear {
                             setupNotifications()
+                            // Track app open as a lightweight happy action
+                            SmartRatingManager.shared.recordHappyAction(weight: 1)
                         }
                 }
             }

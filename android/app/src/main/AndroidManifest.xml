@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- App không dùng Advertising ID (không hiển thị quảng cáo, không dùng cho analytics cá nhân hoá) -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -52,6 +56,11 @@
         <!-- Nhận alarm nhắc nhở -->
         <receiver
             android:name=".notification.ReminderReceiver"
+            android:exported="false" />
+
+        <!-- Nhận alarm cho daily / giờ hoàng đạo / festival / AI Tử Vi -->
+        <receiver
+            android:name=".notification.NotificationAlarmReceiver"
             android:exported="false" />
 
         <!-- Reschedule alarms sau reboot -->

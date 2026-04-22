@@ -42,6 +42,7 @@ import com.lichso.app.ui.screen.search.SearchScreen
 import com.lichso.app.ui.screen.settings.SettingsScreen
 import com.lichso.app.ui.screen.tasks.TasksScreen3
 import com.lichso.app.R
+import com.lichso.app.analytics.Analytics
 import com.lichso.app.ui.theme.*
 import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -71,6 +72,11 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
         if (activity != null) {
             ReviewHelper.tryShowReview(activity)
         }
+    }
+
+    // ── Analytics: log screen_view mỗi khi route đổi ──
+    LaunchedEffect(currentRoute) {
+        Analytics.logScreen(currentRoute, screenClass = "LichSoMainScreen")
     }
 
     // ── Smart Rating Dialog ──

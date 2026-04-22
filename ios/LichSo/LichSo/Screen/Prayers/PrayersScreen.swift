@@ -403,17 +403,33 @@ private struct PrayerCard: View {
 
     private func tagColor(_ type: Prayer.PrayerTag.TagType) -> Color {
         switch type {
-        case .hot: return Color(hex: "C62828")
-        case .new: return Color(hex: "2E7D32")
+        case .hot:
+            return Color(UIColor { t in
+                t.userInterfaceStyle == .dark
+                    ? UIColor(hex: "EF9A9A") : UIColor(hex: "C62828")
+            })
+        case .new:
+            return Color(UIColor { t in
+                t.userInterfaceStyle == .dark
+                    ? UIColor(hex: "A5D6A7") : UIColor(hex: "2E7D32")
+            })
         case .normal: return TextSub
         }
     }
 
     private func tagBg(_ type: Prayer.PrayerTag.TagType) -> Color {
         switch type {
-        case .hot: return Color(hex: "FFEBEE")
-        case .new: return Color(hex: "E8F5E9")
-        case .normal: return Color(hex: "2A2720")
+        case .hot:
+            return Color(UIColor { t in
+                t.userInterfaceStyle == .dark
+                    ? UIColor(hex: "3A1B1B") : UIColor(hex: "FFEBEE")
+            })
+        case .new:
+            return Color(UIColor { t in
+                t.userInterfaceStyle == .dark
+                    ? UIColor(hex: "1B3A2F") : UIColor(hex: "E8F5E9")
+            })
+        case .normal: return SurfaceContainerHigh
         }
     }
 }

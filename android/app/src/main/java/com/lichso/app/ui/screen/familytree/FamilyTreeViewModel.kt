@@ -17,6 +17,7 @@ import com.lichso.app.data.local.entity.MemorialChecklistEntity
 import com.lichso.app.data.local.entity.MemberPhotoEntity
 import com.lichso.app.data.local.entity.NoteEntity
 import com.lichso.app.data.local.entity.ReminderEntity
+import com.lichso.app.notification.ReminderScheduler
 import com.lichso.app.util.CanChiCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -937,7 +938,10 @@ class FamilyTreeViewModel @Inject constructor(
     }
 
     fun saveReminderForMemorial(reminder: ReminderEntity) {
-        viewModelScope.launch { reminderDao.insert(reminder) }
+        viewModelScope.launch {
+            val id = reminderDao.insert(reminder)
+            ReminderScheduler(context).schedule(reminder.copy(id = id))
+        }
     }
 
     // ── Member quick-add Reminder (birthday / memorial from list) ──
@@ -951,7 +955,10 @@ class FamilyTreeViewModel @Inject constructor(
     }
 
     fun saveMemberReminder(reminder: ReminderEntity) {
-        viewModelScope.launch { reminderDao.insert(reminder) }
+        viewModelScope.launch {
+            val id = reminderDao.insert(reminder)
+            ReminderScheduler(context).schedule(reminder.copy(id = id))
+        }
     }
 
     // ── Settings ──

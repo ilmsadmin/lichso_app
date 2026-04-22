@@ -10,6 +10,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.lichso.app.BuildConfig
+import com.lichso.app.analytics.Analytics
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,6 +49,8 @@ class AuthRepository @Inject constructor(
                 photoUrl = user.photoUrl?.toString(),
                 uid = user.uid
             )
+            // Gán user ID cho Analytics nếu đã sign-in trước đó
+            Analytics.setUserId(user.uid)
         }
     }
 
@@ -115,6 +118,8 @@ class AuthRepository @Inject constructor(
                             uid = user.uid
                         )
                         _currentUser.value = userInfo
+                        Analytics.setUserId(user.uid)
+                        Analytics.logEvent("login", mapOf("method" to "google"))
                         Result.success(userInfo)
                     } else {
                         Result.failure(Exception("Firebase auth returned null user"))
@@ -130,6 +135,8 @@ class AuthRepository @Inject constructor(
     fun signOut() {
         firebaseAuth.signOut()
         _currentUser.value = null
+        Analytics.setUserId(null)
+        Analytics.logEvent("logout")
     }
 
     fun isSignedIn(): Boolean = firebaseAuth.currentUser != null

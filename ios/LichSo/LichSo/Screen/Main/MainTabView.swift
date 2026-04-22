@@ -49,6 +49,7 @@ enum MainTab: Int, CaseIterable {
 
 struct MainTabView: View {
     @EnvironmentObject private var appState: AppState
+    @StateObject private var ratingManager = SmartRatingManager.shared
     @State private var selectedTab: MainTab = .today
     @State private var showAIChat = false
     @State private var showSidebar = false
@@ -67,6 +68,9 @@ struct MainTabView: View {
             SidebarView(isOpen: $showSidebar) { route in
                 handleSidebarNavigation(route)
             }
+
+            // Smart Rating Dialog overlay
+            SmartRatingDialog(ratingManager: ratingManager)
         }
     }
 

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lichso.app.data.ai.AiTaskService
+import com.lichso.app.analytics.Analytics
 import com.lichso.app.data.local.AiMemoryStore
 import com.lichso.app.data.local.dao.ChatMessageDao
 import com.lichso.app.data.local.dao.NoteDao
@@ -186,6 +187,9 @@ class ChatViewModel @Inject constructor(
         if (text.isBlank()) return
         // Prevent sending while already processing (rate limiting)
         if (_uiState.value.isTyping) return
+        Analytics.logEvent("ai_chat_message_sent", mapOf(
+            "length" to text.length
+        ))
         viewModelScope.launch {
             chatMessageDao.insert(ChatMessageEntity(content = text.trim(), isUser = true))
             _uiState.update { it.copy(isTyping = true) }
@@ -280,13 +284,23 @@ class ChatViewModel @Inject constructor(
                 val errMsg = error.message ?: ""
                 val hint = when {
                     errMsg.contains("401") || errMsg.contains("User not found") ->
-                        "${ChatIcons.WARNING} API key không hợp lệ hoặc đã hết hạn. Vui lòng cập nhật API key trong cài đặt.\n\n"
+                        "🔮 Thầy tử vi đang bận đi uống trà, chưa kịp trả lời!\nĐể tôi tra cứu sách vở giúp bạn trước nhé:\n\n"
+                    errMsg.contains("402") || errMsg.contains("insufficient") ->
+                        "💰 Thầy tử vi đang chờ nạp thêm linh khí (credit)!\nTạm thời tôi xem sách cổ giúp trước nhé:\n\n"
+                    errMsg.contains("403") || errMsg.contains("Forbidden") ->
+                        "🚫 Cánh cổng tâm linh tạm thời bị khóa!\nĐể tôi tra cứu sách vở giúp bạn trước:\n\n"
                     errMsg.contains("429") ->
-                        "${ChatIcons.WARNING} Đã vượt giới hạn gọi AI. Thử lại sau vài phút.\n\n"
-                    errMsg.contains("timeout") || errMsg.contains("Timeout") ->
-                        "${ChatIcons.WARNING} Kết nối AI bị timeout. Kiểm tra mạng và thử lại.\n\n"
+                        "🍵 Thầy đang nghỉ giải lao vì quá nhiều người hỏi!\nBạn thử quay lại sau vài phút nhé. Tạm thời tôi xem giúp:\n\n"
+                    errMsg.contains("500") || errMsg.contains("502") || errMsg.contains("503") ->
+                        "🏚️ Đền thờ AI đang bảo trì...\nThầy sẽ quay lại sớm thôi! Tạm xem nhanh:\n\n"
+                    errMsg.contains("timeout") || errMsg.contains("Timeout") || errMsg.contains("timed out") ->
+                        "🌫️ Đường truyền tâm linh hơi chập chờn...\nKiểm tra kết nối mạng rồi thử lại nhé! Tạm xem nhanh:\n\n"
+                    errMsg.contains("kết nối") || errMsg.contains("network") || errMsg.contains("Unable to resolve") || errMsg.contains("UnknownHost") ->
+                        "📡 Mất kết nối với thế giới tâm linh!\nKiểm tra WiFi/4G rồi thử lại nhé. Tạm xem sách cổ:\n\n"
+                    errMsg.contains("API key") || errMsg.contains("OPENROUTER_API_KEY") ->
+                        "🔑 Chìa khóa tâm linh chưa được kích hoạt!\nĐể tôi xem sách cổ trả lời trước nhé:\n\n"
                     else ->
-                        "${ChatIcons.WARNING} Không thể kết nối AI. Đang dùng trả lời cục bộ.\n\n"
+                        "🔮 Thầy tử vi đang đi vắng, để tôi xem sách cổ trả lời trước nhé!\n\n"
                 }
                 hint + generateLocalResponse(text.trim())
             }

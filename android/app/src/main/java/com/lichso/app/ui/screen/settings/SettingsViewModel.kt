@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lichso.app.data.auth.AuthRepository
 import com.lichso.app.data.auth.UserInfo
+import com.lichso.app.analytics.Analytics
 import com.lichso.app.data.local.LichSoDatabase
 import com.lichso.app.notification.DailyNotificationWorker
 import com.lichso.app.notification.FestivalReminderWorker
@@ -150,6 +151,7 @@ class SettingsViewModel @Inject constructor(
 
     fun setNotifyEnabled(value: Boolean) {
         savePref(SettingsKeys.NOTIFY_ENABLED, value)
+        Analytics.logEvent("setting_toggle", mapOf("key" to "notify_enabled", "value" to value))
         viewModelScope.launch {
             val db = LichSoDatabase.getInstance(context)
             val scheduler = ReminderScheduler(context)
@@ -179,6 +181,7 @@ class SettingsViewModel @Inject constructor(
 
     fun setGioDaiCat(value: Boolean) {
         savePref(SettingsKeys.GIO_DAI_CAT, value)
+        Analytics.logEvent("setting_toggle", mapOf("key" to "gio_dai_cat", "value" to value))
         if (value) {
             val state = _uiState.value
             GioDaiCatWorker.schedule(context, state.reminderHour, state.reminderMinute)
@@ -191,6 +194,7 @@ class SettingsViewModel @Inject constructor(
 
     fun setThemeMode(value: String) {
         savePrefString(SettingsKeys.THEME_MODE, value)
+        Analytics.logEvent("setting_theme_mode", mapOf("mode" to value))
         val label = when (value) {
             "light" -> "Sáng"
             "dark" -> "Tối"
@@ -217,6 +221,7 @@ class SettingsViewModel @Inject constructor(
 
     fun setFestivalReminder(value: Boolean) {
         savePref(SettingsKeys.FESTIVAL_REMINDER, value)
+        Analytics.logEvent("setting_toggle", mapOf("key" to "festival_reminder", "value" to value))
         if (value) {
             FestivalReminderWorker.schedule(context)
             _uiState.update { it.copy(toastMessage = "Đã bật nhắc ngày lễ") }

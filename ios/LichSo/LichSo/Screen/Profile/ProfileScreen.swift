@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import UIKit
+import UniformTypeIdentifiers
 
 // ═══════════════════════════════════════════
 // Profile Screen — Tab "Cá Nhân"
@@ -34,6 +35,17 @@ struct ProfileScreen: View {
     @State private var showFamilySettings = false
     @State private var showPickMember = false
     @State private var showAddBookmark = false
+    @State private var showAbout = false
+    @State private var isBackingUp = false
+    @State private var isRestoring = false
+    @State private var showBackupSuccess = false
+    @State private var showRestoreConfirm = false
+    @State private var showRestoreSuccess = false
+    @State private var showRestoreError = false
+    @State private var restoreSummary = ""
+    @State private var pendingRestoreData: AppBackupManager.AppBackupData?
+    @State private var showDocumentPicker = false
+    @State private var backupMessage = ""
     @StateObject private var familyTreeVM = FamilyTreeViewModel()
 
     @AppStorage("displayName")         private var displayName = "Người dùng"
@@ -103,7 +115,12 @@ struct ProfileScreen: View {
                             onSearchTap: { showSearch = true },
                             onFamilySettingsTap: { showFamilySettings = true },
                             onPickMemberTap: { showPickMember = true },
-                            onSettingsTap: { showSettings = true }
+                            onSettingsTap: { showSettings = true },
+                            onBackupTap: { performBackup() },
+                            onRestoreTap: { showDocumentPicker = true },
+                            onAboutTap: { showAbout = true },
+                            isBackingUp: isBackingUp,
+                            isRestoring: isRestoring
                         )
 
                         Spacer().frame(height: 100)
@@ -137,6 +154,126 @@ struct ProfileScreen: View {
                 )
                 modelContext.insert(bm)
                 showAddBookmark = false
+            }
+        }
+        .sheet(isPresented: $showAbout) {
+            ProfileAboutSheet()
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showDocumentPicker) {
+            BackupDocumentPicker { url in
+                handleRestoreFile(url: url)
+            }
+        }
+        .alert("Sao lưu thành công", isPresented: $showBackupSuccess) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(backupMessage)
+        }
+        .alert("Phục hồi dữ liệu?", isPresented: $showRestoreConfirm) {
+            Button("Phục hồi", role: .destructive) { performRestore() }
+            Button("Huỷ", role: .cancel) { pendingRestoreData = nil }
+        } message: {
+            Text("Dữ liệu hiện tại sẽ bị ghi đè.\n\n\(restoreSummary)")
+        }
+        .alert("Phục hồi thành công", isPresented: $showRestoreSuccess) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("✅ Đã phục hồi dữ liệu thành công!\nVui lòng khởi động lại ứng dụng để áp dụng.")
+        }
+        .alert("Lỗi phục hồi", isPresented: $showRestoreError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(backupMessage)
+        }
+    }
+
+    // MARK: - Backup
+
+    private func performBackup() {
+        isBackingUp = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            let json = AppBackupManager.buildBackupJSON(context: modelContext)
+            DispatchQueue.main.async {
+                isBackingUp = false
+                guard let json = json else {
+                    backupMessage = "Lỗi tạo dữ liệu sao lưu."
+                    showRestoreError = true
+                    return
+                }
+                let fileName = AppBackupManager.generateFileName()
+                let tmpDir = FileManager.default.temporaryDirectory
+                let tmpURL = tmpDir.appendingPathComponent(fileName)
+                do {
+                    try json.write(to: tmpURL, atomically: true, encoding: .utf8)
+                    presentShareSheet(items: [tmpURL])
+                    let data = AppBackupManager.buildBackupData(context: modelContext)
+                    let summary = AppBackupManager.getBackupSummary(data)
+                    backupMessage = "✅ Đã xuất file sao lưu thành công!\n\n\(summary)\n\nFile: \(fileName)"
+                    showBackupSuccess = true
+                } catch {
+                    backupMessage = "Lỗi ghi file: \(error.localizedDescription)"
+                    showRestoreError = true
+                }
+            }
+        }
+    }
+
+    private func presentShareSheet(items: [Any]) {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = windowScene.windows.first?.rootViewController else { return }
+        let av = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        if let popover = av.popoverPresentationController {
+            popover.sourceView = rootVC.view
+            popover.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
+        }
+        // Find the topmost presented VC
+        var topVC = rootVC
+        while let presented = topVC.presentedViewController { topVC = presented }
+        topVC.present(av, animated: true)
+    }
+
+    // MARK: - Restore
+
+    private func handleRestoreFile(url: URL) {
+        guard url.startAccessingSecurityScopedResource() else {
+            backupMessage = "Không thể truy cập file."
+            showRestoreError = true
+            return
+        }
+        defer { url.stopAccessingSecurityScopedResource() }
+
+        do {
+            let json = try String(contentsOf: url, encoding: .utf8)
+            guard let data = AppBackupManager.parseBackupJSON(json) else {
+                backupMessage = "File không phải bản sao lưu Lịch Số hợp lệ."
+                showRestoreError = true
+                return
+            }
+            if data.type != "full_backup" || data.appId != "com.lichso.app" {
+                backupMessage = "File không phải bản sao lưu Lịch Số."
+                showRestoreError = true
+                return
+            }
+            pendingRestoreData = data
+            restoreSummary = AppBackupManager.getBackupSummary(data)
+            showRestoreConfirm = true
+        } catch {
+            backupMessage = "Không thể đọc file: \(error.localizedDescription)"
+            showRestoreError = true
+        }
+    }
+
+    private func performRestore() {
+        guard let data = pendingRestoreData else { return }
+        isRestoring = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            AppBackupManager.restoreFromBackup(data, context: modelContext)
+            DispatchQueue.main.async {
+                isRestoring = false
+                pendingRestoreData = nil
+                showRestoreSuccess = true
             }
         }
     }
@@ -596,6 +733,11 @@ private struct ProfileMenuSection: View {
     let onFamilySettingsTap: () -> Void
     let onPickMemberTap: () -> Void
     let onSettingsTap: () -> Void
+    var onBackupTap: () -> Void = {}
+    var onRestoreTap: () -> Void = {}
+    var onAboutTap: () -> Void = {}
+    var isBackingUp: Bool = false
+    var isRestoring: Bool = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -646,12 +788,14 @@ private struct ProfileMenuSection: View {
                     PMenuItem(iconBg: Color(red: 0.910, green: 0.961, blue: 0.914),
                               iconColor: Color(red: 0.180, green: 0.490, blue: 0.196),
                               icon: "arrow.up.doc.fill", title: "Sao lưu dữ liệu",
-                              desc: "Xuất toàn bộ dữ liệu ra file JSON")
+                              desc: "Xuất toàn bộ dữ liệu ra file JSON",
+                              action: onBackupTap)
                     PMenuDivider()
                     PMenuItem(iconBg: Color(red: 0.890, green: 0.945, blue: 0.992),
                               iconColor: Color(red: 0.086, green: 0.396, blue: 0.753),
                               icon: "arrow.down.doc.fill", title: "Phục hồi dữ liệu",
-                              desc: "Khôi phục từ file sao lưu JSON")
+                              desc: "Khôi phục từ file sao lưu JSON",
+                              action: onRestoreTap)
                     PMenuDivider()
                     PMenuItem(iconBg: Color(red: 0.953, green: 0.898, blue: 0.961),
                               iconColor: Color(red: 0.416, green: 0.106, blue: 0.604),
@@ -660,7 +804,23 @@ private struct ProfileMenuSection: View {
                     PMenuDivider()
                     PMenuItem(iconBg: Color(red: 1, green: 0.953, blue: 0.878),
                               iconColor: Color(red: 0.902, green: 0.318, blue: 0),
-                              icon: "info.circle.fill", title: "Về ứng dụng", desc: "Lịch Số")
+                              icon: "info.circle.fill", title: "Về ứng dụng", desc: "Lịch Số",
+                              action: onAboutTap)
+                }
+
+                // Loading indicator for backup/restore
+                if isBackingUp || isRestoring {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                            .tint(PrimaryRed)
+                        Text(isBackingUp ? "Đang sao lưu dữ liệu..." : "Đang phục hồi dữ liệu...")
+                            .font(.system(size: 13))
+                            .foregroundColor(TextSub)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(14)
+                    .background(Color(red: 0.890, green: 0.945, blue: 0.992))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
             }
         }
@@ -782,3 +942,158 @@ private struct AddBookmarkSheet: View {
     }
 }
 
+// ══════════════════════════════════════════
+// ABOUT SHEET (Profile)
+// ══════════════════════════════════════════
+
+private struct ProfileAboutSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+    }
+    private var buildNumber: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Close button
+            HStack {
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(TextDim)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+
+            ScrollView {
+                VStack(spacing: 16) {
+                    // App icon
+                    Image("AppLogo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 64, height: 64)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .padding(.top, 8)
+
+                    VStack(spacing: 6) {
+                        Text("Lịch Số")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(TextMain)
+                        Text("Lịch Vạn Niên Việt Nam")
+                            .font(.system(size: 15))
+                            .foregroundColor(TextSub)
+                        Text("Phiên bản \(appVersion) (\(buildNumber))")
+                            .font(.system(size: 13))
+                            .foregroundColor(TextDim)
+                            .padding(.top, 2)
+                    }
+
+                    // Divider
+                    Rectangle()
+                        .fill(OutlineVariant.opacity(0.4))
+                        .frame(height: 1)
+                        .padding(.horizontal, 40)
+                        .padding(.vertical, 4)
+
+                    // Features
+                    VStack(alignment: .leading, spacing: 12) {
+                        AboutFeatureRow(icon: "calendar.badge.clock", text: "Lịch âm dương chính xác")
+                        AboutFeatureRow(icon: "sparkles",            text: "Phong thủy & Ngày hoàng đạo")
+                        AboutFeatureRow(icon: "brain.head.profile",  text: "Trợ lý AI thông minh")
+                        AboutFeatureRow(icon: "bell.badge.fill",     text: "Nhắc nhở thông minh")
+                        AboutFeatureRow(icon: "note.text",           text: "Ghi chú & Công việc")
+                        AboutFeatureRow(icon: "person.2.fill",       text: "Gia phả & Kỷ niệm gia đình")
+                    }
+                    .padding(.horizontal, 32)
+
+                    // Links
+                    VStack(spacing: 8) {
+                        Button {
+                            SmartRatingManager.shared.triggerManually()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "star.fill").font(.system(size: 13))
+                                Text("Đánh giá trên App Store").font(.system(size: 13, weight: .medium))
+                            }
+                            .foregroundColor(PrimaryRed)
+                        }
+
+                        Button {
+                            if let url = URL(string: "https://apps.zenix.vn/privacy-policy") {
+                                UIApplication.shared.open(url)
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "lock.shield.fill").font(.system(size: 13))
+                                Text("Chính sách bảo mật").font(.system(size: 13, weight: .medium))
+                            }
+                            .foregroundColor(TextSub)
+                        }
+                    }
+                    .padding(.top, 8)
+
+                    Spacer().frame(height: 12)
+
+                    Text("© 2024 Lịch Số. All rights reserved.")
+                        .font(.system(size: 11))
+                        .foregroundColor(TextDim)
+                        .padding(.bottom, 8)
+                }
+            }
+        }
+        .background(SurfaceBg.ignoresSafeArea())
+    }
+}
+
+private struct AboutFeatureRow: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 17))
+                .foregroundColor(PrimaryRed)
+                .frame(width: 26)
+            Text(text)
+                .font(.system(size: 14))
+                .foregroundColor(TextMain)
+        }
+    }
+}
+
+// ══════════════════════════════════════════
+// DOCUMENT PICKER (for restore)
+// ══════════════════════════════════════════
+
+private struct BackupDocumentPicker: UIViewControllerRepresentable {
+    let onPick: (URL) -> Void
+
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json, .data])
+        picker.delegate = context.coordinator
+        picker.allowsMultipleSelection = false
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onPick: onPick)
+    }
+
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let onPick: (URL) -> Void
+        init(onPick: @escaping (URL) -> Void) { self.onPick = onPick }
+
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            guard let url = urls.first else { return }
+            onPick(url)
+        }
+    }
+}

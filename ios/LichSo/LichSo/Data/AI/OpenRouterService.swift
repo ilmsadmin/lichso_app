@@ -16,7 +16,7 @@ struct OpenRouterRequest: Codable {
     let max_tokens: Int
     let temperature: Double
     
-    init(messages: [ChatMessage], model: String = "google/gemini-2.0-flash-001", maxTokens: Int = 2048, temperature: Double = 0.7) {
+    init(messages: [ChatMessage], model: String = "google/gemini-2.5-flash", maxTokens: Int = 2048, temperature: Double = 0.7) {
         self.model = model
         self.messages = messages
         self.max_tokens = maxTokens
@@ -48,9 +48,14 @@ class OpenRouterService: ObservableObject {
             // Graceful fallback — không crash, AI chat sẽ trả lời cục bộ
             #if DEBUG
             print("⚠️ Missing Secrets.plist or OPENROUTER_API_KEY. AI chat will use local responses.")
+            print("   Bundle path: \(Bundle.main.bundlePath)")
+            print("   Secrets.plist exists: \(Bundle.main.path(forResource: "Secrets", ofType: "plist") != nil)")
             #endif
             return ""
         }
+        #if DEBUG
+        print("✅ OpenRouter API key loaded successfully (length: \(key.count))")
+        #endif
         return key
     }()
     private let baseURL = "https://openrouter.ai/api/v1/chat/completions"

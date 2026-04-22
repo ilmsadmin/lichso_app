@@ -1,31 +1,36 @@
 {
   "project_info": {
-    "project_number": "000000000000",
-    "project_id": "lichso-app",
-    "storage_bucket": "lichso-app.appspot.com"
+    "project_number": "339910552400",
+    "project_id": "winter-environs-489811-t7",
+    "storage_bucket": "winter-environs-489811-t7.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+        "mobilesdk_app_id": "1:339910552400:android:c00660ec5d07616414da55",
         "android_client_info": {
           "package_name": "com.lichso.app"
         }
       },
       "oauth_client": [
         {
-          "client_id": "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com",
+          "client_id": "339910552400-3dqk7nm0ba5bv0e8fc55r01dkbr2174p.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "YOUR_API_KEY"
+          "current_key": "AIzaSyAiU_0stqI7TvtMD0GbEj0OcI70AeYuXYs"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "339910552400-3dqk7nm0ba5bv0e8fc55r01dkbr2174p.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

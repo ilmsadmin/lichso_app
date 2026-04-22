@@ -207,9 +207,7 @@ struct SettingsScreen: View {
                                  iconBg: Color(hex: "FFF8E1"), iconFg: Color(hex: "F57F17"),
                                  icon: "star.fill",
                                  title: "Đánh giá trên App Store") {
-                            if let url = URL(string: "itms-apps://itunes.apple.com/app/id6740048518?action=write-review") {
-                                UIApplication.shared.open(url)
-                            }
+                            SmartRatingManager.shared.triggerManually()
                         }
 
                         RowDivider(cs: cs)
@@ -229,7 +227,7 @@ struct SettingsScreen: View {
                                  iconBg: Color(hex: "FFEBEE"), iconFg: Color(hex: "C62828"),
                                  icon: "envelope.fill",
                                  title: "Liên hệ hỗ trợ") {
-                            if let url = URL(string: "mailto:support@lichso.com") {
+                            if let url = URL(string: "mailto:zenixhq.com@gmail.com") {
                                 UIApplication.shared.open(url)
                             }
                         }
@@ -930,7 +928,7 @@ private struct AboutSheet: View {
 
                     Spacer().frame(height: 12)
 
-                    Text("© 2024 Lịch Số. All rights reserved.")
+                    Text("© 2024–2026 Lịch Số. All rights reserved.")
                         .font(.system(size: 11))
                         .foregroundColor(cs.textDim)
                         .padding(.bottom, 8)
