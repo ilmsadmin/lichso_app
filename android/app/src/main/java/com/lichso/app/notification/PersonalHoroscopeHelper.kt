@@ -156,7 +156,7 @@ object PersonalHoroscopeHelper {
         val dateLabel = if (isTomorrow) "ngày mai ($dd/$mm)" else "$dd/$mm"
 
         // Tổng hợp rating: kết hợp dayRating + relation
-        val baseScore = dayInfo.dayRating.score
+        val baseScore = dayInfo.dayRating.percent
         val adjScore = when (rel.rating) {
             5 -> (baseScore + 15).coerceAtMost(100)
             4 -> (baseScore + 8).coerceAtMost(100)

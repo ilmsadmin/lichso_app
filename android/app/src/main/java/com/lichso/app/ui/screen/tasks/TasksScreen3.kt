@@ -936,13 +936,32 @@ private fun ReminderListV3(reminders: List<ReminderEntity>, viewModel: TasksView
         ) {
             item { AddNewCard(label = "Thêm nhắc nhở mới", color = RemindOrange, icon = Icons.Outlined.AlarmAdd, onClick = onAddClick) }
 
-            val upcoming = reminders.filter { it.isEnabled }
-            val disabled = reminders.filter { !it.isEnabled }
+            // ── Phân loại reminder ──
+            // Reminder Once (repeatType==0) sau khi đã đến giờ trigger thì coi
+            // như "đã nhắc" — vì AlarmManager đã fire xong, scheduler không
+            // schedule lại (xem ReminderScheduler.schedule), nhưng `isEnabled`
+            // trong DB vẫn = true. Nếu để chung "Sắp tới" sẽ gây hiểu nhầm
+            // (user thấy reminder 11:40 vẫn còn ở danh sách dù đã thông báo).
+            //
+            // Reminder lặp (Daily/Weekly/Monthly/Yearly) thì triggerTime gốc
+            // dù đã qua vẫn coi là "Sắp tới" — vì lần fire kế tiếp được tính
+            // động trong ReminderScheduler.
+            val now = System.currentTimeMillis()
+            val (enabled, disabled) = reminders.partition { it.isEnabled }
+            val (alreadyFired, upcoming) = enabled.partition { r ->
+                r.repeatType == 0 && r.triggerTime <= now
+            }
 
             if (upcoming.isNotEmpty()) {
                 item { SectionDivider("Sắp tới") }
                 items(upcoming, key = { it.id }) { reminder ->
                     ReminderCardV3(reminder = reminder, viewModel = viewModel)
+                }
+            }
+            if (alreadyFired.isNotEmpty()) {
+                item { SectionDivider("Đã nhắc") }
+                items(alreadyFired, key = { "fired_${it.id}" }) { reminder ->
+                    ReminderCardV3(reminder = reminder, viewModel = viewModel, alreadyFired = true)
                 }
             }
             if (disabled.isNotEmpty()) {
@@ -957,7 +976,11 @@ private fun ReminderListV3(reminders: List<ReminderEntity>, viewModel: TasksView
 }
 
 @Composable
-private fun ReminderCardV3(reminder: ReminderEntity, viewModel: TasksViewModel) {
+private fun ReminderCardV3(
+    reminder: ReminderEntity,
+    viewModel: TasksViewModel,
+    alreadyFired: Boolean = false
+) {
     val c = LichSoThemeColors.current
     val typeInfo = getReminderTypeInfo(reminder)
 
@@ -1029,7 +1052,14 @@ private fun ReminderCardV3(reminder: ReminderEntity, viewModel: TasksViewModel) 
             ) {
                 // Time until
                 val daysLeft = getDaysUntil(reminder.triggerTime)
-                if (reminder.isEnabled && daysLeft >= 0) {
+                if (alreadyFired) {
+                    InfoChip(
+                        icon = Icons.Outlined.CheckCircle,
+                        text = "Đã nhắc",
+                        bgColor = Color(0xFFE8F5E9),
+                        textColor = Color(0xFF2E7D32)
+                    )
+                } else if (reminder.isEnabled && daysLeft >= 0) {
                     InfoChip(
                         icon = Icons.Outlined.Schedule,
                         text = if (daysLeft == 0L) "Hôm nay" else "Còn $daysLeft ngày",

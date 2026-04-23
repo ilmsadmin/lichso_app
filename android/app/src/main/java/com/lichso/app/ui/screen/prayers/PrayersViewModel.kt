@@ -1,11 +1,16 @@
 package com.lichso.app.ui.screen.prayers
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.lichso.app.util.SmartRatingManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 // ══════════════════════════════════════════
@@ -50,10 +55,16 @@ data class PrayersUiState(
 // ══════════════════════════════════════════
 
 @HiltViewModel
-class PrayersViewModel @Inject constructor() : ViewModel() {
+class PrayersViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PrayersUiState())
     val uiState: StateFlow<PrayersUiState> = _uiState.asStateFlow()
+
+    // Đếm số lần user mở chi tiết văn khấn trong session — chỉ trigger từ lần thứ 2
+    // (lần đầu có thể chỉ là tò mò; lần thứ 2 cho thấy engagement thật).
+    private var prayerOpenCount = 0
 
     val categories = listOf(
         PrayerCategory("all", "📋", "Tất cả"),
@@ -1599,6 +1610,12 @@ Nam mô A Di Đà Phật! (3 lần, 3 vái)
 
     fun openPrayerDetail(prayer: PrayerItem) {
         _uiState.update { it.copy(selectedPrayer = prayer, showDetail = true) }
+        prayerOpenCount++
+        if (prayerOpenCount >= 2) {
+            viewModelScope.launch {
+                SmartRatingManager.recordHappyAction(appContext)
+            }
+        }
     }
 
     fun openPrayerById(id: Int) {

@@ -387,6 +387,7 @@ private fun DateCards(memorial: MemorialDay, c: LichSoColors) {
     val solarDateParts = memorial.solarDate.split("/")
     val solarYear = if (solarDateParts.size >= 3) solarDateParts[2] else ""
     val dayOfWeekStr = try {
+        if (solarDateParts.size < 3) throw IllegalArgumentException("invalid solarDate")
         val date = java.time.LocalDate.of(
             solarDateParts[2].toInt(),
             solarDateParts[1].toInt(),

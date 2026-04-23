@@ -67,6 +67,23 @@ fun SmartRatingDialog(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
+    // Helper: ghi cooldown "skip" lên DataStore một cách an toàn ngay cả khi
+    // Compose dispose dialog (dùng applicationContext + GlobalScope).
+    val recordSkippedSafe: () -> Unit = {
+        val appCtx = context.applicationContext
+        @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
+        kotlinx.coroutines.GlobalScope.launch {
+            SmartRatingManager.recordSkipped(appCtx)
+        }
+    }
+    val recordFeedbackSafe: () -> Unit = {
+        val appCtx = context.applicationContext
+        @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
+        kotlinx.coroutines.GlobalScope.launch {
+            SmartRatingManager.recordFeedbackSent(appCtx)
+        }
+    }
+
     // ── Step state ──
     // "emotion"  → hỏi hài lòng hay không
     // "stars"    → chọn số sao (1-5) khi user hài lòng
@@ -76,6 +93,34 @@ fun SmartRatingDialog(
     var feedbackText by remember { mutableStateOf("") }
     var selectedStars by remember { mutableStateOf(0) }
 
+    // ── Prefetch ReviewInfo ngay khi dialog hiện ──
+    // Google khuyến nghị WARM-UP requestReviewFlow sớm vì nó cần network call.
+    // Nếu chỉ gọi khi user bấm 5 sao thì có thể mất 200–800ms → user thoát.
+    // Ngoài ra, có một ReviewInfo "fresh" sẵn giúp launchReviewFlow chạy gần
+    // như tức thì khi cần.
+    val prefetchedReviewInfo = remember {
+        mutableStateOf<com.google.android.play.core.review.ReviewInfo?>(null)
+    }
+    val reviewManagerRemember = remember(context) {
+        context.findActivity()?.let {
+            com.google.android.play.core.review.ReviewManagerFactory.create(it)
+        }
+    }
+    LaunchedEffect(Unit) {
+        reviewManagerRemember?.requestReviewFlow()?.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                prefetchedReviewInfo.value = task.result
+                android.util.Log.d("SmartRating", "Prefetched ReviewInfo OK")
+            } else {
+                android.util.Log.w(
+                    "SmartRating",
+                    "Prefetch requestReviewFlow failed",
+                    task.exception
+                )
+            }
+        }
+    }
+
     // ── Notify SmartRatingManager that we're showing ──
     LaunchedEffect(Unit) {
         SmartRatingManager.recordShown(context)
@@ -83,7 +128,7 @@ fun SmartRatingDialog(
 
     Dialog(
         onDismissRequest = {
-            SmartRatingManager.dismiss()
+            recordSkippedSafe()
             onDismiss()
         },
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -113,7 +158,7 @@ fun SmartRatingDialog(
                             step = "feedback"
                         },
                         onDismiss = {
-                            SmartRatingManager.dismiss()
+                            recordSkippedSafe()
                             onDismiss()
                         }
                     )
@@ -123,34 +168,45 @@ fun SmartRatingDialog(
                         onStarSelect = { selectedStars = it },
                         onConfirm = { stars ->
                             if (stars >= 4) {
-                                // 4-5 sao → In-App Review, fallback Play Store nếu quota hết hoặc lỗi.
-                                // KHÔNG recordRated() ở đây — chỉ ghi nhận khi fallback mở Play Store
-                                // (user ra trang review thật) hoặc khi In-App Review dialog hiển thị
-                                // đủ lâu. Google Play KHÔNG trả về việc user có submit rating hay không,
-                                // nhưng nếu dialog không hiện (quota) → flow complete < 600ms, ta fallback.
-                                val activity = context as? android.app.Activity
+                                // 4-5 sao → user đã bày tỏ ý định rate cao → ghi recordRated NGAY
+                                // (không chờ callback Play Core, vì nếu chờ và dialog Compose bị
+                                // dispose trước, coroutineScope sẽ bị cancel → recordRated không
+                                // bao giờ chạy → user vẫn bị hỏi lại lần sau).
+                                val appCtx = context.applicationContext
+                                @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
+                                kotlinx.coroutines.GlobalScope.launch {
+                                    SmartRatingManager.recordRated(appCtx)
+                                }
+
+                                // ⚠️ ROOT CAUSE FIX: Phải DISMISS Compose Dialog window TRƯỚC,
+                                // rồi mới launchReviewFlow. Lý do: In-App Review API mở một
+                                // BottomSheetDialog gắn vào Activity window. Nếu Compose Dialog
+                                // window vẫn còn (animation dismiss chưa xong) → bottom-sheet
+                                // review bị che/cancel → user không thấy gì → tưởng "đã rate xong"
+                                // nhưng thực tế Play KHÔNG nhận được review nào.
+                                //
+                                // Trick: post launch review qua Handler.postDelayed sau khi đã
+                                // gọi onDismiss(). Delay nhỏ (~250ms) đủ để Compose dispose dialog
+                                // window và Activity về RESUMED state.
+                                val activity = context.findActivity()
+                                val cachedReviewInfo = prefetchedReviewInfo.value
+                                onDismiss() // dismiss Compose Dialog NGAY
+
                                 if (activity != null) {
-                                    launchInAppReviewOrFallback(activity) { didReachPlayStore ->
-                                        if (didReachPlayStore) {
-                                            coroutineScope.launch {
-                                                SmartRatingManager.recordRated(context)
-                                            }
-                                        }
-                                    }
+                                    android.os.Handler(android.os.Looper.getMainLooper())
+                                        .postDelayed({
+                                            launchInAppReviewOrFallback(activity, cachedReviewInfo)
+                                        }, 250L)
                                 } else {
                                     openPlayStore(context)
-                                    coroutineScope.launch {
-                                        SmartRatingManager.recordRated(context)
-                                    }
                                 }
-                                onDismiss()
                             } else {
                                 // 1-3 sao → chuyển sang feedback
                                 step = "feedback"
                             }
                         },
                         onDismiss = {
-                            SmartRatingManager.dismiss()
+                            recordSkippedSafe()
                             onDismiss()
                         }
                     )
@@ -160,17 +216,19 @@ fun SmartRatingDialog(
                         onFeedbackChange = { feedbackText = it },
                         onSend = {
                             sendFeedbackEmail(context, feedbackText, selectedStars)
+                            recordFeedbackSafe()
                             step = "thanks"
                         },
                         onSkip = {
-                            SmartRatingManager.dismiss()
+                            recordSkippedSafe()
                             onDismiss()
                         }
                     )
 
                     "thanks" -> ThanksStep(
                         onDismiss = {
-                            SmartRatingManager.dismiss()
+                            // Đã ghi recordFeedbackSafe ở step "feedback" rồi (hoặc
+                            // recordRated ở nhánh 4-5 sao) — chỉ cần đóng dialog.
                             onDismiss()
                         }
                     )
@@ -747,52 +805,82 @@ private fun openPlayStore(context: Context) {
 }
 
 /**
+ * Unwrap Context (có thể là ContextWrapper từ Dialog window) để tìm Activity gốc.
+ * `LocalContext.current` trong một Compose Dialog KHÔNG bảo đảm là Activity —
+ * cast thẳng `context as? Activity` rất hay null → rơi nhầm vào nhánh fallback
+ * Play Store thay vì In-App Review.
+ */
+private fun Context.findActivity(): Activity? {
+    var ctx: Context? = this
+    while (ctx is android.content.ContextWrapper) {
+        if (ctx is Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
+}
+
+/**
  * Thử launch In-App Review API của Google Play.
  *
- * Google Play có quota rất hạn chế cho In-App Review (ước tính 1–2 lần/user/năm).
- * Khi hết quota HOẶC user đã review rồi, API vẫn báo success nhưng dialog KHÔNG hiển thị
- * và flow complete gần như ngay lập tức (<600ms). Trong trường hợp đó, ta fallback mở
- * Play Store để user có thể review thật.
+ * Nguyên tắc: TIN tưởng Play Core. Chỉ fallback Play Store khi API thực sự
+ * báo fail (`isSuccessful == false`). KHÔNG dùng heuristic thời gian
+ * (`launchElapsed < Xms`) vì Google không bảo đảm thời gian — máy nhanh,
+ * user đã review trước đó, hoặc cache hit đều có thể khiến callback về
+ * gần như tức thì NGAY CẢ KHI dialog đã hiển thị thật. Mở Play Store đè
+ * lên trong các trường hợp đó sẽ làm user thoát app, không submit review.
  *
- * @param onResult callback(didReachPlayStore) — true nếu cuối cùng user được đưa tới
- *   trang review (In-App dialog có hiển thị, hoặc Play Store được mở).
+ * Điều kiện để In-App Review thực sự hoạt động (ngoài tầm code):
+ *   1. App được cài từ Google Play (Production / Open / Closed / Internal testing).
+ *   2. Thiết bị có Google Play Services + đăng nhập tài khoản Google.
+ *   3. Signing cert của bundle khớp với App Signing Key trên Play Console.
+ *   4. Quota của Google còn (1–2 lần/user/năm — Google không công bố con số).
+ *
+ * Nếu (1)–(3) không thoả → `requestReviewFlow` sẽ fail → ta fallback Play Store.
+ * Nếu (4) hết quota → `launchReviewFlow` complete success nhưng dialog không
+ * hiển thị: KHÔNG có cách phát hiện đáng tin cậy. User vẫn có thể vào
+ * Settings → "Đánh giá ứng dụng" để mở thẳng Play Store khi cần.
  */
 private fun launchInAppReviewOrFallback(
-    activity: android.app.Activity,
-    onResult: (didReachPlayStore: Boolean) -> Unit = {}
+    activity: Activity,
+    cachedReviewInfo: com.google.android.play.core.review.ReviewInfo? = null
 ) {
     val reviewManager = com.google.android.play.core.review.ReviewManagerFactory.create(activity)
-    val requestStart = System.currentTimeMillis()
+
+    fun launch(info: com.google.android.play.core.review.ReviewInfo) {
+        reviewManager.launchReviewFlow(activity, info)
+            .addOnCompleteListener { launchTask ->
+                if (!launchTask.isSuccessful) {
+                    android.util.Log.w(
+                        "SmartRating",
+                        "launchReviewFlow failed → fallback Play Store",
+                        launchTask.exception
+                    )
+                    openPlayStore(activity)
+                } else {
+                    android.util.Log.d("SmartRating", "launchReviewFlow completed successfully")
+                }
+            }
+    }
+
+    // Nếu đã có ReviewInfo prefetch → dùng luôn, bỏ qua request mới (nhanh hơn,
+    // và tránh trường hợp Google rate-limit request lần 2 trong cùng session).
+    if (cachedReviewInfo != null) {
+        android.util.Log.d("SmartRating", "Using prefetched ReviewInfo")
+        launch(cachedReviewInfo)
+        return
+    }
+
     reviewManager.requestReviewFlow().addOnCompleteListener { requestTask ->
         if (!requestTask.isSuccessful) {
-            android.util.Log.w("SmartRating",
+            android.util.Log.w(
+                "SmartRating",
                 "requestReviewFlow failed → fallback Play Store",
-                requestTask.exception)
+                requestTask.exception
+            )
             openPlayStore(activity)
-            onResult(true)
             return@addOnCompleteListener
         }
-
-        val launchStart = System.currentTimeMillis()
-        reviewManager.launchReviewFlow(activity, requestTask.result)
-            .addOnCompleteListener { launchTask ->
-                val launchElapsed = System.currentTimeMillis() - launchStart
-                val totalElapsed = System.currentTimeMillis() - requestStart
-
-                // Heuristic: nếu launchReviewFlow hoàn thành quá nhanh, gần như chắc chắn
-                // dialog KHÔNG hiển thị (quota hết / đã review / internal testing issue).
-                // Trong trường hợp đó → fallback Play Store để user vẫn review được.
-                val dialogLikelyShown = launchTask.isSuccessful && launchElapsed >= 600L
-                android.util.Log.d("SmartRating",
-                    "launchReviewFlow done: success=${launchTask.isSuccessful}, " +
-                    "launchElapsed=${launchElapsed}ms, totalElapsed=${totalElapsed}ms, " +
-                    "dialogLikelyShown=$dialogLikelyShown")
-
-                if (!dialogLikelyShown) {
-                    openPlayStore(activity)
-                }
-                onResult(true)
-            }
+        launch(requestTask.result)
     }
 }
 
@@ -809,7 +897,9 @@ private fun sendFeedbackEmail(context: Context, feedback: String, stars: Int = 0
         appendLine("Android: ${android.os.Build.VERSION.RELEASE}")
         try {
             val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            appendLine("App: Lịch Số ${pInfo.versionName} (${pInfo.longVersionCode})")
+            // PackageInfoCompat handles API < 28 (where longVersionCode doesn't exist) safely.
+            val versionCode = androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(pInfo)
+            appendLine("App: Lịch Số ${pInfo.versionName} ($versionCode)")
         } catch (_: Exception) {}
     }
 

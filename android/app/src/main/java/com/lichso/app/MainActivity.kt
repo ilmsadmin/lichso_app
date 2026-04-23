@@ -18,6 +18,7 @@ import com.lichso.app.ui.screen.settings.SettingsKeys
 import com.lichso.app.ui.screen.settings.settingsDataStore
 import com.lichso.app.ui.screen.splash.SplashScreen
 import com.lichso.app.ui.theme.LichSoTheme
+import com.lichso.app.update.InAppUpdateManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -31,6 +32,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Switch from splash theme (red background) to normal theme
         setTheme(R.style.Theme_LichSo)
+        // ── In-App Update ──
+        // Phải register() TRƯỚC setContent vì ActivityResultLauncher
+        // chỉ được phép register khi Activity ở STATE_INITIALIZED hoặc CREATED.
+        InAppUpdateManager.register(this)
+        InAppUpdateManager.checkForUpdates(this)
         // Edge-to-edge with fully transparent system bars
         // Using SystemBarStyle to avoid deprecated setStatusBarColor/setNavigationBarColor
         enableEdgeToEdge(
@@ -54,9 +60,11 @@ class MainActivity : ComponentActivity() {
             val context = LocalContext.current
             val coroutineScope = rememberCoroutineScope()
 
-            val themeMode by context.settingsDataStore.data
-                .map { it[SettingsKeys.THEME_MODE] ?: "system" }
-                .collectAsState(initial = "system")
+            val themeModeFlow = remember(context) {
+                context.settingsDataStore.data
+                    .map { it[SettingsKeys.THEME_MODE] ?: "system" }
+            }
+            val themeMode by themeModeFlow.collectAsState(initial = "system")
 
             val systemDark = isSystemInDarkTheme()
             val darkMode = when (themeMode) {
@@ -113,5 +121,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Google requirement: phải kiểm tra lại trong onResume để
+        //  - Resume IMMEDIATE update nếu user thoát giữa chừng.
+        //  - Cập nhật UI state nếu FLEXIBLE đã DOWNLOADED khi app ở background.
+        InAppUpdateManager.onResumeCheck(this)
+    }
+
+    override fun onDestroy() {
+        InAppUpdateManager.unregister()
+        super.onDestroy()
     }
 }

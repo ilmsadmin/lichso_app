@@ -310,6 +310,12 @@ class ChatViewModel @Inject constructor(
 
             // Parse and save memory from the conversation
             aiMemoryStore.parseAndSaveFromAiResponse(text.trim(), response)
+
+            // Happy action: AI trả lời thành công → user vừa có trải nghiệm tích cực.
+            // Chỉ ghi nếu AI thực sự thành công (không phải fallback local).
+            if (result.isSuccess) {
+                com.lichso.app.util.SmartRatingManager.recordHappyAction(context)
+            }
         }
     }
 
@@ -375,7 +381,6 @@ class ChatViewModel @Inject constructor(
             "delete_task" -> {
                 result.items.forEach { item ->
                     val keyword = item.title.lowercase()
-                    val tasks = _uiState.value.messages // We don't have task list here directly
                     // Try to find and delete via taskDao
                     try {
                         taskDao.getAllTasks().first().find { t ->

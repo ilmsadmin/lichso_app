@@ -50,6 +50,7 @@ import kotlinx.coroutines.launch
 import com.lichso.app.util.ReviewHelper
 import com.lichso.app.util.SmartRatingManager
 import com.lichso.app.ui.components.SmartRatingDialog
+import com.lichso.app.update.InAppUpdateManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,6 +88,24 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
         visible = showRatingDialog,
         onDismiss = { SmartRatingManager.dismiss() }
     )
+
+    // ── In-App Update: hiển thị Snackbar "Khởi động lại" khi bản FLEXIBLE
+    // đã tải xong ở nền. User bấm "Khởi động lại" → app tự restart và áp
+    // dụng bản mới (không cần qua Play Store). ──
+    val updateState by InAppUpdateManager.uiState.collectAsState()
+    val updateSnackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(updateState) {
+        if (updateState is InAppUpdateManager.UiState.ReadyToInstall) {
+            val result = updateSnackbarHostState.showSnackbar(
+                message = "Bản mới đã sẵn sàng — khởi động lại để cập nhật",
+                actionLabel = "Khởi động lại",
+                duration = SnackbarDuration.Indefinite
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                InAppUpdateManager.completeFlexibleUpdate()
+            }
+        }
+    }
 
     val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays") || prayerDetailShowing || taskEditShowing
 
@@ -264,6 +283,20 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
+
+        // ── In-App Update Snackbar ──
+        // Đặt phía trên bottom nav để không bị che. Indefinite — chỉ ẩn khi
+        // user bấm "Khởi động lại" hoặc swipe-dismiss.
+        SnackbarHost(
+            hostState = updateSnackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(
+                    bottom = if (hideBottomBar) navBarBottom + 16.dp
+                             else bottomBarTotalHeight + 8.dp
+                )
+                .padding(horizontal = 12.dp)
+        )
     }
     } // end ModalNavigationDrawer
 }

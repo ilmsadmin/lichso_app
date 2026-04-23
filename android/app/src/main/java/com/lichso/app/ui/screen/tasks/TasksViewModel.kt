@@ -13,6 +13,7 @@ import com.lichso.app.data.local.entity.NoteEntity
 import com.lichso.app.data.local.entity.ReminderEntity
 import com.lichso.app.data.local.entity.TaskEntity
 import com.lichso.app.notification.ReminderScheduler
+import com.lichso.app.util.SmartRatingManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -90,6 +91,7 @@ class TasksViewModel @Inject constructor(
                     dueDate = dueDate
                 )
             )
+            SmartRatingManager.recordHappyAction(context)
         }
     }
 
@@ -107,6 +109,8 @@ class TasksViewModel @Inject constructor(
     fun toggleTask(task: TaskEntity) {
         viewModelScope.launch {
             taskDao.toggleDone(task.id, !task.isDone)
+            // Happy action: user vừa hoàn thành 1 task — cảm xúc "thành tựu"
+            if (!task.isDone) SmartRatingManager.recordHappyAction(context)
         }
     }
 
@@ -201,6 +205,7 @@ class TasksViewModel @Inject constructor(
                 "repeat_type" to repeatType,
                 "source" to "tasks_screen"
             ))
+            SmartRatingManager.recordHappyAction(context)
         }
     }
 
