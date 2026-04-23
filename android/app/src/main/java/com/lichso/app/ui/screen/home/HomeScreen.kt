@@ -53,6 +53,7 @@ fun HomeScreen(
     onProfileClick: () -> Unit = {},
     onHistoryClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
+    onPointsPillClick: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val c = LichSoThemeColors.current
@@ -87,7 +88,8 @@ fun HomeScreen(
                 onNotificationClick = onNotificationClick,
                 onWeatherRefresh = { viewModel.refreshWeather() },
                 onWeatherClick = { showWeatherSheet = true },
-                notificationUnreadCount = uiState.notificationUnreadCount
+                notificationUnreadCount = uiState.notificationUnreadCount,
+                onPointsPillClick = onPointsPillClick,
             )
 
             // ═══ TEAR LINE (perforation) ═══
@@ -334,7 +336,8 @@ private fun RedHeader(
     onNotificationClick: () -> Unit = {},
     onWeatherRefresh: () -> Unit = {},
     onWeatherClick: () -> Unit = {},
-    notificationUnreadCount: Int = 0
+    notificationUnreadCount: Int = 0,
+    onPointsPillClick: () -> Unit = {},
 ) {
     val c = LichSoThemeColors.current
     val colors = if (c.isDark) {
@@ -430,6 +433,17 @@ private fun RedHeader(
                         letterSpacing = 0.5.sp
                     )
                 )
+            }
+
+            // ── Row 3: Points pill + Streak badge (v2) ──
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                com.lichso.app.feature.points.ui.PointsPill(onClick = onPointsPillClick)
+                com.lichso.app.feature.points.ui.StreakBadge()
             }
         }
     }

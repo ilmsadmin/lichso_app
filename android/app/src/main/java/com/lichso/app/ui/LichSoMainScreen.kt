@@ -53,6 +53,10 @@ import com.lichso.app.util.ReviewHelper
 import com.lichso.app.util.SmartRatingManager
 import com.lichso.app.ui.components.SmartRatingDialog
 import com.lichso.app.update.InAppUpdateManager
+import com.lichso.app.feature.points.ui.PointsViewModel
+import com.lichso.app.feature.points.ui.PointsEvent
+import com.lichso.app.feature.points.ui.RankUpDialog
+import com.lichso.app.feature.points.domain.Clock as PointsClock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,6 +69,8 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
     var initialAiMessage by remember { mutableStateOf<String?>(null) }
     var initialSearchTool by remember { mutableStateOf<String?>(null) }
     val homeViewModel: HomeViewModel = hiltViewModel()
+    val pointsViewModel: PointsViewModel = hiltViewModel()
+    val pointsClock: PointsClock = remember { com.lichso.app.feature.points.domain.SystemClock() }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -78,6 +84,24 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
     // hoặc manual từ Settings.
     LaunchedEffect(Unit) {
         ReviewHelper.incrementAppOpenCount(context)
+    }
+
+    // ── v2 Points Engine: auto check-in + rank-up dialog ──
+    LaunchedEffect(Unit) {
+        pointsViewModel.checkInToday()
+    }
+    var rankUpEvent by remember { mutableStateOf<PointsEvent.RankUp?>(null) }
+    LaunchedEffect(Unit) {
+        pointsViewModel.events.collect { ev ->
+            if (ev is PointsEvent.RankUp) rankUpEvent = ev
+        }
+    }
+    rankUpEvent?.let { ev ->
+        RankUpDialog(
+            rank = ev.rank,
+            newUnlocks = ev.unlocks,
+            onDismiss = { rankUpEvent = null },
+        )
     }
 
     // ── Analytics: log screen_view mỗi khi route đổi ──
@@ -110,7 +134,7 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
         }
     }
 
-    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays", "profile") || prayerDetailShowing || taskEditShowing
+    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays", "profile", "oracle_draw", "oracle_result", "ledger", "daily_store") || prayerDetailShowing || taskEditShowing
 
     val toggleDrawer: () -> Unit = {
         scope.launch {
@@ -152,7 +176,8 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
                     onMenuClick = toggleDrawer,
                     onProfileClick = { currentRoute = "profile" },
                     onHistoryClick = { currentRoute = "history" },
-                    onNotificationClick = { currentRoute = "notifications" }
+                    onNotificationClick = { currentRoute = "notifications" },
+                    onPointsPillClick = { currentRoute = "ledger" },
                 )
                 "calendar" -> CalendarScreen(
                     onGoodDaysClick = { currentRoute = "gooddays" },
@@ -205,6 +230,9 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
                             }
                             ToolAction.PRAYERS -> currentRoute = "prayers"
                             ToolAction.BOOKMARKS -> currentRoute = "bookmarks"
+                            ToolAction.ORACLE_DRAW -> currentRoute = "oracle_draw"
+                            ToolAction.DAILY_STORE -> currentRoute = "daily_store"
+                            ToolAction.POINTS_LEDGER -> currentRoute = "ledger"
                         }
                     }
                 )
@@ -241,6 +269,25 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
                         currentRoute = "calendar"
                     },
                     onAddBookmark = { currentRoute = "calendar" }
+                )
+                "oracle_draw" -> com.lichso.app.feature.points.ui.OracleDrawScreen(
+                    onBackClick = { currentRoute = "tools" },
+                    onDrawn = { currentRoute = "oracle_result" },
+                    clock = pointsClock,
+                )
+                "oracle_result" -> com.lichso.app.feature.points.ui.OracleResultScreen(
+                    onBackClick = { currentRoute = "tools" },
+                    onAskAi = { prompt ->
+                        initialAiMessage = prompt
+                        currentRoute = "chat"
+                    },
+                    clock = pointsClock,
+                )
+                "ledger" -> com.lichso.app.feature.points.ui.LedgerScreen(
+                    onBackClick = { currentRoute = "tools" },
+                )
+                "daily_store" -> com.lichso.app.feature.points.ui.DailyUnlockStoreScreen(
+                    onBackClick = { currentRoute = "tools" },
                 )
                 else -> HomeScreen(
                     onSettingsClick = { currentRoute = "settings" },

@@ -1,69 +1,307 @@
 <!DOCTYPE html>
-<html lang="vi"><head><meta charset="UTF-8" />
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
 <title>07 · Cá nhân — Lịch Số v2</title>
 <link rel="stylesheet" href="assets/common.css" />
-</head><body>
+<style>
+/* ── SVG icon system ── */
+.svg-ic {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.svg-ic svg { display: block; }
+
+/* Rank hero deco SVG */
+.rank-hero::before { display: none; }
+.rh-deco {
+  position: absolute; right: 14px; top: 10px; opacity: .15; width: 64px; height: 64px;
+}
+
+/* Rank hero top row */
+.rh-top { display: flex; align-items: center; gap: 12px; }
+.rh-info { flex: 1; min-width: 0; }
+.rh-avatar {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: rgba(255,255,255,.22); border: 2px solid rgba(255,255,255,.5);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+
+/* Points badges row inside hero */
+.rh-points-row {
+  display: flex; gap: 8px; margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,.18); flex-wrap: wrap;
+}
+.rh-point-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22);
+  border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 700; color: #fff;
+}
+.rh-point-badge .badge-val { color: #FFE082; font-size: 13px; }
+.rh-point-badge .svg-ic { width: 14px; height: 14px; }
+
+/* Quick actions row */
+.quick-actions {
+  display: flex; gap: 8px; padding: 12px 16px 4px;
+}
+.qa-btn {
+  flex: 1; background: #fff; border: 1.5px solid var(--border);
+  border-radius: 14px; padding: 10px 6px; display: flex; flex-direction: column;
+  align-items: center; gap: 6px; cursor: pointer;
+}
+.qa-btn .qa-ic {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+}
+.qa-btn .qa-label { font-size: 10.5px; font-weight: 600; color: var(--text-2); text-align: center; line-height: 1.3; }
+
+/* bottom nav svg sizing */
+.bnav-item .svg-ic { width: 24px; height: 24px; margin-bottom: 1px; }
+
+/* header icon sizing */
+.hamburger .svg-ic svg,
+.hdr-action .svg-ic svg { width: 20px; height: 20px; }
+</style>
+</head>
+<body>
+
 <div class="page-hero">
   <h1>07 · Cá nhân <em>— ProfileScreen.kt</em></h1>
-  <p>Mở từ icon 👤 trong RedHeader. V2 thêm 3 section: <b>Rank Hero</b>, <b>Daily Unlocks</b>, <b>Nhật ký điểm</b>.</p>
+  <p>Mở từ icon 👤 trong RedHeader. V2 thêm 3 section: <b>Rank Hero</b>, <b>Daily Unlocks</b>, <b>Nhật ký điểm</b>. Toàn bộ emoji thay bằng SVG icon tự thiết kế.</p>
   <div class="nav-links"><a href="index.html">← Tất cả</a><a href="12-ledger.html">→ Ledger full</a></div>
 </div>
 
 <div class="phone-page">
 <div class="phone"><div class="screen">
-  <div class="status-bar"><span>9:41</span><span class="r">📶 4G 87%</span></div>
 
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span>9:41</span>
+    <span class="r">
+      <svg width="17" height="12" viewBox="0 0 17 12" fill="none">
+        <rect x="0" y="8" width="3" height="4" rx="1" fill="white"/>
+        <rect x="4.5" y="5" width="3" height="7" rx="1" fill="white"/>
+        <rect x="9" y="2" width="3" height="10" rx="1" fill="white"/>
+        <rect x="13.5" y="0" width="3" height="12" rx="1" fill="white"/>
+      </svg>
+      4G
+      <svg width="22" height="12" viewBox="0 0 22 12" fill="none">
+        <rect x=".5" y=".5" width="18" height="11" rx="2.5" stroke="white" stroke-opacity=".6"/>
+        <rect x="2" y="2" width="13" height="8" rx="1.5" fill="white"/>
+        <path d="M20 4v4a2 2 0 000-4z" fill="white" fill-opacity=".6"/>
+      </svg>
+    </span>
+  </div>
+
+  <!-- Red header -->
   <div class="red-header" style="padding-bottom:16px">
     <div class="hdr-row">
-      <div class="hamburger">←</div>
-      <div class="hdr-title"><div class="t">Cá nhân</div><div class="s">Hành trình tu tập</div></div>
-      <div class="hdr-action">⚙️</div>
+      <div class="hamburger">
+        <span class="svg-ic">
+          <svg viewBox="0 0 20 20" fill="none">
+            <path d="M13 16L7 10l6-6" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      </div>
+      <div class="hdr-title">
+        <div class="t">Cá nhân</div>
+        <div class="s">Hành trình tu tập</div>
+      </div>
+      <div class="hdr-action">
+        <span class="svg-ic">
+          <svg viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="2.6" stroke="white" stroke-width="1.8"/>
+            <path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4.1 4.1l1.4 1.4M14.5 14.5l1.4 1.4M4.1 15.9l1.4-1.4M14.5 5.5l1.4-1.4"
+              stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </span>
+      </div>
     </div>
   </div>
 
   <div class="content" style="padding-bottom:110px">
-    <!-- V2 Rank hero -->
+
+    <!-- Rank Hero card -->
     <div class="rank-hero">
-      <div class="rh-name">🎋 Nguyễn Văn A</div>
-      <div class="rh-sub">Bậc <b>Thông Thạo</b> · đã đi 27 ngày</div>
-      <div class="rh-stats">
-        <div class="rh-stat"><div class="v">2,450</div><div class="l">☯️ Nghiệp</div></div>
-        <div class="rh-stat"><div class="v">27</div><div class="l">🔥 Streak</div></div>
-        <div class="rh-stat"><div class="v">x3</div><div class="l">⚡ Hệ số</div></div>
+      <!-- Decorative bamboo -->
+      <svg class="rh-deco" viewBox="0 0 64 64" fill="none">
+        <rect x="28" y="2" width="8" height="18" rx="4" fill="white"/>
+        <rect x="28" y="24" width="8" height="18" rx="4" fill="white"/>
+        <rect x="28" y="46" width="8" height="16" rx="4" fill="white"/>
+        <line x1="32" y1="20" x2="32" y2="24" stroke="white" stroke-width="2"/>
+        <line x1="32" y1="42" x2="32" y2="46" stroke="white" stroke-width="2"/>
+        <path d="M36 8 Q50 6 48 16" stroke="white" stroke-width="1.5" fill="none"/>
+        <path d="M28 30 Q14 28 16 38" stroke="white" stroke-width="1.5" fill="none"/>
+      </svg>
+
+      <div class="rh-top">
+        <div class="rh-avatar">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+            <circle cx="13" cy="9" r="5" fill="white" fill-opacity=".9"/>
+            <path d="M3 24c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+          </svg>
+        </div>
+        <div class="rh-info">
+          <div class="rh-name">Nguyễn Văn A</div>
+          <div class="rh-sub">Bậc <b>Thông Thạo</b> · đã đi 27 ngày</div>
+        </div>
       </div>
-      <div class="rh-bar"><div class="f" style="width:98%"></div></div>
+
+      <div class="rh-points-row">
+        <!-- Karma -->
+        <div class="rh-point-badge">
+          <span class="svg-ic">
+            <svg viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="6" stroke="#FFE082" stroke-width="1.2"/>
+              <path d="M7 1a6 6 0 010 12A3 3 0 017 7a3 3 0 000-6z" fill="#FFE082" fill-opacity=".65"/>
+              <circle cx="7" cy="4" r="1.1" fill="#FFE082"/>
+              <circle cx="7" cy="10" r="1.1" fill="white" fill-opacity=".5"/>
+            </svg>
+          </span>
+          <span class="badge-val">2,450</span> Nghiệp
+        </div>
+        <!-- Streak -->
+        <div class="rh-point-badge">
+          <span class="svg-ic">
+            <svg viewBox="0 0 14 14" fill="none">
+              <path d="M7 13C4.5 13 2.5 11 2.5 8.5c0-1.5.8-2.8 2-3.5-.1 1.4.4 2.6 1 3.1 0-2 1-4 3.5-5.5-.5 1.5-1 3.5-.5 4.9.8-.5 1.2-1.5 1-2.5C11.4 5.8 11.5 7 11.5 8.5 11.5 11 9.5 13 7 13z" fill="#FFE082"/>
+            </svg>
+          </span>
+          <span class="badge-val">27</span> Streak
+        </div>
+        <!-- Energy multiplier -->
+        <div class="rh-point-badge">
+          <span class="svg-ic">
+            <svg viewBox="0 0 14 14" fill="none">
+              <path d="M8.5 1.5L3 8h4.5L5.5 12.5l6-7H7.5L8.5 1.5z" fill="#FFE082" stroke="#FFE082" stroke-width=".4" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="badge-val">x3</span> Hệ số
+        </div>
+      </div>
+
+      <div class="rh-bar" style="margin-top:10px"><div class="f" style="width:98%"></div></div>
       <div class="rh-lbl"><span>Đạo Sĩ (bậc kế)</span><span>2,450 / 2,500</span></div>
     </div>
 
+    <!-- Quick actions -->
+    <div class="quick-actions">
+      <div class="qa-btn">
+        <div class="qa-ic" style="background:#FFF3E0">
+          <svg viewBox="0 0 20 20" fill="none" width="20" height="20">
+            <circle cx="10" cy="10" r="7.5" stroke="#E65100" stroke-width="1.7"/>
+            <path d="M10 6v4l2.5 2.5" stroke="#E65100" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="qa-label">Lịch sử điểm</div>
+      </div>
+      <div class="qa-btn">
+        <div class="qa-ic" style="background:#FCE4EC">
+          <svg viewBox="0 0 20 20" fill="none" width="20" height="20">
+            <path d="M10 2l2.4 5 5.6.8-4 3.9.9 5.5L10 14.5l-4.9 2.7.9-5.5L2 7.8l5.6-.8L10 2z"
+              stroke="#B71C1C" stroke-width="1.5" stroke-linejoin="round" fill="#FFCDD2"/>
+          </svg>
+        </div>
+        <div class="qa-label">Thành tựu</div>
+      </div>
+      <div class="qa-btn">
+        <div class="qa-ic" style="background:#E8F5E9">
+          <svg viewBox="0 0 20 20" fill="none" width="20" height="20">
+            <path d="M10 3l2 4.5L17 8l-3.5 3.5.8 5L10 14l-4.3 2.5.8-5L3 8l5-.5L10 3z"
+              stroke="#2E7D32" stroke-width="1.5" stroke-linejoin="round" fill="#C8E6C9"/>
+          </svg>
+        </div>
+        <div class="qa-label">Xếp hạng</div>
+      </div>
+      <div class="qa-btn">
+        <div class="qa-ic" style="background:#EDE7F6">
+          <svg viewBox="0 0 20 20" fill="none" width="20" height="20">
+            <circle cx="10" cy="10" r="7.5" stroke="#7B1FA2" stroke-width="1.7"/>
+            <path d="M7.5 8.3C7.5 6.95 8.62 5.8 10 5.8s2.5 1.15 2.5 2.5c0 1-.6 1.87-1.5 2.3V12" stroke="#7B1FA2" stroke-width="1.6" stroke-linecap="round"/>
+            <circle cx="10" cy="14" r=".85" fill="#7B1FA2"/>
+          </svg>
+        </div>
+        <div class="qa-label">Trợ giúp</div>
+      </div>
+    </div>
+
+    <!-- Daily unlocks section -->
     <div class="section-head">
       <div class="bar gold"></div>
-      <div class="txt"><div class="t">★ Mở khoá hôm nay</div><div class="s">Còn ⚡ 14 điểm</div></div>
+      <div class="txt">
+        <div class="t">
+          <svg style="vertical-align:-3px;margin-right:4px" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M9.5 1.5L4 9h5L6.5 14.5l7-8.5H8.5L9.5 1.5z" fill="#D4A017" stroke="#D4A017" stroke-width=".4" stroke-linejoin="round"/>
+          </svg>Mở khoá hôm nay
+        </div>
+        <div class="s">Còn 14 điểm năng lượng</div>
+      </div>
       <span class="link">Tất cả →</span>
     </div>
 
+    <!-- Vận hạn AI — available -->
     <div class="unlock-card" style="margin-top:0">
       <div class="uc-head">
-        <div class="uc-ic gold">🔮</div>
+        <div class="uc-ic gold">
+          <span class="svg-ic">
+            <svg viewBox="0 0 22 22" fill="none" width="22" height="22">
+              <circle cx="11" cy="10" r="7.5" stroke="white" stroke-width="1.4"/>
+              <ellipse cx="11" cy="10" rx="4" ry="4" fill="white" fill-opacity=".22"/>
+              <circle cx="11" cy="10" r="2" fill="white"/>
+              <circle cx="12.4" cy="8.6" r=".8" fill="white" fill-opacity=".6"/>
+              <path d="M5 18 Q11 15.5 17 18" stroke="white" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+            </svg>
+          </span>
+        </div>
         <div class="uc-body">
           <div class="uc-title">Vận hạn hôm nay (AI)</div>
           <div class="uc-desc">Dự báo công danh · tài lộc · tình duyên</div>
         </div>
-        <div class="uc-cost">10⚡</div>
+        <div class="uc-cost">
+          <span style="display:flex;align-items:center;gap:2px">
+            <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
+              <path d="M8.5 1.5L3 8h4.5L5.5 12.5l6-7H7.5z" fill="#E65100"/>
+            </svg>10
+          </span>
+        </div>
       </div>
     </div>
+
+    <!-- Xin xăm — locked -->
     <div class="unlock-card locked">
       <div class="uc-head">
-        <div class="uc-ic" style="background:var(--text-4)">🎴</div>
+        <div class="uc-ic" style="background:var(--text-4)">
+          <span class="svg-ic">
+            <svg viewBox="0 0 22 22" fill="none" width="22" height="22">
+              <rect x="4" y="2" width="14" height="18" rx="3" stroke="white" stroke-width="1.5"/>
+              <path d="M11 6l1.3 3h3.2l-2.6 1.9.9 3L11 12.4l-2.8 1.5.9-3L6.5 9h3.2z" fill="white" fill-opacity=".7"/>
+            </svg>
+          </span>
+        </div>
         <div class="uc-body">
           <div class="uc-title" style="color:var(--text-2)">Xin xăm cầu an</div>
-          <div class="uc-desc">Cần thêm 6⚡ — hoàn thành 3 việc để đủ</div>
+          <div class="uc-desc">Cần thêm 6 điểm — hoàn thành 3 việc để đủ</div>
         </div>
-        <div class="uc-cost" style="color:var(--text-3);background:#F0E8E3">5⚡</div>
+        <div class="uc-cost" style="color:var(--text-3);background:#F0E8E3">
+          <span style="display:flex;align-items:center;gap:2px">
+            <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
+              <path d="M8.5 1.5L3 8h4.5L5.5 12.5l6-7H7.5z" fill="var(--text-3)"/>
+            </svg>5
+          </span>
+        </div>
       </div>
     </div>
+
+    <!-- Quẻ đầu ngày — unlocked -->
     <div class="unlock-card" style="border-color:var(--green);background-image:none">
       <div class="uc-head">
-        <div class="uc-ic" style="background:var(--green)">✓</div>
+        <div class="uc-ic" style="background:var(--green)">
+          <span class="svg-ic">
+            <svg viewBox="0 0 22 22" fill="none" width="22" height="22">
+              <circle cx="11" cy="11" r="9" stroke="white" stroke-width="1.6"/>
+              <path d="M7 11.5l3 3 5-5.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </div>
         <div class="uc-body">
           <div class="uc-title" style="color:var(--green)">Quẻ đầu ngày · Đã mở</div>
           <div class="uc-desc">Quẻ <b>Trung Cát</b> — Hướng tốt: Đông Nam</div>
@@ -71,50 +309,193 @@
       </div>
     </div>
 
+    <!-- Points ledger section -->
     <div class="section-head">
       <div class="bar"></div>
-      <div class="txt"><div class="t">📒 Nhật ký điểm</div><div class="s">Hôm nay</div></div>
+      <div class="txt">
+        <div class="t">
+          <svg style="vertical-align:-3px;margin-right:4px" width="15" height="15" viewBox="0 0 15 15" fill="none">
+            <rect x="2" y="1" width="11" height="13" rx="2" stroke="var(--primary)" stroke-width="1.4"/>
+            <path d="M5 5h5M5 7.5h5M5 10h3" stroke="var(--primary)" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>Nhật ký điểm
+        </div>
+        <div class="s">Hôm nay</div>
+      </div>
       <a href="12-ledger.html" class="link">Xem tất cả →</a>
     </div>
 
+    <!-- Ledger: streak check-in -->
     <div class="ledger">
-      <div class="l"><div class="ic">🔥</div><div><div class="t">Check-in streak (ngày 27)</div><div class="d">08:02 · Hôm nay</div></div></div>
-      <div class="v pos">+3⚡ +5☯️</div>
+      <div class="l">
+        <div class="ic">
+          <span class="svg-ic">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M9 16C6 16 3.5 13.5 3.5 10.5c0-1.9.9-3.6 2.4-4.5-.1 1.3.3 2.5 1 3 0-2.5 1.2-5 4.1-7-.4 1.8-.9 3.7-.4 5.1.9-.6 1.4-1.8 1.2-3C13.6 5.5 14.5 7.8 14.5 10.5 14.5 13.5 12 16 9 16z" fill="#E65100"/>
+            </svg>
+          </span>
+        </div>
+        <div>
+          <div class="t">Check-in streak (ngày 27)</div>
+          <div class="d">08:02 · Hôm nay</div>
+        </div>
+      </div>
+      <div class="v pos">+3⚡ +5☯</div>
     </div>
+
+    <!-- Ledger: task done -->
     <div class="ledger">
-      <div class="l"><div class="ic">✓</div><div><div class="t">Hoàn thành 1 việc</div><div class="d">09:14 · Hôm nay</div></div></div>
+      <div class="l">
+        <div class="ic">
+          <span class="svg-ic">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <rect x="2.5" y="2.5" width="13" height="13" rx="3" stroke="#2E7D32" stroke-width="1.6"/>
+              <path d="M5.5 9.5l2.5 2.5 4.5-5" stroke="#2E7D32" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </div>
+        <div>
+          <div class="t">Hoàn thành 1 việc</div>
+          <div class="d">09:14 · Hôm nay</div>
+        </div>
+      </div>
       <div class="v pos">+2⚡</div>
     </div>
+
+    <!-- Ledger: oracle draw -->
     <div class="ledger">
-      <div class="l"><div class="ic">🎋</div><div><div class="t">Rút quẻ đầu ngày</div><div class="d">09:20 · Hôm nay</div></div></div>
+      <div class="l">
+        <div class="ic">
+          <span class="svg-ic">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <rect x="4.5" y="1.5" width="9" height="12" rx="2" stroke="#D4A017" stroke-width="1.4"/>
+              <path d="M9 4.5l1 2.5h2.5l-2 1.5.7 2.5L9 9.5 6.8 11l.7-2.5-2-1.5H8z" fill="#D4A017"/>
+              <path d="M6 15.5 Q9 13.8 12 15.5" stroke="#D4A017" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </div>
+        <div>
+          <div class="t">Rút quẻ đầu ngày</div>
+          <div class="d">09:20 · Hôm nay</div>
+        </div>
+      </div>
       <div class="v pos">+2⚡</div>
     </div>
+
+    <!-- Ledger: AI cost -->
     <div class="ledger">
-      <div class="l"><div class="ic">🔮</div><div><div class="t">Mở Vận hạn AI</div><div class="d">10:30 · Hôm nay</div></div></div>
+      <div class="l">
+        <div class="ic">
+          <span class="svg-ic">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <circle cx="9" cy="8" r="5.5" stroke="#B71C1C" stroke-width="1.4"/>
+              <ellipse cx="9" cy="8" rx="2.5" ry="2.5" fill="#B71C1C" fill-opacity=".18"/>
+              <circle cx="9" cy="8" r="1.4" fill="#B71C1C"/>
+              <circle cx="10" cy="7" r=".5" fill="white"/>
+              <path d="M4 14 Q9 11.5 14 14" stroke="#B71C1C" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+            </svg>
+          </span>
+        </div>
+        <div>
+          <div class="t">Mở Vận hạn AI</div>
+          <div class="d">10:30 · Hôm nay</div>
+        </div>
+      </div>
       <div class="v neg">−10⚡</div>
     </div>
-  </div>
 
+  </div><!-- /content -->
+
+  <!-- Bottom nav -->
   <div class="bottom-nav-wrap">
     <div class="bottom-nav">
-      <div class="bnav-item"><span class="ic">📅</span>Lịch tháng</div>
-      <div class="bnav-item"><span class="ic">✍️</span>Ghi chú</div>
-      <div class="bnav-center"><div class="fab-today">17</div><div class="fab-lb">Hôm nay</div></div>
-      <div class="bnav-item"><span class="ic">📖</span>Văn Khấn</div>
-      <div class="bnav-item"><span class="ic">▦</span>Tiện ích</div>
+
+      <div class="bnav-item">
+        <span class="svg-ic">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="4" width="18" height="17" rx="3" stroke="var(--text-3)" stroke-width="1.7"/>
+            <path d="M3 9h18" stroke="var(--text-3)" stroke-width="1.5"/>
+            <path d="M8 2v4M16 2v4" stroke="var(--text-3)" stroke-width="1.7" stroke-linecap="round"/>
+            <circle cx="8.5" cy="14" r="1" fill="var(--text-3)"/>
+            <circle cx="12" cy="14" r="1" fill="var(--text-3)"/>
+            <circle cx="15.5" cy="14" r="1" fill="var(--text-3)"/>
+          </svg>
+        </span>
+        Lịch tháng
+      </div>
+
+      <div class="bnav-item">
+        <span class="svg-ic">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke="var(--text-3)" stroke-width="1.7" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        Ghi chú
+      </div>
+
+      <div class="bnav-center">
+        <div class="fab-today">17</div>
+        <div class="fab-lb">Hôm nay</div>
+      </div>
+
+      <div class="bnav-item">
+        <span class="svg-ic">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 6C10 4 6 4 4 5v14c2-1 6-1 8 1V6zM12 6c2-2 6-2 8-1v14c-2-1-6-1-8 1V6z" stroke="var(--text-3)" stroke-width="1.7" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        Văn Khấn
+      </div>
+
+      <div class="bnav-item">
+        <span class="svg-ic">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="3" width="7.5" height="7.5" rx="2" stroke="var(--text-3)" stroke-width="1.7"/>
+            <rect x="13.5" y="3" width="7.5" height="7.5" rx="2" stroke="var(--text-3)" stroke-width="1.7"/>
+            <rect x="3" y="13.5" width="7.5" height="7.5" rx="2" stroke="var(--text-3)" stroke-width="1.7"/>
+            <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2" stroke="var(--text-3)" stroke-width="1.7"/>
+          </svg>
+        </span>
+        Tiện ích
+      </div>
+
     </div>
   </div>
-</div></div>
 
+</div></div><!-- /screen /phone -->
+
+<!-- Caption -->
 <div class="caption">
   <h2>07 · Cá nhân <span class="tag">v2 chèn</span></h2>
-  <p>Không phải tab mới — là <code>ProfileScreen</code> đã có. V2 thêm 3 section MD3 card: Rank Hero (gradient primary→deepRed), Daily Unlocks list, Points Ledger.</p>
+  <p>Không phải tab mới — là <code>ProfileScreen</code> đã có. V2 thêm 3 section MD3 card: Rank Hero (gradient primary→deepRed), Daily Unlocks list, Points Ledger. Toàn bộ emoji icon được thay thế bằng <b>SVG inline tự thiết kế</b>.</p>
+  <p>Bổ sung thêm: <b>Quick Actions</b> (4 nút tắt: lịch sử, thành tựu, xếp hạng, trợ giúp), avatar người dùng tròn trong Rank Hero, points badge dạng pill với icon SVG riêng mỗi loại.</p>
   <div class="meta-row">
     <span class="chip primary">ProfileScreen.kt</span>
     <span class="chip gold">+ RankHero</span>
+    <span class="chip gold">+ QuickActions</span>
     <span class="chip gold">+ UnlockList</span>
     <span class="chip gold">+ Ledger</span>
+    <span class="chip" style="background:#E8F5E9;color:#2E7D32;border-color:#A5D6A7">SVG icons</span>
   </div>
+
+  <h3 style="margin-top:22px;font-size:15px;color:var(--text-1)">Danh sách SVG icon được thiết kế</h3>
+  <ul>
+    <li><b>Signal / Battery</b> — status bar</li>
+    <li><b>Back chevron</b> — header trái</li>
+    <li><b>Gear / Settings</b> — header phải, 8 tia</li>
+    <li><b>User avatar</b> — silhouette trong vòng tròn</li>
+    <li><b>Bamboo deco</b> — rank hero background</li>
+    <li><b>Karma (Nghiệp)</b> — yin-yang đơn giản</li>
+    <li><b>Flame (Streak)</b> — ngọn lửa</li>
+    <li><b>Lightning (Energy)</b> — tia sét</li>
+    <li><b>Crystal eye (AI)</b> — mắt thần / pha lê</li>
+    <li><b>Fortune card</b> — thẻ bài ngôi sao</li>
+    <li><b>Check-circle</b> — đã mở khoá</li>
+    <li><b>Quick: clock, star, trophy, question</b></li>
+    <li><b>Ledger: flame, checkbox, card, orb</b></li>
+    <li><b>Bottom nav: calendar, pencil, book, grid</b></li>
+  </ul>
 </div>
 </div>
-</body></html>
+
+</body>
+</html>

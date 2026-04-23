@@ -23,8 +23,14 @@ import com.lichso.app.data.local.entity.*
         MemorialChecklistEntity::class,
         FamilySettingsEntity::class,
         MemberPhotoEntity::class,
+        // v2 PointsEngine
+        PointsLedgerEntity::class,
+        ActionLogEntity::class,
+        DailyUnlockEntity::class,
+        PermanentUnlockEntity::class,
+        StreakRecordEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true
 )
 abstract class LichSoDatabase : RoomDatabase() {
@@ -39,6 +45,10 @@ abstract class LichSoDatabase : RoomDatabase() {
     abstract fun memorialChecklistDao(): MemorialChecklistDao
     abstract fun familySettingsDao(): FamilySettingsDao
     abstract fun memberPhotoDao(): MemberPhotoDao
+    // v2 PointsEngine DAOs
+    abstract fun pointsDao(): PointsDao
+    abstract fun unlockDao(): UnlockDao
+    abstract fun streakDao(): StreakDao
 
     companion object {
         private const val TAG = "LichSoDatabase"
@@ -124,6 +134,66 @@ abstract class LichSoDatabase : RoomDatabase() {
             Log.d(TAG, "MIGRATION_9_10 complete")
         }
 
+        /**
+         * Migration 10→11: PointsEngine v2
+         * Add 5 new tables for the points/unlock/streak domain.
+         * See docs/POINTS_ENGINE_DATA_MODEL.md.
+         */
+        private val MIGRATION_10_11 = Migration(10, 11) { db ->
+            Log.d(TAG, "Running MIGRATION_10_11: PointsEngine v2 tables")
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS points_ledger (
+                    id INTEGER NOT NULL PRIMARY KEY,
+                    dailyPoints INTEGER NOT NULL DEFAULT 0,
+                    spentDailyPoints INTEGER NOT NULL DEFAULT 0,
+                    permanentPoints INTEGER NOT NULL DEFAULT 0,
+                    lastResetEpochDay INTEGER NOT NULL DEFAULT 0,
+                    updatedAt INTEGER NOT NULL DEFAULT 0
+                )
+            """.trimIndent())
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS action_log (
+                    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    actionType TEXT NOT NULL,
+                    dailyPointsAwarded INTEGER NOT NULL,
+                    permanentPointsAwarded INTEGER NOT NULL,
+                    streakMultiplierApplied REAL NOT NULL,
+                    epochDay INTEGER NOT NULL,
+                    timestamp INTEGER NOT NULL DEFAULT 0,
+                    metadata TEXT
+                )
+            """.trimIndent())
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_action_log_actionType_epochDay ON action_log(actionType, epochDay)")
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS daily_unlock (
+                    unlockKey TEXT NOT NULL,
+                    epochDay INTEGER NOT NULL,
+                    cost INTEGER NOT NULL,
+                    unlockedAt INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY(unlockKey, epochDay)
+                )
+            """.trimIndent())
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS permanent_unlock (
+                    unlockKey TEXT NOT NULL PRIMARY KEY,
+                    rank TEXT NOT NULL,
+                    unlockedAt INTEGER NOT NULL DEFAULT 0
+                )
+            """.trimIndent())
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS streak_record (
+                    id INTEGER NOT NULL PRIMARY KEY,
+                    currentStreak INTEGER NOT NULL DEFAULT 0,
+                    longestStreak INTEGER NOT NULL DEFAULT 0,
+                    lastCheckInEpochDay INTEGER NOT NULL DEFAULT 0,
+                    freezeTokens INTEGER NOT NULL DEFAULT 0,
+                    lastFreezeGrantedMonth INTEGER NOT NULL DEFAULT 0,
+                    updatedAt INTEGER NOT NULL DEFAULT 0
+                )
+            """.trimIndent())
+            Log.d(TAG, "MIGRATION_10_11 complete")
+        }
+
         fun getInstance(context: Context): LichSoDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -132,7 +202,7 @@ abstract class LichSoDatabase : RoomDatabase() {
                     "lichso.db"
                 )
                     // Migrations
-                    .addMigrations(MIGRATION_9_10)
+                    .addMigrations(MIGRATION_9_10, MIGRATION_10_11)
                     .fallbackToDestructiveMigrationFrom(
                         // Only allow destructive migration from very old versions (pre-release)
                         // that we don't need to support. Current users on v9 are safe.
