@@ -343,6 +343,49 @@ object NotificationHelper {
     }
 
     /**
+     * Gửi notification tử vi CÁ NHÂN HOÁ dựa trên profile user (tên + ngày sinh).
+     * Khác với [sendAiTuViNotification] generic, bản này phân tích quan hệ Địa
+     * Chi tuổi user × ngày mục tiêu (thường là ngày mai) để cho lời khuyên
+     * riêng: tam hợp / lục hợp / lục xung / lục hại...
+     */
+    fun sendPersonalHoroscopeNotification(
+        context: Context,
+        title: String,
+        subtitle: String,
+        shortBody: String,
+        lines: List<String>
+    ) {
+        // Lưu DB cho in-app notification screen
+        saveToDatabase(context, title, shortBody, "ai_tuvi")
+
+        if (!canPostNotifications(context)) return
+
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("navigate_to", "ai_chat")
+        }
+        val pi = PendingIntent.getActivity(
+            context, 9995, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val inboxStyle = NotificationCompat.InboxStyle().setBigContentTitle(title)
+        lines.take(7).forEach { inboxStyle.addLine(it) }
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_AI_TUVI)
+            .setSmallIcon(R.drawable.ic_notif_calendar)
+            .setContentTitle(title)
+            .setContentText(subtitle)
+            .setStyle(inboxStyle)
+            .setAutoCancel(true)
+            .setContentIntent(pi)
+            .setSubText("Tử Vi cá nhân")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        nm.notify(9995, notification)
+    }
+
+    /**
      * Gửi system notification thông báo có bản cập nhật mới.
      * Khi nhấn vào sẽ mở Google Play trang Lịch Số để người dùng cập nhật.
      *

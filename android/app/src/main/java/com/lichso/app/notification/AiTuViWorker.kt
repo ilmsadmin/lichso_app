@@ -15,7 +15,25 @@ class AiTuViWorker(
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        NotificationHelper.sendAiTuViNotification(applicationContext)
+        try {
+            val profile = PersonalHoroscopeHelper.loadProfile(applicationContext)
+            if (profile != null) {
+                val horoscope = PersonalHoroscopeHelper.buildHoroscope(
+                    profile, java.time.LocalDate.now().plusDays(1)
+                )
+                NotificationHelper.sendPersonalHoroscopeNotification(
+                    applicationContext,
+                    title = horoscope.title,
+                    subtitle = horoscope.subtitle,
+                    shortBody = horoscope.shortBody,
+                    lines = horoscope.lines
+                )
+            } else {
+                NotificationHelper.sendAiTuViNotification(applicationContext)
+            }
+        } catch (e: Exception) {
+            NotificationHelper.sendAiTuViNotification(applicationContext)
+        }
 
         // Tự reschedule cho ngày mai 21h
         scheduleNext(applicationContext)

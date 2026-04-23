@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import java.util.Calendar
 
 /**
@@ -46,8 +47,30 @@ object NotificationAlarmScheduler {
         }
         val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pi = buildPendingIntent(context, type)
-        // setAndAllowWhileIdle: inexact nhưng bypass Doze — không cần SCHEDULE_EXACT_ALARM permission
-        am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, target.timeInMillis, pi)
+
+        // Ưu tiên exact alarm để notification fire đúng giờ. Trên Android 12+
+        // cần quyền SCHEDULE_EXACT_ALARM; nếu user/OEM từ chối thì fallback
+        // về setAndAllowWhileIdle (inexact nhưng vẫn bypass Doze).
+        try {
+            val canExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                am.canScheduleExactAlarms()
+            } else true
+
+            if (canExact) {
+                am.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, target.timeInMillis, pi
+                )
+            } else {
+                am.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, target.timeInMillis, pi
+                )
+            }
+        } catch (se: SecurityException) {
+            // Một số ROM ném SecurityException dù canScheduleExactAlarms trả true
+            am.setAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP, target.timeInMillis, pi
+            )
+        }
         android.util.Log.i(
             "NotifAlarm",
             "Scheduled $type at ${target.time} (in ${(target.timeInMillis - now.timeInMillis) / 1000 / 60} min)"

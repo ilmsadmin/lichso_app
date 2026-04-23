@@ -28,14 +28,18 @@ class GioDaiCatWorker(
 
         val dd = "%02d".format(today.dayOfMonth)
         val mm = "%02d".format(today.monthValue)
-        val isGoodDay = !dayInfo.activities.isXauDay
+        val kyLabel = when {
+            dayInfo.activities.isNguyetKy -> "Ngày Nguyệt kỵ"
+            dayInfo.activities.isTamNuong -> "Ngày Tam nương"
+            else -> null
+        }
 
         // Title: professional, no emoji
         val title = "Giờ Hoàng Đạo — ${dayInfo.dayOfWeek} $dd/$mm"
 
         // Subtitle for collapsed view
         val topGio = dayInfo.gioHoangDao.take(3).joinToString(", ") { "${it.name} (${it.time})" }
-        val subtitle = if (isGoodDay) "Ngày Hoàng Đạo | $topGio" else "Ngày Hắc Đạo | $topGio"
+        val subtitle = if (kyLabel != null) "$kyLabel | $topGio" else "${dayInfo.dayRating.label} | $topGio"
 
         // Expanded lines for InboxStyle
         val lines = mutableListOf<String>()

@@ -34,41 +34,61 @@ class NotificationAlarmReceiver : BroadcastReceiver() {
 
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
+            // Fallback defaults — dùng khi đọc settings fail để vẫn reschedule được
+            var reminderHour = 7
+            var reminderMinute = 0
+
+            // ── Bước 1: Đọc setting + fire notification (có timeout để tránh ANR) ──
             try {
                 withTimeoutOrNull(8_000L) {
                     val prefs = context.settingsDataStore.data.first()
                     val notifyEnabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
-                    val reminderHour = prefs[SettingsKeys.REMINDER_HOUR] ?: 7
-                    val reminderMinute = prefs[SettingsKeys.REMINDER_MINUTE] ?: 0
+                    reminderHour = prefs[SettingsKeys.REMINDER_HOUR] ?: 7
+                    reminderMinute = prefs[SettingsKeys.REMINDER_MINUTE] ?: 0
 
                     when (type) {
                         NotificationAlarmScheduler.TYPE_DAILY -> {
                             if (notifyEnabled) fireDaily(context)
-                            // reschedule for tomorrow
-                            NotificationAlarmScheduler.schedule(
-                                context, type, reminderHour, reminderMinute
-                            )
                         }
                         NotificationAlarmScheduler.TYPE_GIO_DAI_CAT -> {
                             val enabled = prefs[SettingsKeys.GIO_DAI_CAT] ?: false
                             if (notifyEnabled && enabled) fireGioDaiCat(context)
-                            NotificationAlarmScheduler.schedule(
-                                context, type, reminderHour, reminderMinute
-                            )
                         }
                         NotificationAlarmScheduler.TYPE_FESTIVAL -> {
                             val enabled = prefs[SettingsKeys.FESTIVAL_REMINDER] ?: true
                             if (notifyEnabled && enabled) fireFestival(context)
-                            NotificationAlarmScheduler.schedule(context, type, 20, 0)
                         }
                         NotificationAlarmScheduler.TYPE_AI_TUVI -> {
                             if (notifyEnabled) fireAiTuVi(context)
-                            NotificationAlarmScheduler.schedule(context, type, 21, 0)
                         }
                     }
                 }
             } catch (e: Exception) {
-                android.util.Log.e("NotifAlarm", "Error handling $type: ${e.message}")
+                android.util.Log.e("NotifAlarm", "Error firing $type: ${e.message}")
+            }
+
+            // ── Bước 2: LUÔN reschedule alarm cho lần kế tiếp ──
+            // Kể cả khi bước 1 timeout / throw, ta vẫn phải đăng ký alarm
+            // tiếp theo, nếu không chuỗi notification sẽ chết vĩnh viễn cho tới
+            // khi user mở lại app (LichSoApp.scheduleWorkersFromSettings).
+            // Đây chính là root cause khiến thông báo biến mất sau vài ngày.
+            try {
+                when (type) {
+                    NotificationAlarmScheduler.TYPE_DAILY,
+                    NotificationAlarmScheduler.TYPE_GIO_DAI_CAT -> {
+                        NotificationAlarmScheduler.schedule(
+                            context, type, reminderHour, reminderMinute
+                        )
+                    }
+                    NotificationAlarmScheduler.TYPE_FESTIVAL -> {
+                        NotificationAlarmScheduler.schedule(context, type, 20, 0)
+                    }
+                    NotificationAlarmScheduler.TYPE_AI_TUVI -> {
+                        NotificationAlarmScheduler.schedule(context, type, 21, 0)
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("NotifAlarm", "Reschedule $type failed: ${e.message}")
             } finally {
                 pendingResult.finish()
             }
@@ -83,7 +103,13 @@ class NotificationAlarmReceiver : BroadcastReceiver() {
         val mm = "%02d".format(today.monthValue)
         val lunarStr = "${dayInfo.lunar.day}/${dayInfo.lunar.month} Âm lịch"
         val canChi = dayInfo.dayCanChi
-        val isGoodDay = !dayInfo.activities.isXauDay
+
+        // Nhãn ngày kiêng kỵ (nếu có) — ưu tiên Nguyệt kỵ trước Tam nương
+        val kyLabel = when {
+            dayInfo.activities.isNguyetKy -> "Ngày Nguyệt kỵ"
+            dayInfo.activities.isTamNuong -> "Ngày Tam nương"
+            else -> null
+        }
 
         val gioText = dayInfo.gioHoangDao.take(3)
             .joinToString(", ") { "${it.name} (${it.time})" }
@@ -91,14 +117,14 @@ class NotificationAlarmReceiver : BroadcastReceiver() {
         val title = "${dayInfo.dayOfWeek}, $dd/$mm — $lunarStr"
         val subtitle = buildString {
             append(canChi)
-            append(if (isGoodDay) " | Ngày Hoàng Đạo" else " | Ngày Hắc Đạo")
             append(" | ${dayInfo.dayRating.label}")
+            if (kyLabel != null) append(" | $kyLabel")
         }
         val lines = mutableListOf<String>()
         lines.add("Can Chi: $canChi")
         lines.add(
-            if (isGoodDay) "Đánh giá: ${dayInfo.dayRating.label} — Ngày Hoàng Đạo"
-            else "Đánh giá: ${dayInfo.dayRating.label} — Ngày Hắc Đạo"
+            if (kyLabel != null) "Đánh giá: ${dayInfo.dayRating.label} — $kyLabel"
+            else "Đánh giá: ${dayInfo.dayRating.label}"
         )
         lines.add("Giờ tốt: $gioText")
         lines.add("Trực ngày: ${dayInfo.trucNgay.name} | Sao: ${dayInfo.saoChieu.name}")
@@ -120,11 +146,17 @@ class NotificationAlarmReceiver : BroadcastReceiver() {
         val dayInfo = DayInfoProvider().getDayInfo(today.dayOfMonth, today.monthValue, today.year)
         val dd = "%02d".format(today.dayOfMonth)
         val mm = "%02d".format(today.monthValue)
-        val isGoodDay = !dayInfo.activities.isXauDay
+
+        val kyLabel = when {
+            dayInfo.activities.isNguyetKy -> "Ngày Nguyệt kỵ"
+            dayInfo.activities.isTamNuong -> "Ngày Tam nương"
+            else -> null
+        }
+
         val title = "Giờ Hoàng Đạo — ${dayInfo.dayOfWeek} $dd/$mm"
         val topGio = dayInfo.gioHoangDao.take(3)
             .joinToString(", ") { "${it.name} (${it.time})" }
-        val subtitle = if (isGoodDay) "Ngày Hoàng Đạo | $topGio" else "Ngày Hắc Đạo | $topGio"
+        val subtitle = if (kyLabel != null) "$kyLabel | $topGio" else "${dayInfo.dayRating.label} | $topGio"
         val lines = mutableListOf<String>()
         lines.add("${dayInfo.dayCanChi} — ${dayInfo.lunar.day}/${dayInfo.lunar.month} Âm lịch")
         dayInfo.gioHoangDao.forEach { gio -> lines.add("${gio.name}  ${gio.time}") }
@@ -160,7 +192,36 @@ class NotificationAlarmReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun fireAiTuVi(context: Context) {
+    /**
+     * Fire AI Tử Vi notification.
+     * - Nếu user đã setup đầy đủ profile (tên + ngày sinh hợp lệ) → gửi bản
+     *   cá nhân hoá cho NGÀY MAI (21:00 tối là thời điểm người ta xem tử vi
+     *   chuẩn bị cho hôm sau).
+     * - Nếu chưa đủ profile → fallback về bản generic cũ.
+     *
+     * Hàm này là `suspend` để có thể đọc DataStore. Được gọi từ coroutine
+     * scope trong onReceive.
+     */
+    private suspend fun fireAiTuVi(context: Context) {
+        try {
+            val profile = PersonalHoroscopeHelper.loadProfile(context)
+            if (profile != null) {
+                val horoscope = PersonalHoroscopeHelper.buildHoroscope(
+                    profile, LocalDate.now().plusDays(1)
+                )
+                NotificationHelper.sendPersonalHoroscopeNotification(
+                    context,
+                    title = horoscope.title,
+                    subtitle = horoscope.subtitle,
+                    shortBody = horoscope.shortBody,
+                    lines = horoscope.lines
+                )
+                return
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("NotifAlarm", "Personal horoscope failed, fallback: ${e.message}")
+        }
+        // Fallback: user chưa setup profile → notification generic
         NotificationHelper.sendAiTuViNotification(context)
     }
 }

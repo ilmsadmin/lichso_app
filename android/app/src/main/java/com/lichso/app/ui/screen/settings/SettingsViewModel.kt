@@ -348,7 +348,9 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun rateApp() {
-        _uiState.update { it.copy(toastMessage = "Tính năng đánh giá sẽ có khi ứng dụng lên Store") }
+        // Trigger SmartRatingDialog (bypass mọi điều kiện happy-action).
+        // Dialog sẽ hỏi cảm xúc → nếu 4-5 sao → In-App Review, fallback Play Store.
+        com.lichso.app.util.SmartRatingManager.triggerManually()
     }
 
     fun shareApp() {

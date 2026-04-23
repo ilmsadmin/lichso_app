@@ -65,13 +65,15 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // ── In-App Review: increment open count & auto-trigger ──
+    // ── In-App Review: chỉ tăng open count để phục vụ logic SmartRating ──
+    // KHÔNG tự gọi ReviewHelper.tryShowReview(activity) mỗi lần mở app, vì mỗi
+    // lần launch In-App Review đều "đốt" quota của Google Play (quota rất hạn
+    // chế: ước tính 1–2 lần/user/năm). Khi quota hết, các lần user chủ động
+    // bấm 5 sao sẽ không hiển thị dialog → không có review nào thực sự được
+    // gửi đi. Việc xin review chỉ thực hiện qua SmartRatingDialog (happy path)
+    // hoặc manual từ Settings.
     LaunchedEffect(Unit) {
         ReviewHelper.incrementAppOpenCount(context)
-        val activity = context as? android.app.Activity
-        if (activity != null) {
-            ReviewHelper.tryShowReview(activity)
-        }
     }
 
     // ── Analytics: log screen_view mỗi khi route đổi ──

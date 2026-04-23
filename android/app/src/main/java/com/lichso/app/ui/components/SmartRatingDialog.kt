@@ -123,17 +123,27 @@ fun SmartRatingDialog(
                         onStarSelect = { selectedStars = it },
                         onConfirm = { stars ->
                             if (stars >= 4) {
-                                // 4-5 sao → In-App Review, fallback Play Store nếu lỗi
-                                coroutineScope.launch {
-                                    SmartRatingManager.recordRated(context)
-                                    val activity = context as? android.app.Activity
-                                    if (activity != null) {
-                                        launchInAppReviewOrFallback(activity)
-                                    } else {
-                                        openPlayStore(context)
+                                // 4-5 sao → In-App Review, fallback Play Store nếu quota hết hoặc lỗi.
+                                // KHÔNG recordRated() ở đây — chỉ ghi nhận khi fallback mở Play Store
+                                // (user ra trang review thật) hoặc khi In-App Review dialog hiển thị
+                                // đủ lâu. Google Play KHÔNG trả về việc user có submit rating hay không,
+                                // nhưng nếu dialog không hiện (quota) → flow complete < 600ms, ta fallback.
+                                val activity = context as? android.app.Activity
+                                if (activity != null) {
+                                    launchInAppReviewOrFallback(activity) { didReachPlayStore ->
+                                        if (didReachPlayStore) {
+                                            coroutineScope.launch {
+                                                SmartRatingManager.recordRated(context)
+                                            }
+                                        }
                                     }
-                                    onDismiss()
+                                } else {
+                                    openPlayStore(context)
+                                    coroutineScope.launch {
+                                        SmartRatingManager.recordRated(context)
+                                    }
                                 }
+                                onDismiss()
                             } else {
                                 // 1-3 sao → chuyển sang feedback
                                 step = "feedback"
@@ -706,30 +716,83 @@ private fun ThanksStep(onDismiss: () -> Unit) {
 // ══════════════════════════════════════════
 
 private fun openPlayStore(context: Context) {
-    val intent = Intent(Intent.ACTION_VIEW,
-        Uri.parse("https://play.google.com/store/apps/details?id=com.lichso.app"))
-    context.startActivity(intent)
+    // Ưu tiên mở Play Store app native bằng market:// để user thấy ngay ô "Đánh giá ứng dụng"
+    val marketUri = Uri.parse("market://details?id=${context.packageName}")
+    val marketIntent = Intent(Intent.ACTION_VIEW, marketUri).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_NO_HISTORY or
+                Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+        // Ép mở Google Play chứ không phải trình duyệt
+        setPackage("com.android.vending")
+    }
+    try {
+        context.startActivity(marketIntent)
+        return
+    } catch (_: android.content.ActivityNotFoundException) {
+        // Device không có Play Store → fallback web
+    }
+    val webIntent = Intent(Intent.ACTION_VIEW,
+        Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}")).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    try {
+        context.startActivity(webIntent)
+    } catch (_: android.content.ActivityNotFoundException) {
+        android.widget.Toast.makeText(
+            context,
+            "Không mở được Google Play. Vui lòng tìm \"Lịch Số\" trên Play Store.",
+            android.widget.Toast.LENGTH_LONG
+        ).show()
+    }
 }
 
 /**
  * Thử launch In-App Review API của Google Play.
- * Nếu API thất bại (task.isSuccessful == false) → fallback mở Play Store trực tiếp.
- * Lưu ý: khi API thành công, Google có thể KHÔNG hiển thị dialog (quota/đã review rồi) —
- * đây là behaviour của Play, không phải lỗi code.
+ *
+ * Google Play có quota rất hạn chế cho In-App Review (ước tính 1–2 lần/user/năm).
+ * Khi hết quota HOẶC user đã review rồi, API vẫn báo success nhưng dialog KHÔNG hiển thị
+ * và flow complete gần như ngay lập tức (<600ms). Trong trường hợp đó, ta fallback mở
+ * Play Store để user có thể review thật.
+ *
+ * @param onResult callback(didReachPlayStore) — true nếu cuối cùng user được đưa tới
+ *   trang review (In-App dialog có hiển thị, hoặc Play Store được mở).
  */
-private fun launchInAppReviewOrFallback(activity: android.app.Activity) {
+private fun launchInAppReviewOrFallback(
+    activity: android.app.Activity,
+    onResult: (didReachPlayStore: Boolean) -> Unit = {}
+) {
     val reviewManager = com.google.android.play.core.review.ReviewManagerFactory.create(activity)
+    val requestStart = System.currentTimeMillis()
     reviewManager.requestReviewFlow().addOnCompleteListener { requestTask ->
-        if (requestTask.isSuccessful) {
-            reviewManager.launchReviewFlow(activity, requestTask.result)
-                .addOnCompleteListener {
-                    // flow hoàn thành (Google không cho biết user có submit hay không)
-                    // Không cần làm gì thêm — dialog đã dismiss trước đó
-                }
-        } else {
-            // Không lấy được ReviewInfo → mở Play Store
+        if (!requestTask.isSuccessful) {
+            android.util.Log.w("SmartRating",
+                "requestReviewFlow failed → fallback Play Store",
+                requestTask.exception)
             openPlayStore(activity)
+            onResult(true)
+            return@addOnCompleteListener
         }
+
+        val launchStart = System.currentTimeMillis()
+        reviewManager.launchReviewFlow(activity, requestTask.result)
+            .addOnCompleteListener { launchTask ->
+                val launchElapsed = System.currentTimeMillis() - launchStart
+                val totalElapsed = System.currentTimeMillis() - requestStart
+
+                // Heuristic: nếu launchReviewFlow hoàn thành quá nhanh, gần như chắc chắn
+                // dialog KHÔNG hiển thị (quota hết / đã review / internal testing issue).
+                // Trong trường hợp đó → fallback Play Store để user vẫn review được.
+                val dialogLikelyShown = launchTask.isSuccessful && launchElapsed >= 600L
+                android.util.Log.d("SmartRating",
+                    "launchReviewFlow done: success=${launchTask.isSuccessful}, " +
+                    "launchElapsed=${launchElapsed}ms, totalElapsed=${totalElapsed}ms, " +
+                    "dialogLikelyShown=$dialogLikelyShown")
+
+                if (!dialogLikelyShown) {
+                    openPlayStore(activity)
+                }
+                onResult(true)
+            }
     }
 }
 

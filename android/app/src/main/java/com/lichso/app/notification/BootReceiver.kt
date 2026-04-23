@@ -22,53 +22,75 @@ class BootReceiver : BroadcastReceiver() {
 
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
+            // Fallback defaults nếu đọc DataStore fail/timeout
+            var notifyEnabled = true
+            var gioDaiCatEnabled = false
+            var festivalReminderEnabled = true
+            var reminderHour = 7
+            var reminderMinute = 0
+            var settingsLoaded = false
+
             try {
-                // Limit to 8 seconds to stay within BroadcastReceiver 10s limit
-                withTimeoutOrNull(8_000L) {
+                withTimeoutOrNull(5_000L) {
                     val prefs = context.settingsDataStore.data.first()
-                val notifyEnabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
-                val gioDaiCatEnabled = prefs[SettingsKeys.GIO_DAI_CAT] ?: false
-                val festivalReminderEnabled = prefs[SettingsKeys.FESTIVAL_REMINDER] ?: true
-                val reminderHour = prefs[SettingsKeys.REMINDER_HOUR] ?: 7
-                val reminderMinute = prefs[SettingsKeys.REMINDER_MINUTE] ?: 0
+                    notifyEnabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
+                    gioDaiCatEnabled = prefs[SettingsKeys.GIO_DAI_CAT] ?: false
+                    festivalReminderEnabled = prefs[SettingsKeys.FESTIVAL_REMINDER] ?: true
+                    reminderHour = prefs[SettingsKeys.REMINDER_HOUR] ?: 7
+                    reminderMinute = prefs[SettingsKeys.REMINDER_MINUTE] ?: 0
+                    settingsLoaded = true
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("BootReceiver", "Load settings failed: ${e.message}")
+            }
 
+            // LUÔN reschedule các alarm với giá trị settings đã đọc được
+            // (hoặc defaults). Không nằm trong cùng timeout/try với phần đọc DB
+            // để tránh bị "kẹt" do timeout.
+            try {
                 if (notifyEnabled) {
-                    // Reschedule individual task reminders
-                    val db = LichSoDatabase.getInstance(context)
-                    val reminders = db.reminderDao().getEnabledReminders().first()
-                    val scheduler = ReminderScheduler(context)
-                    reminders.forEach { scheduler.schedule(it) }
-
-                    // Reschedule daily notification worker
+                    // Reschedule daily notification alarm
                     DailyNotificationWorker.schedule(context, reminderHour, reminderMinute)
+                    AiTuViWorker.schedule(context)
+                } else {
+                    DailyNotificationWorker.cancel(context)
+                    AiTuViWorker.cancel(context)
                 }
 
-                // Giờ Hoàng Đạo: tôn trọng setting của user
                 if (gioDaiCatEnabled && notifyEnabled) {
                     GioDaiCatWorker.schedule(context, reminderHour, reminderMinute)
                 } else {
                     GioDaiCatWorker.cancel(context)
                 }
 
-                // Reschedule festival reminder worker
                 if (festivalReminderEnabled && notifyEnabled) {
                     FestivalReminderWorker.schedule(context)
+                } else {
+                    FestivalReminderWorker.cancel(context)
                 }
 
-                // Reschedule AI Tử Vi nightly worker
-                if (notifyEnabled) {
-                    AiTuViWorker.schedule(context)
-                }
-
-                // Reschedule widget updates + midnight alarm
+                // Widget updates + midnight alarm
                 CalendarWidgetScheduler.scheduleWidgetUpdates(context)
                 CalendarWidgetScheduler.triggerImmediateUpdate(context)
-                } // end withTimeoutOrNull
             } catch (e: Exception) {
-                android.util.Log.e("BootReceiver", "Error rescheduling: ${e.message}")
-            } finally {
-                pendingResult.finish()
+                android.util.Log.e("BootReceiver", "Reschedule failed: ${e.message}")
             }
+
+            // Reschedule individual task reminders (cần DB, tách timeout riêng)
+            if (settingsLoaded && notifyEnabled) {
+                try {
+                    withTimeoutOrNull(5_000L) {
+                        val db = LichSoDatabase.getInstance(context)
+                        val reminders = db.reminderDao().getEnabledReminders().first()
+                        val scheduler = ReminderScheduler(context)
+                        reminders.forEach { scheduler.schedule(it) }
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("BootReceiver", "Reschedule reminders failed: ${e.message}")
+                }
+            }
+
+            pendingResult.finish()
         }
     }
 }

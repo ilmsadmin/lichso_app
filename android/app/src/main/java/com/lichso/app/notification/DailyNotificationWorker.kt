@@ -30,8 +30,11 @@ class DailyNotificationWorker(
         val mm = "%02d".format(today.monthValue)
         val lunarStr = "${dayInfo.lunar.day}/${dayInfo.lunar.month} Âm lịch"
         val canChi = dayInfo.dayCanChi
-        val isGoodDay = !dayInfo.activities.isXauDay
-        val dayQuality = if (isGoodDay) "Hoàng Đạo" else "Hắc Đạo"
+        val kyLabel = when {
+            dayInfo.activities.isNguyetKy -> "Ngày Nguyệt kỵ"
+            dayInfo.activities.isTamNuong -> "Ngày Tam nương"
+            else -> null
+        }
 
         val gioText = dayInfo.gioHoangDao
             .take(3)
@@ -42,15 +45,18 @@ class DailyNotificationWorker(
 
         // Subtitle (contentText): brief summary
         val subtitle = buildString {
-            append("$canChi")
-            append(if (isGoodDay) " | Ngày Hoàng Đạo" else " | Ngày Hắc Đạo")
+            append(canChi)
             append(" | ${dayInfo.dayRating.label}")
+            if (kyLabel != null) append(" | $kyLabel")
         }
 
         // Expanded lines for InboxStyle
         val lines = mutableListOf<String>()
         lines.add("Can Chi: $canChi")
-        lines.add(if (isGoodDay) "Đánh giá: ${dayInfo.dayRating.label} — Ngày Hoàng Đạo" else "Đánh giá: ${dayInfo.dayRating.label} — Ngày Hắc Đạo")
+        lines.add(
+            if (kyLabel != null) "Đánh giá: ${dayInfo.dayRating.label} — $kyLabel"
+            else "Đánh giá: ${dayInfo.dayRating.label}"
+        )
         lines.add("Giờ tốt: $gioText")
         lines.add("Trực ngày: ${dayInfo.trucNgay.name} | Sao: ${dayInfo.saoChieu.name}")
         lines.add("Hướng Thần Tài: ${dayInfo.huong.thanTai}")

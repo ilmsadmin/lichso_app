@@ -71,9 +71,19 @@ object ReviewHelper {
 
     /**
      * Launch the Google Play In-App Review flow.
+     *
+     * ⚠️ KHÔNG dùng trực tiếp cho auto-trigger. Mỗi lần gọi đều tiêu quota
+     * In-App Review của Google (rất hạn chế). Hãy dùng [SmartRatingDialog]
+     * (có fallback Play Store khi quota hết) thay vì gọi trực tiếp hàm này.
+     *
      * @param activity The current Activity (required by the Review API)
      * @param onComplete Called when the flow finishes (success or failure)
      */
+    @Deprecated(
+        "Dùng SmartRatingDialog / SmartRatingManager.triggerManually() thay thế " +
+        "để có fallback Play Store khi quota In-App Review đã hết.",
+        level = DeprecationLevel.WARNING
+    )
     fun launchReviewFlow(activity: Activity, onComplete: () -> Unit = {}) {
         val reviewManager = ReviewManagerFactory.create(activity)
         val requestFlow = reviewManager.requestReviewFlow()
@@ -95,7 +105,21 @@ object ReviewHelper {
 
     /**
      * Check conditions and launch review if appropriate. Used for automatic triggering.
+     *
+     * ⚠️ KHÔNG gọi hàm này trong main screen / LaunchedEffect. Mỗi call đều
+     * đốt quota In-App Review của Google (ngay cả khi user không bấm gì).
+     * Sau vài lần, mọi request sau đó sẽ fail silently — user bấm "Đánh giá"
+     * thật cũng không thấy dialog.
+     *
+     * Dùng [SmartRatingManager.recordHappyAction] để trigger theo happy-path
+     * thay vì tự động mỗi lần mở app.
      */
+    @Deprecated(
+        "Auto-trigger mỗi lần mở app sẽ đốt quota In-App Review. " +
+        "Dùng SmartRatingManager thay thế.",
+        level = DeprecationLevel.WARNING
+    )
+    @Suppress("DEPRECATION")
     suspend fun tryShowReview(activity: Activity) {
         val context = activity.applicationContext
         if (shouldShowReview(context)) {

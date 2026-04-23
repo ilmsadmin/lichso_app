@@ -258,11 +258,22 @@ class DayInfoProvider @Inject constructor() {
 
         score = score.coerceIn(10, 100)
 
-        val label = when {
-            score >= 80 -> "Rất tốt"
-            score >= 60 -> "Tốt"
-            score >= 40 -> "Trung bình"
-            else -> "Xấu"
+        // Nếu ngày xấu (Nguyệt kỵ / Tam nương) thì cap label tối đa là
+        // "Trung bình" để tránh xung đột kiểu "Rất tốt — Ngày Hắc Đạo".
+        // Dân gian coi Nguyệt kỵ, Tam nương là ngày kiêng kỵ không nên
+        // làm việc lớn, nên dù có Trực/Sao tốt vẫn không thể gọi là "Tốt".
+        val label = if (activities.isXauDay) {
+            when {
+                score >= 50 -> "Trung bình"
+                else -> "Xấu"
+            }
+        } else {
+            when {
+                score >= 80 -> "Rất tốt"
+                score >= 60 -> "Tốt"
+                score >= 40 -> "Trung bình"
+                else -> "Xấu"
+            }
         }
 
         return DayRatingInfo(label, score)
