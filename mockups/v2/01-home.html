@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8" />
+<title>01 · Home — Lịch Số v2</title>
+<link rel="stylesheet" href="assets/common.css" />
+<style>
+  /* Home-specific */
+  .big-date {
+    font-family: "Times New Roman", serif; font-size: 140px; line-height: .88;
+    color: var(--primary); font-weight: 900; text-align: center; letter-spacing: -4px;
+  }
+  .dow-big { font-size: 22px; text-align: center; color: var(--text-2); font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+  .lunar-line { text-align: center; font-family: "Times New Roman", serif; font-size: 16px;
+    color: var(--gold-2); font-style: italic; margin-top: 10px; }
+  .quote { text-align: center; font-family: "Times New Roman", serif; font-style: italic;
+    font-size: 13.5px; color: var(--text-2); padding: 14px 28px 0; line-height: 1.55; }
+  .ev-chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; padding: 16px 20px 0; }
+  .ev-chip { font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+    background: #fff; border: 1px solid var(--border); color: var(--text-2); }
+  .ev-chip.gold { border-color: var(--gold); color: var(--gold-2); background: var(--gold-soft); }
+  .ev-chip.green { border-color: var(--green); color: var(--green); background: #E8F5E9; }
+  .ev-chip.red { border-color: var(--primary); color: var(--primary); background: #FFEBEE; }
+
+  .mini-week {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+    padding: 10px 14px 6px; background: var(--bg);
+  }
+  .mw { display: flex; flex-direction: column; align-items: center; padding: 7px 0; border-radius: 10px; }
+  .mw .dow { font-size: 10px; color: var(--text-3); font-weight: 600; }
+  .mw .d { font-size: 16px; font-weight: 700; color: var(--text-1); margin-top: 2px; }
+  .mw .ln { font-size: 9.5px; color: var(--text-3); margin-top: 1px; }
+  .mw.today { background: var(--primary); }
+  .mw.today .dow, .mw.today .d, .mw.today .ln { color: #fff; }
+  .mw.sun .dow, .mw.sun .d { color: var(--primary); }
+
+  .flip-page {
+    flex: 1; margin: 6px 16px 10px; background: #fff; border: 2px solid var(--border-strong);
+    border-radius: 16px; padding: 18px 0 22px; position: relative;
+    background-image: radial-gradient(circle at 90% 0, rgba(212,160,23,.04), transparent 50%);
+  }
+
+  .streak-fab {
+    position: absolute; top: 10px; left: 10px;
+    background: linear-gradient(135deg, #FFF3C4, #FFE082);
+    border: 1.5px solid var(--gold); color: var(--gold-2);
+    font-size: 11.5px; font-weight: 800; padding: 5px 10px; border-radius: 999px;
+  }
+  .bookmark-fab {
+    position: absolute; top: 10px; right: 10px;
+    width: 30px; height: 30px; border-radius: 50%; background: #FFEBEE;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+    color: var(--primary);
+  }
+</style>
+</head><body>
+<div class="page-hero">
+  <h1>01 · Home <em>— HomeScreen.kt</em></h1>
+  <p>"Tờ lịch tường" – màn hình gốc v1. V2 <b>chèn thêm</b>: (a) points pill trong header cạnh weather chip,
+  (b) streak-fab góc trái tờ lịch, (c) sự kiện mini-chip chi tiết.</p>
+  <div class="nav-links">
+    <a href="index.html">← Tất cả màn hình</a>
+    <a href="02-calendar-month.html">→ Lịch tháng</a>
+    <a href="14-dark-mode.html">🌙 Dark mode</a>
+  </div>
+</div>
+
+<div class="phone-page">
+<div class="phone"><div class="screen">
+  <div class="status-bar"><span>9:41</span><span class="r">📶 4G 87%</span></div>
+
+  <div class="red-header">
+    <div class="hdr-row">
+      <div class="hamburger">☰</div>
+      <div class="hdr-title" style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">☀️</span>
+        <div>
+          <div style="font-size:14px;font-weight:700">28°C</div>
+          <div style="font-size:11px;opacity:.8">Hà Nội</div>
+        </div>
+      </div>
+      <div class="hdr-action">🔔<span style="position:absolute;top:6px;right:6px;width:7px;height:7px;background:var(--gold);border-radius:50%"></span></div>
+      <div class="hdr-action">👤</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:baseline;padding:10px 0 0">
+      <span style="font-family:'Times New Roman',serif;font-size:22px;font-weight:700">2025</span>
+      <span style="font-size:18px;font-weight:600;opacity:.92">Tháng 11</span>
+      <span style="font-size:13px;opacity:.75">• Thứ Bảy</span>
+    </div>
+    <!-- v2 chèn points pill -->
+    <div style="margin-top:10px">
+      <span class="pts-pill">
+        <span>⚡ <span class="v">14</span></span><span class="sep"></span>
+        <span>☯️ <span class="v">2,450</span></span><span class="sep"></span>
+        <span>🔥 <span class="v">27</span></span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Tear line -->
+  <div style="height:10px;position:relative;background:var(--bg)">
+    <div style="position:absolute;top:4px;left:16px;right:16px;border-top:1.5px dashed var(--border-strong)"></div>
+  </div>
+
+  <div class="mini-week">
+    <div class="mw sun"><span class="dow">CN</span><span class="d">10</span><span class="ln">19/9</span></div>
+    <div class="mw"><span class="dow">T2</span><span class="d">11</span><span class="ln">20</span></div>
+    <div class="mw"><span class="dow">T3</span><span class="d">12</span><span class="ln">21</span></div>
+    <div class="mw"><span class="dow">T4</span><span class="d">13</span><span class="ln">22</span></div>
+    <div class="mw"><span class="dow">T5</span><span class="d">14</span><span class="ln">23</span></div>
+    <div class="mw"><span class="dow">T6</span><span class="d">15</span><span class="ln">24</span></div>
+    <div class="mw today"><span class="dow">T7</span><span class="d">16</span><span class="ln">25</span></div>
+  </div>
+
+  <!-- Flip page -->
+  <div class="flip-page">
+    <div class="streak-fab">🔥 27 ngày · x3</div>
+    <div class="bookmark-fab">🔖</div>
+    <div class="big-date">16</div>
+    <div class="dow-big">Thứ Bảy</div>
+    <div class="lunar-line">25 tháng 9 · Ất Tỵ · Đinh Hợi</div>
+    <div class="quote">"Cây muốn thẳng phải trồng cho ngay,<br/>Người muốn tốt phải thầy bạn hay."</div>
+    <div class="ev-chips">
+      <span class="ev-chip gold">★ Hoàng đạo</span>
+      <span class="ev-chip green">✓ Khai trương</span>
+      <span class="ev-chip red">✗ An táng</span>
+    </div>
+  </div>
+
+  <div class="ai-bubble">✨<span class="badge">AI</span></div>
+
+  <div class="bottom-nav-wrap">
+    <div class="bottom-nav">
+      <div class="bnav-item"><span class="ic">📅</span>Lịch tháng</div>
+      <div class="bnav-item"><span class="ic">✍️</span>Ghi chú</div>
+      <div class="bnav-center">
+        <div class="fab-today">16</div>
+        <div class="fab-lb">Hôm nay</div>
+      </div>
+      <div class="bnav-item"><span class="ic">📖</span>Văn Khấn</div>
+      <div class="bnav-item"><span class="ic">▦</span>Tiện ích</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="caption">
+  <h2>01 · Home / Hôm nay <span class="tag">v2 chèn</span></h2>
+  <p>Giữ 100% cấu trúc v1: RedHeader (weather · year-month · dow) · tear-line · mini-week strip · flip-page BigDate · Quote · EventChips · AI bubble · BottomNav 5 slot có FAB đỏ.</p>
+  <ul>
+    <li>🟡 <b>Points pill</b> thêm vào hàng thứ 3 của header — cùng style WeatherChip.</li>
+    <li>🔥 <b>Streak-fab</b> góc trái tờ lịch (đối xứng với Bookmark-fab phải sẵn có).</li>
+    <li>⭐ Sự kiện "Hoàng đạo" thêm 1 chip vàng — map <code>c.gold</code>.</li>
+  </ul>
+  <div class="meta-row">
+    <span class="chip primary">HomeScreen.kt</span>
+    <span class="chip">RedHeader</span>
+    <span class="chip">CalendarPatternBackground</span>
+    <span class="chip gold">+ PointsPill</span>
+    <span class="chip gold">+ StreakFab</span>
+  </div>
+</div>
+</div>
+</body></html>

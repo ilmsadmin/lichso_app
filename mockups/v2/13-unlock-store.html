@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8" />
+<title>13 · Kho mở khoá — Lịch Số v2</title>
+<link rel="stylesheet" href="assets/common.css" />
+<style>
+  .bucket-head {
+    padding: 14px 16px 6px; display:flex; justify-content:space-between; align-items:center;
+  }
+  .bucket-head .l { font-size: 13px; font-weight: 700; color: var(--text-1); }
+  .bucket-head .r { font-size: 12px; color: var(--text-3); }
+
+  .store-card {
+    margin: 6px 16px; padding: 14px; background: #fff; border: 1px solid var(--border);
+    border-radius: 16px; display: flex; gap: 12px; align-items: flex-start;
+  }
+  .store-card .ic {
+    width: 48px; height: 48px; border-radius: 14px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: 22px;
+  }
+  .store-card h4 { margin: 0; font-family: "Times New Roman", serif; font-size: 15px; color: var(--text-1); }
+  .store-card .d { font-size: 12px; color: var(--text-3); margin-top: 2px; line-height: 1.5; }
+  .store-card .foot { display:flex; gap:8px; align-items:center; margin-top:10px; }
+  .store-card .cost { font-size: 12px; font-weight: 800; color: var(--energy); background: #FFF3E0; padding: 3px 10px; border-radius: 999px; }
+  .store-card .btn { margin-left:auto; background: var(--primary); color:#fff; border:none; padding: 7px 14px; border-radius: 10px; font-size: 12px; font-weight: 700; }
+  .store-card.unlocked { border-color: var(--green); }
+  .store-card.unlocked .btn { background: var(--green); }
+  .store-card.locked .btn { background: var(--text-4); }
+  .store-card.locked h4, .store-card.locked .d { color: var(--text-3); }
+</style></head><body>
+<div class="page-hero">
+  <h1>13 · Kho mở khoá ngày <em>— DailyUnlockStoreScreen.kt <span style="color:var(--gold-2)">(NEW v2)</span></em></h1>
+  <p>Trang tổng hợp mọi "unlock" đang có trong ngày — alternative entry cho những user thích shopping thay vì bump vào UnlockCard rải rác.</p>
+  <div class="nav-links"><a href="index.html">← Tất cả</a></div>
+</div>
+
+<div class="phone-page">
+<div class="phone"><div class="screen">
+  <div class="status-bar"><span>9:41</span><span class="r">📶 4G 87%</span></div>
+
+  <div class="red-header" style="padding-bottom:16px">
+    <div class="hdr-row">
+      <div class="hamburger">←</div>
+      <div class="hdr-title"><div class="t">Mở khoá hôm nay</div><div class="s">Reset lúc 0:00 mỗi ngày</div></div>
+    </div>
+    <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+      <span class="pts-pill">
+        <span>⚡ <span class="v">14</span></span><span class="sep"></span>
+        <span>☯️ <span class="v">2,450</span></span>
+      </span>
+      <a href="12-ledger.html" style="color:var(--gold-soft);font-size:12px;font-weight:700;text-decoration:none">📒 Nhật ký →</a>
+    </div>
+  </div>
+
+  <div class="content" style="padding-bottom:30px">
+
+    <div class="bucket-head"><div class="l">🎋 Miễn phí · kiếm điểm</div><div class="r">3 mục</div></div>
+
+    <div class="store-card unlocked">
+      <div class="ic" style="background:var(--green)">✓</div>
+      <div style="flex:1">
+        <h4>Check-in streak (ngày 27)</h4>
+        <div class="d">Đã hoàn thành lúc 08:02 · +3⚡ +5☯️</div>
+      </div>
+    </div>
+
+    <div class="store-card">
+      <div class="ic ic-oracle">🎋</div>
+      <div style="flex:1">
+        <h4>Rút quẻ đầu ngày</h4>
+        <div class="d">Nghi lễ truyền thống — hôm nay còn mở</div>
+        <div class="foot">
+          <span class="cost" style="color:var(--green);background:#E8F5E9">+2⚡ +1☯️</span>
+          <button class="btn" style="background:var(--gold-2)">Rút quẻ</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="store-card">
+      <div class="ic" style="background:linear-gradient(135deg,#BF360C,#E65100)">🔥</div>
+      <div style="flex:1">
+        <h4>Đọc 1 văn khấn</h4>
+        <div class="d">Đọc hết bất kỳ bài khấn nào trong thư viện</div>
+        <div class="foot">
+          <span class="cost" style="color:var(--green);background:#E8F5E9">+1⚡</span>
+          <button class="btn" style="background:var(--orange)">Mở thư viện</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bucket-head"><div class="l">🔮 Trả ⚡ · AI / Premium</div><div class="r">3 mục</div></div>
+
+    <div class="store-card">
+      <div class="ic ic-aiVuvi">🔮</div>
+      <div style="flex:1">
+        <h4>Vận hạn hôm nay (AI)</h4>
+        <div class="d">Tử vi theo tứ trụ · Công danh · Tài lộc · Tình duyên</div>
+        <div class="foot">
+          <span class="cost">10⚡</span>
+          <button class="btn">Mở khoá</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="store-card locked">
+      <div class="ic" style="background:var(--text-4)">🎴</div>
+      <div style="flex:1">
+        <h4>Xin xăm cầu an</h4>
+        <div class="d">Yêu cầu bậc <b>Đạo Sĩ</b> — bạn đang ở Thông Thạo</div>
+        <div class="foot">
+          <span class="cost" style="color:var(--text-3);background:#F0E8E3">5⚡</span>
+          <button class="btn">Thiếu bậc</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="store-card">
+      <div class="ic ic-family">🌳</div>
+      <div style="flex:1">
+        <h4>Cập nhật cây gia phả AI</h4>
+        <div class="d">AI gợi ý bổ sung thành viên · mối quan hệ</div>
+        <div class="foot">
+          <span class="cost">8⚡</span>
+          <button class="btn">Mở khoá</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bucket-head"><div class="l">🎖️ Theo bậc · vĩnh viễn</div><div class="r">Đã mở 4/7</div></div>
+
+    <div class="store-card unlocked">
+      <div class="ic" style="background:var(--green)">✓</div>
+      <div style="flex:1">
+        <h4>Widget lịch cá nhân hoá</h4>
+        <div class="d">Đã mở ở bậc <b>Thông Thạo</b></div>
+      </div>
+    </div>
+    <div class="store-card locked">
+      <div class="ic" style="background:var(--text-4)">🏛️</div>
+      <div style="flex:1">
+        <h4>Bộ theme "Cổ tự"</h4>
+        <div class="d">Mở khi đạt bậc <b>Đạo Sĩ</b> (còn 50 ☯️)</div>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<div class="caption">
+  <h2>13 · Kho mở khoá <span class="tag new">NEW</span></h2>
+  <p>3 bucket: (1) miễn phí kiếm điểm, (2) chi ⚡ để mở AI/Premium, (3) vĩnh viễn theo bậc. Tách rạch ròi giúp user hiểu ngay cách chơi.</p>
+  <div class="meta-row">
+    <span class="chip primary">DailyUnlockStoreScreen.kt</span>
+    <span class="chip gold">3 buckets</span>
+    <span class="chip">Reset 00:00</span>
+  </div>
+</div>
+</div>
+</body></html>

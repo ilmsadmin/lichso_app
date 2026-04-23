@@ -1,0 +1,1055 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Lịch Số v2 — Mockups (bám sát codebase v1)</title>
+<style>
+  /* ════════════════════════════════════════════════════════
+     DESIGN TOKENS — rút trực tiếp từ LichSoColors (Light)
+     ui/theme/Color.kt
+     ════════════════════════════════════════════════════════ */
+  :root{
+    --bg:        #FFFBF5;   /* c.bg         */
+    --bg2:       #FFF8F0;   /* c.bg2/surface*/
+    --bg3:       #F5DDD8;   /* c.bg3        */
+    --bg4:       #FFF0E8;   /* c.bg4        */
+    --border:    #D8C2BF;   /* outlineVariant */
+    --primary:   #B71C1C;   /* c.primary (red) */
+    --red-mid:   #D32F2F;   /* gradient mid */
+    --deep-red:  #8B0000;   /* c.deepRed    */
+    --gold:      #D4A017;   /* c.gold       */
+    --gold2:     #C6A300;   /* c.gold2      */
+    --teal:      #006C4C;   /* c.teal       */
+    --good:      #2E7D32;   /* goodGreen    */
+    --bad:       #C62828;   /* badRed       */
+    --amber:     #F57F17;   /* neutralAmber */
+    --text-1:    #1C1B1F;   /* textPrimary  */
+    --text-2:    #534340;   /* textSecondary*/
+    --text-3:    #857371;   /* textTertiary */
+    --text-4:    #D8C2BF;   /* textQuaternary */
+    /* Tasks screen palette (TasksScreen3.kt) */
+    --note-blue: #1565C0;   --note-blue-bg: #E3F2FD;
+    --task-green:#2E7D32;   --task-green-bg:#E8F5E9;
+    --remind-orange:#E65100; --remind-orange-bg:#FFF3E0;
+    /* v2 new: points */
+    --energy:    #E65100;   /* ⚡ điểm ngày — dùng amber/orange v1 */
+    --karma:     #D4A017;   /* ☯️ điểm vĩnh viễn — dùng gold */
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#E8DDD4;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;color:var(--text-1)}
+  body{padding:32px 24px 64px;min-height:100vh}
+
+  /* Page header */
+  .page-hero{max-width:1440px;margin:0 auto 32px}
+  .page-hero h1{font-family:"Times New Roman",serif;font-size:34px;color:var(--deep-red);letter-spacing:-0.5px}
+  .page-hero h1 em{color:var(--gold2);font-style:normal}
+  .page-hero p{color:var(--text-2);margin-top:6px;max-width:780px;line-height:1.55}
+  .page-hero .legend{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--text-2)}
+  .page-hero .legend span{padding:4px 10px;border-radius:999px;background:#fff;border:1px solid var(--border)}
+
+  /* Phone grid */
+  .grid{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:28px}
+  .phone-wrap{display:flex;flex-direction:column;align-items:center}
+  .phone-caption{margin-top:14px;max-width:380px;text-align:center}
+  .phone-caption h3{font-family:"Times New Roman",serif;font-size:18px;color:var(--deep-red)}
+  .phone-caption p{font-size:13px;color:var(--text-2);margin-top:4px;line-height:1.5}
+  .phone-caption code{font-size:11px;color:var(--text-3);background:#fff;padding:1px 5px;border-radius:4px;border:1px solid var(--border)}
+
+  /* Phone frame — 390×780 (tỷ lệ hợp lý, nhìn ngang Android/iOS) */
+  .phone{
+    width:380px; height:800px;
+    background:var(--bg);
+    border-radius:42px;
+    box-shadow:0 24px 60px -12px rgba(0,0,0,.25), 0 4px 12px rgba(0,0,0,.08);
+    position:relative; overflow:hidden;
+    border:10px solid #1a1a1a;
+  }
+  .phone::before{ /* notch */
+    content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:110px;height:26px;background:#1a1a1a;border-radius:0 0 18px 18px;z-index:50;
+  }
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden}
+
+  /* ═══ Status bar fake (iOS-like, under notch) ═══ */
+  .status-bar{height:44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 22px 6px;font-size:12px;font-weight:600;color:#fff;position:relative;z-index:10}
+  .status-bar.dark-text{color:var(--text-1)}
+  .status-bar .r{display:flex;gap:4px;align-items:center}
+
+  /* ═══ AppTopBar / RedHeader (gradient linear 0,0 → ∞,∞) ═══ */
+  .red-header{
+    background:linear-gradient(135deg, var(--primary) 0%, var(--red-mid) 50%, var(--deep-red) 100%);
+    padding:0 24px 16px;
+    color:#fff;
+    position:relative;
+  }
+  .red-header .row1{display:flex;justify-content:space-between;align-items:center;padding-top:6px}
+  .red-header .row2{margin-top:6px;display:flex;gap:8px;align-items:baseline}
+  .red-header .yr{font-size:12px;color:rgba(255,255,255,.7);letter-spacing:1px}
+  .red-header .mo{font-size:14px;font-weight:700;color:rgba(255,255,255,.92)}
+  .red-header .dow{font-size:11px;color:rgba(255,255,255,.6)}
+
+  .icon-btn{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;position:relative}
+  .icon-btn.bell .badge{position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--gold);border-radius:50%;border:1.5px solid var(--primary)}
+  .icon-row{display:flex;gap:8px}
+
+  .weather-chip{background:rgba(255,255,255,.15);border-radius:20px;padding:6px 14px;display:flex;gap:6px;align-items:center;font-size:14px;font-weight:700;color:#fff}
+  .weather-chip .city{font-size:12px;font-weight:500}
+
+  /* ═══ Tear line (perforation) giữa header và body ═══ */
+  .tear-line{height:12px;background:var(--bg);position:relative}
+  .tear-line::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:12px;
+    background-image:radial-gradient(circle at 8px 0, var(--primary) 3px, transparent 3.5px);
+    background-size:16px 12px;background-repeat:repeat-x;
+    filter:drop-shadow(0 1px 0 rgba(0,0,0,.08));
+    opacity:.35;
+  }
+  .tear-line::after{
+    content:"";position:absolute;top:6px;left:16px;right:16px;border-top:1.5px dashed var(--text-4);
+  }
+
+  /* ═══ Mini week strip ═══ */
+  .mini-week{display:flex;justify-content:space-between;padding:10px 14px 8px;gap:4px}
+  .mw-cell{flex:1;display:flex;flex-direction:column;align-items:center;padding:6px 0;border-radius:10px;gap:2px;cursor:pointer}
+  .mw-cell .dow{font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px}
+  .mw-cell .d{font-size:15px;font-weight:700;color:var(--text-1)}
+  .mw-cell .lunar{font-size:9px;color:var(--text-3)}
+  .mw-cell.sun .d,.mw-cell.sun .dow{color:var(--bad)}
+  .mw-cell.selected{background:var(--primary);}
+  .mw-cell.selected .d,.mw-cell.selected .dow,.mw-cell.selected .lunar{color:#fff}
+
+  /* ═══ Page-flip calendar area ═══ */
+  .flip-area{flex:1;position:relative;overflow:hidden;padding:4px 20px 10px}
+  .flip-page{
+    height:100%;border-radius:14px;border:2px solid var(--bg3);
+    background:var(--bg2) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><path d='M40 4 L46 34 L76 40 L46 46 L40 76 L34 46 L4 40 L34 34 Z' fill='%23D4A01710'/></svg>");
+    background-size:120px 120px;
+    display:flex;flex-direction:column;align-items:center;padding:20px 0;position:relative;
+    box-shadow:inset 0 -3px 0 rgba(212,160,23,.1);
+  }
+  .big-date{font-family:"Times New Roman",serif;font-size:148px;line-height:.88;color:var(--primary);font-weight:900;text-shadow:2px 2px 0 rgba(139,0,0,.1)}
+  .dow-big{font-size:20px;color:var(--text-2);font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-top:-2px}
+  .lunar-big{margin-top:14px;font-family:"Times New Roman",serif;font-size:16px;color:var(--gold2);font-style:italic}
+  .swipe-hint{font-size:10px;color:var(--text-3);margin-top:14px;display:flex;gap:4px;align-items:center;opacity:.5}
+
+  .quote{font-family:"Times New Roman",serif;font-style:italic;font-size:13px;color:var(--text-2);text-align:center;padding:0 22px;margin-top:14px;line-height:1.5}
+  .quote::before{content:"“";color:var(--gold);font-size:28px;line-height:0;vertical-align:-10px;margin-right:2px}
+
+  .event-chips{display:flex;gap:6px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+  .ec{font-size:10px;padding:4px 10px;border-radius:10px;background:#fff;border:1px solid var(--border);color:var(--text-2)}
+  .ec.good{border-color:var(--good);color:var(--good);background:#E8F5E9}
+  .ec.bad{border-color:var(--bad);color:var(--bad);background:#FFEBEE}
+  .ec.gold{border-color:var(--gold);color:var(--gold2);background:#FFF8E1}
+
+  /* ═══ Bottom navigation (v1 actual: Lịch/Công việc/AI Chat/Mẫu) ═══ */
+  .bottom-nav{
+    height:72px;background:#fff;border-top:1px solid var(--border);
+    display:flex;align-items:stretch;
+    box-shadow:0 -4px 12px rgba(0,0,0,.04);
+  }
+  .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;color:var(--text-3);padding-top:6px}
+  .nav-item .ic{font-size:22px}
+  .nav-item.active{color:var(--primary)}
+  .nav-item.active .ic{filter:drop-shadow(0 2px 6px rgba(183,28,28,.35))}
+  .nav-item.active::before{content:"";position:absolute;top:0;width:32px;height:3px;background:var(--primary);border-radius:0 0 4px 4px;margin-top:0}
+
+  /* ════════════════════════════════════════════════════════
+     POINTS ENGINE — thêm mới v2, tái sử dụng token v1
+     ════════════════════════════════════════════════════════ */
+
+  /* Points pill trong RedHeader — như WeatherChip nhưng vàng */
+  .points-pill{
+    background:rgba(212,160,23,.22);
+    border:1px solid rgba(245,217,110,.5);
+    border-radius:20px;padding:5px 12px;display:inline-flex;gap:10px;align-items:center;color:#fff;font-size:12px;font-weight:700
+  }
+  .points-pill .sep{width:1px;height:14px;background:rgba(255,255,255,.3)}
+  .points-pill .v{color:#FFE082}
+
+  /* Streak badge nổi (on flip-page) */
+  .streak-fab{
+    position:absolute;top:14px;right:14px;
+    background:linear-gradient(135deg,#FFF3E0,#FFE0B2);
+    border:1.5px solid var(--gold);border-radius:999px;padding:6px 12px;
+    display:flex;gap:6px;align-items:center;font-size:11px;font-weight:700;color:var(--deep-red);
+    box-shadow:0 3px 10px rgba(212,160,23,.25)
+  }
+
+  /* Daily unlock card — đặt trong Chat/Templates */
+  .unlock-card{
+    background:#fff;border:1px solid var(--border);border-radius:14px;
+    padding:14px;margin:10px 16px;position:relative;overflow:hidden;
+  }
+  .unlock-card.ready{border-color:var(--gold);background:linear-gradient(135deg,#FFFBF5,#FFF3E0)}
+  .unlock-card.locked{opacity:.78}
+  .unlock-card.unlocked{border-color:var(--teal);background:linear-gradient(135deg,#E0F2F1,#FFFBF5)}
+
+  .uc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .uc-icon{width:40px;height:40px;border-radius:12px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+  .uc-icon.g{background:rgba(212,160,23,.18);color:var(--gold2)}
+  .uc-icon.r{background:rgba(183,28,28,.1);color:var(--primary)}
+  .uc-icon.t{background:rgba(0,108,76,.12);color:var(--teal)}
+  .uc-text h4{font-size:14px;font-weight:700;color:var(--text-1);font-family:"Times New Roman",serif}
+  .uc-text p{font-size:11.5px;color:var(--text-2);margin-top:2px;line-height:1.4}
+  .uc-cost{font-size:11px;color:var(--energy);font-weight:700;white-space:nowrap}
+
+  .uc-progress{margin-top:10px;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+  .uc-progress .fill{height:100%;background:linear-gradient(90deg,var(--amber),var(--gold));border-radius:3px}
+  .uc-btn{margin-top:10px;width:100%;height:36px;border-radius:10px;border:none;font-weight:700;font-size:12px;cursor:pointer}
+  .uc-btn.primary{background:var(--primary);color:#fff}
+  .uc-btn.disabled{background:var(--bg3);color:var(--text-3);cursor:not-allowed}
+  .uc-btn.gold{background:linear-gradient(135deg,var(--gold),var(--amber));color:#fff}
+
+  /* ═══ Tasks screen (NTRTab pattern) ═══ */
+  .sub-top{padding:14px 20px 0;background:var(--bg)}
+  .sub-top h1{font-family:"Times New Roman",serif;font-size:22px;color:var(--deep-red)}
+  .stats-row{display:flex;gap:8px;padding:10px 20px}
+  .stat{flex:1;background:#fff;border-radius:12px;padding:10px;text-align:center;border:1px solid var(--border)}
+  .stat .n{font-size:18px;font-weight:800}
+  .stat .l{font-size:10px;color:var(--text-3);margin-top:2px}
+  .stat.n .n{color:var(--note-blue)}
+  .stat.t .n{color:var(--task-green)}
+  .stat.r .n{color:var(--remind-orange)}
+
+  .tabs{display:flex;gap:6px;padding:0 20px 10px;overflow-x:auto}
+  .tab-chip{padding:7px 14px;border-radius:999px;background:#fff;border:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text-2);white-space:nowrap}
+  .tab-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
+  .tab-chip.active.orange{background:var(--remind-orange);border-color:var(--remind-orange)}
+  .tab-chip.active.blue{background:var(--note-blue);border-color:var(--note-blue)}
+  .tab-chip.active.green{background:var(--task-green);border-color:var(--task-green)}
+
+  .search-row{display:flex;gap:8px;padding:0 20px 10px}
+  .search-row .inp{flex:1;height:38px;border-radius:10px;background:#fff;border:1px solid var(--border);padding:0 12px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-3)}
+
+  .item-list{flex:1;overflow-y:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:8px}
+  .item{background:#fff;border-radius:12px;padding:12px;border:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
+  .item .check{width:20px;height:20px;border-radius:6px;border:2px solid var(--border);flex-shrink:0;margin-top:1px}
+  .item.done .check{background:var(--task-green);border-color:var(--task-green);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center}
+  .item.done .title{text-decoration:line-through;color:var(--text-3)}
+  .item .title{font-size:14px;font-weight:600}
+  .item .meta{font-size:11px;color:var(--text-3);margin-top:3px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .item .meta .tag{padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600}
+  .item.streak{background:linear-gradient(135deg,#FFF8E1,#FFF3E0);border-color:var(--gold)}
+  .item.streak .check{background:var(--gold);border-color:var(--gold);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center}
+  .item.priority-1{border-left:3px solid var(--bad)}
+  .item.priority-2{border-left:3px solid var(--amber)}
+
+  /* ═══ Chat screen ═══ */
+  .chip-row{padding:10px 16px 6px}
+  .chip-row .label{font-size:10px;color:var(--text-3);letter-spacing:1px;font-weight:700;margin-bottom:8px}
+  .chip-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+  .s-chip{background:#fff;border:1px solid var(--border);border-radius:999px;padding:7px 14px;font-size:12px;color:var(--text-2);white-space:nowrap;display:flex;align-items:center;gap:6px}
+  .s-chip.gold{border-color:var(--gold);color:var(--gold2);background:#FFF8E1}
+
+  .msgs{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:12px}
+  .bubble{max-width:85%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.5}
+  .bubble.u{background:var(--primary);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+  .bubble.a{background:var(--bg2);color:var(--text-1);align-self:flex-start;border:1px solid var(--border);border-bottom-left-radius:4px}
+  .bubble.a .who{font-size:10px;color:var(--gold2);font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+  .input-bar{padding:10px 14px;background:#fff;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center}
+  .input-bar .inp{flex:1;height:40px;background:var(--bg2);border-radius:20px;padding:0 16px;display:flex;align-items:center;font-size:13px;color:var(--text-3);border:1px solid var(--border)}
+  .input-bar .send{width:40px;height:40px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px}
+
+  /* ═══ Templates screen ═══ */
+  .tpl-card{background:#fff;border-radius:14px;padding:14px;border:1px solid var(--border);margin:0 16px 10px;display:flex;gap:12px;align-items:center}
+  .tpl-card .icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;flex-shrink:0}
+  .tpl-card h5{font-size:14px;font-weight:700;font-family:"Times New Roman",serif;color:var(--text-1)}
+  .tpl-card p{font-size:11px;color:var(--text-3);margin-top:2px}
+  .tpl-card .badge{margin-left:auto;font-size:9px;padding:2px 6px;border-radius:4px;font-weight:800;letter-spacing:.5px}
+  .tpl-card .badge.new{background:var(--gold);color:#fff}
+  .tpl-card .badge.premium{background:linear-gradient(135deg,var(--gold),var(--amber));color:#fff}
+
+  /* ═══ Profile / Points dashboard ═══ */
+  .rank-hero{
+    margin:14px 16px;border-radius:18px;padding:18px;
+    background:linear-gradient(135deg,#B71C1C,#8B0000);color:#fff;position:relative;overflow:hidden;
+  }
+  .rank-hero::before{
+    content:"";position:absolute;top:-30px;right:-30px;width:140px;height:140px;border-radius:50%;
+    background:radial-gradient(circle,rgba(212,160,23,.35),transparent 70%);
+  }
+  .rank-hero .rank-name{font-family:"Times New Roman",serif;font-size:22px;font-weight:700}
+  .rank-hero .rank-sub{font-size:11px;opacity:.8;margin-top:2px;letter-spacing:1px;text-transform:uppercase}
+  .rank-hero .rank-stats{display:flex;gap:18px;margin-top:14px}
+  .rank-hero .rs-item .v{font-size:22px;font-weight:800;color:#FFE082;font-family:"Times New Roman",serif}
+  .rank-hero .rs-item .l{font-size:10px;opacity:.7;text-transform:uppercase;letter-spacing:.5px}
+  .rank-progress{margin-top:12px}
+  .rank-progress .lbl{font-size:10px;opacity:.85;display:flex;justify-content:space-between;margin-bottom:5px}
+  .rank-progress .bar{height:6px;background:rgba(0,0,0,.3);border-radius:3px;overflow:hidden}
+  .rank-progress .bar .f{height:100%;background:linear-gradient(90deg,#FFE082,#D4A017);border-radius:3px}
+
+  .section-head{padding:6px 20px;font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:8px}
+
+  .ledger-item{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:0 16px 6px;display:flex;justify-content:space-between;align-items:center}
+  .ledger-item .l{display:flex;gap:10px;align-items:center}
+  .ledger-item .l .ic{width:28px;height:28px;border-radius:8px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:14px}
+  .ledger-item .l .t{font-size:13px;font-weight:600}
+  .ledger-item .l .d{font-size:10px;color:var(--text-3);margin-top:1px}
+  .ledger-item .v{font-size:13px;font-weight:800}
+  .ledger-item .v.pos{color:var(--good)}
+  .ledger-item .v.neg{color:var(--bad)}
+
+  /* Rank-up overlay */
+  .overlay{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:32px;z-index:30}
+  .rank-up{background:linear-gradient(135deg,var(--bg2),#fff);border-radius:22px;padding:26px 22px;text-align:center;border:2px solid var(--gold);box-shadow:0 20px 60px rgba(0,0,0,.4);width:100%;position:relative;overflow:hidden}
+  .rank-up::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(212,160,23,.25),transparent 60%)}
+  .rank-up .emo{font-size:52px;position:relative}
+  .rank-up h2{font-family:"Times New Roman",serif;font-size:24px;color:var(--deep-red);margin-top:8px;position:relative}
+  .rank-up .ri{font-size:13px;color:var(--text-2);margin-top:4px;position:relative}
+  .rank-up .new-rank{margin-top:12px;padding:10px 14px;background:var(--primary);color:#fff;border-radius:12px;font-family:"Times New Roman",serif;font-size:18px;font-weight:700;position:relative}
+  .rank-up .perks{margin-top:14px;text-align:left;font-size:12px;color:var(--text-2);position:relative}
+  .rank-up .perks li{padding:5px 0;display:flex;gap:8px;align-items:flex-start}
+  .rank-up .perks li::before{content:"✦";color:var(--gold)}
+  .rank-up .cta{margin-top:16px;width:100%;height:42px;border-radius:12px;background:var(--primary);color:#fff;border:none;font-weight:700;font-size:14px;position:relative}
+
+  /* Toast +point */
+  .toast-pts{position:absolute;top:60px;left:50%;transform:translateX(-50%);background:rgba(28,27,31,.92);color:#fff;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:600;display:flex;gap:6px;align-items:center;z-index:20;backdrop-filter:blur(8px)}
+  .toast-pts .pt{color:#FFE082;font-weight:800}
+
+  /* FAB */
+  .fab{position:absolute;right:18px;bottom:86px;width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;box-shadow:0 8px 20px rgba(0,0,0,.2);z-index:15}
+  .fab.orange{background:var(--remind-orange)}
+  .fab.primary{background:var(--primary)}
+
+</style>
+</head>
+<body>
+
+<div class="page-hero">
+  <h1>Lịch Số <em>v2</em> — Mockups chuẩn codebase v1</h1>
+  <p>Tất cả màn hình dưới đây bám sát <code>ui/screen/*</code> + <code>LichSoColors</code> trong Android v1.
+     IA giữ nguyên: <b>4 tab đáy</b> (Lịch · Công việc · AI Chat · Mẫu), Settings nằm trong drawer.
+     Tính năng v2 (Points / Streak / Unlock) được <b>chèn vào các màn hình hiện có</b>, không đẻ thêm tab.</p>
+  <div class="legend">
+    <span>🎨 Red <code>#B71C1C</code> · Gold <code>#D4A017</code> · BG <code>#FFFBF5</code></span>
+    <span>⚡ Điểm ngày — reset 0h</span>
+    <span>☯️ Điểm nghiệp — vĩnh viễn, để lên bậc</span>
+    <span>🔥 Streak — check-in liên tục</span>
+  </div>
+</div>
+
+<div class="grid">
+
+<!-- ════════════════════════════════════════════════════════
+     1. HOME (Lịch) — v1 giữ NGUYÊN + chèn points-pill trong RedHeader + streak-fab trên page
+     ════════════════════════════════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone"><div class="screen">
+    <div class="status-bar"><span>9:41</span><span class="r">•••• 📶 🔋</span></div>
+
+    <!-- RED GRADIENT HEADER — y chang RedHeader() trong HomeScreen.kt -->
+    <div class="red-header">
+      <div class="row1">
+        <div class="icon-btn">☰</div>
+        <div class="weather-chip">☀️ <span>28°C</span><span class="city">Hà Nội</span></div>
+        <div class="icon-row">
+          <div class="icon-btn bell">🔔<span class="badge"></span></div>
+          <div class="icon-btn">👤</div>
+        </div>
+      </div>
+      <div class="row2">
+        <span class="yr">2025</span>
+        <span class="mo">Tháng 11</span>
+        <span class="dow">• Thứ Bảy</span>
+      </div>
+      <!-- ➕ V2: points pill, đặt dưới row2, cùng style WeatherChip -->
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <div class="points-pill">
+          <span>⚡ <span class="v">14</span></span>
+          <span class="sep"></span>
+          <span>☯️ <span class="v">2,450</span></span>
+          <span class="sep"></span>
+          <span>🔥 <span class="v">27</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tear-line"></div>
+
+    <div class="mini-week">
+      <div class="mw-cell sun"><span class="dow">CN</span><span class="d">10</span><span class="lunar">19/9</span></div>
+      <div class="mw-cell"><span class="dow">T2</span><span class="d">11</span><span class="lunar">20</span></div>
+      <div class="mw-cell"><span class="dow">T3</span><span class="d">12</span><span class="lunar">21</span></div>
+      <div class="mw-cell"><span class="dow">T4</span><span class="d">13</span><span class="lunar">22</span></div>
+      <div class="mw-cell"><span class="dow">T5</span><span class="d">14</span><span class="lunar">23</span></div>
+      <div class="mw-cell"><span class="dow">T6</span><span class="d">15</span><span class="lunar">24</span></div>
+      <div class="mw-cell selected"><span class="dow">T7</span><span class="d">16</span><span class="lunar">25</span></div>
+    </div>
+
+    <div class="flip-area">
+      <div class="flip-page">
+        <!-- V2: streak badge nổi góc — style bằng token gold/deepRed v1 -->
+        <div class="streak-fab">🔥 27 ngày · x3</div>
+
+        <div class="big-date">16</div>
+        <div class="dow-big">Thứ Bảy</div>
+        <div class="lunar-big">25 tháng 9 · Ất Tỵ · Đinh Hợi</div>
+        <div class="swipe-hint">⇅ Vuốt để lật lịch</div>
+
+        <div class="quote">Cây muốn thẳng phải trồng cho ngay, người muốn tốt phải học điều hay.</div>
+
+        <div class="event-chips">
+          <span class="ec gold">★ Ngày Hoàng đạo</span>
+          <span class="ec good">✓ Tốt: Khai trương</span>
+          <span class="ec bad">✗ Xấu: An táng</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-item active" style="position:relative"><span class="ic">📅</span>Lịch</div>
+      <div class="nav-item"><span class="ic">✓</span>Công việc</div>
+      <div class="nav-item"><span class="ic">🤖</span>AI Chat</div>
+      <div class="nav-item"><span class="ic">📜</span>Mẫu</div>
+    </div>
+  </div></div>
+  <div class="phone-caption">
+    <h3>1. Home / Lịch — <code>HomeScreen.kt</code></h3>
+    <p>Giữ <b>toàn bộ</b>: RedHeader, tear-line, mini week strip, page-flip 3D, BigDate/Quote/EventChips. 
+    V2 chỉ <b>chèn</b>: (a) points-pill trong header (đồng style WeatherChip), (b) streak-fab góc tờ lịch (token gold + deepRed).</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     2. Rank-up DIALOG overlay (trên Home) — khi đủ điểm vĩnh viễn
+     ════════════════════════════════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone"><div class="screen">
+    <div class="status-bar"><span>9:41</span><span class="r">•••• 📶 🔋</span></div>
+    <div class="red-header">
+      <div class="row1">
+        <div class="icon-btn">☰</div>
+        <div class="weather-chip">☀️ <span>28°C</span><span class="city">Hà Nội</span></div>
+        <div class="icon-row"><div class="icon-btn bell">🔔<span class="badge"></span></div><div class="icon-btn">👤</div></div>
+      </div>
+      <div class="row2"><span class="yr">2025</span><span class="mo">Tháng 11</span><span class="dow">• Thứ Bảy</span></div>
+    </div>
+    <div class="tear-line"></div>
+    <div class="flip-area"><div class="flip-page" style="filter:blur(1px);opacity:.6">
+      <div class="big-date">16</div><div class="dow-big">Thứ Bảy</div>
+      <div class="lunar-big">25 tháng 9</div>
+    </div></div>
+
+    <!-- Rank up overlay dùng LichSoDialog style -->
+    <div class="overlay">
+      <div class="rank-up">
+        <div class="emo">✨</div>
+        <h2>Lên bậc!</h2>
+        <div class="ri">Bạn đã đạt 2,500 ☯️ điểm nghiệp</div>
+        <div class="new-rank">◈  ĐẠO SĨ  ◈</div>
+        <ul class="perks">
+          <li>Mở <b>Lá số Tử vi</b> không giới hạn</li>
+          <li>Trích dẫn hàng ngày có bản Hán-Nôm</li>
+          <li>Nền app thêm hoa văn "Đạo sĩ"</li>
+          <li>+1⚡ điểm ngày mỗi lần check-in</li>
+        </ul>
+        <button class="cta">Tuyệt vời</button>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-item active" style="position:relative"><span class="ic">📅</span>Lịch</div>
+      <div class="nav-item"><span class="ic">✓</span>Công việc</div>
+      <div class="nav-item"><span class="ic">🤖</span>AI Chat</div>
+      <div class="nav-item"><span class="ic">📜</span>Mẫu</div>
+    </div>
+  </div></div>
+  <div class="phone-caption">
+    <h3>2. Rank-up Dialog — dùng <code>LichSoDialog</code></h3>
+    <p>Overlay full-screen 55% đen + blur, dialog gold-border, primary CTA red. Chỉ là 1 Composable dialog, <b>không</b> tab mới, <b>không</b> route mới.</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     3. TASKS (Công việc) — NTRTab v1 + item streak check-in đặc biệt
+     ════════════════════════════════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone"><div class="screen">
+    <div class="status-bar dark-text"><span>9:41</span><span class="r">•••• 📶 🔋</span></div>
+
+    <!-- NTRTopBar: menu + title "Nhắc nhở" + add button -->
+    <div style="padding:14px 20px 10px;display:flex;align-items:center;gap:12px;background:var(--bg)">
+      <div style="width:36px;height:36px;border-radius:10px;background:#fff;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px">☰</div>
+      <div style="flex:1">
+        <div style="font-family:'Times New Roman',serif;font-size:20px;font-weight:700;color:var(--deep-red)">Nhắc nhở</div>
+        <div style="font-size:11px;color:var(--text-3)">3 việc hôm nay · Giữ streak 27🔥</div>
+      </div>
+      <div style="width:38px;height:38px;border-radius:12px;background:var(--remind-orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px">+</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat n"><div class="n">12</div><div class="l">Ghi chú</div></div>
+      <div class="stat t"><div class="n">5/8</div><div class="l">Công việc</div></div>
+      <div class="stat r"><div class="n">3</div><div class="l">Nhắc nhở</div></div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab-chip active orange">Nhắc nhở</div>
+      <div class="tab-chip">Ghi chú</div>
+      <div class="tab-chip">Công việc</div>
+    </div>
+
+    <div class="search-row">
+      <div class="inp">🔍 Tìm kiếm…</div>
+      <div style="width:38px;height:38px;border-radius:10px;background:#fff;border:1px solid var(--border);display:flex;align-items:center;justify-content:center">⚙️</div>
+    </div>
+
+    <div class="item-list">
+      <!-- V2: item streak check-in đặc biệt, nổi bật vàng -->
+      <div class="item streak">
+        <div class="check">✓</div>
+        <div style="flex:1">
+          <div class="title">Điểm danh hôm nay</div>
+          <div class="meta">
+            <span>🔥 Giữ streak 27 ngày</span>
+            <span class="tag" style="background:rgba(212,160,23,.2);color:var(--gold2)">+3⚡ +5☯️</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="item priority-1">
+        <div class="check"></div>
+        <div style="flex:1">
+          <div class="title">Thắp hương mùng 1</div>
+          <div class="meta"><span>07:00 · Âm 01/10</span><span class="tag" style="background:var(--remind-orange-bg);color:var(--remind-orange)">Gia đình</span></div>
+        </div>
+      </div>
+
+      <div class="item priority-2">
+        <div class="check"></div>
+        <div style="flex:1">
+          <div class="title">Họp dự án Lịch Số v2</div>
+          <div class="meta"><span>14:30 · Hôm nay</span><span class="tag" style="background:var(--note-blue-bg);color:var(--note-blue)">Công việc</span></div>
+        </div>
+      </div>
+
+      <div class="item done">
+        <div class="check">✓</div>
+        <div style="flex:1">
+          <div class="title">Đặt vé về quê giỗ tổ</div>
+          <div class="meta"><span>Hoàn thành · +2⚡</span></div>
+        </div>
+      </div>
+
+      <div class="item">
+        <div class="check"></div>
+        <div style="flex:1">
+          <div class="title">Uống thuốc buổi tối</div>
+          <div class="meta"><span>21:00 · Lặp hàng ngày</span><span class="tag" style="background:var(--task-green-bg);color:var(--task-green)">Sức khoẻ</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fab orange">+</div>
+
+    <div class="bottom-nav">
+      <div class="nav-item"><span class="ic">📅</span>Lịch</div>
+      <div class="nav-item active" style="position:relative"><span class="ic">✓</span>Công việc</div>
+      <div class="nav-item"><span class="ic">🤖</span>AI Chat</div>
+      <div class="nav-item"><span class="ic">📜</span>Mẫu</div>
+    </div>
+  </div></div>
+  <div class="phone-caption">
+    <h3>3. Tasks / Công việc — <code>TasksScreen3.kt</code></h3>
+    <p>Giữ nguyên NTRTopBar + StatsRow + TabRow + SearchRow. V2 chỉ thêm <b>1 item streak đặc biệt</b> trên cùng danh sách Nhắc nhở (style gold). Tick việc thường = +2⚡, tick streak = +3⚡ +5☯️.</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     4. AI CHAT — AIChatScreen.kt + DailyUnlockCard trên SuggestionChips
+     ════════════════════════════════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone"><div class="screen">
+    <div class="status-bar"><span>9:41</span><span class="r">•••• 📶 🔋</span></div>
+
+    <!-- AiChatHeader y chang code -->
+    <div class="red-header" style="padding-bottom:14px">
+      <div class="row1">
+        <div class="icon-btn">←</div>
+        <div style="flex:1;margin-left:4px">
+          <div style="font-size:17px;font-weight:700">Phong Thuỷ AI</div>
+          <div style="font-size:11px;opacity:.65;display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:#81C784;display:inline-block"></span>Đang trực tuyến</div>
+        </div>
+        <span style="color:#D4A017;font-size:20px;margin-right:8px">✨</span>
+        <div class="icon-btn">🗑</div>
+      </div>
+    </div>
+
+    <!-- V2: Daily unlock card, style đồng bộ unlock-card -->
+    <div class="unlock-card ready">
+      <div class="uc-head">
+        <div style="display:flex;gap:10px;flex:1">
+          <div class="uc-icon g">☯</div>
+          <div class="uc-text">
+            <h4>Thầy Số — Luận giải sâu</h4>
+            <p>Mở hôm nay: phân tích lá số Tử Vi + vận niên + giải đoán cho câu hỏi lớn</p>
+          </div>
+        </div>
+        <div class="uc-cost">−10 ⚡</div>
+      </div>
+      <button class="uc-btn gold">Mở bằng 10⚡ (còn 14⚡)</button>
+    </div>
+
+    <div class="chip-row">
+      <div class="label">GỢI Ý HỎI</div>
+      <div class="chip-scroll">
+        <div class="s-chip">📅 Hôm nay có hợp khai trương?</div>
+        <div class="s-chip">💑 Tuổi Ất Tỵ hợp tuổi nào?</div>
+        <div class="s-chip gold">★ Luận lá số của tôi</div>
+        <div class="s-chip">🏠 Hướng nhà tốt cho tuổi Sửu</div>
+      </div>
+    </div>
+
+    <div class="msgs">
+      <div class="bubble u">Hôm nay 16/11 có hợp xuất hành hướng Đông không anh?</div>
+      <div class="bubble a">
+        <div class="who">✨ Thầy Số</div>
+        Ngày 16/11 (25/9 Âm) là ngày <b>Hoàng đạo</b>, can chi <b>Đinh Hợi</b> — rất hợp hướng Đông Nam và Đông. 
+        Giờ tốt xuất hành: <b>Mão (5-7h)</b> và <b>Tị (9-11h)</b>. Tránh giờ Ngọ.
+      </div>
+      <div class="bubble u">Thế đi công tác chiều có ổn?</div>
+    </div>
+
+    <div class="input-bar">
+      <div class="inp">Hỏi điều gì đó…</div>
+      <div class="send">➤</div>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-item"><span class="ic">📅</span>Lịch</div>
+      <div class="nav-item"><span class="ic">✓</span>Công việc</div>
+      <div class="nav-item active" style="position:relative"><span class="ic">🤖</span>AI Chat</div>
+      <div class="nav-item"><span class="ic">📜</span>Mẫu</div>
+    </div>
+  </div></div>
+  <div class="phone-caption">
+    <h3>4. AI Chat — <code>AIChatScreen.kt</code></h3>
+    <p>Giữ <b>AiChatHeader · SuggestionChipsRow · ProfileCompletionBanner · LazyColumn bubbles · ChatInputBar</b>. V2 chèn 1 <b>DailyUnlockCard</b> (ready state) trên SuggestionChips — đồng style Material3 card hiện có.</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     5. AI CHAT — locked state (hết điểm ngày, gợi ý kiếm điểm)
+     ════════════════════════════════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone"><div class="screen">
+    <div class="status-bar"><span>9:41</span><span class="r">•••• 📶 🔋</span></div>
+    <div class="red-header" style="padding-bottom:14px">
+      <div class="row1">
+        <div class="icon-btn">←</div>
+        <div style="flex:1;margin-left:4px">
+          <div style="font-size:17px;font-weight:700">Phong Thuỷ AI</div>
+          <div style="font-size:11px;opacity:.65">Đang trực tuyến</div>
+        </div>
+        <span style="color:#D4A017;font-size:20px;margin-right:8px">✨</span>
+        <div class="icon-btn">🗑</div>
+      </div>
+    </div>
+
+    <!-- locked state -->
+    <div class="unlock-card locked">
+      <div class="uc-head">
+        <div style="display:flex;gap:10px;flex:1">
+          <div class="uc-icon g">🔒</div>
+          <div class="uc-text">
+            <h4>Thầy Số — Luận giải sâu</h4>
+            <p>Cần 10⚡ điểm ngày. Bạn còn 4⚡ — kiếm thêm để mở khoá hôm nay.</p>
+          </div>
+        </div>
+      </div>
+      <div class="uc-progress"><div class="fill" style="width:40%"></div></div>
+      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <span class="s-chip" style="font-size:10px;padding:5px 10px">✓ Check-in +3⚡</span>
+        <span class="s-chip" style="font-size:10px;padding:5px 10px">✓ Hoàn thành 3 việc +3⚡</span>
+        <span class="s-chip gold" style="font-size:10px;padding:5px 10px">★ Rút quẻ +2⚡</span>
+      </div>
+      <button class="uc-btn disabled">Thiếu 6⚡</button>
+    </div>
+
+    <div class="chip-row">
+      <div class="label">GỢI Ý HỎI</div>
+      <div class="chip-scroll">
+        <div class="s-chip">📅 Hôm nay có hợp khai trương?</div>
+        <div class="s-chip">💑 Tuổi Ất Tỵ hợp tuổi nào?</div>
+        <div class="s-chip">🏠 Hướng nhà tốt</div>
+      </div>
+    </div>
+
+    <div class="msgs">
+      <div class="bubble a"><div class="who">✨ Thầy Số</div>Xin chào! Hãy chọn 1 câu hỏi gợi ý hoặc nhập trực tiếp.</div>
+    </div>
+
+    <div class="input-bar">
+      <div class="inp">Hỏi điều gì đó…</div>
+      <div class="send">➤</div>
+    </div>
+
+    <!-- Toast +point xuất hiện khi mới tick xong 1 việc -->
+    <div class="toast-pts">✓ Hoàn thành việc — <span class="pt">+2⚡</span></div>
+
+    <div class="bottom-nav">
+      <div class="nav-item"><span class="ic">📅</span>Lịch</div>
+      <div class="nav-item"><span class="ic">✓</span>Công việc</div>
+      <div class="nav-item active" style="position:relative"><span class="ic">🤖</span>AI Chat</div>
+      <div class="nav-item"><span class="ic">📜</span>Mẫu</div>
+    </div>
+  </div></div>
+  <div class="phone-caption">
+    <h3>5. AI Chat — Unlock Card Locked + Toast</h3>
+    <p>State khi không đủ ⚡ điểm ngày. Card hiển thị tiến độ + <b>UnlockSuggester</b> (gợi ý 3 hành động nhanh để kiếm điểm). Toast trên cùng là Snackbar custom (+2⚡).</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     6. TEMPLATES (Mẫu) — TemplatesScreen.kt + thêm tab "Bói toán" với Rút quẻ
+     ════════════════════════════════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone"><div class="screen">
+    <div class="status-bar dark-text"><span>9:41</span><span class="r">•••• 📶 🔋</span></div>
+
+    <!-- Header style TemplatesScreen: serif 22sp gold2 -->
+    <div style="padding:14px 20px 6px;background:var(--bg);display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-family:'Times New Roman',serif;font-size:22px;color:var(--gold2)">Mẫu tra cứu</div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:2px">18 mẫu · 2 mới v2</div>
+      </div>
+      <div class="points-pill" style="background:rgba(212,160,23,.15);border-color:rgba(212,160,23,.35);color:var(--gold2)">
+        <span>⚡ <span class="v" style="color:var(--amber)">14</span></span>
+      </div>
+    </div>
+
+    <div class="tabs" style="padding-top:10px">
+      <div class="tab-chip active">Tất cả</div>
+      <div class="tab-chip">Lễ nghi</div>
+      <div class="tab-chip">Sự kiện</div>
+      <div class="tab-chip">Phong thuỷ</div>
+      <!-- V2: tab mới -->
+      <div class="tab-chip" style="border-color:var(--gold);color:var(--gold2);background:#FFF8E1">★ Bói toán</div>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;padding-top:6px">
+      <!-- V2 NEW: Rút quẻ -->
+      <div class="tpl-card">
+        <div class="icon" style="background:linear-gradient(135deg,#D4A017,#E65100)">🎋</div>
+        <div style="flex:1">
+          <h5>Rút quẻ đầu ngày</h5>
+          <p>Quẻ Kinh Dịch · Miễn phí 1 quẻ/ngày · +2⚡</p>
+        </div>
+        <span class="badge new">NEW</span>
+      </div>
+
+      <!-- V2 NEW: Xin xăm -->
+      <div class="tpl-card">
+        <div class="icon" style="background:linear-gradient(135deg,#B71C1C,#8B0000)">🎴</div>
+        <div style="flex:1">
+          <h5>Xin xăm đền Ngọc Sơn</h5>
+          <p>100 quẻ xăm có diễn giải · Mở bằng 5⚡</p>
+        </div>
+        <span class="badge premium">5⚡</span>
+      </div>
+
+      <!-- Existing -->
+      <div class="tpl-card">
+        <div class="icon" style="background:linear-gradient(135deg,#BF360C,#E65100)">🔥</div>
+        <div style="flex:1"><h5>Văn khấn gia tiên mùng 1</h5><p>Lễ nghi · 12 bản</p></div>
+      </div>
+      <div class="tpl-card">
+        <div class="icon" style="background:linear-gradient(135deg,#2E7D32,#66BB6A)">☀️</div>
+        <div style="flex:1"><h5>Chọn ngày tốt khai trương</h5><p>Sự kiện · Theo tuổi</p></div>
+      </div>
+      <div class="tpl-card">
+        <div class="icon" style="background:linear-gradient(135deg,#1E88E5,#26A69A)">🏠</div>
+        <div style="flex:1"><h5>Hướng nhà theo mệnh</h5><p>Phong thuỷ · 8 cung</p></div>
+      </div>
+      <div class="tpl-card">
+        <div class="icon" style="background:linear-gradient(135deg,#C2185B,#E91E63)">♥</div>
+        <div style="flex:1"><h5>Xem tuổi vợ chồng</h5><p>Phong thuỷ · Tương sinh tương khắc</p></div>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-item"><span class="ic">📅</span>Lịch</div>
+      <div class="nav-item"><span class="ic">✓</span>Công việc</div>
+      <div class="nav-item"><span class="ic">🤖</span>AI Chat</div>
+      <div class="nav-item active" style="position:relative"><span class="ic">📜</span>Mẫu</div>
+    </div>
+  </div></div>
+  <div class="phone-caption">
+    <h3>6. Templates / Mẫu — <code>TemplatesScreen.kt</code></h3>
+    <p>Giữ header serif gold2, TabChip v1, card list. V2: thêm 1 tab "<b>Bói toán</b>" + 2 TemplateItem mới (Rút quẻ, Xin xăm) dùng đúng TemplateCard composable. Điểm pill ở góc phải chỉ hiển thị ⚡.</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     7. PROFILE screen — mở từ icon 👤 header. Là ProfileScreen đã có
+     ════════════════════════════════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone"><div class="screen">
+    <div class="status-bar"><span>9:41</span><span class="r">•••• 📶 🔋</span></div>
+
+    <!-- AppTopBar back + title "Cá nhân" -->
+    <div class="red-header" style="padding-bottom:14px">
+      <div class="row1">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="icon-btn">←</div>
+          <div>
+            <div style="font-size:20px;font-weight:700">Cá nhân</div>
+            <div style="font-size:12px;opacity:.65">Hành trình tu tập của bạn</div>
+          </div>
+        </div>
+        <div class="icon-btn">⚙️</div>
+      </div>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;padding-bottom:16px">
+      <!-- Rank hero -->
+      <div class="rank-hero">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="rank-sub">◈ Bậc 3 / 6 ◈</div>
+            <div class="rank-name">Thông Thạo</div>
+          </div>
+          <div style="font-size:48px;line-height:1">🎋</div>
+        </div>
+        <div class="rank-stats">
+          <div class="rs-item"><div class="v">2,450</div><div class="l">☯️ Nghiệp</div></div>
+          <div class="rs-item"><div class="v">27</div><div class="l">🔥 Streak</div></div>
+          <div class="rs-item"><div class="v">x3</div><div class="l">⚡ Hệ số</div></div>
+        </div>
+        <div class="rank-progress">
+          <div class="lbl"><span>Đạo Sĩ (bậc kế tiếp)</span><span>2,450 / 2,500</span></div>
+          <div class="bar"><div class="f" style="width:98%"></div></div>
+        </div>
+      </div>
+
+      <div class="section-head">★ Mở khoá hôm nay (⚡ 14)</div>
+
+      <!-- Mini unlock list -->
+      <div class="unlock-card ready" style="margin:0 16px 8px;padding:12px">
+        <div class="uc-head">
+          <div style="display:flex;gap:10px;flex:1">
+            <div class="uc-icon g">☯</div>
+            <div class="uc-text"><h4 style="font-size:13px">Thầy Số — Luận sâu</h4><p style="font-size:11px">Mở AI Chat chế độ chuyên gia</p></div>
+          </div>
+          <div class="uc-cost">10⚡</div>
+        </div>
+      </div>
+      <div class="unlock-card" style="margin:0 16px 8px;padding:12px">
+        <div class="uc-head">
+          <div style="display:flex;gap:10px;flex:1">
+            <div class="uc-icon r">🎴</div>
+            <div class="uc-text"><h4 style="font-size:13px">Xin xăm</h4><p style="font-size:11px">100 quẻ đền Ngọc Sơn</p></div>
+          </div>
+          <div class="uc-cost">5⚡</div>
+        </div>
+      </div>
+      <div class="unlock-card unlocked" style="margin:0 16px 8px;padding:12px">
+        <div class="uc-head">
+          <div style="display:flex;gap:10px;flex:1">
+            <div class="uc-icon t">✓</div>
+            <div class="uc-text"><h4 style="font-size:13px">Rút quẻ Dịch</h4><p style="font-size:11px">Đã mở · còn 3 lượt</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-head">📒 Nhật ký điểm</div>
+
+      <div class="ledger-item">
+        <div class="l"><div class="ic">🔥</div><div><div class="t">Check-in streak (ngày 27)</div><div class="d">08:02 · Hôm nay</div></div></div>
+        <div class="v pos">+3⚡ +5☯️</div>
+      </div>
+      <div class="ledger-item">
+        <div class="l"><div class="ic">✓</div><div><div class="t">Hoàn thành 1 việc</div><div class="d">09:14 · Hôm nay</div></div></div>
+        <div class="v pos">+2⚡</div>
+      </div>
+      <div class="ledger-item">
+        <div class="l"><div class="ic">🎋</div><div><div class="t">Rút quẻ đầu ngày</div><div class="d">09:20 · Hôm nay</div></div></div>
+        <div class="v pos">+2⚡</div>
+      </div>
+      <div class="ledger-item">
+        <div class="l"><div class="ic">🎴</div><div><div class="t">Mở Xin xăm</div><div class="d">09:30 · Hôm nay</div></div></div>
+        <div class="v neg">−5⚡</div>
+      </div>
+      <div class="ledger-item">
+        <div class="l"><div class="ic">📖</div><div><div class="t">Đọc văn khấn</div><div class="d">Hôm qua</div></div></div>
+        <div class="v pos">+1⚡</div>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-item active" style="position:relative"><span class="ic">📅</span>Lịch</div>
+      <div class="nav-item"><span class="ic">✓</span>Công việc</div>
+      <div class="nav-item"><span class="ic">🤖</span>AI Chat</div>
+      <div class="nav-item"><span class="ic">📜</span>Mẫu</div>
+    </div>
+  </div></div>
+  <div class="phone-caption">
+    <h3>7. Profile / Cá nhân — <code>ProfileScreen</code> (mở từ icon 👤 trong RedHeader)</h3>
+    <p><b>KHÔNG</b> phải tab mới. Là màn hình <code>profile/</code> đã có trong v1, ta chỉ thêm 3 section: 
+    <i>Rank Hero</i> (MD3 card gradient deepRed) · <i>Daily Unlocks</i> · <i>Points Ledger</i>. Dùng lại AppTopBar.</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     8. TOOLS drawer screen — ToolsScreen.kt + card streak ở trên
+     ════════════════════════════════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone"><div class="screen">
+    <div class="status-bar"><span>9:41</span><span class="r">•••• 📶 🔋</span></div>
+
+    <div class="red-header" style="padding-bottom:14px">
+      <div class="row1">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="icon-btn">☰</div>
+          <div>
+            <div style="font-size:20px;font-weight:700">Tiện ích</div>
+            <div style="font-size:12px;opacity:.65">Khám phá công cụ hữu ích</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;padding:14px 16px 16px">
+      <!-- V2: small streak summary card -->
+      <div style="background:linear-gradient(135deg,#FFF3E0,#FFFBF5);border:1.5px solid var(--gold);border-radius:14px;padding:14px;margin-bottom:14px;display:flex;gap:14px;align-items:center">
+        <div style="font-size:36px">🔥</div>
+        <div style="flex:1">
+          <div style="font-family:'Times New Roman',serif;font-size:16px;font-weight:700;color:var(--deep-red)">27 ngày giữ streak</div>
+          <div style="font-size:11px;color:var(--text-2);margin-top:2px">Bậc Thông Thạo · x3 điểm · còn 3 ngày đến bậc kế</div>
+        </div>
+        <div style="font-size:18px;color:var(--text-3)">›</div>
+      </div>
+
+      <!-- 2-col grid giống ToolsScreen LazyVerticalGrid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="background:linear-gradient(135deg,#D32F2F,#7B1FA2);border-radius:14px;padding:16px;color:#fff;position:relative;aspect-ratio:1/.95">
+          <div style="font-size:26px">✨</div>
+          <div style="font-size:13px;font-weight:700;margin-top:26px">Tử vi AI</div>
+          <div style="font-size:10px;opacity:.85;margin-top:2px">Phân tích vận mệnh</div>
+          <span style="position:absolute;top:10px;right:10px;background:var(--gold);color:#fff;font-size:9px;padding:2px 6px;border-radius:4px;font-weight:800">AI</span>
+        </div>
+        <div style="background:linear-gradient(135deg,#1E88E5,#26A69A);border-radius:14px;padding:16px;color:#fff;aspect-ratio:1/.95">
+          <div style="font-size:26px">🌳</div>
+          <div style="font-size:13px;font-weight:700;margin-top:26px">Cây gia phả</div>
+          <div style="font-size:10px;opacity:.85;margin-top:2px">Quản lý gia tộc</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#E65100,#F9A825);border-radius:14px;padding:16px;color:#fff;aspect-ratio:1/.95">
+          <div style="font-size:26px">📜</div>
+          <div style="font-size:13px;font-weight:700;margin-top:26px">Ngày này năm xưa</div>
+          <div style="font-size:10px;opacity:.85;margin-top:2px">Sự kiện lịch sử</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#2E7D32,#66BB6A);border-radius:14px;padding:16px;color:#fff;aspect-ratio:1/.95">
+          <div style="font-size:26px">☀️</div>
+          <div style="font-size:13px;font-weight:700;margin-top:26px">Ngày tốt / xấu</div>
+          <div style="font-size:10px;opacity:.85;margin-top:2px">Hoàng đạo · Hắc đạo</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#C2185B,#E91E63);border-radius:14px;padding:16px;color:#fff;aspect-ratio:1/.95">
+          <div style="font-size:26px">♥</div>
+          <div style="font-size:13px;font-weight:700;margin-top:26px">Xem tuổi hợp</div>
+          <div style="font-size:10px;opacity:.85;margin-top:2px">Tương sinh · Tương khắc</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#BF360C,#E65100);border-radius:14px;padding:16px;color:#fff;aspect-ratio:1/.95">
+          <div style="font-size:26px">🔥</div>
+          <div style="font-size:13px;font-weight:700;margin-top:26px">Văn khấn</div>
+          <div style="font-size:10px;opacity:.85;margin-top:2px">Bài cúng truyền thống</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-item active" style="position:relative"><span class="ic">📅</span>Lịch</div>
+      <div class="nav-item"><span class="ic">✓</span>Công việc</div>
+      <div class="nav-item"><span class="ic">🤖</span>AI Chat</div>
+      <div class="nav-item"><span class="ic">📜</span>Mẫu</div>
+    </div>
+  </div></div>
+  <div class="phone-caption">
+    <h3>8. Tools / Tiện ích — <code>ToolsScreen.kt</code> (drawer)</h3>
+    <p>Giữ LazyVerticalGrid 2 cột với 8 ToolItem gradient như v1. V2 chỉ thêm 1 <b>streak summary card</b> ở trên cùng grid — click mở ProfileScreen.</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     9. HOME dark mode — kiểm chứng palette DarkColors
+     ════════════════════════════════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone" style="background:#0F0E0C">
+    <div class="screen" style="background:#0F0E0C;color:#F0E8D0">
+      <div class="status-bar"><span>9:41</span><span class="r">•••• 📶 🔋</span></div>
+
+      <div style="background:linear-gradient(135deg,#5D1212,#7F1D1D,#4A1010);padding:0 24px 16px;color:#fff">
+        <div class="row1" style="padding-top:6px">
+          <div class="icon-btn">☰</div>
+          <div class="weather-chip">🌙 <span>22°C</span><span class="city">Hà Nội</span></div>
+          <div class="icon-row"><div class="icon-btn bell">🔔<span class="badge" style="background:#E8C84A"></span></div><div class="icon-btn">👤</div></div>
+        </div>
+        <div class="row2"><span class="yr">2025</span><span class="mo">Tháng 11</span><span class="dow">• Thứ Bảy</span></div>
+        <div style="margin-top:10px">
+          <div class="points-pill" style="background:rgba(232,200,74,.18);border-color:rgba(245,217,110,.4)">
+            <span>⚡ <span class="v">14</span></span><span class="sep"></span>
+            <span>☯️ <span class="v">2,450</span></span><span class="sep"></span>
+            <span>🔥 <span class="v">27</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:12px;background:#0F0E0C;position:relative">
+        <div style="position:absolute;top:6px;left:16px;right:16px;border-top:1.5px dashed #4A4435"></div>
+      </div>
+
+      <div class="mini-week" style="padding:10px 14px 8px">
+        <div class="mw-cell" style="color:#E87070"><span class="dow" style="color:#E87070">CN</span><span class="d" style="color:#E87070">10</span><span class="lunar" style="color:#8A7E62">19/9</span></div>
+        <div class="mw-cell"><span class="dow" style="color:#8A7E62">T2</span><span class="d" style="color:#F0E8D0">11</span><span class="lunar" style="color:#8A7E62">20</span></div>
+        <div class="mw-cell"><span class="dow" style="color:#8A7E62">T3</span><span class="d" style="color:#F0E8D0">12</span><span class="lunar" style="color:#8A7E62">21</span></div>
+        <div class="mw-cell"><span class="dow" style="color:#8A7E62">T4</span><span class="d" style="color:#F0E8D0">13</span><span class="lunar" style="color:#8A7E62">22</span></div>
+        <div class="mw-cell"><span class="dow" style="color:#8A7E62">T5</span><span class="d" style="color:#F0E8D0">14</span><span class="lunar" style="color:#8A7E62">23</span></div>
+        <div class="mw-cell"><span class="dow" style="color:#8A7E62">T6</span><span class="d" style="color:#F0E8D0">15</span><span class="lunar" style="color:#8A7E62">24</span></div>
+        <div class="mw-cell" style="background:#EF5350;border-radius:10px"><span class="dow" style="color:#fff">T7</span><span class="d" style="color:#fff">16</span><span class="lunar" style="color:#fff">25</span></div>
+      </div>
+
+      <div style="flex:1;padding:4px 20px 10px;position:relative">
+        <div style="height:100%;border-radius:14px;border:2px solid #2A2720;background:#181610;display:flex;flex-direction:column;align-items:center;padding:24px 0;position:relative">
+          <div class="streak-fab" style="background:linear-gradient(135deg,#2A2720,#363228);color:#F5D96E;border-color:#E8C84A">🔥 27 ngày · x3</div>
+          <div style="font-family:'Times New Roman',serif;font-size:148px;line-height:.88;color:#EF5350;font-weight:900">16</div>
+          <div style="font-size:20px;color:#B8AA88;font-weight:600;letter-spacing:2px;text-transform:uppercase">Thứ Bảy</div>
+          <div style="margin-top:14px;font-family:'Times New Roman',serif;font-size:16px;color:#F5D96E;font-style:italic">25 tháng 9 · Ất Tỵ · Đinh Hợi</div>
+          <div style="margin-top:18px;font-family:'Times New Roman',serif;font-style:italic;font-size:13px;color:#B8AA88;text-align:center;padding:0 22px">“ Cây muốn thẳng phải trồng cho ngay.</div>
+          <div class="event-chips" style="margin-top:16px">
+            <span class="ec" style="background:#2A2720;border-color:#E8C84A;color:#F5D96E">★ Hoàng đạo</span>
+            <span class="ec" style="background:#2A2720;border-color:#81C784;color:#81C784">✓ Khai trương</span>
+            <span class="ec" style="background:#2A2720;border-color:#EF5350;color:#EF5350">✗ An táng</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-nav" style="background:#211F1A;border-color:#2A2720">
+        <div class="nav-item active" style="position:relative;color:#EF5350"><span class="ic">📅</span>Lịch</div>
+        <div class="nav-item" style="color:#8A7E62"><span class="ic">✓</span>Công việc</div>
+        <div class="nav-item" style="color:#8A7E62"><span class="ic">🤖</span>AI Chat</div>
+        <div class="nav-item" style="color:#8A7E62"><span class="ic">📜</span>Mẫu</div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-caption">
+    <h3>9. Home — Dark mode (<code>DarkColors</code>)</h3>
+    <p>Kiểm chứng palette tối: bg <code>#0F0E0C</code>, primary <code>#EF5350</code>, gold <code>#E8C84A</code>, text <code>#F0E8D0</code>. RedHeader đổi sang bộ 3 tối <code>#5D1212 / #7F1D1D / #4A1010</code> đúng như code.</p>
+  </div>
+</div>
+
+</div><!-- /grid -->
+
+<div style="max-width:1440px;margin:48px auto 0;padding:24px;background:#fff;border-radius:16px;border:1px solid var(--border)">
+  <h2 style="font-family:'Times New Roman',serif;color:var(--deep-red);font-size:22px">Nguyên tắc kế thừa từ v1</h2>
+  <ul style="margin-top:10px;color:var(--text-2);font-size:14px;line-height:1.7;padding-left:22px">
+    <li><b>Không đẻ thêm tab</b> ở bottom nav — vẫn 4: Lịch / Công việc / AI Chat / Mẫu (khớp <code>Screen.bottomNavItems</code>).</li>
+    <li><b>Không đổi palette</b> — chỉ dùng token trong <code>LichSoColors</code>; <code>--energy</code> map về <code>c.neutralAmber</code>, <code>--karma</code> map về <code>c.gold</code>.</li>
+    <li><b>Tái sử dụng Composable sẵn có</b>: <code>AppTopBar</code>, <code>HeaderIconButton</code>, <code>CalendarPatternBackground</code>, <code>LichSoDialog</code>, <code>TemplateCard</code>, <code>ChatBubble</code>.</li>
+    <li><b>PointsEngine chỉ xuất hiện ở 4 vị trí</b>: (1) pill trong RedHeader Home, (2) streak-fab góc tờ lịch, (3) UnlockCard trong Chat & Templates, (4) Rank/Ledger trong ProfileScreen.</li>
+    <li><b>Rank-up</b> là 1 dialog (dùng <code>LichSoDialog</code> hoặc Composable mới cùng pattern), <b>không</b> route riêng.</li>
+  </ul>
+</div>
+
+</body>
+</html>

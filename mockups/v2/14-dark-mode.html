@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8" />
+<title>14 · Home Dark mode — Lịch Số v2</title>
+<link rel="stylesheet" href="assets/common.css" />
+<style>
+  .screen.dark { background: #0F0E0C !important; color: #F0E8D0; }
+  .screen.dark .red-header { background: linear-gradient(180deg, #5D1212, #7F1D1D 55%, #4A1010 100%); }
+  .screen.dark .bottom-nav { background: #181610; border-color: #2A2720; }
+  .screen.dark .bnav-item { color: #8A7E62; }
+  .screen.dark .bnav-item.active { color: #E8C84A; }
+  .screen.dark .bnav-item.active .ic-pill { background: rgba(232,200,74,.14); }
+  .screen.dark .mini-week { background: #0F0E0C; }
+  .screen.dark .mw { background: transparent; }
+  .screen.dark .mw .d { color: #F0E8D0; }
+  .screen.dark .mw.today { background: #E8C84A; }
+  .screen.dark .mw.today .dow, .screen.dark .mw.today .d, .screen.dark .mw.today .ln { color: #1C1B1F; }
+  .screen.dark .mw.sun .d, .screen.dark .mw.sun .dow { color: #E87070; }
+  .screen.dark .flip-d {
+    flex:1; margin: 6px 16px 10px; background: #181610; border: 2px solid #2A2720;
+    border-radius: 16px; padding: 22px 0; display:flex; flex-direction:column; align-items:center; position:relative;
+  }
+  .screen.dark .big-date-d {
+    font-family:"Times New Roman",serif; font-size: 140px; line-height:.9; font-weight:900; color:#EF5350;
+  }
+  .screen.dark .dow-d { font-size:20px; color:#B8AA88; letter-spacing:2px; text-transform:uppercase; font-weight:600; }
+  .screen.dark .lun-d { font-family:"Times New Roman",serif; font-size:16px; color:#F5D96E; font-style:italic; margin-top:10px; }
+  .screen.dark .q-d { font-family:"Times New Roman",serif; font-style:italic; font-size:13px; color:#B8AA88; padding:18px 28px 0; text-align:center; }
+  .screen.dark .streak-fab-d {
+    position:absolute; top:10px; left:10px;
+    background: linear-gradient(135deg, #2A2720, #363228); border: 1.5px solid #E8C84A; color: #F5D96E;
+    font-size:11px; font-weight:800; padding:5px 10px; border-radius:999px;
+  }
+  .screen.dark .pts-pill-d {
+    display:inline-flex; gap:10px; align-items:center;
+    background: rgba(232,200,74,.14); border: 1px solid rgba(245,217,110,.4);
+    padding:5px 12px; border-radius:999px; color:#F0E8D0; font-size:12px; font-weight:700;
+  }
+  .screen.dark .ev-d {
+    display:flex; gap:6px; margin-top:14px; justify-content:center; flex-wrap:wrap;
+  }
+  .screen.dark .ev-d span { font-size:11px; font-weight:700; padding:4px 10px; border-radius:999px; background:#2A2720; }
+  .screen.dark .ev-d .gold { border:1px solid #E8C84A; color:#F5D96E; }
+  .screen.dark .ev-d .green { border:1px solid #81C784; color:#81C784; }
+  .screen.dark .ev-d .red { border:1px solid #EF5350; color:#EF5350; }
+  .screen.dark .fab-today { background:#EF5350; border-color:#181610; color:#fff; box-shadow:0 6px 16px rgba(239,83,80,.45); }
+  .screen.dark .ai-bubble { background:#EF5350; box-shadow:0 8px 22px rgba(239,83,80,.55); }
+</style></head><body>
+<div class="page-hero">
+  <h1>14 · Home · Dark mode <em>— DarkColors</em></h1>
+  <p>Kiểm chứng palette tối khớp <code>LichSoColors.Dark</code>: bg <code>#0F0E0C</code>, gold <code>#E8C84A</code>, text <code>#F0E8D0</code>, header <code>#5D1212 → #4A1010</code>.</p>
+  <div class="nav-links"><a href="index.html">← Tất cả</a><a href="01-home.html">↔ So với Light</a></div>
+</div>
+
+<div class="phone-page">
+<div class="phone" style="background:#000"><div class="screen dark">
+  <div class="status-bar"><span>9:41</span><span class="r">📶 4G 87%</span></div>
+
+  <div class="red-header">
+    <div class="hdr-row">
+      <div class="hamburger">☰</div>
+      <div class="hdr-title" style="display:flex;align-items:center;gap:10px">
+        <span>🌙</span>
+        <div>
+          <div style="font-size:14px;font-weight:700">22°C</div>
+          <div style="font-size:11px;opacity:.8">Hà Nội</div>
+        </div>
+      </div>
+      <div class="hdr-action">🔔</div>
+      <div class="hdr-action">👤</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:baseline;padding:10px 0 0">
+      <span style="font-family:'Times New Roman',serif;font-size:22px;font-weight:700">2025</span>
+      <span style="font-size:18px;font-weight:600">Tháng 11</span>
+      <span style="font-size:13px;opacity:.75">• Thứ Bảy</span>
+    </div>
+    <div style="margin-top:10px">
+      <span class="pts-pill-d">
+        <span>⚡ <span style="color:#F5D96E">14</span></span>
+        <span style="width:1px;height:12px;background:rgba(245,217,110,.3)"></span>
+        <span>☯️ <span style="color:#F5D96E">2,450</span></span>
+        <span style="width:1px;height:12px;background:rgba(245,217,110,.3)"></span>
+        <span>🔥 <span style="color:#F5D96E">27</span></span>
+      </span>
+    </div>
+  </div>
+
+  <div style="height:10px;position:relative;background:#0F0E0C">
+    <div style="position:absolute;top:4px;left:16px;right:16px;border-top:1.5px dashed #4A4435"></div>
+  </div>
+
+  <div class="mini-week">
+    <div class="mw sun"><span class="dow">CN</span><span class="d">10</span><span class="ln">19/9</span></div>
+    <div class="mw"><span class="dow">T2</span><span class="d">11</span><span class="ln">20</span></div>
+    <div class="mw"><span class="dow">T3</span><span class="d">12</span><span class="ln">21</span></div>
+    <div class="mw"><span class="dow">T4</span><span class="d">13</span><span class="ln">22</span></div>
+    <div class="mw"><span class="dow">T5</span><span class="d">14</span><span class="ln">23</span></div>
+    <div class="mw"><span class="dow">T6</span><span class="d">15</span><span class="ln">24</span></div>
+    <div class="mw today"><span class="dow">T7</span><span class="d">16</span><span class="ln">25</span></div>
+  </div>
+
+  <div class="flip-d">
+    <div class="streak-fab-d">🔥 27 ngày · x3</div>
+    <div class="big-date-d">16</div>
+    <div class="dow-d">Thứ Bảy</div>
+    <div class="lun-d">25 tháng 9 · Ất Tỵ · Đinh Hợi</div>
+    <div class="q-d">"Cây muốn thẳng phải trồng cho ngay."</div>
+    <div class="ev-d">
+      <span class="gold">★ Hoàng đạo</span>
+      <span class="green">✓ Khai trương</span>
+      <span class="red">✗ An táng</span>
+    </div>
+  </div>
+
+  <div class="ai-bubble">✨<span class="badge">AI</span></div>
+
+  <div class="bottom-nav-wrap">
+    <div class="bottom-nav">
+      <div class="bnav-item active"><span class="ic ic-pill">📅</span>Lịch tháng</div>
+      <div class="bnav-item"><span class="ic">✍️</span>Ghi chú</div>
+      <div class="bnav-center"><div class="fab-today">16</div><div class="fab-lb" style="color:#8A7E62">Hôm nay</div></div>
+      <div class="bnav-item"><span class="ic">📖</span>Văn Khấn</div>
+      <div class="bnav-item"><span class="ic">▦</span>Tiện ích</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="caption">
+  <h2>14 · Dark mode</h2>
+  <p>Các thay đổi chính khi <code>isDark = true</code>:</p>
+  <ul>
+    <li>RedHeader dùng bộ 3 đỏ sẫm <code>#5D1212 / #7F1D1D / #4A1010</code>.</li>
+    <li>Primary đổi sang <code>#EF5350</code> (coral) để không chói trên nền tối.</li>
+    <li>BigDate màu primary, streak-fab background <code>surface2</code> viền gold.</li>
+    <li>Mini-week ngày CN đổi qua <code>noteRed #E87070</code> (thay vì đỏ sẫm).</li>
+  </ul>
+  <div class="meta-row">
+    <span class="chip primary">DarkColors</span>
+    <span class="chip gold">coral #EF5350</span>
+    <span class="chip">header 5D1212</span>
+  </div>
+</div>
+</div>
+</body></html>

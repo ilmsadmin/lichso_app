@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8" />
+<title>11 · Rank-up Dialog — Lịch Số v2</title>
+<link rel="stylesheet" href="assets/common.css" />
+</head><body>
+<div class="page-hero">
+  <h1>11 · Rank-up Dialog <em>— LichSoDialog + RankUpContent <span style="color:var(--gold-2)">(NEW v2)</span></em></h1>
+  <p>Overlay full-screen 55% đen + blur, <b>không</b> route mới. Trigger khi ☯️ chạm ngưỡng bậc tiếp theo.</p>
+  <div class="nav-links"><a href="index.html">← Tất cả</a><a href="01-home.html">Home bên dưới</a></div>
+</div>
+
+<div class="phone-page">
+<div class="phone"><div class="screen">
+
+  <!-- Background: Home với blur -->
+  <div class="status-bar"><span>9:41</span><span class="r">📶 4G 87%</span></div>
+  <div class="red-header">
+    <div class="hdr-row">
+      <div class="hamburger">☰</div>
+      <div class="hdr-title" style="flex:1"><div class="t">2025 · Tháng 11</div><div class="s">Thứ Bảy</div></div>
+      <div class="hdr-action">🔔</div>
+      <div class="hdr-action">👤</div>
+    </div>
+  </div>
+  <div style="flex:1; padding:20px; filter: blur(3px); opacity:.55">
+    <div style="background:#fff;border-radius:16px;border:2px solid var(--border-strong);height:100%;display:flex;flex-direction:column;align-items:center;padding:30px 0;">
+      <div style="font-family:'Times New Roman',serif;font-size:140px;color:var(--primary);font-weight:900;line-height:.9">16</div>
+      <div style="font-size:22px;color:var(--text-2);letter-spacing:2px">THỨ BẢY</div>
+      <div style="font-family:'Times New Roman',serif;color:var(--gold-2);font-style:italic;margin-top:12px">25/9 · Ất Tỵ</div>
+    </div>
+  </div>
+  <div class="bottom-nav-wrap" style="filter:blur(2px);opacity:.7">
+    <div class="bottom-nav">
+      <div class="bnav-item"><span class="ic">📅</span>Lịch tháng</div>
+      <div class="bnav-item"><span class="ic">✍️</span>Ghi chú</div>
+      <div class="bnav-center"><div class="fab-today">17</div><div class="fab-lb">Hôm nay</div></div>
+      <div class="bnav-item"><span class="ic">📖</span>Văn Khấn</div>
+      <div class="bnav-item"><span class="ic">▦</span>Tiện ích</div>
+    </div>
+  </div>
+
+  <!-- Overlay dialog -->
+  <div class="overlay">
+    <div class="rank-up">
+      <div class="emo">🎖️✨</div>
+      <h2>Chúc mừng thăng bậc!</h2>
+      <div class="ri">Bạn đã vượt qua 2,500 ☯️ nghiệp tích</div>
+      <div class="new-rank">Đạo Sĩ</div>
+      <ul class="perks">
+        <li>Mở khoá <b>Xin xăm cầu an</b> (chi phí giảm còn 3⚡)</li>
+        <li>Hệ số kiếm điểm lên <b>x3.5</b></li>
+        <li>Khung avatar vàng trong Profile</li>
+        <li>Quẻ đầu ngày có lời giải chi tiết hơn</li>
+      </ul>
+      <button class="cta">Tiếp tục hành trình</button>
+    </div>
+  </div>
+
+</div></div>
+
+<div class="caption">
+  <h2>11 · Rank-up Dialog <span class="tag new">NEW</span></h2>
+  <p>Dùng đúng <code>LichSoDialog</code> pattern của v1 — overlay full-screen, surface gradient cream → trắng, viền <code>gold</code> 2dp, CTA <code>primary</code>. <b>Không</b> tạo route mới.</p>
+  <ul>
+    <li>Trigger: <code>PointsEngine.emitRankUp</code> khi ☯️ ≥ threshold bậc kế.</li>
+    <li>Hiển thị 1 lần/bậc → lưu flag <code>consumedRanks</code> trong DataStore.</li>
+    <li>Perks list = feature flags tương ứng bậc.</li>
+  </ul>
+  <div class="meta-row">
+    <span class="chip primary">LichSoDialog</span>
+    <span class="chip gold">RankUpContent</span>
+    <span class="chip">DataStore flag</span>
+  </div>
+</div>
+</div>
+</body></html>

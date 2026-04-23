@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8" />
+<title>04 · Văn Khấn — Lịch Số v2</title>
+<link rel="stylesheet" href="assets/common.css" />
+<style>
+  .cat-scroll { display:flex; gap:10px; overflow-x:auto; padding:10px 16px 4px; }
+  .cat { flex-shrink:0; background:#fff; border:1px solid var(--border); border-radius:14px; padding:12px 14px;
+    display:flex; gap:10px; align-items:center; min-width:160px; }
+  .cat .ic { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:17px; }
+  .cat .n { font-size:13px; font-weight:700; color:var(--text-1); }
+  .cat .c { font-size:11px; color:var(--text-3); }
+
+  .prayer-card { margin:8px 16px; background:#fff; border:1px solid var(--border); border-radius:16px;
+    padding:14px; position:relative; }
+  .prayer-card .row { display:flex; gap:12px; align-items:flex-start; }
+  .prayer-card .emo { width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px;
+    background: linear-gradient(135deg, #BF360C, #E65100); color:#fff; flex-shrink:0; }
+  .prayer-card h4 { margin:0; font-family:"Times New Roman",serif; font-size:16px; color:var(--text-1); font-weight:700; }
+  .prayer-card .sub { font-size:12px; color:var(--text-3); margin-top:3px; }
+  .prayer-card .tags { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+  .prayer-card .tag { font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:999px;
+    background:var(--bg-card); color:var(--text-2); }
+  .prayer-card .tag.bookmark { background:#FFEBEE; color:var(--primary); }
+  .prayer-card .tag.gold { background:var(--gold-soft); color:var(--gold-2); }
+  .prayer-card .bm { position:absolute; top:12px; right:12px; font-size:18px; color:var(--primary); }
+</style></head><body>
+<div class="page-hero">
+  <h1>04 · Văn Khấn <em>— PrayersScreen.kt</em></h1>
+  <p>Thư viện bài khấn truyền thống + cúng lễ. V2 chèn <b>UnlockCard</b> (mở bài AI-custom) vào đầu và pill ⚡ trên header.</p>
+  <div class="nav-links">
+    <a href="index.html">← Tất cả</a>
+    <a href="05-tools.html">→ Tiện ích</a>
+  </div>
+</div>
+
+<div class="phone-page">
+<div class="phone"><div class="screen">
+  <div class="status-bar"><span>9:41</span><span class="r">📶 4G 87%</span></div>
+
+  <div class="red-header" style="padding-bottom:16px">
+    <div class="hdr-row">
+      <div class="hamburger">☰</div>
+      <div class="hdr-title"><div class="t">Văn Khấn</div><div class="s">Bài cúng truyền thống</div></div>
+      <div class="hdr-action">🔍</div>
+      <div class="hdr-action">⭐</div>
+    </div>
+    <div style="margin-top:12px">
+      <span class="pts-pill"><span>⚡ <span class="v">14</span></span></span>
+    </div>
+  </div>
+
+  <div class="content" style="padding-bottom:120px">
+    <!-- V2 Unlock card: tạo văn khấn theo hoàn cảnh bằng AI -->
+    <div class="unlock-card">
+      <div class="uc-head">
+        <div class="uc-ic gold">🪄</div>
+        <div class="uc-body">
+          <div class="uc-title">Tạo bài khấn theo hoàn cảnh</div>
+          <div class="uc-desc">AI soạn bài khấn riêng cho ngày/sự kiện bạn cần — cá nhân hoá họ tên, ngày giờ.</div>
+        </div>
+        <div class="uc-cost">10⚡</div>
+      </div>
+      <button class="uc-btn gold">Mở bằng 10⚡ (còn 14⚡)</button>
+    </div>
+
+    <!-- Danh mục -->
+    <div class="section-head">
+      <div class="bar"></div>
+      <div class="txt"><div class="t">Danh mục</div><div class="s">6 chủ đề · 112 bài</div></div>
+    </div>
+    <div class="cat-scroll">
+      <div class="cat"><div class="ic" style="background:linear-gradient(135deg,#BF360C,#E65100)">🙏</div><div><div class="n">Gia tiên</div><div class="c">28 bài</div></div></div>
+      <div class="cat"><div class="ic" style="background:linear-gradient(135deg,#2E7D32,#66BB6A)">🌿</div><div><div class="n">Thần Tài</div><div class="c">12 bài</div></div></div>
+      <div class="cat"><div class="ic" style="background:linear-gradient(135deg,#7B1FA2,#AB47BC)">⛩️</div><div><div class="n">Đình Chùa</div><div class="c">24 bài</div></div></div>
+      <div class="cat"><div class="ic" style="background:linear-gradient(135deg,#1E88E5,#42A5F5)">🏠</div><div><div class="n">Nhập trạch</div><div class="c">9 bài</div></div></div>
+    </div>
+
+    <div class="section-head">
+      <div class="bar gold"></div>
+      <div class="txt"><div class="t">Gợi ý hôm nay</div><div class="s">Rằm tháng 9 · Ất Tỵ</div></div>
+      <span class="link">Xem tất cả</span>
+    </div>
+
+    <div class="prayer-card">
+      <div class="bm">🔖</div>
+      <div class="row">
+        <div class="emo">🔥</div>
+        <div style="flex:1">
+          <h4>Văn khấn Rằm tháng Bảy</h4>
+          <div class="sub">Cúng gia tiên · Mâm lễ chay/mặn · 3 bản</div>
+          <div class="tags">
+            <span class="tag">🙏 Gia tiên</span>
+            <span class="tag">⭐ 4.9</span>
+            <span class="tag gold">★ Phổ biến</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prayer-card">
+      <div class="row">
+        <div class="emo" style="background:linear-gradient(135deg,#2E7D32,#66BB6A)">🌿</div>
+        <div style="flex:1">
+          <h4>Văn khấn Thần Tài mùng 1</h4>
+          <div class="sub">Khai xuân đầu tháng · Cầu tài lộc</div>
+          <div class="tags">
+            <span class="tag">🌿 Thần Tài</span>
+            <span class="tag">⏱ 2 phút</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prayer-card">
+      <div class="row">
+        <div class="emo" style="background:linear-gradient(135deg,#7B1FA2,#AB47BC)">⛩️</div>
+        <div style="flex:1">
+          <h4>Văn khấn cúng giỗ (ngày giỗ thường)</h4>
+          <div class="sub">Đủ nghi thức · Có phiên âm</div>
+          <div class="tags">
+            <span class="tag">🙏 Gia tiên</span>
+            <span class="tag bookmark">🔖 Đã lưu</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ai-bubble">✨<span class="badge">AI</span></div>
+
+  <div class="bottom-nav-wrap">
+    <div class="bottom-nav">
+      <div class="bnav-item"><span class="ic">📅</span>Lịch tháng</div>
+      <div class="bnav-item"><span class="ic">✍️</span>Ghi chú</div>
+      <div class="bnav-center"><div class="fab-today">17</div><div class="fab-lb">Hôm nay</div></div>
+      <div class="bnav-item active"><span class="ic ic-pill">📖</span>Văn Khấn</div>
+      <div class="bnav-item"><span class="ic">▦</span>Tiện ích</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="caption">
+  <h2>04 · Văn Khấn <span class="tag">v2 chèn</span></h2>
+  <p>Giữ header đỏ · catalog chip scroll · list card bài khấn + bookmark. V2 chèn UnlockCard "Tạo bài khấn bằng AI" ở đầu (dùng ⚡ điểm ngày).</p>
+  <div class="meta-row">
+    <span class="chip primary">PrayersScreen.kt</span>
+    <span class="chip">PrayerCard</span>
+    <span class="chip gold">+ UnlockCard</span>
+  </div>
+</div>
+</div>
+</body></html>

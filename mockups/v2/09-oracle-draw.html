@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8" />
+<title>09 · Rút quẻ — Lịch Số v2</title>
+<link rel="stylesheet" href="assets/common.css" />
+<style>
+  .oracle-stage {
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding: 20px; background:
+      radial-gradient(circle at 50% 20%, rgba(212,160,23,.18), transparent 60%),
+      var(--bg);
+    position:relative;
+  }
+  .jar {
+    width: 240px; height: 300px; position: relative;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+  }
+  .jar .pot {
+    width: 200px; height: 150px;
+    background: linear-gradient(135deg, #8B0000, #B71C1C);
+    border-radius: 18px 18px 50% 50% / 18px 18px 30% 30%;
+    position:relative;
+    box-shadow: inset -12px -20px 30px rgba(0,0,0,.35), 0 12px 28px rgba(0,0,0,.18);
+  }
+  .jar .pot::before {
+    content:""; position:absolute; top:-14px; left:50%; transform:translateX(-50%);
+    width: 180px; height: 24px; background: linear-gradient(180deg, #D4A017, #A07812);
+    border-radius: 8px;
+  }
+  .jar .pot::after {
+    content:""; position:absolute; top:-6px; left:50%; transform:translateX(-50%);
+    width: 160px; height: 6px; background: #6B0000; border-radius: 4px;
+  }
+  .stick {
+    position: absolute; bottom: 130px; width: 6px; border-radius: 3px;
+    background: linear-gradient(180deg, #D4A017 0%, #C6A300 70%, #8B0000 70%, #B71C1C 100%);
+    box-shadow: 0 3px 5px rgba(0,0,0,.15);
+  }
+  .s1 { left: 38px; height: 150px; transform: rotate(-10deg); }
+  .s2 { left: 64px; height: 170px; transform: rotate(-4deg); }
+  .s3 { left: 92px; height: 180px; transform: rotate(0deg); }
+  .s4 { left: 118px; height: 175px; transform: rotate(4deg); }
+  .s5 { left: 146px; height: 160px; transform: rotate(9deg); }
+  .s6 { left: 170px; height: 140px; transform: rotate(14deg); }
+
+  .hint { font-family:"Times New Roman",serif; font-style:italic; font-size:15px; color:var(--text-2);
+    text-align:center; margin-top: 30px; max-width: 280px; line-height:1.6; }
+
+  .draw-btn {
+    margin: 24px 16px 18px; height: 54px; border-radius: 16px;
+    background: linear-gradient(90deg, var(--primary), var(--deep-red));
+    color:#fff; font-size: 16px; font-weight: 800;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    box-shadow: 0 10px 22px rgba(183,28,28,.32); border: none;
+  }
+  .draw-btn .cost { background: rgba(255,255,255,.2); padding: 3px 10px; border-radius: 999px; font-size: 12px; }
+
+  .rule {
+    margin: 0 16px 12px; background: var(--bg-2); border: 1px dashed var(--border-strong);
+    border-radius: 12px; padding: 10px 14px; font-size: 12px; color: var(--text-2); line-height: 1.6;
+  }
+  .rule b { color: var(--primary); }
+</style></head><body>
+<div class="page-hero">
+  <h1>09 · Rút quẻ đầu ngày <em>— OracleDrawScreen.kt <span style="color:var(--gold-2)">(NEW v2)</span></em></h1>
+  <p>Vào từ tool card trong <a href="05-tools.html">Tiện ích</a> hoặc chip <a href="02-calendar-month.html">Lịch tháng</a>. Một hành động nghi lễ đơn giản → +2⚡ +1☯️.</p>
+  <div class="nav-links">
+    <a href="index.html">← Tất cả</a>
+    <a href="10-oracle-result.html">→ Kết quả</a>
+  </div>
+</div>
+
+<div class="phone-page">
+<div class="phone"><div class="screen">
+  <div class="status-bar"><span>9:41</span><span class="r">📶 4G 87%</span></div>
+
+  <div class="red-header" style="padding-bottom:16px">
+    <div class="hdr-row">
+      <div class="hamburger">←</div>
+      <div class="hdr-title"><div class="t" style="font-family:'Times New Roman',serif">Rút quẻ đầu ngày</div><div class="s">Thứ Bảy, 16/11 · 25/9 Ất Tỵ</div></div>
+      <div class="hdr-action">ⓘ</div>
+    </div>
+  </div>
+
+  <div class="oracle-stage">
+    <div class="jar">
+      <span class="stick s1"></span>
+      <span class="stick s2"></span>
+      <span class="stick s3"></span>
+      <span class="stick s4"></span>
+      <span class="stick s5"></span>
+      <span class="stick s6"></span>
+      <div class="pot"></div>
+    </div>
+    <div class="hint">"Tâm tĩnh lặng, niệm điều cầu mong,<br/>lắc nhẹ 3 lần rồi rút một quẻ."</div>
+  </div>
+
+  <div class="rule">
+    <b>Quy tắc:</b> Mỗi ngày rút tối đa <b>1 quẻ</b> · nhận <b>+2⚡ +1☯️</b> lần đầu. Quẻ hôm nay sẽ được lưu vào <a href="07-profile.html" style="color:var(--primary)">Nhật ký</a>.
+  </div>
+
+  <button class="draw-btn">🎋 Rút quẻ <span class="cost">Miễn phí · +2⚡</span></button>
+
+  <div class="bottom-nav-wrap">
+    <div class="bottom-nav">
+      <div class="bnav-item"><span class="ic">📅</span>Lịch tháng</div>
+      <div class="bnav-item"><span class="ic">✍️</span>Ghi chú</div>
+      <div class="bnav-center"><div class="fab-today">17</div><div class="fab-lb">Hôm nay</div></div>
+      <div class="bnav-item"><span class="ic">📖</span>Văn Khấn</div>
+      <div class="bnav-item active"><span class="ic ic-pill">▦</span>Tiện ích</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="caption">
+  <h2>09 · Rút quẻ <span class="tag new">NEW</span></h2>
+  <p>Screen mới, khởi động 1 flow nghi lễ 2 bước: <b>Rút</b> → <b>Kết quả</b>. Tự động cộng điểm khi hoàn thành (1 lần/ngày), lần sau chỉ hiển thị lại kết quả đã rút.</p>
+  <ul>
+    <li>Ống quẻ CSS pure — trong Compose dùng <code>Canvas</code> + animation rung.</li>
+    <li>Hoàn thành → navigate <code>OracleResultScreen(seed=Date+UserId)</code> để deterministic.</li>
+  </ul>
+  <div class="meta-row">
+    <span class="chip primary">OracleDrawScreen.kt</span>
+    <span class="chip gold">+2⚡ +1☯️</span>
+    <span class="chip">1 lần/ngày</span>
+  </div>
+</div>
+</div>
+</body></html>

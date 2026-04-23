@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8" />
+<title>07 · Cá nhân — Lịch Số v2</title>
+<link rel="stylesheet" href="assets/common.css" />
+</head><body>
+<div class="page-hero">
+  <h1>07 · Cá nhân <em>— ProfileScreen.kt</em></h1>
+  <p>Mở từ icon 👤 trong RedHeader. V2 thêm 3 section: <b>Rank Hero</b>, <b>Daily Unlocks</b>, <b>Nhật ký điểm</b>.</p>
+  <div class="nav-links"><a href="index.html">← Tất cả</a><a href="12-ledger.html">→ Ledger full</a></div>
+</div>
+
+<div class="phone-page">
+<div class="phone"><div class="screen">
+  <div class="status-bar"><span>9:41</span><span class="r">📶 4G 87%</span></div>
+
+  <div class="red-header" style="padding-bottom:16px">
+    <div class="hdr-row">
+      <div class="hamburger">←</div>
+      <div class="hdr-title"><div class="t">Cá nhân</div><div class="s">Hành trình tu tập</div></div>
+      <div class="hdr-action">⚙️</div>
+    </div>
+  </div>
+
+  <div class="content" style="padding-bottom:110px">
+    <!-- V2 Rank hero -->
+    <div class="rank-hero">
+      <div class="rh-name">🎋 Nguyễn Văn A</div>
+      <div class="rh-sub">Bậc <b>Thông Thạo</b> · đã đi 27 ngày</div>
+      <div class="rh-stats">
+        <div class="rh-stat"><div class="v">2,450</div><div class="l">☯️ Nghiệp</div></div>
+        <div class="rh-stat"><div class="v">27</div><div class="l">🔥 Streak</div></div>
+        <div class="rh-stat"><div class="v">x3</div><div class="l">⚡ Hệ số</div></div>
+      </div>
+      <div class="rh-bar"><div class="f" style="width:98%"></div></div>
+      <div class="rh-lbl"><span>Đạo Sĩ (bậc kế)</span><span>2,450 / 2,500</span></div>
+    </div>
+
+    <div class="section-head">
+      <div class="bar gold"></div>
+      <div class="txt"><div class="t">★ Mở khoá hôm nay</div><div class="s">Còn ⚡ 14 điểm</div></div>
+      <span class="link">Tất cả →</span>
+    </div>
+
+    <div class="unlock-card" style="margin-top:0">
+      <div class="uc-head">
+        <div class="uc-ic gold">🔮</div>
+        <div class="uc-body">
+          <div class="uc-title">Vận hạn hôm nay (AI)</div>
+          <div class="uc-desc">Dự báo công danh · tài lộc · tình duyên</div>
+        </div>
+        <div class="uc-cost">10⚡</div>
+      </div>
+    </div>
+    <div class="unlock-card locked">
+      <div class="uc-head">
+        <div class="uc-ic" style="background:var(--text-4)">🎴</div>
+        <div class="uc-body">
+          <div class="uc-title" style="color:var(--text-2)">Xin xăm cầu an</div>
+          <div class="uc-desc">Cần thêm 6⚡ — hoàn thành 3 việc để đủ</div>
+        </div>
+        <div class="uc-cost" style="color:var(--text-3);background:#F0E8E3">5⚡</div>
+      </div>
+    </div>
+    <div class="unlock-card" style="border-color:var(--green);background-image:none">
+      <div class="uc-head">
+        <div class="uc-ic" style="background:var(--green)">✓</div>
+        <div class="uc-body">
+          <div class="uc-title" style="color:var(--green)">Quẻ đầu ngày · Đã mở</div>
+          <div class="uc-desc">Quẻ <b>Trung Cát</b> — Hướng tốt: Đông Nam</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <div class="bar"></div>
+      <div class="txt"><div class="t">📒 Nhật ký điểm</div><div class="s">Hôm nay</div></div>
+      <a href="12-ledger.html" class="link">Xem tất cả →</a>
+    </div>
+
+    <div class="ledger">
+      <div class="l"><div class="ic">🔥</div><div><div class="t">Check-in streak (ngày 27)</div><div class="d">08:02 · Hôm nay</div></div></div>
+      <div class="v pos">+3⚡ +5☯️</div>
+    </div>
+    <div class="ledger">
+      <div class="l"><div class="ic">✓</div><div><div class="t">Hoàn thành 1 việc</div><div class="d">09:14 · Hôm nay</div></div></div>
+      <div class="v pos">+2⚡</div>
+    </div>
+    <div class="ledger">
+      <div class="l"><div class="ic">🎋</div><div><div class="t">Rút quẻ đầu ngày</div><div class="d">09:20 · Hôm nay</div></div></div>
+      <div class="v pos">+2⚡</div>
+    </div>
+    <div class="ledger">
+      <div class="l"><div class="ic">🔮</div><div><div class="t">Mở Vận hạn AI</div><div class="d">10:30 · Hôm nay</div></div></div>
+      <div class="v neg">−10⚡</div>
+    </div>
+  </div>
+
+  <div class="bottom-nav-wrap">
+    <div class="bottom-nav">
+      <div class="bnav-item"><span class="ic">📅</span>Lịch tháng</div>
+      <div class="bnav-item"><span class="ic">✍️</span>Ghi chú</div>
+      <div class="bnav-center"><div class="fab-today">17</div><div class="fab-lb">Hôm nay</div></div>
+      <div class="bnav-item"><span class="ic">📖</span>Văn Khấn</div>
+      <div class="bnav-item"><span class="ic">▦</span>Tiện ích</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="caption">
+  <h2>07 · Cá nhân <span class="tag">v2 chèn</span></h2>
+  <p>Không phải tab mới — là <code>ProfileScreen</code> đã có. V2 thêm 3 section MD3 card: Rank Hero (gradient primary→deepRed), Daily Unlocks list, Points Ledger.</p>
+  <div class="meta-row">
+    <span class="chip primary">ProfileScreen.kt</span>
+    <span class="chip gold">+ RankHero</span>
+    <span class="chip gold">+ UnlockList</span>
+    <span class="chip gold">+ Ledger</span>
+  </div>
+</div>
+</div>
+</body></html>

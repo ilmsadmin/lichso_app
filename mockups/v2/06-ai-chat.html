@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8" />
+<title>06 · AI Chat — Lịch Số v2</title>
+<link rel="stylesheet" href="assets/common.css" />
+<style>
+  .chip-row { padding: 8px 16px 0; }
+  .chip-row .lbl { font-size: 10.5px; font-weight: 700; color: var(--text-3); letter-spacing: 1px; margin-bottom: 6px; }
+  .chip-scroll { display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; }
+  .s-chip { flex-shrink:0; background:#fff; border:1px solid var(--border); border-radius:999px; padding:7px 14px; font-size:12px; font-weight:600; color:var(--text-2); white-space:nowrap; }
+  .s-chip.gold { background:var(--gold-soft); border-color:var(--gold); color:var(--gold-2); }
+
+  .msgs { flex:1; padding: 10px 16px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; }
+  .bub { max-width: 78%; padding: 10px 12px; border-radius: 14px; font-size: 13.5px; line-height: 1.5; }
+  .bub.u { align-self:flex-end; background: var(--primary); color:#fff; border-bottom-right-radius: 4px; }
+  .bub.a { align-self:flex-start; background:#fff; border: 1px solid var(--border); color: var(--text-1); border-bottom-left-radius: 4px; }
+  .bub.a .who { font-size: 10.5px; font-weight: 800; color: var(--gold-2); margin-bottom:4px; }
+
+  .input-bar {
+    margin: 6px 14px 12px; padding: 8px 10px 8px 16px; background:#fff;
+    border: 1px solid var(--border); border-radius: 24px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .input-bar .inp { flex:1; font-size:13px; color:var(--text-3); }
+  .input-bar .send { width:36px; height:36px; border-radius:50%; background:var(--primary); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:16px; }
+</style></head><body>
+<div class="page-hero">
+  <h1>06 · AI Chat <em>— AIChatScreen.kt</em></h1>
+  <p>Mở từ <b>bubble nổi</b> bên phải — không phải tab. V2 chèn <b>DailyUnlockCard</b> trên SuggestionChips (ready/locked state).</p>
+  <div class="nav-links">
+    <a href="index.html">← Tất cả</a>
+    <a href="01-home.html">← Home</a>
+  </div>
+</div>
+
+<div class="phone-page">
+<div class="phone"><div class="screen">
+  <div class="status-bar"><span>9:41</span><span class="r">📶 4G 87%</span></div>
+
+  <div class="red-header" style="padding-bottom:14px">
+    <div class="hdr-row">
+      <div class="hamburger">←</div>
+      <div class="hdr-title" style="flex:1">
+        <div class="t">Thầy Số AI</div>
+        <div class="s">✨ Phong thuỷ · Tử vi · Giờ tốt</div>
+      </div>
+      <div class="hdr-action">🗑</div>
+    </div>
+  </div>
+
+  <!-- V2 Unlock card ready -->
+  <div class="unlock-card">
+    <div class="uc-head">
+      <div class="uc-ic gold">🔮</div>
+      <div class="uc-body">
+        <div class="uc-title">Mở "Vận hạn hôm nay" theo tứ trụ</div>
+        <div class="uc-desc">Tử vi chi tiết hôm nay dựa vào giờ sinh. Chỉ mở được 1 lần/ngày.</div>
+      </div>
+      <div class="uc-cost">10⚡</div>
+    </div>
+    <button class="uc-btn gold">Mở bằng 10⚡ (còn 14⚡)</button>
+  </div>
+
+  <div class="chip-row">
+    <div class="lbl">GỢI Ý HỎI</div>
+    <div class="chip-scroll">
+      <div class="s-chip">📅 Hôm nay hợp khai trương?</div>
+      <div class="s-chip">💑 Tuổi Ất Tỵ hợp tuổi nào?</div>
+      <div class="s-chip">🏠 Hướng nhà tốt</div>
+      <div class="s-chip gold">★ Rút quẻ +2⚡</div>
+    </div>
+  </div>
+
+  <div class="msgs">
+    <div class="bub u">Hôm nay 16/11 có hợp xuất hành hướng Đông không anh?</div>
+    <div class="bub a">
+      <div class="who">✨ Thầy Số</div>
+      Ngày 16/11/2025 (25/9 Ất Tỵ) là ngày <b>Hoàng đạo</b> — hướng xuất hành tốt: <b>Đông Bắc</b> (Hỷ Thần), <b>Nam</b> (Tài Thần).
+      Hướng Đông trung bình, không xấu nhưng không phải hướng tốt nhất.
+    </div>
+    <div class="bub u">Thế đi công tác chiều có ổn?</div>
+    <div class="bub a">
+      <div class="who">✨ Thầy Số</div>
+      Chiều nay giờ tốt: <b>Mùi (13–15h)</b>, <b>Ngọ (11–13h)</b>. Nên khởi hành trước 15h. Mang theo áo đỏ/vàng để thêm may mắn.
+    </div>
+  </div>
+
+  <div class="input-bar">
+    <div class="inp">Hỏi điều gì đó…</div>
+    <div class="send">➤</div>
+  </div>
+</div></div>
+
+<div class="caption">
+  <h2>06 · AI Chat <span class="tag">v2 chèn</span></h2>
+  <p>Mở từ bubble "✨" trên mọi màn hình chính. Giữ AiChatHeader · SuggestionChipsRow · LazyColumn bubbles · ChatInputBar. V2 chèn 1 UnlockCard ở trên chip gợi ý.</p>
+  <ul>
+    <li>Chip <b>★ Rút quẻ +2⚡</b> — shortcut mở flow Oracle (kiếm điểm).</li>
+    <li>UnlockCard chỉ hiển thị khi PointsEngine còn đủ ⚡.</li>
+  </ul>
+  <div class="meta-row">
+    <span class="chip primary">AIChatScreen.kt</span>
+    <span class="chip">SuggestionChipsRow</span>
+    <span class="chip gold">+ UnlockCard</span>
+  </div>
+</div>
+</div>
+</body></html>
