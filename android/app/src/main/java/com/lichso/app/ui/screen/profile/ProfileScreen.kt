@@ -142,8 +142,7 @@ fun ProfileScreen(
         // ═══ PROFILE HEADER (Red gradient) ═══
         AppTopBar(
             title = "Hồ sơ",
-            onBackClick = onMenuClick,
-            leadingIcon = Icons.Filled.Menu,
+            onBackClick = onBackClick,
             actions = {
                 HeaderIconButton(
                     icon = Icons.Outlined.Settings,

@@ -48,6 +48,7 @@ fun SearchScreen(
     onBackClick: () -> Unit = {},
     onDateSelected: (year: Int, month: Int, day: Int) -> Unit = { _, _, _ -> },
     onGoodDaysClick: () -> Unit = {},
+    initialTool: String? = null,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val c = LichSoThemeColors.current
@@ -77,7 +78,12 @@ fun SearchScreen(
     LaunchedEffect(Unit) {
         // Reset ViewModel state when entering SearchScreen
         viewModel.clearQuery()
-        focusRequester.requestFocus()
+        when (initialTool) {
+            "lunar" -> showLunarConverter = true
+            "zodiac" -> showZodiacDialog = true
+            "goto" -> showGoToDateDialog = true
+            else -> focusRequester.requestFocus()
+        }
     }
 
     // Clean up when leaving SearchScreen

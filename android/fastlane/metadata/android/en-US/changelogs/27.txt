@@ -1,0 +1,15 @@
+🎉 Version 1.9.0 - New Tools Hub & Refined Experience
+
+✨ NEW: "Tools" screen — all utilities in one place
+• AI Astrology, Family Tree, On This Day, Lucky/Unlucky Days
+• Zodiac Compatibility, Lunar/Solar Converter, Prayers, Saved Dates
+• Discover more quality apps from Zenix Labs
+
+🎨 UI:
+• Profile icon moved to top-right for a cleaner header
+• Streamlined bottom navigation for faster access
+• Freshly designed icons, crisp at every size
+
+🐛 Bug fixes & performance improvements
+
+Thank you for using Lịch Số! ❤️

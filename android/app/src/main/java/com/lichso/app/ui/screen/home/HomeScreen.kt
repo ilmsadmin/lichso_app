@@ -376,12 +376,22 @@ private fun RedHeader(
                     onClick = onWeatherClick
                 )
 
-                HeaderIconButton(
-                    icon = Icons.Outlined.Notifications,
-                    contentDescription = "Notifications",
-                    onClick = onNotificationClick,
-                    badgeCount = notificationUnreadCount
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HeaderIconButton(
+                        icon = Icons.Outlined.Notifications,
+                        contentDescription = "Notifications",
+                        onClick = onNotificationClick,
+                        badgeCount = notificationUnreadCount
+                    )
+                    HeaderIconButton(
+                        icon = Icons.Outlined.Person,
+                        contentDescription = "Cá nhân",
+                        onClick = onProfileClick
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(4.dp))

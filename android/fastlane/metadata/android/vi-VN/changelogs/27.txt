@@ -1,0 +1,15 @@
+🎉 Phiên bản 1.9.0 - Tiện ích mới & Trải nghiệm tinh gọn
+
+✨ MỚI: Màn hình "Tiện ích" — quy tụ mọi công cụ vào 1 nơi
+• Tử vi AI, Cây gia phả, Ngày này năm xưa, Ngày tốt/xấu
+• Xem tuổi hợp, Đổi ngày Âm/Dương, Văn khấn, Ngày đã lưu
+• Khám phá thêm các ứng dụng chất lượng từ Zenix Labs
+
+🎨 GIAO DIỆN:
+• Icon hồ sơ chuyển lên góc phải, gọn gàng hơn
+• Thanh điều hướng tối ưu cho thao tác nhanh
+• Icon thiết kế mới, sắc nét trên mọi màn hình
+
+🐛 Sửa lỗi & tối ưu hiệu năng
+
+Cảm ơn bạn đã đồng hành cùng Lịch Số! ❤️

@@ -41,6 +41,8 @@ import com.lichso.app.ui.screen.profile.ProfileScreen
 import com.lichso.app.ui.screen.search.SearchScreen
 import com.lichso.app.ui.screen.settings.SettingsScreen
 import com.lichso.app.ui.screen.tasks.TasksScreen3
+import com.lichso.app.ui.screen.tools.ToolsScreen
+import com.lichso.app.ui.screen.tools.ToolAction
 import com.lichso.app.R
 import com.lichso.app.analytics.Analytics
 import com.lichso.app.ui.theme.*
@@ -61,6 +63,7 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
     var taskEditShowing by remember { mutableStateOf(false) }
     var initialPrayerId by remember { mutableStateOf<Int?>(null) }
     var initialAiMessage by remember { mutableStateOf<String?>(null) }
+    var initialSearchTool by remember { mutableStateOf<String?>(null) }
     val homeViewModel: HomeViewModel = hiltViewModel()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -107,7 +110,7 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
         }
     }
 
-    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays") || prayerDetailShowing || taskEditShowing
+    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays", "profile") || prayerDetailShowing || taskEditShowing
 
     val toggleDrawer: () -> Unit = {
         scope.launch {
@@ -183,6 +186,28 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
                     onMenuClick = toggleDrawer,
                     onEditVisibilityChanged = { taskEditShowing = it }
                 )
+                "tools" -> ToolsScreen(
+                    onBackClick = { currentRoute = "home" },
+                    onMenuClick = toggleDrawer,
+                    onToolClick = { action ->
+                        when (action) {
+                            ToolAction.AI_CHAT -> currentRoute = "chat"
+                            ToolAction.FAMILY_TREE -> currentRoute = "familytree"
+                            ToolAction.HISTORY -> currentRoute = "history"
+                            ToolAction.GOOD_DAYS -> currentRoute = "gooddays"
+                            ToolAction.ZODIAC_COMPAT -> {
+                                initialSearchTool = "zodiac"
+                                currentRoute = "search"
+                            }
+                            ToolAction.LUNAR_CONVERT -> {
+                                initialSearchTool = "lunar"
+                                currentRoute = "search"
+                            }
+                            ToolAction.PRAYERS -> currentRoute = "prayers"
+                            ToolAction.BOOKMARKS -> currentRoute = "bookmarks"
+                        }
+                    }
+                )
                 "notifications" -> NotificationScreen(
                     onBackClick = { currentRoute = "home" }
                 )
@@ -206,7 +231,8 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
                         homeViewModel.goToDate(year, month, day)
                         currentRoute = "calendar"
                     },
-                    onGoodDaysClick = { currentRoute = "gooddays" }
+                    onGoodDaysClick = { currentRoute = "gooddays" },
+                    initialTool = initialSearchTool.also { initialSearchTool = null }
                 )
                 "bookmarks" -> BookmarksScreen(
                     onBackClick = { currentRoute = "profile" },
@@ -666,7 +692,7 @@ private fun BottomNavBar(
     )
     val rightItems = listOf(
         NavItem("prayers", "Văn Khấn", Icons.AutoMirrored.Outlined.MenuBook, Icons.AutoMirrored.Filled.MenuBook),
-        NavItem("profile", "Cá nhân", Icons.Outlined.Person, Icons.Filled.Person),
+        NavItem("tools", "Tiện ích", Icons.Outlined.Apps, Icons.Filled.Apps),
     )
 
     val calendarDate = java.time.LocalDate.now().dayOfMonth.toString()
