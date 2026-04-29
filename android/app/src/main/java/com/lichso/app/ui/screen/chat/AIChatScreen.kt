@@ -1198,51 +1198,102 @@ private fun getKeywordColor(text: String, c: LichSoColors): Color? {
 }
 
 // ──────────────────────────────────────────────────────────
-// TYPING INDICATOR — 3 bouncing dots
+// TYPING INDICATOR — bouncing dots + rotating fun messages
 // ──────────────────────────────────────────────────────────
+
+private val typingFunMessages = listOf(
+    "Thầy đang gieo quẻ, chờ xíu nhé... 🔮",
+    "Đang tra cứu sách cổ 3000 năm tuổi...",
+    "Tính toán can chi... CPU thầy nóng lắm rồi 🔥",
+    "Đang hỏi ý kiến Ngọc Hoàng Thượng Đế...",
+    "Thầy đang suy nghĩ sâu như hố đen vũ trụ 🌌",
+    "Vận mệnh không thể tính trong 1 giây đâu bạn ơi...",
+    "Thầy đang nhâm nhi trà, sắp xong rồi... ☕",
+    "Đang tra lịch vạn niên từ đời Hùng Vương...",
+    "AI đang thiền định để khai sáng trí tuệ... 🧘",
+    "Ngũ hành đang cân bằng, chờ thêm tý nhé...",
+    "Đang so sánh 12 con giáp, xíu nữa thôi! 🐉",
+    "Sao chiếu mệnh đang dịch chuyển, gần xong rồi...",
+)
 
 @Composable
 private fun TypingIndicator() {
     val c = LichSoThemeColors.current
     val infiniteTransition = rememberInfiniteTransition(label = "typing")
 
-    Row(
+    var messageIndex by remember { mutableIntStateOf((0 until typingFunMessages.size).random()) }
+    var displayedText by remember { mutableStateOf(typingFunMessages[messageIndex]) }
+
+    // Xoay câu hài hước mỗi 3 giây
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(5000)
+            messageIndex = (messageIndex + 1) % typingFunMessages.size
+            displayedText = typingFunMessages[messageIndex]
+        }
+    }
+
+    // Animate opacity khi đổi text
+    var textVisible by remember { mutableStateOf(true) }
+    LaunchedEffect(messageIndex) {
+        textVisible = false
+        kotlinx.coroutines.delay(150)
+        textVisible = true
+    }
+    val textAlpha by animateFloatAsState(
+        targetValue = if (textVisible) 1f else 0f,
+        animationSpec = tween(150),
+        label = "textAlpha"
+    )
+
+    Column(
         modifier = Modifier
             .background(
                 c.surfaceContainer,
                 RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 6.dp, bottomEnd = 20.dp)
             )
-            .padding(horizontal = 18.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+            .padding(horizontal = 18.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        repeat(3) { index ->
-            val offsetY by infiniteTransition.animateFloat(
-                initialValue = 0f,
-                targetValue = -6f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(700, easing = EaseInOutSine),
-                    repeatMode = RepeatMode.Reverse,
-                    initialStartOffset = StartOffset(index * 200)
-                ),
-                label = "dot$index"
-            )
-            val alpha by infiniteTransition.animateFloat(
-                initialValue = 0.4f,
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(700, easing = EaseInOutSine),
-                    repeatMode = RepeatMode.Reverse,
-                    initialStartOffset = StartOffset(index * 200)
-                ),
-                label = "alpha$index"
-            )
-            Box(
-                modifier = Modifier
-                    .offset(y = offsetY.dp)
-                    .size(8.dp)
-                    .background(c.outline.copy(alpha = alpha), CircleShape)
-            )
+        // Câu hài hước
+        Text(
+            text = displayedText,
+            style = MaterialTheme.typography.bodySmall,
+            color = c.textSecondary.copy(alpha = textAlpha)
+        )
+        // 3 chấm nhảy
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            repeat(3) { index ->
+                val offsetY by infiniteTransition.animateFloat(
+                    initialValue = 0f,
+                    targetValue = -6f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(700, easing = EaseInOutSine),
+                        repeatMode = RepeatMode.Reverse,
+                        initialStartOffset = StartOffset(index * 200)
+                    ),
+                    label = "dot$index"
+                )
+                val alpha by infiniteTransition.animateFloat(
+                    initialValue = 0.4f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(700, easing = EaseInOutSine),
+                        repeatMode = RepeatMode.Reverse,
+                        initialStartOffset = StartOffset(index * 200)
+                    ),
+                    label = "alpha$index"
+                )
+                Box(
+                    modifier = Modifier
+                        .offset(y = offsetY.dp)
+                        .size(8.dp)
+                        .background(c.primary.copy(alpha = alpha), CircleShape)
+                )
+            }
         }
     }
 }

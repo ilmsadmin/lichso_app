@@ -1,0 +1,7 @@
+name = "lichso-openrouter-proxy"
+main = "openrouter-proxy.js"
+compatibility_date = "2026-04-29"
+
+[vars]
+OPENROUTER_HTTP_REFERER = "https://lichso.app"
+OPENROUTER_APP_TITLE = "Lich So - Lich Van Nien"

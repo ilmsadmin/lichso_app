@@ -297,8 +297,8 @@ class ChatViewModel @Inject constructor(
                         "🌫️ Đường truyền tâm linh hơi chập chờn...\nKiểm tra kết nối mạng rồi thử lại nhé! Tạm xem nhanh:\n\n"
                     errMsg.contains("kết nối") || errMsg.contains("network") || errMsg.contains("Unable to resolve") || errMsg.contains("UnknownHost") ->
                         "📡 Mất kết nối với thế giới tâm linh!\nKiểm tra WiFi/4G rồi thử lại nhé. Tạm xem sách cổ:\n\n"
-                    errMsg.contains("API key") || errMsg.contains("OPENROUTER_API_KEY") ->
-                        "🔑 Chìa khóa tâm linh chưa được kích hoạt!\nĐể tôi xem sách cổ trả lời trước nhé:\n\n"
+                    errMsg.contains("proxy") || errMsg.contains("AI_PROXY_") ->
+                        "🔒 Cổng kết nối AI an toàn chưa sẵn sàng!\nĐể tôi xem sách cổ trả lời trước nhé:\n\n"
                     else ->
                         "🔮 Thầy tử vi đang đi vắng, để tôi xem sách cổ trả lời trước nhé!\n\n"
                 }

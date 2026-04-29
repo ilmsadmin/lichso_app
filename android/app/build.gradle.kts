@@ -25,8 +25,8 @@ android {
         applicationId = "com.lichso.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 27
-        versionName = "1.9.0"
+        versionCode = 28
+        versionName = "1.9.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -35,13 +35,23 @@ android {
 
         buildConfigField(
             "String",
-            "OPENROUTER_API_KEY",
-            "\"${localProperties.getProperty("OPENROUTER_API_KEY", "")}\""
+            "GOOGLE_WEB_CLIENT_ID",
+            "\"${localProperties.getProperty("GOOGLE_WEB_CLIENT_ID", "")}\""
         )
         buildConfigField(
             "String",
-            "GOOGLE_WEB_CLIENT_ID",
-            "\"${localProperties.getProperty("GOOGLE_WEB_CLIENT_ID", "")}\""
+            "AI_PROXY_BASE_URL",
+            "\"${localProperties.getProperty("AI_PROXY_BASE_URL", "")}\""
+        )
+        buildConfigField(
+            "String",
+            "AI_PROXY_APP_ID",
+            "\"${localProperties.getProperty("AI_PROXY_APP_ID", "")}\""
+        )
+        buildConfigField(
+            "String",
+            "AI_PROXY_APP_SECRET",
+            "\"${localProperties.getProperty("AI_PROXY_APP_SECRET", "")}\""
         )
     }
 

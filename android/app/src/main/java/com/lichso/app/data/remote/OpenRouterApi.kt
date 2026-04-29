@@ -2,6 +2,7 @@ package com.lichso.app.data.remote
 
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
+import com.lichso.app.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -16,7 +17,7 @@ import javax.inject.Singleton
 data class ChatMessage(val role: String, val content: String)
 
 data class OpenRouterRequest(
-    val model: String = "google/gemini-2.5-flash",
+    val model: String = "x-ai/grok-4-fast",
     val messages: List<ChatMessage>,
     @SerializedName("max_tokens") val maxTokens: Int = 2048,
     val temperature: Double = 0.7
@@ -31,15 +32,15 @@ data class OpenRouterResponse(
 
 @Singleton
 class OpenRouterApi @Inject constructor(
-    private val apiKeyProvider: ApiKeyProvider,
     private val client: OkHttpClient
 ) {
 
-    companion object {
-        private const val BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
-    }
-
     private val gson = Gson()
+
+    private fun buildProxyUrl(baseUrl: String): String {
+        val normalized = if (baseUrl.endsWith("/")) baseUrl.dropLast(1) else baseUrl
+        return "$normalized/v1/chat/completions"
+    }
 
     private fun buildSystemPrompt(): String {
         val today = LocalDate.now()
@@ -127,10 +128,14 @@ QUY TẮC FORMAT BẮT BUỘC (rất quan trọng, phải tuân thủ tuyệt đ
         history: List<ChatMessage> = emptyList()
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val apiKey = apiKeyProvider.getOpenRouterApiKey()
-            if (apiKey.isBlank()) {
-                return@withContext Result.failure(Exception("API key chưa được cấu hình. Vui lòng thử lại sau."))
+            val proxyBaseUrl = BuildConfig.AI_PROXY_BASE_URL.trim()
+            val proxyAppId = BuildConfig.AI_PROXY_APP_ID.trim()
+            val proxyAppSecret = BuildConfig.AI_PROXY_APP_SECRET.trim()
+
+            if (proxyBaseUrl.isBlank() || proxyAppId.isBlank() || proxyAppSecret.isBlank()) {
+                return@withContext Result.failure(Exception("AI proxy chưa được cấu hình đầy đủ (AI_PROXY_*)."))
             }
+            val proxyUrl = buildProxyUrl(proxyBaseUrl)
 
             val messages = mutableListOf<ChatMessage>()
             messages.add(ChatMessage("system", buildSystemPrompt()))
@@ -155,11 +160,10 @@ QUY TẮC FORMAT BẮT BUỘC (rất quan trọng, phải tuân thủ tuyệt đ
             val json = gson.toJson(requestBody)
 
             val request = Request.Builder()
-                .url(BASE_URL)
-                .addHeader("Authorization", "Bearer $apiKey")
+                .url(proxyUrl)
                 .addHeader("Content-Type", "application/json")
-                .addHeader("HTTP-Referer", "https://lichso.app")
-                .addHeader("X-Title", "Lich So - Lich Van Nien")
+                .addHeader("X-App-Id", proxyAppId)
+                .addHeader("X-App-Secret", proxyAppSecret)
                 .post(json.toRequestBody("application/json".toMediaType()))
                 .build()
 
