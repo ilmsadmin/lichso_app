@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8" />
+<title>03 · Ghi chú / Nhắc nhở — Lịch Số v2</title>
+<link rel="stylesheet" href="assets/common.css" />
+<style>
+  .tasks-head { display:flex; justify-content:space-between; align-items:center; padding:14px 18px 6px; background:var(--bg); }
+  .tasks-head .t { font-family:"Times New Roman",serif; font-size:22px; color:var(--primary); font-weight:800; }
+  .tasks-head .s { font-size:12px; color:var(--text-3); margin-top:2px; }
+  .plus { width:36px; height:36px; border-radius:12px; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; }
+
+  .stats-row { display:grid; grid-template-columns: repeat(3,1fr); gap:10px; padding:8px 16px 6px; }
+  .stats-row .s {
+    background:#fff; border:1px solid var(--border); border-radius:14px; padding:12px; text-align:center;
+  }
+  .stats-row .s .n { font-size:20px; font-weight:800; color:var(--primary); }
+  .stats-row .s .l { font-size:10.5px; color:var(--text-3); margin-top:2px; }
+  .stats-row .s.gold .n { color:var(--gold-2); }
+  .stats-row .s.green .n { color:var(--green); }
+
+  .tabs-row { display:flex; gap:6px; padding:8px 16px 4px; overflow-x:auto; }
+  .tab-chip { flex-shrink:0; font-size:12px; font-weight:700; padding:6px 14px; border-radius:999px;
+    background:#fff; border:1px solid var(--border); color:var(--text-2); }
+  .tab-chip.active { background:var(--primary); color:#fff; border-color:transparent; }
+
+  .search { margin:6px 16px 10px; background:#fff; border:1px solid var(--border); border-radius:12px; padding:10px 12px;
+    display:flex; gap:8px; align-items:center; font-size:13px; color:var(--text-3); }
+
+  .task-item { margin:6px 16px; background:#fff; border:1px solid var(--border); border-radius:14px;
+    padding:12px; display:flex; gap:12px; align-items:flex-start; }
+  .task-item .chk { width:22px; height:22px; border-radius:50%; border:2px solid var(--border-strong); flex-shrink:0; margin-top:2px; }
+  .task-item .chk.done { background:var(--green); border-color:var(--green); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .task-item .body { flex:1; min-width:0; }
+  .task-item .ttl { font-size:14px; font-weight:700; color:var(--text-1); }
+  .task-item.done .ttl { text-decoration: line-through; color: var(--text-3); }
+  .task-item .meta { font-size:11.5px; color:var(--text-3); margin-top:4px; display:flex; gap:8px; flex-wrap:wrap; }
+  .task-item .meta .m-chip { padding:2px 8px; border-radius:999px; background:var(--bg-card); color:var(--text-2); font-weight:600; }
+
+  .task-item.priority-1 { border-left:4px solid var(--primary); }
+  .task-item.priority-2 { border-left:4px solid var(--orange); }
+
+  .task-item.streak {
+    background: linear-gradient(135deg, #FFF8E1, #FFFBF5);
+    border: 1.5px solid var(--gold);
+  }
+  .task-item.streak .chk { border-color: var(--gold); background:#fff; }
+  .task-item.streak .ttl { color: var(--primary); font-family: "Times New Roman", serif; }
+
+  .add-fab { position:absolute; right:18px; bottom:100px; z-index:9;
+    width:56px; height:56px; border-radius:50%;
+    background: var(--orange); color:#fff; font-size:26px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 8px 20px rgba(230,81,0,.45); }
+</style></head><body>
+<div class="page-hero">
+  <h1>03 · Ghi chú / Nhắc nhở <em>— TasksScreen3.kt</em></h1>
+  <p>Nhắc nhở tích hợp Âm Dương. V2 chèn <b>1 task "streak đặc biệt"</b> trên đầu — tick xong cộng +3⚡ +5☯️.</p>
+  <div class="nav-links">
+    <a href="index.html">← Tất cả</a>
+    <a href="02-calendar-month.html">← Lịch tháng</a>
+    <a href="04-prayers.html">→ Văn Khấn</a>
+  </div>
+</div>
+
+<div class="phone-page">
+<div class="phone"><div class="screen">
+  <div class="status-bar"><span>9:41</span><span class="r">📶 4G 87%</span></div>
+
+  <div class="red-header" style="padding-bottom:16px">
+    <div class="hdr-row">
+      <div class="hamburger">☰</div>
+      <div class="hdr-title"><div class="t">Nhắc nhở</div><div class="s">Âm – Dương đồng bộ</div></div>
+      <div class="hdr-action">🔍</div>
+      <div class="plus">＋</div>
+    </div>
+  </div>
+
+  <div class="content" style="padding-bottom:110px">
+    <div class="stats-row">
+      <div class="s"><div class="n">12</div><div class="l">Sắp tới</div></div>
+      <div class="s gold"><div class="n">3</div><div class="l">Hôm nay</div></div>
+      <div class="s green"><div class="n">128</div><div class="l">Hoàn thành</div></div>
+    </div>
+
+    <div class="tabs-row">
+      <div class="tab-chip active">Tất cả</div>
+      <div class="tab-chip">Hôm nay</div>
+      <div class="tab-chip">Sắp tới</div>
+      <div class="tab-chip">Hoàn thành</div>
+      <div class="tab-chip">Theo lịch âm</div>
+    </div>
+
+    <div class="search">🔍 <span>Tìm nhắc nhở…</span></div>
+
+    <!-- V2 streak task -->
+    <div class="task-item streak">
+      <div class="chk">🔥</div>
+      <div class="body">
+        <div class="ttl">Giữ streak ngày 27 · Check-in đầu ngày</div>
+        <div class="meta">
+          <span class="m-chip" style="background:var(--gold-soft);color:var(--gold-2)">+3⚡ +5☯️</span>
+          <span class="m-chip">⏰ 08:00</span>
+          <span class="m-chip">Tự động</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="task-item priority-1">
+      <div class="chk"></div>
+      <div class="body">
+        <div class="ttl">Cúng mùng 1 · Rằm tháng 9</div>
+        <div class="meta">
+          <span class="m-chip">🌙 Âm lịch 1/10</span>
+          <span class="m-chip">⏰ 07:00</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="task-item priority-2">
+      <div class="chk"></div>
+      <div class="body">
+        <div class="ttl">Giỗ bà nội · Chuẩn bị lễ</div>
+        <div class="meta">
+          <span class="m-chip">👨‍👩‍👧 Gia đình</span>
+          <span class="m-chip">Ngày kia · 09:00</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="task-item">
+      <div class="chk"></div>
+      <div class="body">
+        <div class="ttl">Xem tuổi khai trương cửa hàng</div>
+        <div class="meta">
+          <span class="m-chip">⏰ 14:00</span>
+          <span class="m-chip">🔔 15'</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="task-item done">
+      <div class="chk done">✓</div>
+      <div class="body">
+        <div class="ttl">Đi chùa mùng 1</div>
+        <div class="meta"><span class="m-chip" style="background:#E8F5E9;color:var(--green)">+2⚡</span><span class="m-chip">Hoàn thành 06:15</span></div>
+      </div>
+    </div>
+
+    <div class="task-item done">
+      <div class="chk done">✓</div>
+      <div class="body">
+        <div class="ttl">Gọi điện hỏi thăm bố mẹ</div>
+        <div class="meta"><span class="m-chip" style="background:#E8F5E9;color:var(--green)">+2⚡</span><span class="m-chip">Hôm qua</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast +pts -->
+  <div class="toast">✓ Hoàn thành việc — <span class="pt">+2⚡</span></div>
+
+  <div class="add-fab">＋</div>
+  <div class="ai-bubble" style="bottom:172px">✨<span class="badge">AI</span></div>
+
+  <div class="bottom-nav-wrap">
+    <div class="bottom-nav">
+      <div class="bnav-item"><span class="ic">📅</span>Lịch tháng</div>
+      <div class="bnav-item active"><span class="ic ic-pill">✍️</span>Ghi chú</div>
+      <div class="bnav-center"><div class="fab-today">17</div><div class="fab-lb">Hôm nay</div></div>
+      <div class="bnav-item"><span class="ic">📖</span>Văn Khấn</div>
+      <div class="bnav-item"><span class="ic">▦</span>Tiện ích</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="caption">
+  <h2>03 · Ghi chú / Nhắc nhở <span class="tag">v2 chèn</span></h2>
+  <p>Giữ StatsRow · TabRow · SearchRow · LazyColumn + Add FAB cam + AI bubble. V2 chèn:</p>
+  <ul>
+    <li>Task <b>streak</b> nổi bật vàng ở đầu danh sách — tick +3⚡ +5☯️.</li>
+    <li>Task thường tick = <b>+2⚡</b> (hiển thị chip xanh khi đã làm).</li>
+    <li>Toast <code>+2⚡</code> bay lên khi tick — dùng Snackbar custom.</li>
+  </ul>
+  <div class="meta-row">
+    <span class="chip primary">TasksScreen3.kt</span>
+    <span class="chip">NTRTopBar</span>
+    <span class="chip gold">+ Streak item</span>
+    <span class="chip gold">+ Toast</span>
+  </div>
+</div>
+</div>
+</body></html>

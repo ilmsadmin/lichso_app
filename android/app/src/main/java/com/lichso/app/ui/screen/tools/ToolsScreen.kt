@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -44,7 +45,11 @@ enum class ToolAction {
     ZODIAC_COMPAT,
     LUNAR_CONVERT,
     PRAYERS,
-    BOOKMARKS
+    BOOKMARKS,
+    // v2 — Points Engine
+    ORACLE_DRAW,
+    POINTS_LEDGER,
+    DAILY_STORE,
 }
 
 private data class ToolItem(
@@ -121,6 +126,29 @@ fun ToolsScreen(
             "Đánh dấu quan trọng",
             Icons.Filled.Bookmarks,
             listOf(Color(0xFF00838F), Color(0xFF26C6DA))
+        ),
+        // ── v2 — Points Engine ──
+        ToolItem(
+            ToolAction.ORACLE_DRAW,
+            "Rút quẻ đầu ngày",
+            "Kinh Dịch · 1 lần/ngày",
+            Icons.Filled.AutoAwesome,
+            listOf(Color(0xFF8B0000), Color(0xFFD4A017)),
+            badge = "v2"
+        ),
+        ToolItem(
+            ToolAction.DAILY_STORE,
+            "Kho mở khoá",
+            "Tiêu ⚡ mở tính năng",
+            Icons.Filled.Storefront,
+            listOf(Color(0xFFD4A017), Color(0xFFF9A825))
+        ),
+        ToolItem(
+            ToolAction.POINTS_LEDGER,
+            "Nhật ký điểm",
+            "Lịch sử công đức",
+            Icons.AutoMirrored.Filled.MenuBook,
+            listOf(Color(0xFF5D4037), Color(0xFF8D6E63))
         ),
     )
 

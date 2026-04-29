@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ống quẻ (oracle jar) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Miệng vàng -->
+    <path
+        android:pathData="M10,10 H38 A2,2 0 0 1 40,12 V16 A2,2 0 0 1 38,18 H10 A2,2 0 0 1 8,16 V12 A2,2 0 0 1 10,10 Z"
+        android:fillColor="#D4A017" />
+    <!-- Thân ống đỏ -->
+    <path
+        android:pathData="M12,18 H36 L34,40 A4,4 0 0 1 30,44 H18 A4,4 0 0 1 14,40 Z"
+        android:fillColor="#B71C1C" />
+    <!-- Que thẻ thò ra -->
+    <path
+        android:pathData="M18,4 L19,14 L17,14 Z M23,2 L24,14 L22,14 Z M28,5 L29,14 L27,14 Z"
+        android:fillColor="#E8C84A" />
+</vector>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8" />
+<title>05 · Tiện ích — Lịch Số v2</title>
+<link rel="stylesheet" href="assets/common.css" />
+</head><body>
+<div class="page-hero">
+  <h1>05 · Tiện ích <em>— ToolsScreen.kt</em></h1>
+  <p>Bám sát ảnh v1 thật: header gradient đỏ, nền kem, grid 3 cột card kem, 2 section
+  <b>"Công cụ trong ứng dụng"</b> + <b>"Ứng dụng từ Zenix Labs"</b>. V2 chèn:
+  (a) streak summary card đầu màn, (b) 2 tool mới <code>Rút quẻ</code> · <code>Nhật ký điểm</code>, (c) AI badge giữ nguyên.</p>
+  <div class="nav-links">
+    <a href="index.html">← Tất cả màn hình</a>
+    <a href="01-home.html">→ Home</a>
+    <a href="09-oracle-draw.html" class="new">🎋 Rút quẻ (mới)</a>
+    <a href="12-ledger.html" class="new">📒 Nhật ký điểm (mới)</a>
+  </div>
+</div>
+
+<div class="phone-page">
+
+<div class="phone"><div class="screen">
+  <div class="status-bar"><span>21:54</span><span class="r">📶 4G 83%</span></div>
+
+  <!-- Red header — v1 exact -->
+  <div class="red-header">
+    <div class="hdr-row">
+      <div class="hamburger">☰</div>
+      <div class="hdr-title">
+        <div class="t">Tiện ích</div>
+        <div class="s">Khám phá công cụ hữu ích</div>
+      </div>
+    </div>
+    <!-- V2 chèn: points pill ngay dưới subtitle (tận dụng khoảng trống) -->
+    <div style="margin-top:14px">
+      <span class="pts-pill">
+        <span>⚡ <span class="v">14</span></span><span class="sep"></span>
+        <span>☯️ <span class="v">2,450</span></span><span class="sep"></span>
+        <span>🔥 <span class="v">27</span></span>
+      </span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- V2 NEW: streak summary card -->
+    <div class="streak-card">
+      <div class="flame">🔥</div>
+      <div class="info">
+        <div class="t">27 ngày giữ streak</div>
+        <div class="s">Bậc <b>Thông Thạo</b> · x3 điểm · còn 3 ngày đến bậc kế</div>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+
+    <!-- Section 1: Công cụ trong ứng dụng -->
+    <div class="section-head">
+      <div class="bar"></div>
+      <div class="txt">
+        <div class="t">Công cụ trong ứng dụng</div>
+        <div class="s">Tiện ích tích hợp sẵn</div>
+      </div>
+    </div>
+
+    <div class="tool-grid">
+      <div class="tool-card">
+        <span class="tc-ai-badge">AI</span>
+        <div class="tc-icon ic-aiVuvi">✨</div>
+        <div class="tc-label">Tử vi AI</div>
+      </div>
+      <div class="tool-card">
+        <div class="tc-icon ic-family">🌳</div>
+        <div class="tc-label">Cây gia phả</div>
+      </div>
+      <div class="tool-card">
+        <div class="tc-icon ic-history">📜</div>
+        <div class="tc-label">Ngày này năm xưa</div>
+      </div>
+
+      <div class="tool-card">
+        <div class="tc-icon ic-gooddays">☀️</div>
+        <div class="tc-label">Ngày tốt / xấu</div>
+      </div>
+      <div class="tool-card">
+        <div class="tc-icon ic-compat">♥</div>
+        <div class="tc-label">Xem tuổi hợp</div>
+      </div>
+      <div class="tool-card">
+        <div class="tc-icon ic-convert">⇄</div>
+        <div class="tc-label">Đổi ngày Âm / Dương</div>
+      </div>
+
+      <div class="tool-card">
+        <div class="tc-icon ic-prayer">🔥</div>
+        <div class="tc-label">Văn khấn</div>
+      </div>
+      <div class="tool-card">
+        <div class="tc-icon ic-bookmark">📑</div>
+        <div class="tc-label">Ngày đã lưu</div>
+      </div>
+      <!-- V2 NEW: Rút quẻ -->
+      <div class="tool-card">
+        <span class="tc-new-badge">NEW</span>
+        <div class="tc-icon ic-oracle">🎋</div>
+        <div class="tc-label">Rút quẻ đầu ngày</div>
+      </div>
+
+      <!-- V2 NEW: Nhật ký điểm -->
+      <div class="tool-card">
+        <span class="tc-new-badge">NEW</span>
+        <div class="tc-icon ic-ledger">📒</div>
+        <div class="tc-label">Nhật ký điểm</div>
+      </div>
+    </div>
+
+    <!-- Section 2: Zenix Labs -->
+    <div class="section-head">
+      <div class="bar" style="background:var(--blue)"></div>
+      <div class="txt">
+        <div class="t">Ứng dụng từ Zenix Labs</div>
+        <div class="s">Khám phá thêm sản phẩm chất lượng</div>
+      </div>
+      <span class="link">Tất cả ↗</span>
+    </div>
+
+    <div class="tool-grid">
+      <div class="tool-card">
+        <div class="tc-icon" style="background:linear-gradient(135deg,#00897B,#4DB6AC)">Ø+</div>
+        <div class="tc-label">Ovi: Quản Lý Chi Tiêu AI</div>
+      </div>
+      <div class="tool-card">
+        <div class="tc-icon" style="background:linear-gradient(135deg,#1E88E5,#42A5F5)">📊</div>
+        <div class="tc-label">ViPOS - Quản lý bán hàng</div>
+      </div>
+      <div class="tool-card">
+        <div class="tc-icon" style="background:linear-gradient(135deg,#7B1FA2,#AB47BC)">🪪</div>
+        <div class="tc-label">ID Photo – AI Passport Photo</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI floating bubble -->
+  <div class="ai-bubble">✨<span class="badge">AI</span></div>
+
+  <!-- Bottom nav 5-slot with center FAB (v1 real) -->
+  <div class="bottom-nav-wrap">
+    <div class="bottom-nav">
+      <div class="bnav-item"><span class="ic">📅</span>Lịch tháng</div>
+      <div class="bnav-item"><span class="ic">✍️</span>Ghi chú</div>
+      <div class="bnav-center">
+        <div class="fab-today">23</div>
+        <div class="fab-lb">Hôm nay</div>
+      </div>
+      <div class="bnav-item"><span class="ic">📖</span>Văn Khấn</div>
+      <div class="bnav-item active"><span class="ic ic-pill">▦</span>Tiện ích</div>
+    </div>
+  </div>
+
+</div></div><!-- /phone -->
+
+<div class="caption">
+  <h2>05 · Tiện ích <span class="tag">v2 chèn</span></h2>
+  <p>Trang drawer-style, mở từ icon <code>☰</code>. V1 có <b>10 tool</b> nội bộ + <b>3 Zenix Labs</b>. V2 chèn thêm
+  <code>Rút quẻ</code> và <code>Nhật ký điểm</code> vào slot trống cuối grid (thành 10 tool chẵn, 3 hàng + 1 ô chưa full).</p>
+  <ul>
+    <li><b>Streak card</b> trên cùng — mở <a href="07-profile.html">Profile</a> khi tap.</li>
+    <li><b>Points pill</b> trong header — mô-đun <code>PointsEngine.observe()</code>.</li>
+    <li>2 tool NEW có badge đỏ; AI tool vẫn giữ badge vàng.</li>
+    <li>Bottom nav <b>5 slot</b> — <code>Tiện ích</code> active có pill hồng <code>#FCE4EC</code>.</li>
+  </ul>
+  <div class="meta-row">
+    <span class="chip primary">ToolsScreen.kt</span>
+    <span class="chip">LazyVerticalGrid(3)</span>
+    <span class="chip gold">+ streak-card</span>
+    <span class="chip gold">+ 2 ToolItem</span>
+  </div>
+</div>
+
+</div><!-- /phone-page -->
+</body></html>

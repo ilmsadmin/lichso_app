@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8" />
+<title>12 · Nhật ký điểm — Lịch Số v2</title>
+<link rel="stylesheet" href="assets/common.css" />
+<style>
+  .filter-row { display:flex; gap:6px; padding:10px 16px 4px; overflow-x:auto; }
+  .filter-row .f { flex-shrink:0; font-size:12px; font-weight:700; padding:6px 12px; border-radius:999px;
+    background:#fff; border:1px solid var(--border); color:var(--text-2); }
+  .filter-row .f.active { background:var(--primary); color:#fff; border-color:transparent; }
+
+  .day-head {
+    padding: 12px 20px 4px; display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .day-head .d { font-family:"Times New Roman",serif; font-size:15px; font-weight:700; color:var(--text-1); }
+  .day-head .s { font-size:11.5px; color:var(--text-3); }
+  .sum-row {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:4px 16px 10px;
+  }
+  .sum {
+    background: linear-gradient(135deg, #FFF3E0, #FFFBF5);
+    border: 1px solid var(--gold); border-radius: 14px;
+    padding: 12px; text-align:center;
+  }
+  .sum .v { font-size: 20px; font-weight: 800; color: var(--gold-2); }
+  .sum .l { font-size: 10px; color: var(--text-3); margin-top: 2px; letter-spacing: .5px; text-transform: uppercase; }
+  .sum.e .v { color: var(--energy); }
+  .sum.k .v { color: var(--primary); }
+</style></head><body>
+<div class="page-hero">
+  <h1>12 · Nhật ký điểm <em>— LedgerScreen.kt <span style="color:var(--gold-2)">(NEW v2)</span></em></h1>
+  <p>Full-screen lịch sử tất cả giao dịch ⚡/☯️. Vào từ tool card <a href="05-tools.html">Tiện ích</a> hoặc link "Xem tất cả" ở <a href="07-profile.html">Profile</a>.</p>
+  <div class="nav-links"><a href="index.html">← Tất cả</a></div>
+</div>
+
+<div class="phone-page">
+<div class="phone"><div class="screen">
+  <div class="status-bar"><span>9:41</span><span class="r">📶 4G 87%</span></div>
+
+  <div class="red-header" style="padding-bottom:16px">
+    <div class="hdr-row">
+      <div class="hamburger">←</div>
+      <div class="hdr-title"><div class="t">Nhật ký điểm</div><div class="s">Tất cả hoạt động tích luỹ</div></div>
+      <div class="hdr-action">🔽</div>
+    </div>
+    <div style="margin-top:12px">
+      <span class="pts-pill">
+        <span>⚡ <span class="v">14</span></span><span class="sep"></span>
+        <span>☯️ <span class="v">2,450</span></span><span class="sep"></span>
+        <span>🔥 <span class="v">27</span></span>
+      </span>
+    </div>
+  </div>
+
+  <div class="content" style="padding-bottom:110px">
+    <div class="sum-row">
+      <div class="sum e"><div class="v">+7</div><div class="l">⚡ hôm nay</div></div>
+      <div class="sum"><div class="v">+6</div><div class="l">☯️ hôm nay</div></div>
+      <div class="sum k"><div class="v">−10</div><div class="l">⚡ chi tiêu</div></div>
+    </div>
+
+    <div class="filter-row">
+      <div class="f active">Tất cả</div>
+      <div class="f">Kiếm ⚡</div>
+      <div class="f">Chi tiêu ⚡</div>
+      <div class="f">Nghiệp ☯️</div>
+      <div class="f">Streak 🔥</div>
+    </div>
+
+    <div class="day-head"><div class="d">Hôm nay · Thứ Bảy 16/11</div><div class="s">+7⚡ −10⚡ +6☯️</div></div>
+    <div class="ledger">
+      <div class="l"><div class="ic">🔥</div><div><div class="t">Check-in streak (ngày 27)</div><div class="d">08:02</div></div></div>
+      <div class="v pos">+3⚡ +5☯️</div>
+    </div>
+    <div class="ledger">
+      <div class="l"><div class="ic">✓</div><div><div class="t">Hoàn thành: Đi chùa mùng 1</div><div class="d">09:14</div></div></div>
+      <div class="v pos">+2⚡</div>
+    </div>
+    <div class="ledger">
+      <div class="l"><div class="ic">🎋</div><div><div class="t">Rút quẻ đầu ngày · Quẻ 38 Vấn Sư</div><div class="d">09:20</div></div></div>
+      <div class="v pos">+2⚡ +1☯️</div>
+    </div>
+    <div class="ledger">
+      <div class="l"><div class="ic">🔮</div><div><div class="t">Mở "Vận hạn hôm nay" (AI)</div><div class="d">10:30</div></div></div>
+      <div class="v neg">−10⚡</div>
+    </div>
+
+    <div class="day-head"><div class="d">Hôm qua · Thứ Sáu 15/11</div><div class="s">+5⚡ +3☯️</div></div>
+    <div class="ledger">
+      <div class="l"><div class="ic">🔥</div><div><div class="t">Check-in streak (ngày 26)</div><div class="d">07:48</div></div></div>
+      <div class="v pos">+3⚡ +3☯️</div>
+    </div>
+    <div class="ledger">
+      <div class="l"><div class="ic">📖</div><div><div class="t">Đọc văn khấn Thần Tài</div><div class="d">11:22</div></div></div>
+      <div class="v pos">+1⚡</div>
+    </div>
+    <div class="ledger">
+      <div class="l"><div class="ic">✓</div><div><div class="t">Hoàn thành: Gọi điện bố mẹ</div><div class="d">20:10</div></div></div>
+      <div class="v pos">+1⚡</div>
+    </div>
+
+    <div class="day-head"><div class="d">Thứ Năm 14/11</div><div class="s">+4⚡ +3☯️ · Đạt bậc Thông Thạo 🎖️</div></div>
+    <div class="ledger" style="border-color:var(--gold);background:linear-gradient(90deg,#FFF8E1,#fff)">
+      <div class="l"><div class="ic">🎖️</div><div><div class="t">Thăng bậc: <b>Học Việc → Thông Thạo</b></div><div class="d">Đêm 22:05 · Mốc 1,500 ☯️</div></div></div>
+      <div class="v pos" style="color:var(--gold-2)">★</div>
+    </div>
+    <div class="ledger">
+      <div class="l"><div class="ic">🔥</div><div><div class="t">Check-in streak (ngày 25)</div><div class="d">08:10</div></div></div>
+      <div class="v pos">+3⚡ +3☯️</div>
+    </div>
+  </div>
+
+  <div class="bottom-nav-wrap">
+    <div class="bottom-nav">
+      <div class="bnav-item"><span class="ic">📅</span>Lịch tháng</div>
+      <div class="bnav-item"><span class="ic">✍️</span>Ghi chú</div>
+      <div class="bnav-center"><div class="fab-today">17</div><div class="fab-lb">Hôm nay</div></div>
+      <div class="bnav-item"><span class="ic">📖</span>Văn Khấn</div>
+      <div class="bnav-item active"><span class="ic ic-pill">▦</span>Tiện ích</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="caption">
+  <h2>12 · Nhật ký điểm <span class="tag new">NEW</span></h2>
+  <p>Transparent ledger — user thấy rõ cách điểm đi/đến. Giúp xây niềm tin với hệ thống gamification.</p>
+  <div class="meta-row">
+    <span class="chip primary">LedgerScreen.kt</span>
+    <span class="chip gold">PointsRepository.flow</span>
+    <span class="chip">Room: LedgerEntry</span>
+  </div>
+</div>
+</div>
+</body></html>

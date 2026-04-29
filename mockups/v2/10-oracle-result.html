@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8" />
+<title>10 · Kết quả quẻ — Lịch Số v2</title>
+<link rel="stylesheet" href="assets/common.css" />
+<style>
+  .scroll-bg {
+    flex:1; overflow-y:auto; padding: 16px 16px 110px;
+    background: radial-gradient(circle at 50% 0, rgba(212,160,23,.14), transparent 55%), var(--bg);
+  }
+  .quegold {
+    background: linear-gradient(135deg, #FFF8E1, #FFFBF5);
+    border: 2px solid var(--gold); border-radius: 20px; padding: 22px;
+    position: relative; text-align: center; overflow: hidden;
+  }
+  .quegold::before {
+    content:""; position:absolute; inset:6px; border: 1px dashed var(--gold); border-radius: 15px; pointer-events:none; opacity:.5;
+  }
+  .quegold .tier {
+    display:inline-block; padding: 4px 12px; border-radius: 999px;
+    background: var(--primary); color:#fff; font-size: 11px; font-weight: 800; letter-spacing: 1px;
+  }
+  .quegold h2 {
+    margin: 10px 0 2px; font-family: "Times New Roman", serif; font-size: 30px; color: var(--primary);
+  }
+  .quegold .han { font-family: "Times New Roman", serif; font-size: 42px; color: var(--gold-2); margin: 4px 0 6px; letter-spacing: 10px; }
+  .quegold .idx { font-size: 12px; color: var(--text-3); }
+  .quegold .poem {
+    margin-top: 14px; font-family: "Times New Roman", serif; font-style: italic;
+    font-size: 15px; color: var(--text-2); line-height: 1.85;
+  }
+
+  .sect { margin-top: 16px; background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; }
+  .sect h4 { margin: 0 0 8px; font-family: "Times New Roman", serif; font-size: 16px; color: var(--primary); display:flex; gap:8px; align-items:center; }
+  .sect p { margin: 0; font-size: 13.5px; line-height: 1.65; color: var(--text-2); }
+
+  .kv-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .kv-grid .kv { background: var(--bg-card); border-radius: 10px; padding: 8px 10px; }
+  .kv-grid .kv .l { font-size: 11px; color: var(--text-3); }
+  .kv-grid .kv .v { font-size: 13px; font-weight: 700; color: var(--text-1); margin-top: 2px; }
+
+  .cta-row { display:flex; gap:8px; padding: 14px 16px 6px; }
+  .cta-row .cta {
+    flex:1; height: 44px; border-radius: 12px; display:flex; align-items:center; justify-content:center;
+    gap:6px; font-weight: 700; font-size: 13px; border:none;
+  }
+  .cta-row .cta.primary { background: var(--primary); color:#fff; }
+  .cta-row .cta.ghost { background: #fff; color: var(--primary); border: 1px solid var(--primary); }
+</style></head><body>
+<div class="page-hero">
+  <h1>10 · Kết quả quẻ <em>— OracleResultScreen.kt <span style="color:var(--gold-2)">(NEW v2)</span></em></h1>
+  <p>Hiển thị quẻ đã rút — 3 tier (Thượng · Trung · Hạ), thơ cổ, lời giải + 4 chỉ số (Công danh · Tài lộc · Tình duyên · Sức khoẻ).</p>
+  <div class="nav-links"><a href="index.html">← Tất cả</a><a href="09-oracle-draw.html">← Rút quẻ</a></div>
+</div>
+
+<div class="phone-page">
+<div class="phone"><div class="screen">
+  <div class="status-bar"><span>9:41</span><span class="r">📶 4G 87%</span></div>
+  <div class="red-header" style="padding-bottom:14px">
+    <div class="hdr-row">
+      <div class="hamburger">←</div>
+      <div class="hdr-title"><div class="t" style="font-family:'Times New Roman',serif">Quẻ hôm nay</div><div class="s">Rút lúc 09:20 · Thứ Bảy 16/11</div></div>
+      <div class="hdr-action">↗</div>
+    </div>
+  </div>
+
+  <!-- Toast +pts -->
+  <div class="toast">🎋 Rút quẻ đầu ngày — <span class="pt">+2⚡ +1☯️</span></div>
+
+  <div class="scroll-bg">
+    <div class="quegold">
+      <span class="tier">★ Thượng Trung Cát</span>
+      <h2>Quẻ số 38 · Vấn Sư</h2>
+      <div class="han">問師</div>
+      <div class="idx">Thiên Thuỷ Tụng · Nạp âm Sa Trung Kim</div>
+      <div class="poem">
+        "Hỏi thầy chỉ lối đường đi,<br/>
+        Lòng ngay ý thẳng ắt khi đến bờ.<br/>
+        Việc làm chớ có phân bì,<br/>
+        Kiên trì chờ đợi vận thì hanh thông."
+      </div>
+    </div>
+
+    <div class="sect">
+      <h4>🪷 Lời giải</h4>
+      <p>Quẻ này ứng <b>người đang tìm phương hướng</b>. Dấu hiệu cho thấy việc hỏi được người có kinh nghiệm sẽ mang lại bước tiến rõ rệt. Tránh nóng vội, giữ tâm ngay thẳng, tránh tranh cãi không cần thiết. Vận khí hanh thông về sau, đặc biệt từ cuối tháng.</p>
+    </div>
+
+    <div class="sect">
+      <h4>📊 Vận trong 4 phương diện</h4>
+      <div class="kv-grid">
+        <div class="kv"><div class="l">💼 Công danh</div><div class="v">Khá — có quý nhân phù trợ</div></div>
+        <div class="kv"><div class="l">💰 Tài lộc</div><div class="v">Trung bình — đừng vay mượn</div></div>
+        <div class="kv"><div class="l">💕 Tình duyên</div><div class="v">Tốt — cơ hội nói chuyện thẳng thắn</div></div>
+        <div class="kv"><div class="l">🌿 Sức khoẻ</div><div class="v">Chú ý hô hấp</div></div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <h4>🎯 Gợi ý hành động</h4>
+      <p>• Sáng nay nên <b>hướng Đông Nam</b> · Giờ tốt <b>Mùi (13–15h)</b>.<br/>
+         • Hỏi ý kiến người lớn tuổi trước khi quyết định lớn.<br/>
+         • Đọc 1 bài kinh ngắn hoặc 1 <a href="04-prayers.html" style="color:var(--primary);font-weight:700">Văn khấn Thần Tài</a>.</p>
+    </div>
+  </div>
+
+  <div class="cta-row">
+    <button class="cta ghost">🔖 Lưu quẻ</button>
+    <button class="cta primary">💬 Hỏi AI giải thêm</button>
+  </div>
+
+  <div class="bottom-nav-wrap">
+    <div class="bottom-nav">
+      <div class="bnav-item"><span class="ic">📅</span>Lịch tháng</div>
+      <div class="bnav-item"><span class="ic">✍️</span>Ghi chú</div>
+      <div class="bnav-center"><div class="fab-today">17</div><div class="fab-lb">Hôm nay</div></div>
+      <div class="bnav-item"><span class="ic">📖</span>Văn Khấn</div>
+      <div class="bnav-item active"><span class="ic ic-pill">▦</span>Tiện ích</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="caption">
+  <h2>10 · Kết quả quẻ <span class="tag new">NEW</span></h2>
+  <p>Kết quả mỗi ngày cố định (seed = ngày + userId). Lưu vào DB → có thể xem lại trong <a href="12-ledger.html">Ledger</a>. Nút "Hỏi AI" bridge sang <a href="06-ai-chat.html">AIChatScreen</a> với prompt có context quẻ.</p>
+  <div class="meta-row">
+    <span class="chip primary">OracleResultScreen.kt</span>
+    <span class="chip gold">Deterministic seed</span>
+    <span class="chip">→ AI bridge</span>
+  </div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8" />
+<title>02 · Lịch tháng — Lịch Số v2</title>
+<link rel="stylesheet" href="assets/common.css" />
+<style>
+  .month-head { display:flex; justify-content:space-between; align-items:center; padding: 12px 18px 6px; background:var(--bg); }
+  .month-head .t { font-family:"Times New Roman",serif; font-size:22px; color:var(--primary); font-weight:800; }
+  .month-head .s { font-size:12px; color:var(--text-3); margin-top:2px; }
+  .month-head .nav { display:flex; gap:8px; }
+  .month-head .nav .b { width:34px; height:34px; border-radius:10px; background:#fff; border:1px solid var(--border); display:flex;align-items:center;justify-content:center; color:var(--text-2); font-size:16px; }
+
+  .dow-row { display:grid; grid-template-columns:repeat(7,1fr); padding:8px 10px 4px; background:var(--bg); }
+  .dow-row .d { text-align:center; font-size:11px; font-weight:700; color:var(--text-3); padding:4px 0; }
+  .dow-row .d.sun { color:var(--primary); }
+
+  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; padding:0 10px; background:var(--bg); }
+  .cell { aspect-ratio: 1/1.05; background:#fff; border:1px solid var(--border); border-radius:10px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; padding:3px 2px;}
+  .cell.out { background:transparent; border-color:transparent; opacity:.35; }
+  .cell .sol { font-size:15px; font-weight:700; color:var(--text-1); }
+  .cell .lun { font-size:9.5px; color:var(--text-3); margin-top:1px; }
+  .cell.sun .sol { color:var(--primary); }
+  .cell.today { background:var(--primary); border-color:var(--primary); }
+  .cell.today .sol, .cell.today .lun { color:#fff; }
+  .cell .dot { width:4px; height:4px; border-radius:50%; position:absolute; bottom:5px; }
+  .cell .dot.good { background:var(--green); left:10px; }
+  .cell .dot.bad  { background:var(--primary); right:10px; }
+  .cell .dot.task { background:var(--gold); bottom:5px; }
+  .cell.selected { border: 2px solid var(--gold); }
+
+  .day-sheet {
+    background:#fff; margin:10px 16px 0; border-radius:16px; border:1px solid var(--border);
+    padding:14px 16px; position: relative;
+  }
+  .day-sheet .h { display:flex; justify-content:space-between; align-items:baseline; }
+  .day-sheet .h .d1 { font-family:"Times New Roman",serif; font-size:24px; font-weight:800; color:var(--primary); }
+  .day-sheet .h .d2 { font-size:12px; color:var(--text-3); }
+  .day-sheet .k { display:flex; gap:14px; margin-top:8px; }
+  .day-sheet .k .kv .l { font-size:10.5px; color:var(--text-3); text-transform:uppercase; letter-spacing:.5px; }
+  .day-sheet .k .kv .v { font-size:13px; font-weight:700; color:var(--text-1); }
+  .day-sheet .k .kv.gold .v { color:var(--gold-2); }
+  .day-sheet .k .kv.green .v { color:var(--green); }
+</style></head><body>
+<div class="page-hero">
+  <h1>02 · Lịch tháng <em>— CalendarScreen.kt</em></h1>
+  <p>Grid 6×7, ngày có Âm lịch, dấu xanh (việc tốt), dấu đỏ (việc xấu), dấu vàng (có ghi chú/nhắc nhở).
+  V2: dấu vàng tương ứng <b>item streak check-in</b> tự động thêm vào 1 ngày/ngày.</p>
+  <div class="nav-links">
+    <a href="index.html">← Tất cả</a>
+    <a href="01-home.html">← Home</a>
+    <a href="03-tasks.html">→ Ghi chú</a>
+  </div>
+</div>
+
+<div class="phone-page">
+<div class="phone"><div class="screen">
+  <div class="status-bar"><span>9:41</span><span class="r">📶 4G 87%</span></div>
+  <div class="red-header" style="padding-bottom:16px">
+    <div class="hdr-row">
+      <div class="hamburger">☰</div>
+      <div class="hdr-title"><div class="t">Lịch tháng</div><div class="s">Âm – Dương đầy đủ</div></div>
+      <div class="hdr-action">🔍</div>
+      <div class="hdr-action">👤</div>
+    </div>
+  </div>
+
+  <div class="content" style="padding-bottom:120px">
+    <div class="month-head">
+      <div><div class="t">Tháng 11, 2025</div><div class="s">Âm lịch: Ất Tỵ · Đinh Hợi</div></div>
+      <div class="nav"><div class="b">‹</div><div class="b" style="background:var(--primary);color:#fff;border-color:transparent">Hôm nay</div><div class="b">›</div></div>
+    </div>
+
+    <div class="dow-row">
+      <div class="d sun">CN</div><div class="d">T2</div><div class="d">T3</div><div class="d">T4</div><div class="d">T5</div><div class="d">T6</div><div class="d">T7</div>
+    </div>
+
+    <div class="cal-grid">
+      <div class="cell out"><span class="sol">26</span><span class="lun">5/9</span></div>
+      <div class="cell out"><span class="sol">27</span><span class="lun">6</span></div>
+      <div class="cell out"><span class="sol">28</span><span class="lun">7</span></div>
+      <div class="cell out"><span class="sol">29</span><span class="lun">8</span></div>
+      <div class="cell out"><span class="sol">30</span><span class="lun">9</span></div>
+      <div class="cell out"><span class="sol">31</span><span class="lun">10</span></div>
+      <div class="cell"><span class="sol">1</span><span class="lun">11</span><span class="dot good"></span></div>
+
+      <div class="cell sun"><span class="sol">2</span><span class="lun">12</span><span class="dot task"></span></div>
+      <div class="cell"><span class="sol">3</span><span class="lun">13</span></div>
+      <div class="cell"><span class="sol">4</span><span class="lun">14</span><span class="dot bad"></span></div>
+      <div class="cell"><span class="sol">5</span><span class="lun">15</span><span class="dot good"></span></div>
+      <div class="cell"><span class="sol">6</span><span class="lun">16</span></div>
+      <div class="cell"><span class="sol">7</span><span class="lun">17</span><span class="dot task"></span></div>
+      <div class="cell"><span class="sol">8</span><span class="lun">18</span></div>
+
+      <div class="cell sun"><span class="sol">9</span><span class="lun">19</span></div>
+      <div class="cell"><span class="sol">10</span><span class="lun">20</span><span class="dot good"></span></div>
+      <div class="cell"><span class="sol">11</span><span class="lun">21</span></div>
+      <div class="cell"><span class="sol">12</span><span class="lun">22</span><span class="dot bad"></span></div>
+      <div class="cell"><span class="sol">13</span><span class="lun">23</span></div>
+      <div class="cell"><span class="sol">14</span><span class="lun">24</span><span class="dot task"></span></div>
+      <div class="cell"><span class="sol">15</span><span class="lun">25</span></div>
+
+      <div class="cell sun"><span class="sol">16</span><span class="lun">26</span></div>
+      <div class="cell today"><span class="sol">17</span><span class="lun">27</span></div>
+      <div class="cell selected"><span class="sol">18</span><span class="lun">28</span><span class="dot good"></span><span class="dot task" style="left:10px;right:auto"></span></div>
+      <div class="cell"><span class="sol">19</span><span class="lun">29</span></div>
+      <div class="cell"><span class="sol">20</span><span class="lun">1/10</span></div>
+      <div class="cell"><span class="sol">21</span><span class="lun">2</span></div>
+      <div class="cell"><span class="sol">22</span><span class="lun">3</span><span class="dot bad"></span></div>
+
+      <div class="cell sun"><span class="sol">23</span><span class="lun">4</span></div>
+      <div class="cell"><span class="sol">24</span><span class="lun">5</span></div>
+      <div class="cell"><span class="sol">25</span><span class="lun">6</span></div>
+      <div class="cell"><span class="sol">26</span><span class="lun">7</span></div>
+      <div class="cell"><span class="sol">27</span><span class="lun">8</span></div>
+      <div class="cell"><span class="sol">28</span><span class="lun">9</span></div>
+      <div class="cell"><span class="sol">29</span><span class="lun">10</span></div>
+
+      <div class="cell sun"><span class="sol">30</span><span class="lun">11</span></div>
+      <div class="cell out"><span class="sol">1</span><span class="lun">12</span></div>
+      <div class="cell out"><span class="sol">2</span><span class="lun">13</span></div>
+      <div class="cell out"><span class="sol">3</span><span class="lun">14</span></div>
+      <div class="cell out"><span class="sol">4</span><span class="lun">15</span></div>
+      <div class="cell out"><span class="sol">5</span><span class="lun">16</span></div>
+      <div class="cell out"><span class="sol">6</span><span class="lun">17</span></div>
+    </div>
+
+    <!-- Day sheet -->
+    <div class="day-sheet">
+      <div class="h">
+        <div class="d1">Thứ Ba, 18/11</div>
+        <div class="d2">28/9 Âm · Ất Tỵ</div>
+      </div>
+      <div class="k">
+        <div class="kv gold"><div class="l">Giờ hoàng đạo</div><div class="v">Tý · Sửu · Mão · Ngọ</div></div>
+      </div>
+      <div class="k">
+        <div class="kv green"><div class="l">Nên</div><div class="v">Khai trương · Xuất hành</div></div>
+        <div class="kv" style="color:var(--primary)"><div class="l">Kiêng</div><div class="v" style="color:var(--primary)">An táng</div></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <span class="pill gold">🎋 Rút quẻ +2⚡</span>
+        <span class="pill">🔖 Lưu</span>
+        <span class="pill orange">✍️ 1 nhắc nhở</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ai-bubble">✨<span class="badge">AI</span></div>
+  <div class="bottom-nav-wrap">
+    <div class="bottom-nav">
+      <div class="bnav-item active"><span class="ic ic-pill">📅</span>Lịch tháng</div>
+      <div class="bnav-item"><span class="ic">✍️</span>Ghi chú</div>
+      <div class="bnav-center"><div class="fab-today">17</div><div class="fab-lb">Hôm nay</div></div>
+      <div class="bnav-item"><span class="ic">📖</span>Văn Khấn</div>
+      <div class="bnav-item"><span class="ic">▦</span>Tiện ích</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="caption">
+  <h2>02 · Lịch tháng</h2>
+  <p>Giữ nguyên v1: header đỏ · tháng/năm + nav · grid 7 cột · day-sheet khi chọn ngày. V2 chèn chip <code>🎋 Rút quẻ +2⚡</code> vào day-sheet để mở flow Rút quẻ.</p>
+  <div class="meta-row">
+    <span class="chip primary">CalendarScreen.kt</span>
+    <span class="chip">DayDetailSheet</span>
+    <span class="chip gold">+ Oracle chip</span>
+  </div>
+</div>
+</div>
+</body></html>

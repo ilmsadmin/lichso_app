@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
         // Determine if launched from widget with a specific destination
         val widgetRoute = when (intent?.action) {
             "OPEN_AI_CHAT" -> "chat"
+            "OPEN_CALENDAR_QUICK" -> "calendar"
             else -> null
         }
 

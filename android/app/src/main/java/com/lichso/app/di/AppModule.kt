@@ -7,6 +7,8 @@ import com.lichso.app.data.local.LichSoDatabase
 import com.lichso.app.data.local.dao.*
 import com.lichso.app.data.settings.AppSettingsRepository
 import com.lichso.app.domain.DayInfoProvider
+import com.lichso.app.feature.points.domain.Clock
+import com.lichso.app.feature.points.domain.SystemClock
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -75,6 +77,20 @@ object AppModule {
 
     @Provides
     fun provideMemberPhotoDao(db: LichSoDatabase): MemberPhotoDao = db.memberPhotoDao()
+
+    // ── v2 PointsEngine ──
+    @Provides
+    fun providePointsDao(db: LichSoDatabase): PointsDao = db.pointsDao()
+
+    @Provides
+    fun provideUnlockDao(db: LichSoDatabase): UnlockDao = db.unlockDao()
+
+    @Provides
+    fun provideStreakDao(db: LichSoDatabase): StreakDao = db.streakDao()
+
+    @Provides
+    @Singleton
+    fun providePointsClock(): Clock = SystemClock()
 
     @Provides
     @Singleton
