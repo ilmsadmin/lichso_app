@@ -76,6 +76,15 @@ class CalendarWidgetUpdateWorker(
                 ClockWidget2.updateWidget(applicationContext, appWidgetManager, appWidgetId)
             }
 
+            // Update Canh Giờ widgets (12 địa chi rotation)
+            val canhGioIds = appWidgetManager.getAppWidgetIds(
+                ComponentName(applicationContext, CanhGioWidget::class.java)
+            )
+            Log.d("WidgetWorker", "Updating ${canhGioIds.size} CanhGioWidget(s)")
+            for (appWidgetId in canhGioIds) {
+                CanhGioWidget.updateWidget(applicationContext, appWidgetManager, appWidgetId)
+            }
+
             Result.success()
         } catch (e: Exception) {
             Log.e("WidgetWorker", "Error updating widgets", e)

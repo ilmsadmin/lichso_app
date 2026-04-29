@@ -42,4 +42,7 @@ interface UnlockDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM permanent_unlock WHERE unlockKey = :key)")
     fun observePermanentUnlocked(key: String): Flow<Boolean>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM permanent_unlock WHERE unlockKey = :key)")
+    suspend fun isPermanentUnlocked(key: String): Boolean
 }

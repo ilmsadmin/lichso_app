@@ -32,7 +32,7 @@ object SettingsKeys {
     val DARK_MODE = booleanPreferencesKey("dark_mode")
     val CALENDAR_STYLE = stringPreferencesKey("calendar_style")
     val WEEK_START = stringPreferencesKey("week_start")
-    val THEME_MODE = stringPreferencesKey("theme_mode") // "light", "dark", "system"
+    val THEME_MODE = stringPreferencesKey("theme_mode") // "light", "dark", "system", "seasonal"
     val FESTIVAL_ENABLED = booleanPreferencesKey("festival_enabled")
     val QUOTE_ENABLED = booleanPreferencesKey("quote_enabled")
     val FESTIVAL_REMINDER = booleanPreferencesKey("festival_reminder")
@@ -55,7 +55,7 @@ data class SettingsUiState(
     val notifyEnabled: Boolean = true,
     val lunarBadgeEnabled: Boolean = true,
     val gioDaiCatEnabled: Boolean = false,
-    val themeMode: String = "system", // "light", "dark", "system"
+    val themeMode: String = "system", // "light", "dark", "system", "seasonal"
     val festivalEnabled: Boolean = true,
     val quoteEnabled: Boolean = true,
     val festivalReminderEnabled: Boolean = true,
@@ -198,6 +198,7 @@ class SettingsViewModel @Inject constructor(
         val label = when (value) {
             "light" -> "Sáng"
             "dark" -> "Tối"
+            "seasonal" -> "Theo mùa"
             else -> "Theo hệ thống"
         }
         _uiState.update {

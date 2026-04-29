@@ -17,6 +17,13 @@ import com.lichso.app.data.local.entity.TaskEntity
 import com.lichso.app.data.remote.ChatMessage
 import com.lichso.app.data.remote.OpenRouterApi
 import com.lichso.app.domain.DayInfoProvider
+import com.lichso.app.feature.points.data.PointsRepository
+import com.lichso.app.feature.points.domain.ActionType
+import com.lichso.app.feature.points.domain.AwardPointsUseCase
+import com.lichso.app.feature.points.domain.DailyUnlockKey
+import com.lichso.app.feature.points.domain.PermanentUnlockKey
+import com.lichso.app.feature.points.domain.SpendDailyPointsUseCase
+import com.lichso.app.feature.points.domain.SpendResult
 import com.lichso.app.notification.ReminderScheduler
 import com.lichso.app.ui.screen.profile.ProfileKeys
 import com.lichso.app.ui.screen.settings.settingsDataStore
@@ -77,6 +84,9 @@ class ChatViewModel @Inject constructor(
     private val chatMessageDao: ChatMessageDao,
     private val dayInfoProvider: DayInfoProvider,
     private val openRouterApi: OpenRouterApi,
+    private val pointsRepository: PointsRepository,
+    private val spendDailyPointsUseCase: SpendDailyPointsUseCase,
+    private val awardPointsUseCase: AwardPointsUseCase,
     private val aiMemoryStore: AiMemoryStore,
     private val aiTaskService: AiTaskService,
     private val taskDao: TaskDao,
@@ -193,6 +203,8 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             chatMessageDao.insert(ChatMessageEntity(content = text.trim(), isUser = true))
             _uiState.update { it.copy(isTyping = true) }
+            // Award điểm cho mỗi tin nhắn AI (cap 10 lần/ngày)
+            runCatching { awardPointsUseCase(ActionType.CHAT_AI_MESSAGE) }
 
             // Check if this is a task/note/reminder command
             val lower = text.lowercase()
@@ -270,6 +282,42 @@ class ChatViewModel @Inject constructor(
                     role = if (msg.isUser) "user" else "assistant",
                     content = msg.content
                 )
+            }
+
+            val hasPermanentAiUnlock = pointsRepository.getPermanentUnlocks().any {
+                it.unlockKey == PermanentUnlockKey.AI_20_MSG_PER_DAY.name ||
+                    it.unlockKey == PermanentUnlockKey.AI_UNLIMITED.name ||
+                    it.unlockKey == PermanentUnlockKey.ALL_PREMIUM.name
+            }
+
+            if (!hasPermanentAiUnlock) {
+                when (val gate = spendDailyPointsUseCase(DailyUnlockKey.AI_MASTER_10_MSG)) {
+                    SpendResult.Success -> {
+                        chatMessageDao.insert(
+                            ChatMessageEntity(
+                                content = "🔓 Đã mở khoá AI Thầy Số hôm nay (10 tin) bằng 40⚡.",
+                                isUser = false
+                            )
+                        )
+                    }
+                    SpendResult.AlreadyUnlocked -> Unit
+                    is SpendResult.InsufficientPoints -> {
+                        val short = gate.needed.coerceAtLeast(0)
+                        val msg = buildString {
+                            append("🔒 AI Thầy Số hôm nay chưa mở khoá. Bạn còn thiếu ")
+                            append(short)
+                            append("⚡ để chat.\n\n")
+                            append("Cách kiếm nhanh điểm hôm nay:\n")
+                            append("• Check-in ngày mới: +10⚡\n")
+                            append("• Xem thẻ vận mệnh: +5⚡\n")
+                            append("• Rút quẻ Kinh Dịch: +15⚡\n")
+                            append("• Xem Lịch vạn niên: +3⚡")
+                        }
+                        chatMessageDao.insert(ChatMessageEntity(content = msg, isUser = false))
+                        _uiState.update { it.copy(isTyping = false) }
+                        return@launch
+                    }
+                }
             }
 
             val result = openRouterApi.chat(

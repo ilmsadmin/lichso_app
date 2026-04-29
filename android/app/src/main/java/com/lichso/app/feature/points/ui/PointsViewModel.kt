@@ -93,6 +93,24 @@ class PointsViewModel @Inject constructor(
             }
         }
     }
+
+    /** Phase 4 — mua thêm 1 streak-freeze token (cost = ☯ permanent). */
+    fun purchaseFreezeToken(cost: Long = 100L, onResult: (FreezePurchaseResult) -> Unit = {}) {
+        viewModelScope.launch {
+            val r = repo.purchaseFreezeToken(cost)
+            onResult(r)
+            _events.emit(PointsEvent.FreezePurchased(r))
+        }
+    }
+
+    /** Phase 4 — nhận freeze token từ deep-link gift (lichso://streak-gift?token=xxx). */
+    fun redeemFreezeGift(giftId: String, onResult: (FreezeRedeemResult) -> Unit = {}) {
+        viewModelScope.launch {
+            val r = repo.redeemFreezeGift(giftId)
+            onResult(r)
+            _events.emit(PointsEvent.FreezeRedeemed(r))
+        }
+    }
 }
 
 sealed interface PointsEvent {
@@ -103,4 +121,6 @@ sealed interface PointsEvent {
     data class CheckedIn(val streak: Int, val tier: StreakTier, val tierUp: Boolean) : PointsEvent
     data class Unlocked(val key: DailyUnlockKey) : PointsEvent
     data class NeedMorePoints(val key: DailyUnlockKey, val short: Int) : PointsEvent
+    data class FreezePurchased(val result: FreezePurchaseResult) : PointsEvent
+    data class FreezeRedeemed(val result: FreezeRedeemResult) : PointsEvent
 }

@@ -84,3 +84,17 @@ sealed interface CheckInResult {
     ) : CheckInResult
     data object AlreadyCheckedIn : CheckInResult
 }
+
+/** Phase 4 — kết quả mua thêm 1 freeze token bằng ☯ permanent points. */
+sealed interface FreezePurchaseResult {
+    data object Success : FreezePurchaseResult
+    data class InsufficientPoints(val needed: Long) : FreezePurchaseResult
+    data object MaxTokens : FreezePurchaseResult
+}
+
+/** Phase 4 — kết quả nhận freeze token từ deep-link gift. */
+sealed interface FreezeRedeemResult {
+    data object Success : FreezeRedeemResult
+    data object AlreadyRedeemed : FreezeRedeemResult
+    data object MaxTokens : FreezeRedeemResult
+}

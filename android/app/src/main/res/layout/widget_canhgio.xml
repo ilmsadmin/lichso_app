@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget 4×1 — Canh Giờ (12 địa chi luân chuyển) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="14dp"
+    android:background="@drawable/widget_ai_card_bg">
+
+    <!-- Big chi emoji circle -->
+    <FrameLayout
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:background="@drawable/widget_ai_avatar_bg">
+
+        <TextView
+            android:id="@+id/tv_canhgio_emoji"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="🐭"
+            android:textSize="32sp" />
+
+    </FrameLayout>
+
+    <!-- Texts -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingStart="12dp">
+
+        <TextView
+            android:id="@+id/tv_canhgio_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Canh giờ Tý"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#FF1C1B1F" />
+
+        <TextView
+            android:id="@+id/tv_canhgio_range"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="23:00 — 01:00"
+            android:textSize="12sp"
+            android:textColor="#FF534340" />
+
+        <TextView
+            android:id="@+id/tv_canhgio_meaning"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Hoàng đạo — nên nghỉ ngơi"
+            android:textSize="11sp"
+            android:textColor="#FF857371"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+    </LinearLayout>
+
+    <!-- Right rating dot -->
+    <TextView
+        android:id="@+id/tv_canhgio_rating"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="✦"
+        android:textSize="22sp"
+        android:textColor="#FFD4A017"
+        android:paddingStart="8dp" />
+
+</LinearLayout>

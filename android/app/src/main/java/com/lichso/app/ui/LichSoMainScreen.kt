@@ -61,7 +61,11 @@ import com.lichso.app.feature.points.domain.Clock as PointsClock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home") {
+fun LichSoMainScreen(
+    modifier: Modifier = Modifier,
+    initialRoute: String = "home",
+    giftToken: String? = null,
+) {
     val c = LichSoThemeColors.current
     var currentRoute by remember { mutableStateOf(initialRoute) }
     var prayerDetailShowing by remember { mutableStateOf(false) }
@@ -87,6 +91,13 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
         ReviewHelper.incrementAppOpenCount(context)
     }
 
+    // Phase 4 — redeem streak-freeze gift từ deep link (1 lần duy nhất / token)
+    LaunchedEffect(giftToken) {
+        if (!giftToken.isNullOrBlank()) {
+            pointsViewModel.redeemFreezeGift(giftToken)
+        }
+    }
+
     // ── v2 Points Engine: auto check-in + rank-up dialog ──
     LaunchedEffect(Unit) {
         pointsViewModel.checkInToday()
@@ -108,6 +119,26 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
     // ── Analytics: log screen_view mỗi khi route đổi ──
     LaunchedEffect(currentRoute) {
         Analytics.logScreen(currentRoute, screenClass = "LichSoMainScreen")
+    }
+
+    // ── Phase 4+: trao điểm khi user mở các route quan trọng (cap theo dailyCap) ──
+    LaunchedEffect(currentRoute) {
+        val action = when (currentRoute) {
+            "calendar" -> ActionType.VISIT_LUNAR_CALENDAR
+            "prayers" -> ActionType.VISIT_VAN_KHAN
+            "tools" -> ActionType.VISIT_TOOLS
+            "chat" -> ActionType.VISIT_TU_VI
+            "history" -> ActionType.VIEW_HISTORY_TODAY
+            "ledger" -> ActionType.VIEW_LEDGER
+            "profile" -> ActionType.VIEW_PROFILE
+            "daily_store" -> ActionType.VIEW_DAILY_STORE
+            "date_picker" -> ActionType.USE_DATE_PICKER
+            "fengshui_ar" -> ActionType.USE_AI_FENGSHUI
+            "ocr_calendar" -> ActionType.USE_OCR_CALENDAR
+            "tiet_khi" -> ActionType.VIEW_TIET_KHI
+            else -> null
+        }
+        if (action != null) pointsViewModel.award(action)
     }
 
     // ── Smart Rating Dialog ──
@@ -135,7 +166,7 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
         }
     }
 
-    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays", "profile", "oracle_draw", "oracle_result", "ledger", "daily_store") || prayerDetailShowing || taskEditShowing
+    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays", "profile", "oracle_draw", "oracle_result", "ledger", "daily_store", "zodiac_collection", "date_picker", "fengshui_ar", "ocr_calendar", "streak_freeze", "points_tutorial", "tiet_khi") || prayerDetailShowing || taskEditShowing
 
     val toggleDrawer: () -> Unit = {
         scope.launch {
@@ -227,16 +258,25 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
                             ToolAction.ZODIAC_COMPAT -> {
                                 initialSearchTool = "zodiac"
                                 currentRoute = "search"
+                                pointsViewModel.award(ActionType.USE_ZODIAC_COMPAT)
                             }
                             ToolAction.LUNAR_CONVERT -> {
                                 initialSearchTool = "lunar"
                                 currentRoute = "search"
+                                pointsViewModel.award(ActionType.USE_LUNAR_CONVERTER)
                             }
                             ToolAction.PRAYERS -> currentRoute = "prayers"
                             ToolAction.BOOKMARKS -> currentRoute = "bookmarks"
                             ToolAction.ORACLE_DRAW -> currentRoute = "oracle_draw"
                             ToolAction.DAILY_STORE -> currentRoute = "daily_store"
                             ToolAction.POINTS_LEDGER -> currentRoute = "ledger"
+                            ToolAction.ZODIAC_COLLECTION -> currentRoute = "zodiac_collection"
+                            ToolAction.DATE_PICKER -> currentRoute = "date_picker"
+                            ToolAction.FENGSHUI_AR -> currentRoute = "fengshui_ar"
+                            ToolAction.OCR_CALENDAR -> currentRoute = "ocr_calendar"
+                            ToolAction.STREAK_FREEZE -> currentRoute = "streak_freeze"
+                            ToolAction.TIET_KHI -> currentRoute = "tiet_khi"
+                            ToolAction.HOW_TO_EARN -> currentRoute = "points_tutorial"
                         }
                     }
                 )
@@ -292,6 +332,49 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
                 )
                 "daily_store" -> com.lichso.app.feature.points.ui.DailyUnlockStoreScreen(
                     onBackClick = { currentRoute = "tools" },
+                )
+                "zodiac_collection" -> com.lichso.app.feature.points.ui.ZodiacCollectionScreen(
+                    onBackClick = { currentRoute = "tools" },
+                )
+                "date_picker" -> com.lichso.app.feature.datepicker.DatePickerToolScreen(
+                    onBackClick = { currentRoute = "tools" },
+                )
+                "fengshui_ar" -> com.lichso.app.feature.fengshui.FengShuiArScreen(
+                    onBackClick = { currentRoute = "tools" },
+                )
+                "ocr_calendar" -> com.lichso.app.feature.ocr.OcrCalendarScreen(
+                    onBackClick = { currentRoute = "tools" },
+                )
+                "streak_freeze" -> com.lichso.app.feature.points.ui.StreakFreezeScreen(
+                    onBackClick = { currentRoute = "profile" },
+                )
+                "tiet_khi" -> com.lichso.app.feature.tietkhi.TietKhiScreen(
+                    onBackClick = { currentRoute = "tools" },
+                )
+                "points_tutorial" -> com.lichso.app.feature.points.ui.PointsTutorialScreen(
+                    onBack = { currentRoute = "profile" },
+                    onAction = { actionType ->
+                        currentRoute = when (actionType.deeplink) {
+                            "lichso://home" -> "home"
+                            "lichso://calendar" -> "calendar"
+                            "lichso://prayers" -> "prayers"
+                            "lichso://tools" -> "tools"
+                            "lichso://chat" -> "chat"
+                            "lichso://oracle" -> "oracle_draw"
+                            "lichso://history" -> "history"
+                            "lichso://ledger" -> "ledger"
+                            "lichso://profile" -> "profile"
+                            "lichso://store" -> "daily_store"
+                            "lichso://search" -> "search"
+                            "lichso://date_picker" -> "date_picker"
+                            "lichso://fengshui_ar" -> "fengshui_ar"
+                            "lichso://ocr_calendar" -> "ocr_calendar"
+                            "lichso://bookmarks" -> "bookmarks"
+                            "lichso://tiet_khi" -> "tiet_khi"
+                            "lichso://tasks" -> "home" // tasks integrated in home
+                            else -> "home"
+                        }
+                    },
                 )
                 else -> HomeScreen(
                     onSettingsClick = { currentRoute = "settings" },

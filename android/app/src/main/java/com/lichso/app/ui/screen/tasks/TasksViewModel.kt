@@ -12,6 +12,8 @@ import com.lichso.app.data.local.dao.TaskDao
 import com.lichso.app.data.local.entity.NoteEntity
 import com.lichso.app.data.local.entity.ReminderEntity
 import com.lichso.app.data.local.entity.TaskEntity
+import com.lichso.app.feature.points.domain.ActionType
+import com.lichso.app.feature.points.domain.AwardPointsUseCase
 import com.lichso.app.notification.ReminderScheduler
 import com.lichso.app.util.SmartRatingManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -53,7 +55,8 @@ class TasksViewModel @Inject constructor(
     private val taskDao: TaskDao,
     private val noteDao: NoteDao,
     private val reminderDao: ReminderDao,
-    private val aiTaskService: AiTaskService
+    private val aiTaskService: AiTaskService,
+    private val awardPointsUseCase: AwardPointsUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TasksUiState())
@@ -97,7 +100,10 @@ class TasksViewModel @Inject constructor(
 
     fun insertTask(task: TaskEntity) {
         if (task.title.isBlank()) return
-        viewModelScope.launch { taskDao.insert(task) }
+        viewModelScope.launch {
+            taskDao.insert(task)
+            runCatching { awardPointsUseCase(ActionType.CREATE_REMINDER) }
+        }
     }
 
     fun updateTask(task: TaskEntity) {
@@ -110,7 +116,10 @@ class TasksViewModel @Inject constructor(
         viewModelScope.launch {
             taskDao.toggleDone(task.id, !task.isDone)
             // Happy action: user vừa hoàn thành 1 task — cảm xúc "thành tựu"
-            if (!task.isDone) SmartRatingManager.recordHappyAction(context)
+            if (!task.isDone) {
+                SmartRatingManager.recordHappyAction(context)
+                runCatching { awardPointsUseCase(ActionType.COMPLETE_REMINDER) }
+            }
         }
     }
 
@@ -206,6 +215,7 @@ class TasksViewModel @Inject constructor(
                 "source" to "tasks_screen"
             ))
             SmartRatingManager.recordHappyAction(context)
+            runCatching { awardPointsUseCase(ActionType.CREATE_REMINDER) }
         }
     }
 
@@ -214,6 +224,7 @@ class TasksViewModel @Inject constructor(
         viewModelScope.launch {
             val id = reminderDao.insert(reminder)
             reminderScheduler.schedule(reminder.copy(id = id))
+            runCatching { awardPointsUseCase(ActionType.CREATE_REMINDER) }
         }
     }
 

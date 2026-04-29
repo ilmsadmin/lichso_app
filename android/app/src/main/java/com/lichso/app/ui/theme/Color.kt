@@ -181,3 +181,63 @@ val NoteOrange = LightColors.noteOrange
 val NotePurple = LightColors.notePurple
 val NoteGreen = LightColors.noteGreen
 val NoteRed = LightColors.noteRed
+
+fun seasonalPaletteForMonth(month: Int): LichSoColors {
+    return when (month) {
+        in 2..4 -> LightColors.copy( // Spring
+            primary = Color(0xFF2E7D32),
+            primaryContainer = Color(0xFFDDF5E1),
+            gold = Color(0xFFF9A825),
+            gold2 = Color(0xFFF57F17),
+            teal = Color(0xFF00897B),
+            teal2 = Color(0xFF00796B),
+            red = Color(0xFFD84315),
+            red2 = Color(0xFFEF6C00),
+            noteGreen = Color(0xFF2E7D32),
+            noteGold = Color(0xFFF9A825),
+            noteTeal = Color(0xFF00897B)
+        )
+
+        in 5..7 -> LightColors.copy( // Summer
+            primary = Color(0xFF00695C),
+            primaryContainer = Color(0xFFD7F3EE),
+            gold = Color(0xFFFFB300),
+            gold2 = Color(0xFFFF8F00),
+            teal = Color(0xFF00796B),
+            teal2 = Color(0xFF00695C),
+            red = Color(0xFFB71C1C),
+            red2 = Color(0xFFC62828),
+            noteOrange = Color(0xFFEF6C00),
+            noteTeal = Color(0xFF00796B),
+            noteGold = Color(0xFFFFB300)
+        )
+
+        in 8..10 -> LightColors.copy( // Autumn
+            primary = Color(0xFFBF360C),
+            primaryContainer = Color(0xFFFFE0CC),
+            gold = Color(0xFFE65100),
+            gold2 = Color(0xFFEF6C00),
+            teal = Color(0xFF00695C),
+            teal2 = Color(0xFF00796B),
+            red = Color(0xFF8D1B1B),
+            red2 = Color(0xFFA52A2A),
+            noteOrange = Color(0xFFE65100),
+            noteGold = Color(0xFFFF8F00),
+            noteRed = Color(0xFFB71C1C)
+        )
+
+        else -> LightColors.copy( // Winter
+            primary = Color(0xFF0D47A1),
+            primaryContainer = Color(0xFFDCEBFF),
+            gold = Color(0xFF546E7A),
+            gold2 = Color(0xFF607D8B),
+            teal = Color(0xFF1565C0),
+            teal2 = Color(0xFF1976D2),
+            red = Color(0xFF37474F),
+            red2 = Color(0xFF455A64),
+            noteGreen = Color(0xFF1565C0),
+            noteTeal = Color(0xFF1976D2),
+            notePurple = Color(0xFF5C6BC0)
+        )
+    }
+}

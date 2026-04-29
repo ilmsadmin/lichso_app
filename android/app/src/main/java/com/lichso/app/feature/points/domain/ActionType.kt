@@ -29,17 +29,32 @@ enum class ActionType(
     DAILY_CHECK_IN         (10, 5,   1,  ActionCategory.ENGAGEMENT, "Điểm danh hôm nay", "lichso://home"),
     VIEW_FORTUNE_CARD      (5,  2,   1,  ActionCategory.ENGAGEMENT, "Xem thẻ vận mệnh", "lichso://home"),
     DRAW_KINH_DICH         (15, 5,   1,  ActionCategory.ENGAGEMENT, "Rút quẻ Kinh Dịch", "lichso://oracle"),
+    VIEW_DAY_DETAIL        (3,  1,   8,  ActionCategory.ENGAGEMENT, "Xem chi tiết 1 ngày", "lichso://calendar"),
+    VIEW_TIET_KHI          (5,  2,   1,  ActionCategory.ENGAGEMENT, "Xem tiết khí hôm nay", "lichso://tiet_khi"),
+    VIEW_LEDGER            (2,  1,   1,  ActionCategory.ENGAGEMENT, "Mở nhật ký điểm",      "lichso://ledger"),
+    VIEW_PROFILE           (2,  1,   1,  ActionCategory.ENGAGEMENT, "Mở hồ sơ cá nhân",     "lichso://profile"),
+    VIEW_DAILY_STORE       (3,  1,   1,  ActionCategory.ENGAGEMENT, "Mở kho mở khoá",       "lichso://store"),
+    VIEW_HISTORY_TODAY     (5,  2,   1,  ActionCategory.ENGAGEMENT, "Ngày này năm xưa",     "lichso://history"),
 
     // ── Screen visits ─────────────────────────────────────────────
     VISIT_LUNAR_CALENDAR   (3,  1,   3,  ActionCategory.NAVIGATION, "Xem lịch vạn niên", "lichso://calendar"),
     VISIT_VAN_KHAN         (5,  2,   3,  ActionCategory.NAVIGATION, "Mở văn khấn", "lichso://prayers"),
     VISIT_TU_VI            (4,  2,   3,  ActionCategory.NAVIGATION, "Xem tử vi", "lichso://tools"),
+    VISIT_TOOLS            (3,  1,   3,  ActionCategory.NAVIGATION, "Khám phá tiện ích", "lichso://tools"),
+    USE_LUNAR_CONVERTER    (4,  1,   3,  ActionCategory.NAVIGATION, "Đổi ngày Âm/Dương",  "lichso://search"),
+    USE_ZODIAC_COMPAT      (5,  2,   3,  ActionCategory.NAVIGATION, "Xem tuổi hợp",        "lichso://search"),
+    USE_DATE_PICKER        (8,  3,   2,  ActionCategory.NAVIGATION, "Chọn ngày tốt",       "lichso://date_picker"),
 
     // ── Deep engagement ───────────────────────────────────────────
     READ_VAN_KHAN_FULL     (20, 10,  5,  ActionCategory.DEEP,       "Đọc hết 1 bài văn khấn", "lichso://prayers"),
     CHAT_AI_MESSAGE        (2,  1,  10,  ActionCategory.DEEP,       "Chat với Thầy Số",       "lichso://chat"),
     CREATE_REMINDER        (5,  3,   5,  ActionCategory.DEEP,       "Tạo nhắc nhở mới",       "lichso://tasks"),
     COMPLETE_REMINDER      (10, 5,  -1,  ActionCategory.DEEP,       "Hoàn thành nhắc nhở",    "lichso://tasks"),
+    ADD_BOOKMARK           (5,  3,   5,  ActionCategory.DEEP,       "Đánh dấu 1 ngày",       "lichso://bookmarks"),
+    USE_OCR_CALENDAR       (10, 4,   2,  ActionCategory.DEEP,       "Quét lịch giấy (OCR)",  "lichso://ocr_calendar"),
+    USE_AI_FENGSHUI        (15, 5,   1,  ActionCategory.DEEP,       "AI phong thuỷ phòng ở", "lichso://fengshui_ar"),
+    COMPLETE_TUTORIAL      (0,  100, 1,  ActionCategory.DEEP,       "Hoàn thành hướng dẫn",  "lichso://tutorial"),
+    OPEN_APP_FROM_WIDGET   (3,  1,   3,  ActionCategory.DEEP,       "Mở app từ widget",       "lichso://home"),
 
     // ── Viral / Share ─────────────────────────────────────────────
     SHARE_TO_SOCIAL        (30, 20,  3,  ActionCategory.VIRAL,      "Chia sẻ lên mạng xã hội","lichso://home"),

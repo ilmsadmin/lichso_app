@@ -10,6 +10,8 @@ import com.lichso.app.data.local.entity.BookmarkEntity
 import com.lichso.app.data.local.entity.NoteEntity
 import com.lichso.app.data.local.entity.ReminderEntity
 import com.lichso.app.data.local.entity.TaskEntity
+import com.lichso.app.feature.points.domain.ActionType
+import com.lichso.app.feature.points.domain.AwardPointsUseCase
 import com.lichso.app.util.ReviewHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -56,7 +58,8 @@ class DayActionsViewModel @Inject constructor(
     private val bookmarkDao: BookmarkDao,
     private val noteDao: NoteDao,
     private val reminderDao: ReminderDao,
-    private val taskDao: TaskDao
+    private val taskDao: TaskDao,
+    private val awardPointsUseCase: AwardPointsUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DayActionsUiState())
@@ -82,6 +85,10 @@ class DayActionsViewModel @Inject constructor(
     fun selectDate(day: Int, month: Int, year: Int) {
         _uiState.update {
             it.copy(selectedDay = day, selectedMonth = month, selectedYear = year)
+        }
+        // Award xem chi tiết 1 ngày (cap 8 lần/ngày)
+        viewModelScope.launch {
+            runCatching { awardPointsUseCase(ActionType.VIEW_DAY_DETAIL) }
         }
         // Load bookmark for this date
         viewModelScope.launch {
@@ -172,6 +179,7 @@ class DayActionsViewModel @Inject constructor(
                 _uiState.update { it.copy(toastMessage = "Đã đánh dấu ngày ${"%02d".format(day)}/${"%02d".format(month)}") }
                 // Happy action: user bookmarked a day → trigger smart rating
                 ReviewHelper.triggerAfterAction(appContext)
+                runCatching { awardPointsUseCase(ActionType.ADD_BOOKMARK) }
             }
         }
     }
@@ -196,6 +204,7 @@ class DayActionsViewModel @Inject constructor(
                         label = label
                     )
                 )
+                runCatching { awardPointsUseCase(ActionType.ADD_BOOKMARK) }
             }
             _uiState.update {
                 it.copy(

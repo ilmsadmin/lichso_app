@@ -366,32 +366,31 @@ Tổng điểm ngày trung bình: **~80–120 ⚡** → đủ unlock hầu hết
 ## 🗺️ 7. Roadmap triển khai
 
 ### Phase 1 – MVP v2.0 (2 tháng) – *Tăng DAU ngay*
-- [ ] Daily Fortune Card + Push 7AM
-- [ ] Rút quẻ Kinh Dịch / Xăm
-- [ ] **Hệ thống điểm ⚡/☯️ + Streak + Daily Unlock UI** 🔑
-- [ ] AI Chat "Thầy Số" (gated bằng điểm ngày)
-- [ ] Theme mới theo mùa
+- [x] Daily Fortune Card + Push 7AM
+- [x] Rút quẻ Kinh Dịch / Xăm
+- [x] **Hệ thống điểm ⚡/☯️ + Streak + Daily Unlock UI** 🔑
+- [x] AI Chat "Thầy Số" (gated bằng điểm ngày)
+- [x] Theme mới theo mùa
 
 ### Phase 2 – Growth (2 tháng) – *Tăng engagement*
-- [ ] Share lời chúc / quẻ lên MXH (viral hook, +30 ⚡)
-- [ ] Bộ sưu tập thẻ 12 con giáp (đốt điểm ngày)
-- [ ] Smart Reminder theo ngữ cảnh
-- [ ] Kho văn khấn có audio + Karaoke mode
-- [ ] **Milestone vĩnh viễn + Badges + Avatar frames** 🔑
+- [x] Share lời chúc / quẻ lên MXH (viral hook, +30 ⚡)
+- [x] Bộ sưu tập thẻ 12 con giáp (đốt điểm ngày)
+- [x] Smart Reminder theo ngữ cảnh
+- [x] Kho văn khấn có audio + Karaoke mode
+- [x] **Milestone vĩnh viễn + Badges + Avatar frames** 🔑
 
-### Phase 3 – Doanh thu (3 tháng) – *Affiliate & Ads*
-- [ ] Rewarded ads (xem quảng cáo +20 ⚡)
-- [ ] Chợ tâm linh (affiliate)
-- [ ] Công cụ chọn ngày (unlock bằng điểm)
-- [ ] Booking thầy cúng / chùa
-- [ ] AI Phong thủy AR (unlock mốc Đạo sĩ)
+### Phase 3 – Doanh thu (3 tháng) – *Premium tools*
+- [x] ~~Chợ tâm linh (affiliate)~~ → bỏ (cần đối tác thật)
+- [x] Công cụ chọn ngày (unlock bằng điểm) — top 5 ngày đẹp theo mục đích & tuổi
+- [x] ~~Booking thầy cúng / chùa~~ → bỏ (cần backend)
+- [x] AI Phong thủy AR (unlock mốc Đạo sĩ) — phân tích ảnh phòng qua Vision AI
 
 ### Phase 4 – Delight (2 tháng) – *Retention dài hạn*
-- [ ] Theme 24 tiết khí động (unlock theo điểm)
-- [ ] Live Activity / Dynamic Island
-- [ ] Widget động 12 canh giờ
-- [ ] OCR quét lịch giấy
-- [ ] Streak Freeze as Gift (viral)
+- [x] Theme 24 tiết khí động (unlock theo điểm) — Android: `solarTermPalette()` + theme mode "seasonal" tự đổi mỗi ~15 ngày
+- [ ] ~~Live Activity / Dynamic Island~~ — *iOS-only, bỏ qua trên Android*
+- [x] Widget động 12 canh giờ — Android: `CanhGioWidget` 4×1, tự xoay theo địa chi (Tý/Sửu/Dần…) mỗi 2h
+- [x] OCR quét lịch giấy — Android: ML Kit `text-recognition:16.0.1` + `VietnameseDateParser` (rằm, mùng, ngày X tháng Y)
+- [x] Streak Freeze as Gift — `purchaseFreezeToken(100☯)` + share deep link `lichso://streak-gift?token=xxx` (idempotent qua `freeze_gift_<id>`)
 
 > 🚧 **Hoãn sang v2.5 / v3.0**: Cây gia phả sync, Lịch giỗ chung gia đình, Cầu an online.
 

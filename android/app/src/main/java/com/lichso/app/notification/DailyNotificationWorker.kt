@@ -52,6 +52,10 @@ class DailyNotificationWorker(
 
         // Expanded lines for InboxStyle
         val lines = mutableListOf<String>()
+        // Smart Reminder theo ngữ cảnh — ưu tiên hiển thị trên cùng
+        SmartReminderProvider.contextualHintFor(dayInfo)?.let { hint ->
+            lines.add("💡 $hint")
+        }
         lines.add("Can Chi: $canChi")
         lines.add(
             if (kyLabel != null) "Đánh giá: ${dayInfo.dayRating.label} — $kyLabel"

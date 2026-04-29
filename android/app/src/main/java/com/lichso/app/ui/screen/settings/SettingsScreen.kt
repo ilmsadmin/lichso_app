@@ -119,10 +119,11 @@ fun SettingsScreen(
     }
 
     if (state.showThemeModeDialog) {
-        val themeModeOptions = listOf("Theo hệ thống", "Sáng", "Tối")
+        val themeModeOptions = listOf("Theo hệ thống", "Sáng", "Tối", "Theo mùa")
         val currentLabel = when (state.themeMode) {
             "light" -> "Sáng"
             "dark" -> "Tối"
+            "seasonal" -> "Theo mùa"
             else -> "Theo hệ thống"
         }
         SelectionDialog(
@@ -133,6 +134,7 @@ fun SettingsScreen(
                 val mode = when (label) {
                     "Sáng" -> "light"
                     "Tối" -> "dark"
+                    "Theo mùa" -> "seasonal"
                     else -> "system"
                 }
                 viewModel.setThemeMode(mode)
@@ -203,10 +205,11 @@ fun SettingsScreen(
                 SettingsItemDivider()
                 SettingsArrowItem(
                     icon = Icons.Filled.Palette, iconColor = iconPurple,
-                    title = "Giao diện", desc = "Sáng / Tối / Theo hệ thống",
+                    title = "Giao diện", desc = "Sáng / Tối / Theo hệ thống / Theo mùa",
                     value = when (state.themeMode) {
                         "light" -> "Sáng"
                         "dark" -> "Tối"
+                        "seasonal" -> "Theo mùa"
                         else -> "Hệ thống"
                     }
                 ) { viewModel.showThemeModeDialog() }

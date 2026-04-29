@@ -9,6 +9,8 @@ import com.lichso.app.data.local.entity.PermanentUnlockEntity
 import com.lichso.app.data.local.entity.PointsLedgerEntity
 import com.lichso.app.data.local.entity.StreakRecordEntity
 import com.lichso.app.feature.points.domain.Clock
+import com.lichso.app.feature.points.domain.FreezePurchaseResult
+import com.lichso.app.feature.points.domain.FreezeRedeemResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
@@ -146,6 +148,66 @@ class PointsRepository @Inject constructor(
     /** Update streak record (use by StreakUseCase). */
     suspend fun upsertStreak(entity: StreakRecordEntity) = mutex.withLock {
         streakDao.upsertStreak(entity)
+    }
+
+    /**
+     * Phase 4 — mua thêm 1 freeze token bằng permanent points (☯).
+     * Trả về [FreezePurchaseResult]. Cap tối đa 5 token cùng lúc.
+     */
+    suspend fun purchaseFreezeToken(cost: Long, maxTokens: Int = 5): FreezePurchaseResult = mutex.withLock {
+        val ledger = getOrCreateLedgerInternal()
+        if (ledger.permanentPoints < cost) {
+            return@withLock FreezePurchaseResult.InsufficientPoints(
+                needed = (cost - ledger.permanentPoints).coerceAtLeast(0L)
+            )
+        }
+        val streak = getOrCreateStreakInternal()
+        if (streak.freezeTokens >= maxTokens) {
+            return@withLock FreezePurchaseResult.MaxTokens
+        }
+        pointsDao.upsertLedger(
+            ledger.copy(
+                permanentPoints = ledger.permanentPoints - cost,
+                updatedAt = clock.nowEpochMillis(),
+            )
+        )
+        streakDao.upsertStreak(
+            streak.copy(
+                freezeTokens = streak.freezeTokens + 1,
+                updatedAt = clock.nowEpochMillis(),
+            )
+        )
+        FreezePurchaseResult.Success
+    }
+
+    /**
+     * Phase 4 — nhận 1 freeze token miễn phí từ deep-link gift.
+     * Idempotent theo [giftId] (mỗi giftId chỉ nhận được 1 lần — re-use [DailyUnlockEntity] với prefix gift_).
+     */
+    suspend fun redeemFreezeGift(giftId: String, maxTokens: Int = 5): FreezeRedeemResult = mutex.withLock {
+        val key = "freeze_gift_$giftId"
+        // Use permanent unlock table as idempotency check (one row per giftId).
+        if (unlockDao.isPermanentUnlocked(key)) {
+            return@withLock FreezeRedeemResult.AlreadyRedeemed
+        }
+        val streak = getOrCreateStreakInternal()
+        if (streak.freezeTokens >= maxTokens) {
+            return@withLock FreezeRedeemResult.MaxTokens
+        }
+        streakDao.upsertStreak(
+            streak.copy(
+                freezeTokens = streak.freezeTokens + 1,
+                updatedAt = clock.nowEpochMillis(),
+            )
+        )
+        unlockDao.insertPermanentUnlock(
+            PermanentUnlockEntity(
+                unlockKey = key,
+                rank = "GIFT",
+                unlockedAt = clock.nowEpochMillis(),
+            )
+        )
+        FreezeRedeemResult.Success
     }
 
     // ── Internals (NO lock — callers already hold it) ─────────

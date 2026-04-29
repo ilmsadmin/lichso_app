@@ -1,5 +1,6 @@
 package com.lichso.app.feature.points.ui
 
+import android.content.Intent
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -240,8 +242,10 @@ fun OracleResultScreen(
     onBackClick: () -> Unit,
     onAskAi: (String) -> Unit,
     clock: Clock,
+    vm: PointsViewModel = hiltViewModel(),
 ) {
     val c = LichSoThemeColors.current
+    val context = LocalContext.current
     val que = remember(clock.todayEpochDay()) { OracleDeck.pickForDay(clock.todayEpochDay()) }
 
     Scaffold(
@@ -297,6 +301,34 @@ fun OracleResultScreen(
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
+                    onClick = {
+                        val shareText = buildString {
+                            appendLine("Quẻ hôm nay của mình: ${que.name} (${que.han})")
+                            appendLine(que.subtitle)
+                            appendLine()
+                            appendLine("Thơ quẻ:")
+                            appendLine(que.poem)
+                            appendLine()
+                            appendLine("Hướng tốt: ${que.direction}")
+                            appendLine("Giờ tốt: ${que.luckyHour}")
+                            appendLine("Gợi ý: ${que.suggestion}")
+                            appendLine()
+                            append("— Chia sẻ từ Lịch Số")
+                        }
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Chia sẻ quẻ hôm nay"))
+                        vm.award(ActionType.SHARE_TO_SOCIAL, metadata = "oracle_result")
+                    },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, c.outline),
+                ) {
+                    Text("Chia sẻ quẻ", color = c.textPrimary, fontWeight = FontWeight.Bold)
+                }
+                OutlinedButton(
                     onClick = onBackClick,
                     modifier = Modifier.weight(1f).height(48.dp),
                     shape = RoundedCornerShape(12.dp),
@@ -304,6 +336,8 @@ fun OracleResultScreen(
                 ) {
                     Text("Đóng", color = c.primary, fontWeight = FontWeight.Bold)
                 }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = {
                         val prompt = "Giải thêm giúp tôi quẻ \"${que.name}\" (${que.han}) — ${que.subtitle}. " +

@@ -12,6 +12,8 @@ import com.lichso.app.data.auth.UserInfo
 import com.lichso.app.data.local.AppBackupManager
 import com.lichso.app.data.local.dao.*
 import com.lichso.app.data.local.entity.BookmarkEntity
+import com.lichso.app.feature.points.domain.ActionType
+import com.lichso.app.feature.points.domain.AwardPointsUseCase
 import com.lichso.app.ui.screen.settings.settingsDataStore
 import com.lichso.app.util.CanChiCalculator
 import com.lichso.app.util.LunarCalendarUtil
@@ -126,6 +128,7 @@ class ProfileViewModel @Inject constructor(
     private val memorialChecklistDao: MemorialChecklistDao,
     private val familySettingsDao: FamilySettingsDao,
     private val memberPhotoDao: MemberPhotoDao,
+    private val awardPointsUseCase: AwardPointsUseCase,
 ) : ViewModel() {
 
     private val dataStore = context.settingsDataStore
@@ -494,6 +497,7 @@ class ProfileViewModel @Inject constructor(
                     note = note
                 )
             )
+            runCatching { awardPointsUseCase(ActionType.ADD_BOOKMARK) }
             _uiState.update {
                 it.copy(
                     showAddSavedDayDialog = false,

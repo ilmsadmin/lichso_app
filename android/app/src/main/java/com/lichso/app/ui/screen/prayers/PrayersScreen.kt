@@ -42,6 +42,7 @@ import com.lichso.app.ui.theme.*
 import com.lichso.app.ui.components.AppTopBar
 import com.lichso.app.ui.components.HeaderIconButton
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 // ══════════════════════════════════════════════════════════════
 // Màn hình Văn Khấn — based on v2/screen-prayers.html mock
@@ -569,11 +570,17 @@ private fun PrayerDetailScreen(
 ) {
     val c = LichSoThemeColors.current
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     // ── TTS engine ──
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
     var isSpeaking by remember { mutableStateOf(false) }
     var ttsInitialized by remember { mutableStateOf(false) }
+
+    // ── Karaoke mode state ──
+    var karaokeMode by remember { mutableStateOf(false) }
+    var currentKaraokeLine by remember { mutableStateOf(-1) }
+    val karaokeListState = androidx.compose.foundation.lazy.rememberLazyListState()
 
     DisposableEffect(Unit) {
         var engine: TextToSpeech? = null
@@ -608,8 +615,24 @@ private fun PrayerDetailScreen(
     // Track speaking state
     LaunchedEffect(tts) {
         tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
-            override fun onStart(utteranceId: String?) { isSpeaking = true }
-            override fun onDone(utteranceId: String?) { isSpeaking = false }
+            override fun onStart(utteranceId: String?) {
+                isSpeaking = true
+                // Karaoke: parse line index from utterance id "karaoke_<i>"
+                if (utteranceId != null && utteranceId.startsWith("karaoke_")) {
+                    val idx = utteranceId.removePrefix("karaoke_").toIntOrNull() ?: return
+                    currentKaraokeLine = idx
+                    coroutineScope.launch {
+                        runCatching { karaokeListState.animateScrollToItem(idx.coerceAtLeast(0)) }
+                    }
+                }
+            }
+            override fun onDone(utteranceId: String?) {
+                // Only mark "stopped" when last utterance is done (handled by speak loop)
+                isSpeaking = false
+                if (utteranceId != null && utteranceId.startsWith("karaoke_last")) {
+                    currentKaraokeLine = -1
+                }
+            }
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) { isSpeaking = false }
         })
@@ -646,37 +669,129 @@ private fun PrayerDetailScreen(
         )
 
         // ── Detail Content ──
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 20.dp)
-        ) {
-            // Prayer title
-            Text(
-                prayer.name,
-                style = TextStyle(
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = c.textPrimary,
-                    lineHeight = 28.sp
+        if (karaokeMode) {
+            // Karaoke mode: line-by-line LazyColumn with current line highlighted
+            val lines = remember(plainText) {
+                plainText.split("\n").map { it.trim() }.filter { it.isNotBlank() }
+            }
+            LazyColumn(
+                state = karaokeListState,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                item("title") {
+                    Text(
+                        prayer.name,
+                        style = TextStyle(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = c.textPrimary,
+                            lineHeight = 28.sp
+                        )
+                    )
+                }
+                items(lines.size) { idx ->
+                    val active = idx == currentKaraokeLine
+                    val bg = if (active)
+                        (if (c.isDark) Color(0xFF3D2A10) else Color(0xFFFFF3E0))
+                    else Color.Transparent
+                    val color = when {
+                        active -> c.primary
+                        currentKaraokeLine >= 0 && idx < currentKaraokeLine -> c.textSecondary
+                        else -> c.textPrimary
+                    }
+                    Text(
+                        lines[idx],
+                        style = TextStyle(
+                            fontFamily = FontFamily.Serif,
+                            fontSize = if (active) 17.sp else 15.sp,
+                            lineHeight = 28.sp,
+                            fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
+                            color = color,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(bg)
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                    )
+                }
+            }
+        } else {
+            // Normal scroll mode
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 20.dp)
+            ) {
+                // Prayer title
+                Text(
+                    prayer.name,
+                    style = TextStyle(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = c.textPrimary,
+                        lineHeight = 28.sp
+                    )
                 )
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            // Prayer text
-            PrayerTextBlock(content = prayer.content)
+                // Prayer text
+                PrayerTextBlock(content = prayer.content)
 
-            // Note card
-            if (prayer.note.isNotBlank()) {
-                Spacer(modifier = Modifier.height(20.dp))
-                NoteCard(note = prayer.note)
+                // Note card
+                if (prayer.note.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(20.dp))
+                    NoteCard(note = prayer.note)
+                }
             }
         }
 
         // ── Bottom Bar ──
         DetailBottomBar(
             isSpeaking = isSpeaking,
+            karaokeMode = karaokeMode,
+            onToggleKaraoke = {
+                val engine = tts
+                if (karaokeMode) {
+                    engine?.stop()
+                    isSpeaking = false
+                    currentKaraokeLine = -1
+                    karaokeMode = false
+                } else {
+                    if (engine == null || !ttsInitialized) {
+                        Toast.makeText(context, "Đang khởi tạo giọng đọc, vui lòng thử lại", Toast.LENGTH_SHORT).show()
+                        return@DetailBottomBar
+                    }
+                    karaokeMode = true
+                    currentKaraokeLine = -1
+                    // Start karaoke speak
+                    val viLocale = Locale("vi", "VN")
+                    val langResult = engine.setLanguage(viLocale)
+                    if (langResult == TextToSpeech.LANG_MISSING_DATA || langResult == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        val viVoice = engine.voices?.firstOrNull { v -> v.locale.language == "vi" }
+                        if (viVoice != null) engine.voice = viVoice
+                    }
+                    engine.setSpeechRate(0.85f)
+                    engine.setPitch(1.0f)
+                    val lines = plainText.split("\n").map { it.trim() }.filter { it.isNotBlank() }
+                    val params = android.os.Bundle()
+                    engine.stop()
+                    lines.forEachIndexed { idx, line ->
+                        val isLast = idx == lines.lastIndex
+                        val id = if (isLast) "karaoke_last_$idx" else "karaoke_$idx"
+                        engine.speak(
+                            line,
+                            if (idx == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD,
+                            params,
+                            id,
+                        )
+                    }
+                }
+            },
             onCopy = {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = ClipData.newPlainText(prayer.name, "${prayer.name}\n\n$plainText")
@@ -830,12 +945,14 @@ private fun NoteCard(note: String) {
 @Composable
 private fun DetailBottomBar(
     isSpeaking: Boolean = false,
+    karaokeMode: Boolean = false,
     onCopy: () -> Unit = {},
-    onReadAloud: () -> Unit = {}
+    onReadAloud: () -> Unit = {},
+    onToggleKaraoke: () -> Unit = {},
 ) {
     val c = LichSoThemeColors.current
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(c.bg)
@@ -846,54 +963,91 @@ private fun DetailBottomBar(
             )
             .padding(horizontal = 24.dp, vertical = 12.dp)
             .navigationBarsPadding(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Copy button
+        // Karaoke toggle row
         Box(
             modifier = Modifier
-                .weight(1f)
+                .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(c.surfaceContainer, RoundedCornerShape(14.dp))
-                .border(1.dp, c.outlineVariant, RoundedCornerShape(14.dp))
-                .clickable { onCopy() }
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center
+                .background(
+                    if (karaokeMode) c.primary else c.surfaceContainer,
+                    RoundedCornerShape(14.dp),
+                )
+                .border(1.dp, if (karaokeMode) c.primary else c.outlineVariant, RoundedCornerShape(14.dp))
+                .clickable { onToggleKaraoke() }
+                .padding(vertical = 10.dp),
+            contentAlignment = Alignment.Center,
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Icon(Icons.Filled.ContentCopy, null, tint = c.textPrimary, modifier = Modifier.size(18.dp))
+                Icon(
+                    Icons.Filled.MusicNote,
+                    contentDescription = null,
+                    tint = if (karaokeMode) Color.White else c.primary,
+                    modifier = Modifier.size(18.dp),
+                )
                 Text(
-                    "Sao chép",
-                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = c.textPrimary)
+                    if (karaokeMode) "Tắt Karaoke" else "Chế độ Karaoke (đọc theo dòng)",
+                    style = TextStyle(
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (karaokeMode) Color.White else c.primary,
+                    ),
                 )
             }
         }
+        Spacer(Modifier.height(8.dp))
 
-        // Read aloud button
-        val ttsBackground = if (isSpeaking) c.badRed else c.primary
-        val ttsIcon = if (isSpeaking) Icons.Filled.Stop else Icons.Filled.RecordVoiceOver
-        val ttsLabel = if (isSpeaking) "Dừng đọc" else "Đọc to"
-
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .clip(RoundedCornerShape(14.dp))
-                .background(ttsBackground, RoundedCornerShape(14.dp))
-                .clickable { onReadAloud() }
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Copy button
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(c.surfaceContainer, RoundedCornerShape(14.dp))
+                    .border(1.dp, c.outlineVariant, RoundedCornerShape(14.dp))
+                    .clickable { onCopy() }
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(ttsIcon, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                Text(
-                    ttsLabel,
-                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(Icons.Filled.ContentCopy, null, tint = c.textPrimary, modifier = Modifier.size(18.dp))
+                    Text(
+                        "Sao chép",
+                        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = c.textPrimary)
+                    )
+                }
+            }
+
+            // Read aloud button
+            val ttsBackground = if (isSpeaking) c.badRed else c.primary
+            val ttsIcon = if (isSpeaking) Icons.Filled.Stop else Icons.Filled.RecordVoiceOver
+            val ttsLabel = if (isSpeaking) "Dừng đọc" else "Đọc to"
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(ttsBackground, RoundedCornerShape(14.dp))
+                    .clickable { onReadAloud() }
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(ttsIcon, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    Text(
+                        ttsLabel,
+                        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    )
+                }
             }
         }
     }

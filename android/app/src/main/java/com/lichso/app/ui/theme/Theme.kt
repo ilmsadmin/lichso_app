@@ -62,10 +62,41 @@ private val LichSoLightColorScheme = lightColorScheme(
 @Composable
 fun LichSoTheme(
     darkTheme: Boolean = false,
+    seasonalColors: LichSoColors? = null,
     content: @Composable () -> Unit
 ) {
-    val colors = if (darkTheme) DarkColors else LightColors
-    val materialScheme = if (darkTheme) LichSoDarkColorScheme else LichSoLightColorScheme
+    val colors = when {
+        darkTheme -> DarkColors
+        seasonalColors != null -> seasonalColors
+        else -> LightColors
+    }
+    val materialScheme = if (darkTheme) {
+        LichSoDarkColorScheme
+    } else {
+        lightColorScheme(
+            primary = colors.primary,
+            onPrimary = colors.onPrimary,
+            primaryContainer = colors.primaryContainer,
+            onPrimaryContainer = colors.onPrimaryContainer,
+            secondary = colors.gold2,
+            onSecondary = Color.White,
+            secondaryContainer = colors.goldDim,
+            onSecondaryContainer = colors.textPrimary,
+            tertiary = colors.teal,
+            onTertiary = Color.White,
+            error = colors.red,
+            onError = Color.White,
+            errorContainer = colors.red2,
+            background = colors.bg,
+            onBackground = colors.textPrimary,
+            surface = colors.bg2,
+            onSurface = colors.textPrimary,
+            surfaceVariant = colors.bg3,
+            onSurfaceVariant = colors.textSecondary,
+            outline = colors.outline,
+            outlineVariant = colors.outlineVariant,
+        )
+    }
 
     val view = LocalView.current
     if (!view.isInEditMode) {

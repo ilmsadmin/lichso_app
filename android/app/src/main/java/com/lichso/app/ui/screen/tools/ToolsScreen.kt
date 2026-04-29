@@ -50,6 +50,15 @@ enum class ToolAction {
     ORACLE_DRAW,
     POINTS_LEDGER,
     DAILY_STORE,
+    ZODIAC_COLLECTION,
+    // v2 Phase 3 — Doanh thu / Premium tools
+    DATE_PICKER,
+    FENGSHUI_AR,
+    // v2 Phase 4 — Delight
+    OCR_CALENDAR,
+    STREAK_FREEZE,
+    TIET_KHI,
+    HOW_TO_EARN,
 }
 
 private data class ToolItem(
@@ -149,6 +158,62 @@ fun ToolsScreen(
             "Lịch sử công đức",
             Icons.AutoMirrored.Filled.MenuBook,
             listOf(Color(0xFF5D4037), Color(0xFF8D6E63))
+        ),
+        ToolItem(
+            ToolAction.ZODIAC_COLLECTION,
+            "Sưu tập 12 con giáp",
+            "Rút thẻ ngày · Đổi điểm ⚡",
+            Icons.Filled.Pets,
+            listOf(Color(0xFF2E7D32), Color(0xFFD4A017)),
+            badge = "NEW"
+        ),
+        // ── Phase 3 — Premium / Doanh thu ──
+        ToolItem(
+            ToolAction.DATE_PICKER,
+            "Chọn ngày tốt",
+            "Cưới · Động thổ · Khai trương",
+            Icons.Filled.EventAvailable,
+            listOf(Color(0xFF8B0000), Color(0xFFD4A017)),
+            badge = "PRO"
+        ),
+        ToolItem(
+            ToolAction.FENGSHUI_AR,
+            "AI Phong Thuỷ",
+            "Chụp phòng → AI luận giải",
+            Icons.Filled.PhotoCamera,
+            listOf(Color(0xFF26A69A), Color(0xFF00695C)),
+            badge = "AI"
+        ),
+        ToolItem(
+            ToolAction.OCR_CALENDAR,
+            "Quét lịch giấy",
+            "OCR → tự bắt ngày âm/dương",
+            Icons.Filled.DocumentScanner,
+            listOf(Color(0xFF455A64), Color(0xFF607D8B)),
+            badge = "NEW"
+        ),
+        ToolItem(
+            ToolAction.STREAK_FREEZE,
+            "Đóng băng streak",
+            "Mua vé · tặng bạn bè",
+            Icons.Filled.AcUnit,
+            listOf(Color(0xFF1565C0), Color(0xFF26C6DA)),
+            badge = "NEW"
+        ),
+        ToolItem(
+            ToolAction.TIET_KHI,
+            "24 Tiết Khí",
+            "Vòng năm Á Đông · phong thuỷ",
+            Icons.Filled.Spa,
+            listOf(Color(0xFF388E3C), Color(0xFFFFB300)),
+        ),
+        ToolItem(
+            ToolAction.HOW_TO_EARN,
+            "Hướng dẫn kiếm điểm",
+            "+100☘️ khi xem lần đầu",
+            Icons.AutoMirrored.Filled.MenuBook,
+            listOf(Color(0xFFD4A017), Color(0xFF8B0000)),
+            badge = "+100"
         ),
     )
 

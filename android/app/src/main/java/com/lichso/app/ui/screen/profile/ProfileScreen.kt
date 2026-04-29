@@ -157,16 +157,50 @@ fun ProfileScreen(
                 ) {
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Avatar
-                    AvatarImage(
-                        avatarPath = state.avatarPath,
-                        size = 72,
-                        borderColor = Color.White.copy(alpha = 0.3f),
-                        placeholderTint = Color.White.copy(alpha = 0.8f),
-                        bgColor = Color.White.copy(alpha = 0.15f)
-                    )
+                    // Avatar with rank-colored gradient frame
+                    val pointsVm: com.lichso.app.feature.points.ui.PointsViewModel = hiltViewModel()
+                    val rankBalance by pointsVm.balance.collectAsState()
+                    val frameGradient = rankGradient(rankBalance.rank)
+                    Box(
+                        modifier = Modifier
+                            .size(82.dp)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(frameGradient)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        AvatarImage(
+                            avatarPath = state.avatarPath,
+                            size = 72,
+                            borderColor = Color.White.copy(alpha = 0.3f),
+                            placeholderTint = Color.White.copy(alpha = 0.8f),
+                            bgColor = Color.White.copy(alpha = 0.15f)
+                        )
+                    }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Rank label chip
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color.White.copy(alpha = 0.18f))
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.WorkspacePremium,
+                            contentDescription = null,
+                            tint = Color(0xFFFFD54F),
+                            modifier = Modifier.size(13.dp),
+                        )
+                        Text(
+                            rankBalance.rank.displayName,
+                            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
                         state.displayName,
@@ -242,6 +276,13 @@ fun ProfileScreen(
                 StatCard("${state.reminderCount}", "Nhắc nhở", Modifier.weight(1f).fillMaxHeight())
                 StatCard("${state.noteCount}", "Ghi chú", Modifier.weight(1f).fillMaxHeight())
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ═══ RANK & BADGES (Phase 2 — Milestone vĩnh viễn + Avatar frames) ═══
+            SectionTitle(icon = Icons.Filled.WorkspacePremium, text = "Cấp bậc & Huy hiệu")
+            Spacer(modifier = Modifier.height(10.dp))
+            RankBadgeSection()
 
             Spacer(modifier = Modifier.height(16.dp))
 

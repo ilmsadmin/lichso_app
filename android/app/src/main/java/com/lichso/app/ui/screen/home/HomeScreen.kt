@@ -234,6 +234,13 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                         }
 
+                        // ═══ SMART HINT BANNER (theo ngữ cảnh: mùng 1, rằm, kỵ ngày...) ═══
+                        com.lichso.app.notification.SmartReminderProvider
+                            .contextualHintFor(info)?.let { hint ->
+                            SmartHintBanner(text = hint)
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+
                         // ═══ EVENT CHIPS ═══
                         EventChips(
                             info = info,
@@ -891,5 +898,39 @@ private fun EventChip(
     ) {
         Icon(icon, contentDescription = null, tint = textColor, modifier = Modifier.size(14.dp))
         Text(text, style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = textColor))
+    }
+}
+
+// ══════════════════════════════════════════
+// SMART HINT BANNER (Phase 2 — Smart Reminder theo ngữ cảnh)
+// ══════════════════════════════════════════
+@Composable
+private fun SmartHintBanner(text: String) {
+    val c = LichSoThemeColors.current
+    val bg = if (c.isDark) Color(0xFF2A2010) else Color(0xFFFFF8E1)
+    val border = if (c.isDark) Color(0xFF5C4319) else Color(0xFFFFD54F)
+    val tint = if (c.isDark) Color(0xFFFFCA28) else Color(0xFF8B5E00)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(bg)
+            .border(1.dp, border, RoundedCornerShape(10.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            Icons.Filled.Lightbulb,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text,
+            color = tint,
+            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+        )
     }
 }

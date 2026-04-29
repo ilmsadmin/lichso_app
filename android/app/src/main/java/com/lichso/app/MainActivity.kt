@@ -18,11 +18,13 @@ import com.lichso.app.ui.screen.settings.SettingsKeys
 import com.lichso.app.ui.screen.settings.settingsDataStore
 import com.lichso.app.ui.screen.splash.SplashScreen
 import com.lichso.app.ui.theme.LichSoTheme
+import com.lichso.app.ui.theme.seasonalPaletteForMonth
 import com.lichso.app.update.InAppUpdateManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 private enum class AppScreen { SPLASH, ONBOARDING, MAIN }
 
@@ -57,6 +59,12 @@ class MainActivity : ComponentActivity() {
             else -> null
         }
 
+        // Phase 4 — deep link gift: lichso://streak-gift?token=xxx
+        val giftToken = intent?.takeIf { it.action == android.content.Intent.ACTION_VIEW }
+            ?.data
+            ?.takeIf { it.scheme == "lichso" && it.host == "streak-gift" }
+            ?.getQueryParameter("token")
+
         setContent {
             val context = LocalContext.current
             val coroutineScope = rememberCoroutineScope()
@@ -71,8 +79,13 @@ class MainActivity : ComponentActivity() {
             val darkMode = when (themeMode) {
                 "dark" -> true
                 "light" -> false
+                "seasonal" -> false
                 else -> systemDark
             }
+            val seasonalColors = if (themeMode == "seasonal") {
+                // Phase 4 — palette động theo 24 tiết khí (đổi mỗi ~15 ngày).
+                com.lichso.app.ui.theme.solarTermPalette(LocalDate.now())
+            } else null
 
             // Track which screen to show
             var currentScreen by remember { mutableStateOf(AppScreen.SPLASH) }
@@ -84,7 +97,7 @@ class MainActivity : ComponentActivity() {
                 onboardingCompleted = prefs[SettingsKeys.ONBOARDING_COMPLETED] ?: false
             }
 
-            LichSoTheme(darkTheme = darkMode) {
+            LichSoTheme(darkTheme = darkMode, seasonalColors = seasonalColors) {
                 when (currentScreen) {
                     AppScreen.SPLASH -> {
                         SplashScreen(
@@ -116,7 +129,8 @@ class MainActivity : ComponentActivity() {
                     AppScreen.MAIN -> {
                         LichSoMainScreen(
                             modifier = Modifier.fillMaxSize(),
-                            initialRoute = widgetRoute ?: "home"
+                            initialRoute = widgetRoute ?: giftToken?.let { "streak_freeze" } ?: "home",
+                            giftToken = giftToken,
                         )
                     }
                 }
