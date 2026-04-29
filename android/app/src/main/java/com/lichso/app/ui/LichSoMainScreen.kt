@@ -56,6 +56,7 @@ import com.lichso.app.update.InAppUpdateManager
 import com.lichso.app.feature.points.ui.PointsViewModel
 import com.lichso.app.feature.points.ui.PointsEvent
 import com.lichso.app.feature.points.ui.RankUpDialog
+import com.lichso.app.feature.points.domain.ActionType
 import com.lichso.app.feature.points.domain.Clock as PointsClock
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -178,6 +179,9 @@ fun LichSoMainScreen(modifier: Modifier = Modifier, initialRoute: String = "home
                     onHistoryClick = { currentRoute = "history" },
                     onNotificationClick = { currentRoute = "notifications" },
                     onPointsPillClick = { currentRoute = "ledger" },
+                    onFortuneCardShown = {
+                        pointsViewModel.award(ActionType.VIEW_FORTUNE_CARD)
+                    },
                 )
                 "calendar" -> CalendarScreen(
                     onGoodDaysClick = { currentRoute = "gooddays" },

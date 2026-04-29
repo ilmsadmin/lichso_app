@@ -43,6 +43,7 @@ import com.lichso.app.ui.components.CalendarPatternBackground
 import com.lichso.app.ui.components.HeaderIconButton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -54,6 +55,7 @@ fun HomeScreen(
     onHistoryClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
     onPointsPillClick: () -> Unit = {},
+    onFortuneCardShown: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val c = LichSoThemeColors.current
@@ -77,6 +79,12 @@ fun HomeScreen(
             .background(c.bg)
     ) {
         uiState.dayInfo?.let { info ->
+            LaunchedEffect(uiState.selectedDate) {
+                if (uiState.selectedDate == LocalDate.now()) {
+                    onFortuneCardShown()
+                }
+            }
+
             // ═══ RED GRADIENT HEADER ═══
             RedHeader(
                 info = info,
