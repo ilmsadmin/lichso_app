@@ -8,6 +8,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -892,8 +893,7 @@ private fun BookmarksPreviewRow(
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(bookmarks.size) { index ->
-                val bm = bookmarks[index]
+            items(bookmarks, key = { it.id }) { bm ->
                 Column(
                     modifier = Modifier
                         .width(78.dp)

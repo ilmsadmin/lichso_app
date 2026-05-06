@@ -125,6 +125,15 @@ android {
         checkReleaseBuilds = true
         abortOnError = false
     }
+
+    // ── App Bundle splits ──
+    // Play Store sẽ tách APK theo ABI / màn hình / ngôn ngữ → user chỉ tải
+    // phần phù hợp với thiết bị, giảm download size đáng kể.
+    bundle {
+        language { enableSplit = true }
+        density  { enableSplit = true }
+        abi      { enableSplit = true }
+    }
 }
 
 // Room schema export directory for migration support

@@ -11,15 +11,25 @@ import com.lichso.app.MainActivity
 import com.lichso.app.R
 import com.lichso.app.data.local.LichSoDatabase
 import com.lichso.app.util.LunarCalendarUtil
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 class CountdownWidget : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        appWidgetIds.forEach { appWidgetId ->
-            updateWidget(context, appWidgetManager, appWidgetId)
+        // onUpdate chạy trên main thread → đẩy DB query vào IO scope (goAsync).
+        val pendingResult = goAsync()
+        widgetScope.launch {
+            try {
+                appWidgetIds.forEach { id -> updateWidget(context, appWidgetManager, id) }
+            } catch (_: Exception) { /* render tối thiểu — không crash widget host */ } finally {
+                pendingResult.finish()
+            }
         }
     }
 
@@ -37,15 +47,21 @@ class CountdownWidget : AppWidgetProvider() {
 
     companion object {
         private val FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+        private val widgetScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-        fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
+        /**
+         * DB query chạy trên IO thread. updateAppWidget() có thể gọi từ bất kỳ thread nào.
+         */
+        suspend fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_countdown)
             val today = LocalDate.now()
 
-            val event = runBlocking {
-                LichSoDatabase.getInstance(context)
-                    .countdownEventDao()
-                    .getPrimaryForWidget(today.toEpochDay())
+            val event = withContext(Dispatchers.IO) {
+                runCatching {
+                    LichSoDatabase.getInstance(context)
+                        .countdownEventDao()
+                        .getPrimaryForWidget(today.toEpochDay())
+                }.getOrNull()
             }
 
             if (event != null) {

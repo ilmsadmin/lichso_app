@@ -619,7 +619,7 @@ class FamilyTreeViewModel @Inject constructor(
                     child.parentIds.contains(wife.id)
                 }
                 if (matchedWife != null) {
-                    wifeChildrenMap[matchedWife.id]!!.add(child)
+                    wifeChildrenMap[matchedWife.id]?.add(child)
                     assignedChildIds.add(child.id)
                 }
             }
@@ -628,7 +628,7 @@ class FamilyTreeViewModel @Inject constructor(
             val unassignedChildren = children.filter { it.id !in assignedChildIds }
             if (unassignedChildren.isNotEmpty() && parentNode.wives.isNotEmpty()) {
                 val firstWifeId = parentNode.wives.first().id
-                wifeChildrenMap[firstWifeId]!!.addAll(unassignedChildren)
+                wifeChildrenMap[firstWifeId]?.addAll(unassignedChildren)
             }
 
             val wifeGroups = parentNode.wives.map { wife ->
