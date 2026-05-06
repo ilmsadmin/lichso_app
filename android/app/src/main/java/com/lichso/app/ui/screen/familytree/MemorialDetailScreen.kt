@@ -1,5 +1,7 @@
 package com.lichso.app.ui.screen.familytree
 
+import androidx.compose.ui.res.painterResource
+import com.lichso.app.R
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -331,8 +333,13 @@ private fun MemorialHero(memorial: MemorialDay, member: FamilyMember?, onBack: (
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Candle emoji
-            Text("🕯️", fontSize = 52.sp)
+            // Candle icon
+            Icon(
+                painter = painterResource(R.drawable.ic_candle),
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(52.dp)
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -640,7 +647,12 @@ private fun PrayerLinkCard(c: LichSoColors, onClick: () -> Unit = {}) {
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("📖", fontSize = 32.sp)
+        Icon(
+            painter = painterResource(R.drawable.ic_scroll),
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(32.dp)
+        )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 "Văn khấn cúng giỗ",

@@ -18,6 +18,10 @@ import com.lichso.app.data.local.entity.*
         ChatMessageEntity::class,
         BookmarkEntity::class,
         NotificationEntity::class,
+        CountdownEventEntity::class,
+        WorldClockCityEntity::class,
+        CycleSettingsEntity::class,
+        CycleLogEntity::class,
         FamilyMemberEntity::class,
         MemorialDayEntity::class,
         MemorialChecklistEntity::class,
@@ -30,7 +34,7 @@ import com.lichso.app.data.local.entity.*
         PermanentUnlockEntity::class,
         StreakRecordEntity::class,
     ],
-    version = 11,
+    version = 13,
     exportSchema = true
 )
 abstract class LichSoDatabase : RoomDatabase() {
@@ -40,6 +44,9 @@ abstract class LichSoDatabase : RoomDatabase() {
     abstract fun chatMessageDao(): ChatMessageDao
     abstract fun bookmarkDao(): BookmarkDao
     abstract fun notificationDao(): NotificationDao
+    abstract fun countdownEventDao(): CountdownEventDao
+    abstract fun worldClockCityDao(): WorldClockCityDao
+    abstract fun cycleDao(): CycleDao
     abstract fun familyMemberDao(): FamilyMemberDao
     abstract fun memorialDayDao(): MemorialDayDao
     abstract fun memorialChecklistDao(): MemorialChecklistDao
@@ -194,6 +201,57 @@ abstract class LichSoDatabase : RoomDatabase() {
             Log.d(TAG, "MIGRATION_10_11 complete")
         }
 
+        /**
+         * Migration 11→12: Countdown events table
+         */
+        private val MIGRATION_12_13 = Migration(12, 13) { db ->
+            Log.d(TAG, "Running MIGRATION_12_13: world clock cities + cycle tracker tables")
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS world_clock_cities (
+                    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    cityName TEXT NOT NULL,
+                    timezone TEXT NOT NULL,
+                    country TEXT NOT NULL DEFAULT '',
+                    sortOrder INTEGER NOT NULL DEFAULT 0
+                )
+            """.trimIndent())
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS cycle_settings (
+                    id INTEGER NOT NULL PRIMARY KEY,
+                    cycleLength INTEGER NOT NULL DEFAULT 28,
+                    periodLength INTEGER NOT NULL DEFAULT 5
+                )
+            """.trimIndent())
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS cycle_logs (
+                    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    startEpochDay INTEGER NOT NULL,
+                    endEpochDay INTEGER NOT NULL DEFAULT -1,
+                    notes TEXT NOT NULL DEFAULT '',
+                    createdAt INTEGER NOT NULL DEFAULT 0
+                )
+            """.trimIndent())
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_cycle_logs_startEpochDay ON cycle_logs(startEpochDay)")
+            Log.d(TAG, "MIGRATION_12_13 complete")
+        }
+
+        private val MIGRATION_11_12 = Migration(11, 12) { db ->
+            Log.d(TAG, "Running MIGRATION_11_12: countdown events")
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS countdown_events (
+                    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    targetEpochDay INTEGER NOT NULL,
+                    note TEXT NOT NULL DEFAULT '',
+                    showOnHome INTEGER NOT NULL DEFAULT 1,
+                    showOnWidget INTEGER NOT NULL DEFAULT 1,
+                    createdAt INTEGER NOT NULL DEFAULT 0
+                )
+            """.trimIndent())
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_countdown_events_targetEpochDay ON countdown_events(targetEpochDay)")
+            Log.d(TAG, "MIGRATION_11_12 complete")
+        }
+
         fun getInstance(context: Context): LichSoDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -202,7 +260,7 @@ abstract class LichSoDatabase : RoomDatabase() {
                     "lichso.db"
                 )
                     // Migrations
-                    .addMigrations(MIGRATION_9_10, MIGRATION_10_11)
+                    .addMigrations(MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
                     .fallbackToDestructiveMigrationFrom(
                         // Only allow destructive migration from very old versions (pre-release)
                         // that we don't need to support. Current users on v9 are safe.

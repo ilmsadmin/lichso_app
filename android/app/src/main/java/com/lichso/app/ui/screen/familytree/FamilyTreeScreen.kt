@@ -49,6 +49,8 @@ import coil.request.ImageRequest
 import com.lichso.app.ui.theme.*
 import com.lichso.app.ui.components.AppTopBar
 import com.lichso.app.ui.components.HeaderIconButton
+import androidx.compose.ui.res.painterResource
+import com.lichso.app.R
 import java.io.File
 
 // ══════════════════════════════════════════════════════════════
@@ -1492,7 +1494,12 @@ private fun CoupleNodeView(
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         PersonNodeView(person1, onClick = { onPersonClick(person1.id) })
-        Text("❤️", fontSize = 10.sp)
+        Icon(
+            painter = painterResource(R.drawable.ic_heart),
+            contentDescription = null,
+            tint = Color(0xFFEF5350),
+            modifier = Modifier.size(10.dp)
+        )
         PersonNodeView(person2, onClick = { onPersonClick(person2.id) })
     }
 }
@@ -1516,10 +1523,20 @@ private fun MultiSpouseNodeView(
                 if (index == 0) {
                     // First wife on the left of husband
                     PersonNodeView(wife, onClick = { onPersonClick(wife.id) })
-                    Text("❤️", fontSize = 10.sp)
+                    Icon(
+                        painter = painterResource(R.drawable.ic_heart),
+                        contentDescription = null,
+                        tint = Color(0xFFEF5350),
+                        modifier = Modifier.size(10.dp)
+                    )
                     PersonNodeView(husband, onClick = { onPersonClick(husband.id) })
                 } else {
-                    Text("❤️", fontSize = 10.sp)
+                    Icon(
+                        painter = painterResource(R.drawable.ic_heart),
+                        contentDescription = null,
+                        tint = Color(0xFFEF5350),
+                        modifier = Modifier.size(10.dp)
+                    )
                     PersonNodeView(wife, onClick = { onPersonClick(wife.id) })
                 }
             }
@@ -1715,19 +1732,36 @@ private fun MemberListCard(member: FamilyMember, onClick: () -> Unit, onReminder
                 TagChip("Đã mất", if (c.isDark) Color(0xFF424242) else Color(0xFFF5F5F5), Color(0xFF757575))
             }
             // Reminder button
-            val reminderLabel = if (isDeceased) "🕯️ Nhắc giỗ" else "🎂 Nhắc sinh nhật"
+            val reminderLabel = if (isDeceased) "Nhắc giỗ" else "Nhắc sinh nhật"
             val reminderBg = if (isDeceased) Color(0xFFFFF3E0) else Color(0xFFE8F5E9)
             val reminderTextColor = if (isDeceased)
                 (if (c.isDark) Color(0xFFFFAB40) else Color(0xFFE65100))
             else
                 (if (c.isDark) Color(0xFF81C784) else Color(0xFF2E7D32))
-            Box(
+            Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .background(if (c.isDark) reminderTextColor.copy(alpha = 0.15f) else reminderBg, RoundedCornerShape(8.dp))
                     .clickable(onClick = onReminderClick)
-                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
             ) {
+                if (isDeceased) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_candle),
+                        contentDescription = null,
+                        tint = reminderTextColor,
+                        modifier = Modifier.size(9.dp)
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.Cake,
+                        contentDescription = null,
+                        tint = reminderTextColor,
+                        modifier = Modifier.size(9.dp)
+                    )
+                }
                 Text(
                     reminderLabel,
                     style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Bold, color = reminderTextColor)
@@ -1819,7 +1853,12 @@ private fun MemorialTabContent(viewModel: FamilyTreeViewModel, uiState: FamilyTr
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("🕯️", fontSize = 48.sp)
+                    Icon(
+                        painter = painterResource(R.drawable.ic_candle),
+                        contentDescription = null,
+                        tint = c.outline,
+                        modifier = Modifier.size(48.dp)
+                    )
                     Text(
                         "Chưa có ngày giỗ nào",
                         style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = c.textSecondary)
@@ -1904,7 +1943,12 @@ private fun MemorialCard(memorial: MemorialDay, c: LichSoColors, onClick: () -> 
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Text("🕯️", fontSize = 24.sp)
+            Icon(
+                painter = painterResource(R.drawable.ic_candle),
+                contentDescription = null,
+                tint = Color(0xFFE65100),
+                modifier = Modifier.size(24.dp)
+            )
         }
 
         // Info

@@ -137,7 +137,7 @@ fun LedgerScreen(
 }
 
 private enum class LedgerFilter(val label: String) {
-    ALL("Tất cả"), EARN("Kiếm ⚡"), KARMA("Nghiệp ☯️"), STREAK("Streak 🔥");
+    ALL("Tất cả"), EARN("Kiếm"), KARMA("Nghiệp"), STREAK("Streak");
 }
 
 @Composable
@@ -151,21 +151,21 @@ private fun SummaryRow(daily: Int, spent: Int, perm: Long) {
     ) {
         SummaryTile(
             value = "$daily",
-            label = "⚡ HÔM NAY",
+            label = "HÔM NAY",
             iconRes = R.drawable.ic_bolt,
             tint = c.gold,
             modifier = Modifier.weight(1f),
         )
         SummaryTile(
             value = "-$spent",
-            label = "⚡ CHI TIÊU",
+            label = "CHI TIÊU",
             iconRes = R.drawable.ic_lock_open,
             tint = c.primary,
             modifier = Modifier.weight(1f),
         )
         SummaryTile(
             value = formatCompact(perm),
-            label = "☯️ TÍCH LUỸ",
+            label = "TÍCH LUỸ",
             iconRes = R.drawable.ic_yin_yang,
             tint = c.goodGreen,
             modifier = Modifier.weight(1f),
@@ -260,10 +260,16 @@ private fun DayHeader(epochDay: Long, logs: List<LedgerEntry>) {
             label,
             style = TextStyle(fontFamily = FontFamily.Serif, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = c.textPrimary),
         )
-        Text(
-            "+$dailySum⚡  +$permSum☯️",
-            style = TextStyle(fontSize = 11.sp, color = c.textTertiary),
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text("+$dailySum", style = TextStyle(fontSize = 11.sp, color = c.textTertiary))
+            Icon(painter = painterResource(R.drawable.ic_bolt), contentDescription = null, tint = c.gold, modifier = Modifier.size(10.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("+$permSum", style = TextStyle(fontSize = 11.sp, color = c.textTertiary))
+            Icon(painter = painterResource(R.drawable.ic_yin_yang), contentDescription = null, tint = c.goodGreen, modifier = Modifier.size(10.dp))
+        }
     }
 }
 
@@ -331,16 +337,16 @@ private fun LedgerEntryRow(entry: LedgerEntry) {
         }
         Column(horizontalAlignment = Alignment.End) {
             if (entry.dailyPointsAwarded > 0) {
-                Text(
-                    "+${entry.dailyPointsAwarded}⚡",
-                    style = TextStyle(fontSize = 13.sp, color = c.gold, fontWeight = FontWeight.Bold),
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("+${entry.dailyPointsAwarded}", style = TextStyle(fontSize = 13.sp, color = c.gold, fontWeight = FontWeight.Bold))
+                    Icon(painter = painterResource(R.drawable.ic_bolt), contentDescription = null, tint = c.gold, modifier = Modifier.size(11.dp))
+                }
             }
             if (entry.permanentPointsAwarded > 0) {
-                Text(
-                    "+${entry.permanentPointsAwarded}☯️",
-                    style = TextStyle(fontSize = 12.sp, color = c.goodGreen, fontWeight = FontWeight.Bold),
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("+${entry.permanentPointsAwarded}", style = TextStyle(fontSize = 12.sp, color = c.goodGreen, fontWeight = FontWeight.Bold))
+                    Icon(painter = painterResource(R.drawable.ic_yin_yang), contentDescription = null, tint = c.goodGreen, modifier = Modifier.size(11.dp))
+                }
             }
         }
     }

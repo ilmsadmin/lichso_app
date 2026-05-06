@@ -2,6 +2,7 @@ package com.lichso.app.ui.screen.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lichso.app.data.local.dao.CountdownEventDao
 import com.lichso.app.data.local.dao.NotificationDao
 import com.lichso.app.data.remote.WeatherRepository
 import com.lichso.app.data.remote.WeatherState
@@ -26,6 +27,13 @@ import kotlinx.coroutines.Dispatchers
 import java.time.LocalDate
 import javax.inject.Inject
 
+data class HomeCountdownItem(
+    val id: Long,
+    val title: String,
+    val targetDate: LocalDate,
+    val daysLeft: Long,
+)
+
 data class HomeUiState(
     val currentYear: Int = LocalDate.now().year,
     val currentMonth: Int = LocalDate.now().monthValue,
@@ -33,6 +41,7 @@ data class HomeUiState(
     val dayInfo: DayInfo? = null,
     val calendarDays: List<CalendarDay> = emptyList(),
     val upcomingEvents: List<UpcomingEvent> = emptyList(),
+    val countdownEvents: List<HomeCountdownItem> = emptyList(),
     val showLunarBadge: Boolean = true,
     val showQuote: Boolean = true,
     val showFestival: Boolean = true,
@@ -49,7 +58,8 @@ class HomeViewModel @Inject constructor(
     private val dayInfoProvider: DayInfoProvider,
     private val appSettings: AppSettingsRepository,
     private val weatherRepository: WeatherRepository,
-    private val notificationDao: NotificationDao
+    private val notificationDao: NotificationDao,
+    private val countdownDao: CountdownEventDao,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -61,6 +71,26 @@ class HomeViewModel @Inject constructor(
         notificationDao.getUnreadCount()
             .onEach { count -> _uiState.update { it.copy(notificationUnreadCount = count) } }
             .launchIn(viewModelScope)
+
+        // Lắng nghe countdown pin cho Home (tối đa 3 item gần nhất)
+        countdownDao.observeUpcomingForHome(LocalDate.now().toEpochDay(), limit = 3)
+            .onEach { list ->
+                val today = LocalDate.now().toEpochDay()
+                _uiState.update {
+                    it.copy(
+                        countdownEvents = list.map { e ->
+                            HomeCountdownItem(
+                                id = e.id,
+                                title = e.title,
+                                targetDate = LocalDate.ofEpochDay(e.targetEpochDay),
+                                daysLeft = e.targetEpochDay - today,
+                            )
+                        }
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
+
         // Lắng nghe thay đổi setting lịch âm
         appSettings.lunarBadgeEnabled
             .onEach { enabled -> _uiState.update { it.copy(showLunarBadge = enabled) } }

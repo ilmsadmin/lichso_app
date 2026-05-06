@@ -9,9 +9,10 @@ import com.lichso.app.notification.DailyNotificationWorker
 import com.lichso.app.notification.FestivalReminderWorker
 import com.lichso.app.notification.GioDaiCatWorker
 import com.lichso.app.notification.NotificationHelper
+import com.lichso.app.notification.NotificationWatchdogWorker
 import com.lichso.app.notification.ReminderScheduler
 import com.lichso.app.ui.screen.settings.SettingsKeys
-import com.lichso.app.ui.screen.settings.settingsDataStore
+import com.lichso.app.ui.screen.settings.safeSettingsData
 import com.lichso.app.widget.CalendarWidgetScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +31,7 @@ class LichSoApp : Application() {
         NotificationHelper.createChannels(this)
         Analytics.init(this)
         scheduleWorkersFromSettings()
+        NotificationWatchdogWorker.schedule(this)
         // Schedule widget updates
         CalendarWidgetScheduler.scheduleWidgetUpdates(this)
         // Schedule daily update check
@@ -44,7 +46,7 @@ class LichSoApp : Application() {
         val context = this
         appScope.launch {
             try {
-                val prefs = context.settingsDataStore.data.first()
+                val prefs = context.safeSettingsData.first()
                 val notifyEnabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
                 val gioDaiCatEnabled = prefs[SettingsKeys.GIO_DAI_CAT] ?: false
                 val festivalReminderEnabled = prefs[SettingsKeys.FESTIVAL_REMINDER] ?: true

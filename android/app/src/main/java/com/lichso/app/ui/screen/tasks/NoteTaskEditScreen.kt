@@ -1,7 +1,7 @@
 package com.lichso.app.ui.screen.tasks
 
-import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -30,10 +30,15 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import com.lichso.app.R
 import com.lichso.app.data.local.entity.NoteEntity
 import com.lichso.app.data.local.entity.ReminderEntity
 import com.lichso.app.data.local.entity.TaskEntity
+import com.lichso.app.ui.components.LichSoDatePickerDialog
 import com.lichso.app.ui.theme.*
+import com.lichso.app.util.LunarCalendarUtil
+import java.time.LocalDate
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -456,7 +461,12 @@ fun NoteTaskEditScreen(
                     onTimeChange = { reminderTime = it },
                     onRepeatChange = { reminderRepeatType = it },
                     onEnabledChange = { reminderEnabled = it },
-                    onUseLunarChange = { reminderUseLunar = it },
+                    onUseLunarChange = { enabled ->
+                        reminderUseLunar = enabled
+                        if (!enabled && reminderRepeatType == 4) {
+                            reminderRepeatType = 3
+                        }
+                    },
                     onAdvanceDaysChange = { reminderAdvanceDays = it },
                     onCategoryChange = { reminderCategory = it },
                     onNotesChange = { reminderNotes = it }
@@ -851,7 +861,18 @@ private fun TaskEditPanel(
     onReminderEnabledChange: (Boolean) -> Unit
 ) {
     val c = LichSoThemeColors.current
-    val context = LocalContext.current
+    var showDueDatePicker by remember { mutableStateOf(false) }
+    val initialDueDate = remember(dueDate) {
+        dueDate?.let {
+            Calendar.getInstance().apply { timeInMillis = it }.let { cal ->
+                LocalDate.of(
+                    cal.get(Calendar.YEAR),
+                    cal.get(Calendar.MONTH) + 1,
+                    cal.get(Calendar.DAY_OF_MONTH),
+                )
+            }
+        } ?: LocalDate.now()
+    }
 
     // ── Checklist section ──
     EditSectionTitle(icon = Icons.Outlined.Checklist, text = "Các bước thực hiện")
@@ -902,20 +923,7 @@ private fun TaskEditPanel(
         icon = Icons.Outlined.CalendarToday,
         label = "Hạn chót",
         trailingIcon = Icons.Default.ChevronRight,
-        onClick = {
-            val cal = Calendar.getInstance()
-            if (dueDate != null) cal.timeInMillis = dueDate
-            DatePickerDialog(
-                context,
-                { _, y, m, d ->
-                    val newCal = Calendar.getInstance().apply { set(y, m, d) }
-                    onDueDateChange(newCal.timeInMillis)
-                },
-                cal.get(Calendar.YEAR),
-                cal.get(Calendar.MONTH),
-                cal.get(Calendar.DAY_OF_MONTH)
-            ).show()
-        }
+        onClick = { showDueDatePicker = true }
     ) {
         Text(
             if (dueDate != null) {
@@ -930,6 +938,20 @@ private fun TaskEditPanel(
                 fontWeight = FontWeight.Medium,
                 color = if (dueDate != null) c.textPrimary else c.textTertiary
             )
+        )
+    }
+
+    if (showDueDatePicker) {
+        LichSoDatePickerDialog(
+            initialDate = initialDueDate,
+            onDismiss = { showDueDatePicker = false },
+            onDateSelected = { selected ->
+                val newCal = Calendar.getInstance().apply {
+                    set(selected.year, selected.monthValue - 1, selected.dayOfMonth)
+                }
+                onDueDateChange(newCal.timeInMillis)
+                showDueDatePicker = false
+            },
         )
     }
 
@@ -1005,6 +1027,9 @@ private fun ReminderEditPanel(
 ) {
     val c = LichSoThemeColors.current
     val context = LocalContext.current
+    var showDatePickerModeDialog by remember { mutableStateOf(false) }
+    var showLunarDatePicker by remember { mutableStateOf(false) }
+    var showSolarDatePicker by remember { mutableStateOf(false) }
 
     // Settings section
     EditSectionTitle(icon = Icons.Outlined.Alarm, text = "Cài đặt nhắc nhở")
@@ -1017,31 +1042,126 @@ private fun ReminderEditPanel(
         label = "Ngày nhắc",
         trailingIcon = Icons.Default.ChevronRight,
         onClick = {
-            val cal = Calendar.getInstance()
-            if (date.isNotEmpty()) {
-                try {
-                    val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                    sdf.parse(date)?.let { cal.time = it }
-                } catch (_: Exception) {}
-            }
-            DatePickerDialog(
-                context,
-                { _, y, m, d ->
-                    onDateChange("%02d/%02d/%04d".format(d, m + 1, y))
-                },
-                cal.get(Calendar.YEAR),
-                cal.get(Calendar.MONTH),
-                cal.get(Calendar.DAY_OF_MONTH)
-            ).show()
+            showDatePickerModeDialog = true
         }
     ) {
+        val lunarDisplay = remember(date) { solarToLunarDisplay(date) }
         Text(
-            if (date.isNotEmpty()) date else "Chọn ngày...",
+            when {
+                date.isEmpty() -> "Chọn ngày..."
+                useLunar -> {
+                    if (lunarDisplay != null) "$lunarDisplay · Dương $date" else "Dương $date"
+                }
+                else -> date
+            },
             style = TextStyle(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = if (date.isNotEmpty()) c.textPrimary else c.textTertiary
             )
+        )
+    }
+
+    if (showDatePickerModeDialog) {
+        AlertDialog(
+            onDismissRequest = { showDatePickerModeDialog = false },
+            title = {
+                Text(
+                    "Chọn loại lịch",
+                    style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        "Bạn muốn chọn ngày theo lịch nào?",
+                        style = TextStyle(fontSize = 14.sp)
+                    )
+                    Button(
+                        onClick = {
+                            showDatePickerModeDialog = false
+                            onUseLunarChange(false)
+                            showSolarDatePicker = true
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Dương lịch")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            showDatePickerModeDialog = false
+                            onUseLunarChange(true)
+                            showLunarDatePicker = true
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Âm lịch")
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showDatePickerModeDialog = false }) {
+                    Text("Hủy")
+                }
+            }
+        )
+    }
+
+    if (showSolarDatePicker) {
+        val initialSolarDate = remember(date) {
+            parseSolarDate(date)?.let { (day, month, year) -> LocalDate.of(year, month, day) } ?: LocalDate.now()
+        }
+        LichSoDatePickerDialog(
+            initialDate = initialSolarDate,
+            onDismiss = { showSolarDatePicker = false },
+            onDateSelected = { selected ->
+                onDateChange("%02d/%02d/%04d".format(selected.dayOfMonth, selected.monthValue, selected.year))
+                showSolarDatePicker = false
+            },
+        )
+    }
+
+    if (showLunarDatePicker) {
+        val initialLunar = remember(date) {
+            parseSolarDate(date)?.let { (d, m, y) ->
+                runCatching { LunarCalendarUtil.convertSolar2Lunar(d, m, y) }.getOrNull()
+            } ?: run {
+                val now = Calendar.getInstance()
+                runCatching {
+                    LunarCalendarUtil.convertSolar2Lunar(
+                        now.get(Calendar.DAY_OF_MONTH),
+                        now.get(Calendar.MONTH) + 1,
+                        now.get(Calendar.YEAR)
+                    )
+                }.getOrNull()
+            }
+        }
+
+        LunarDatePickerDialog(
+            initialDay = initialLunar?.lunarDay ?: 1,
+            initialMonth = initialLunar?.lunarMonth ?: 1,
+            initialYear = initialLunar?.lunarYear ?: Calendar.getInstance().get(Calendar.YEAR),
+            initialLeap = (initialLunar?.lunarLeap ?: 0) == 1,
+            onDismiss = { showLunarDatePicker = false },
+            onConfirm = { day, month, year, isLeapMonth ->
+                val solarDate = lunarToSolarDisplay(
+                    lunarDay = day,
+                    lunarMonth = month,
+                    lunarYear = year,
+                    lunarLeap = if (isLeapMonth) 1 else 0
+                )
+
+                if (solarDate != null) {
+                    onUseLunarChange(true)
+                    onDateChange(solarDate)
+                    showLunarDatePicker = false
+                } else {
+                    Toast.makeText(context, "Ngày âm lịch không hợp lệ", Toast.LENGTH_SHORT).show()
+                }
+            }
         )
     }
 
@@ -1090,6 +1210,7 @@ private fun ReminderEditPanel(
             RepeatChip("Không", 0, repeatType == 0) { onRepeatChange(0) }
             RepeatChip("Hàng năm", 5, repeatType == 5) { onRepeatChange(5) }
             RepeatChip("Hàng tháng", 3, repeatType == 3) { onRepeatChange(3) }
+            RepeatChip("Hàng tháng âm", 4, repeatType == 4) { onRepeatChange(4) }
             RepeatChip("Hàng tuần", 2, repeatType == 2) { onRepeatChange(2) }
         }
     }
@@ -1113,11 +1234,21 @@ private fun ReminderEditPanel(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.horizontalScroll(rememberScrollState())
         ) {
-            CategoryChip("🎉 Ngày lễ", 0, category == 0) { onCategoryChange(0) }
-            CategoryChip("🎂 Sinh nhật", 1, category == 1) { onCategoryChange(1) }
-            CategoryChip("🌙 Âm lịch", 2, category == 2) { onCategoryChange(2) }
-            CategoryChip("📝 Cá nhân", 3, category == 3) { onCategoryChange(3) }
-            CategoryChip("🕯️ Ngày giỗ", 4, category == 4) { onCategoryChange(4) }
+            CategoryChip("Ngày lễ", 0, category == 0, icon = { tint ->
+                Icon(painter = painterResource(R.drawable.ic_celebrate), null, tint = tint, modifier = Modifier.size(13.dp))
+            }) { onCategoryChange(0) }
+            CategoryChip("Đặc biệt", 1, category == 1, icon = { tint ->
+                Icon(Icons.Filled.Cake, null, tint = tint, modifier = Modifier.size(13.dp))
+            }) { onCategoryChange(1) }
+            CategoryChip("Âm lịch", 2, category == 2, icon = { tint ->
+                Icon(painter = painterResource(R.drawable.ic_moon), null, tint = tint, modifier = Modifier.size(13.dp))
+            }) { onCategoryChange(2) }
+            CategoryChip("Cá nhân", 3, category == 3, icon = { tint ->
+                Icon(Icons.AutoMirrored.Outlined.StickyNote2, null, tint = tint, modifier = Modifier.size(13.dp))
+            }) { onCategoryChange(3) }
+            CategoryChip("Ngày giỗ", 4, category == 4, icon = { tint ->
+                Icon(painter = painterResource(R.drawable.ic_candle), null, tint = tint, modifier = Modifier.size(13.dp))
+            }) { onCategoryChange(4) }
         }
     }
 
@@ -1445,8 +1576,15 @@ private fun RepeatChip(label: String, value: Int, isActive: Boolean, onClick: ()
 }
 
 @Composable
-private fun CategoryChip(label: String, value: Int, isActive: Boolean, onClick: () -> Unit) {
+private fun CategoryChip(
+    label: String,
+    value: Int,
+    isActive: Boolean,
+    icon: (@Composable (tint: Color) -> Unit)? = null,
+    onClick: () -> Unit
+) {
     val c = LichSoThemeColors.current
+    val tint = if (isActive) c.primary else c.textTertiary
     Box(
         modifier = Modifier
             .background(
@@ -1462,14 +1600,20 @@ private fun CategoryChip(label: String, value: Int, isActive: Boolean, onClick: 
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
-        Text(
-            label,
-            style = TextStyle(
-                fontSize = 11.sp,
-                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (isActive) c.primary else c.textTertiary
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            icon?.invoke(tint)
+            Text(
+                label,
+                style = TextStyle(
+                    fontSize = 11.sp,
+                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                    color = tint
+                )
             )
-        )
+        }
     }
 }
 
@@ -1629,4 +1773,125 @@ private fun parseDateTimeToMillis(dateStr: String, timeStr: String): Long {
             System.currentTimeMillis()
         }
     }
+}
+
+private fun parseSolarDate(dateStr: String): Triple<Int, Int, Int>? {
+    val parts = dateStr.split("/")
+    if (parts.size != 3) return null
+    val day = parts[0].toIntOrNull() ?: return null
+    val month = parts[1].toIntOrNull() ?: return null
+    val year = parts[2].toIntOrNull() ?: return null
+    if (day !in 1..31 || month !in 1..12 || year !in 1..9999) return null
+    return Triple(day, month, year)
+}
+
+private fun solarToLunarDisplay(solarDate: String): String? {
+    val (day, month, year) = parseSolarDate(solarDate) ?: return null
+    val lunar = runCatching { LunarCalendarUtil.convertSolar2Lunar(day, month, year) }.getOrNull() ?: return null
+    val leapLabel = if (lunar.lunarLeap == 1) " nhuận" else ""
+    return "Âm ${"%02d".format(lunar.lunarDay)}/${"%02d".format(lunar.lunarMonth)}/${"%04d".format(lunar.lunarYear)}$leapLabel"
+}
+
+private fun lunarToSolarDisplay(
+    lunarDay: Int,
+    lunarMonth: Int,
+    lunarYear: Int,
+    lunarLeap: Int,
+): String? {
+    if (lunarDay !in 1..30 || lunarMonth !in 1..12 || lunarYear !in 1..9999) return null
+    val (solarDay, solarMonth, solarYear) = runCatching {
+        LunarCalendarUtil.convertLunar2Solar(lunarDay, lunarMonth, lunarYear, lunarLeap, LunarCalendarUtil.TZ)
+    }.getOrNull() ?: return null
+
+    if (solarDay == 0 || solarMonth == 0 || solarYear == 0) return null
+    return "%02d/%02d/%04d".format(solarDay, solarMonth, solarYear)
+}
+
+@Composable
+private fun LunarDatePickerDialog(
+    initialDay: Int,
+    initialMonth: Int,
+    initialYear: Int,
+    initialLeap: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (day: Int, month: Int, year: Int, isLeapMonth: Boolean) -> Unit,
+) {
+    var dayText by remember(initialDay) { mutableStateOf(initialDay.toString()) }
+    var monthText by remember(initialMonth) { mutableStateOf(initialMonth.toString()) }
+    var yearText by remember(initialYear) { mutableStateOf(initialYear.toString()) }
+    var isLeapMonth by remember(initialLeap) { mutableStateOf(initialLeap) }
+
+    val validDay = dayText.toIntOrNull()?.let { it in 1..30 } == true
+    val validMonth = monthText.toIntOrNull()?.let { it in 1..12 } == true
+    val validYear = yearText.toIntOrNull()?.let { it in 1900..2200 } == true
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "Chọn ngày Âm lịch",
+                style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "Nhập ngày/tháng/năm âm lịch, sau đó hệ thống sẽ tự đổi sang dương lịch để lưu.",
+                    style = TextStyle(fontSize = 13.sp)
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = dayText,
+                        onValueChange = { if (it.length <= 2 && it.all { c -> c.isDigit() }) dayText = it },
+                        label = { Text("Ngày") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = monthText,
+                        onValueChange = { if (it.length <= 2 && it.all { c -> c.isDigit() }) monthText = it },
+                        label = { Text("Tháng") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = yearText,
+                        onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) yearText = it },
+                        label = { Text("Năm") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1.4f)
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Tháng nhuận", style = TextStyle(fontSize = 13.sp))
+                    Switch(checked = isLeapMonth, onCheckedChange = { isLeapMonth = it })
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = validDay && validMonth && validYear,
+                onClick = {
+                    onConfirm(
+                        dayText.toIntOrNull() ?: 1,
+                        monthText.toIntOrNull() ?: 1,
+                        yearText.toIntOrNull() ?: initialYear,
+                        isLeapMonth,
+                    )
+                }
+            ) {
+                Text("Áp dụng")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Hủy")
+            }
+        }
+    )
 }

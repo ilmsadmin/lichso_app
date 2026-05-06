@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Crescent moon — thay thế 🌙 emoji -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!--
+        Crescent: full circle minus offset inner circle.
+        Outer circle r=9 at (12,12). Inner circle r=7 at (15,10).
+        Path = outer arc + inner arc (reversed) to create crescent shape.
+    -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M12,3
+            C8.13,3 5,6.13 5,10
+            C5,13.87 8.13,17 12,17
+            C13.57,17 15,16.46 16.13,15.55
+            C13.8,15 12,12.81 12,10
+            C12,7.19 13.8,5 16.13,4.45
+            C15,3.54 13.57,3 12,3 Z" />
+</vector>

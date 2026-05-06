@@ -355,8 +355,16 @@ object NotificationHelper {
         shortBody: String,
         lines: List<String>
     ) {
-        // Lưu DB cho in-app notification screen
-        saveToDatabase(context, title, shortBody, "ai_tuvi")
+        // Lưu DB cho in-app notification screen — gộp đầy đủ subtitle + shortBody + các dòng
+        // chi tiết để chi tiết thông báo trong app hiển thị trọn vẹn (không bị cắt như preview).
+        val fullDescription = buildString {
+            if (subtitle.isNotBlank()) appendLine(subtitle)
+            if (shortBody.isNotBlank()) appendLine(shortBody)
+            lines.forEach { line ->
+                if (line.isNotBlank()) appendLine(line)
+            }
+        }.trim()
+        saveToDatabase(context, title, fullDescription, "ai_tuvi")
 
         if (!canPostNotifications(context)) return
 

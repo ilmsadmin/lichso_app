@@ -51,8 +51,6 @@ enum class ActionType(
     CREATE_REMINDER        (5,  3,   5,  ActionCategory.DEEP,       "Tạo nhắc nhở mới",       "lichso://tasks"),
     COMPLETE_REMINDER      (10, 5,  -1,  ActionCategory.DEEP,       "Hoàn thành nhắc nhở",    "lichso://tasks"),
     ADD_BOOKMARK           (5,  3,   5,  ActionCategory.DEEP,       "Đánh dấu 1 ngày",       "lichso://bookmarks"),
-    USE_OCR_CALENDAR       (10, 4,   2,  ActionCategory.DEEP,       "Quét lịch giấy (OCR)",  "lichso://ocr_calendar"),
-    USE_AI_FENGSHUI        (15, 5,   1,  ActionCategory.DEEP,       "AI phong thuỷ phòng ở", "lichso://fengshui_ar"),
     COMPLETE_TUTORIAL      (0,  100, 1,  ActionCategory.DEEP,       "Hoàn thành hướng dẫn",  "lichso://tutorial"),
     OPEN_APP_FROM_WIDGET   (3,  1,   3,  ActionCategory.DEEP,       "Mở app từ widget",       "lichso://home"),
 

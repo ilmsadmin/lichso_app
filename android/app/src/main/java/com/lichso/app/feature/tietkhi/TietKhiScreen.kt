@@ -43,15 +43,32 @@ fun TietKhiScreen(
 ) {
     val c = LichSoThemeColors.current
 
-    // Tính tiết khí hiện tại từ ngày hôm nay
-    val (currentTermName, daysUntilNext, nextTermName) = remember {
-        val cal = Calendar.getInstance()
+    // Tính tiết khí hiện tại từ ngày hôm nay + exact dates cho năm hiện tại
+    val cal = remember { Calendar.getInstance() }
+    val currentYear = cal.get(Calendar.YEAR)
+
+    data class TermInfo(
+        val currentTermName: String?,
+        val daysUntilNext: Int,
+        val nextTermName: String?,
+        val nextTermDate: String?,          // "dd/mm" chính xác của tiết kế tiếp
+        val exactDates: Map<String, String> // tên tiết → "dd/mm" chính xác năm nay
+    )
+
+    val termInfo = remember(currentYear) {
+        val today = cal
         val info = TietKhiCalculator.getCurrentSolarTerm(
-            cal.get(Calendar.DAY_OF_MONTH),
-            cal.get(Calendar.MONTH) + 1,
-            cal.get(Calendar.YEAR),
+            today.get(Calendar.DAY_OF_MONTH),
+            today.get(Calendar.MONTH) + 1,
+            today.get(Calendar.YEAR),
         )
-        Triple(info.current?.name, info.daysUntilNext, info.next?.name)
+        // Tính ngày chính xác cho tất cả tiết khí năm nay
+        val allTermsThisYear = TietKhiCalculator.getAllSolarTerms(currentYear)
+        val exactDates = allTermsThisYear.associate { term ->
+            term.name to "%02d/%02d".format(term.dd, term.mm)
+        }
+        val nextDate = info.next?.let { "%02d/%02d".format(it.dd, it.mm) }
+        TermInfo(info.current?.name, info.daysUntilNext, info.next?.name, nextDate, exactDates)
     }
 
     var selected by remember { mutableStateOf<TietKhiDetail?>(null) }
@@ -76,9 +93,10 @@ fun TietKhiScreen(
         ) {
             // Hero — tiết khí hiện tại
             HeroCurrentTermCard(
-                currentTermName = currentTermName,
-                daysUntilNext = daysUntilNext,
-                nextTermName = nextTermName,
+                currentTermName = termInfo.currentTermName,
+                daysUntilNext = termInfo.daysUntilNext,
+                nextTermName = termInfo.nextTermName,
+                nextTermDate = termInfo.nextTermDate,
                 onClickDetail = { name ->
                     TietKhiCatalog.byName(name)?.let { selected = it }
                 },
@@ -89,7 +107,8 @@ fun TietKhiScreen(
                 SeasonSection(
                     season = season,
                     items = TietKhiCatalog.bySeason(season),
-                    currentName = currentTermName,
+                    currentName = termInfo.currentTermName,
+                    exactDates = termInfo.exactDates,
                     onItemClick = { selected = it },
                 )
             }
@@ -108,6 +127,7 @@ private fun HeroCurrentTermCard(
     currentTermName: String?,
     daysUntilNext: Int,
     nextTermName: String?,
+    nextTermDate: String?,
     onClickDetail: (String) -> Unit,
 ) {
     val c = LichSoThemeColors.current
@@ -161,8 +181,9 @@ private fun HeroCurrentTermCard(
                         .background(Color.White.copy(alpha = 0.2f))
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
+                    val dateStr = if (nextTermDate != null) " ($nextTermDate)" else ""
                     Text(
-                        "Còn $daysUntilNext ngày → $nextTermName",
+                        "Còn $daysUntilNext ngày → $nextTermName$dateStr",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White,
@@ -178,6 +199,7 @@ private fun SeasonSection(
     season: Season,
     items: List<TietKhiDetail>,
     currentName: String?,
+    exactDates: Map<String, String>,
     onItemClick: (TietKhiDetail) -> Unit,
 ) {
     val c = LichSoThemeColors.current
@@ -203,6 +225,7 @@ private fun SeasonSection(
                     TietKhiRow(
                         detail = item,
                         isCurrent = item.name == currentName,
+                        exactDate = exactDates[item.name],
                         onClick = { onItemClick(item) },
                     )
                     if (idx < items.lastIndex) {
@@ -218,6 +241,7 @@ private fun SeasonSection(
 private fun TietKhiRow(
     detail: TietKhiDetail,
     isCurrent: Boolean,
+    exactDate: String?,
     onClick: () -> Unit,
 ) {
     val c = LichSoThemeColors.current
@@ -247,8 +271,10 @@ private fun TietKhiRow(
                 ),
             contentAlignment = Alignment.Center,
         ) {
+            // Hiển thị ngày chính xác (lấy dd từ exactDate "dd/mm") hoặc ngày xấp xỉ
+            val displayDay = exactDate?.substringBefore("/")?.trimStart('0') ?: "%02d".format(detail.approxDay)
             Text(
-                "%02d".format(detail.approxDay),
+                displayDay,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = accent,
@@ -281,7 +307,8 @@ private fun TietKhiRow(
                 }
             }
             Text(
-                "≈ ${detail.approxDay}/${detail.month} dương · ${detail.pinyin}",
+                if (exactDate != null) "$exactDate dương · ${detail.pinyin}"
+                else "≈ ${detail.approxDay}/${detail.month} dương · ${detail.pinyin}",
                 fontSize = 11.sp,
                 color = c.textTertiary,
             )

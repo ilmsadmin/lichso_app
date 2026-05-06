@@ -25,13 +25,16 @@ android {
         applicationId = "com.lichso.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 28
-        versionName = "1.9.1"
+        versionCode = 30
+        versionName = "2.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // Chỉ giữ resource cho ngôn ngữ thực sự dùng → giảm size từ Compose / Material lib
+        resourceConfigurations += listOf("vi", "en")
 
         buildConfigField(
             "String",
@@ -81,9 +84,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Strip debug symbols from native libs to reduce APK size
+            // Đóng gói FULL native debug symbols vào AAB → Play Console hiển thị
+            // crash/ANR stack trace có ký hiệu, không tăng size APK của user
+            // (symbols được Play tách ra riêng).
             ndk {
-                debugSymbolLevel = "SYMBOL_TABLE"
+                debugSymbolLevel = "FULL"
             }
         }
     }
@@ -163,8 +168,6 @@ dependencies {
     implementation("androidx.exifinterface:exifinterface:1.3.7")
     implementation("com.google.android.play:review-ktx:2.0.2")
     implementation("com.google.android.play:app-update-ktx:2.1.0")
-    // Phase 4 — ML Kit text recognition (OCR lịch giấy, ảnh chụp)
-    implementation("com.google.mlkit:text-recognition:16.0.1")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")

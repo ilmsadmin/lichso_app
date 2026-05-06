@@ -53,12 +53,16 @@ enum class ToolAction {
     ZODIAC_COLLECTION,
     // v2 Phase 3 — Doanh thu / Premium tools
     DATE_PICKER,
-    FENGSHUI_AR,
     // v2 Phase 4 — Delight
-    OCR_CALENDAR,
     STREAK_FREEZE,
     TIET_KHI,
     HOW_TO_EARN,
+    // v2 Phase 5 — Date utilities
+    DATE_MATH,
+    COUNTDOWN,
+    BIRTH_PLANNER,
+    CYCLE_TRACKER,
+    WORLD_CLOCK,
 }
 
 private data class ToolItem(
@@ -177,22 +181,6 @@ fun ToolsScreen(
             badge = "PRO"
         ),
         ToolItem(
-            ToolAction.FENGSHUI_AR,
-            "AI Phong Thuỷ",
-            "Chụp phòng → AI luận giải",
-            Icons.Filled.PhotoCamera,
-            listOf(Color(0xFF26A69A), Color(0xFF00695C)),
-            badge = "AI"
-        ),
-        ToolItem(
-            ToolAction.OCR_CALENDAR,
-            "Quét lịch giấy",
-            "OCR → tự bắt ngày âm/dương",
-            Icons.Filled.DocumentScanner,
-            listOf(Color(0xFF455A64), Color(0xFF607D8B)),
-            badge = "NEW"
-        ),
-        ToolItem(
             ToolAction.STREAK_FREEZE,
             "Đóng băng streak",
             "Mua vé · tặng bạn bè",
@@ -214,6 +202,47 @@ fun ToolsScreen(
             Icons.AutoMirrored.Filled.MenuBook,
             listOf(Color(0xFFD4A017), Color(0xFF8B0000)),
             badge = "+100"
+        ),
+        // ── Phase 5 — Date utilities ──
+        ToolItem(
+            ToolAction.DATE_MATH,
+            "Máy tính ngày",
+            "Tuổi · Khoảng cách · Cộng/Trừ",
+            Icons.Filled.Calculate,
+            listOf(Color(0xFF1565C0), Color(0xFF42A5F5)),
+            badge = "NEW"
+        ),
+        ToolItem(
+            ToolAction.COUNTDOWN,
+            "Đếm ngược sự kiện",
+            "Hiển thị Home / Widget",
+            Icons.Filled.HourglassBottom,
+            listOf(Color(0xFF2E7D32), Color(0xFF66BB6A)),
+            badge = "NEW"
+        ),
+        ToolItem(
+            ToolAction.BIRTH_PLANNER,
+            "Ngày sinh đẹp",
+            "Gợi ý quanh ngày dự sinh",
+            Icons.Filled.ChildCare,
+            listOf(Color(0xFFE65100), Color(0xFFFFB74D)),
+            badge = "PRO"
+        ),
+        ToolItem(
+            ToolAction.CYCLE_TRACKER,
+            "Chu kỳ kinh nguyệt",
+            "Kỳ tiếp theo · rụng trứng",
+            Icons.Filled.Female,
+            listOf(Color(0xFFC2185B), Color(0xFFF06292)),
+            badge = "NEW"
+        ),
+        ToolItem(
+            ToolAction.WORLD_CLOCK,
+            "Múi giờ thế giới",
+            "Đồng hồ & đổi múi giờ",
+            Icons.Filled.Public,
+            listOf(Color(0xFF1565C0), Color(0xFF5C6BC0)),
+            badge = "NEW"
         ),
     )
 

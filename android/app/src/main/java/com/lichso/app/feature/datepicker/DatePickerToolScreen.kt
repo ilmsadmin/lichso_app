@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Diamond
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
@@ -99,10 +100,21 @@ fun DatePickerToolScreen(
                     .padding(16.dp),
             ) {
                 Column {
-                    Text(
-                        "💎 Chọn ngày đẹp",
-                        style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White),
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Diamond,
+                            contentDescription = null,
+                            tint = Color(0xFFFFE082),
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Text(
+                            "Chọn ngày đẹp",
+                            style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                        )
+                    }
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "So sánh top 5 ngày đẹp nhất theo mục đích, hợp tuổi, không phạm sát.",
@@ -112,8 +124,8 @@ fun DatePickerToolScreen(
                     Text(
                         when {
                             hasPermUnlock -> "✓ Bạn đã đạt cấp Đạo sĩ — dùng không giới hạn"
-                            canUnlockToday -> "Tiêu $cost ⚡ điểm ngày để mở 1 lần"
-                            else -> "Cần $cost ⚡ (đang có ${balance.daily} ⚡)"
+                            canUnlockToday -> "Tiêu $cost điểm ngày để mở 1 lần"
+                            else -> "Cần $cost điểm (đang có ${balance.daily} điểm)"
                         },
                         style = TextStyle(fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.SemiBold),
                     )
@@ -142,7 +154,7 @@ fun DatePickerToolScreen(
                             .padding(horizontal = 14.dp, vertical = 8.dp),
                     ) {
                         Text(
-                            "${p.emoji} ${p.displayName}",
+                            p.displayName,
                             style = TextStyle(
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -212,7 +224,7 @@ fun DatePickerToolScreen(
                             when (result) {
                                 is SpendResult.Success, SpendResult.AlreadyUnlocked -> viewModel.runScoring()
                                 is SpendResult.InsufficientPoints -> scope.launch {
-                                    snackbarHostState.showSnackbar("Còn thiếu ${result.needed} ⚡")
+                                    snackbarHostState.showSnackbar("Còn thiếu ${result.needed} điểm ngày")
                                 }
                             }
                         }
@@ -258,11 +270,11 @@ private fun SectionLabel(text: String) {
 private fun CandidateDayCard(rank: Int, candidate: CandidateDay) {
     val c = LichSoThemeColors.current
     val info = candidate.info
-    val medal = when (rank) {
-        1 -> "🥇"
-        2 -> "🥈"
-        3 -> "🥉"
-        else -> "  "
+    val medalColor = when (rank) {
+        1 -> Color(0xFFFFD700)
+        2 -> Color(0xFFBDBDBD)
+        3 -> Color(0xFFCD7F32)
+        else -> Color.Transparent
     }
     val ratingColor = when {
         candidate.score >= 130 -> Color(0xFF2E7D32)
@@ -281,10 +293,22 @@ private fun CandidateDayCard(rank: Int, candidate: CandidateDay) {
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "$medal #${rank}",
-                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Black, color = ratingColor),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(if (rank <= 3) medalColor.copy(alpha = 0.15f) else Color.Transparent),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "#$rank",
+                        style = TextStyle(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Black,
+                            color = if (rank <= 3) medalColor else ratingColor,
+                        ),
+                    )
+                }
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(

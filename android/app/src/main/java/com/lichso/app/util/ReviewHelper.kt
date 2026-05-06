@@ -2,10 +2,13 @@ package com.lichso.app.util
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import androidx.datastore.preferences.core.edit
 import com.google.android.play.core.review.ReviewManagerFactory
 import com.lichso.app.ui.screen.settings.SettingsKeys
+import com.lichso.app.ui.screen.settings.safeSettingsData
 import com.lichso.app.ui.screen.settings.settingsDataStore
 import kotlinx.coroutines.flow.first
 
@@ -24,6 +27,48 @@ object ReviewHelper {
     private const val MIN_DAYS_BETWEEN_REVIEWS = 15
 
     /**
+     * Open the real Google Play listing so a user who explicitly wants to rate
+     * can always reach the public review surface, independent of In-App Review quota.
+     */
+    fun openPlayStoreListing(context: Context): Boolean {
+        val marketIntent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("market://details?id=${context.packageName}")
+        ).apply {
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_NO_HISTORY or
+                    Intent.FLAG_ACTIVITY_MULTIPLE_TASK
+            )
+            setPackage("com.android.vending")
+        }
+        try {
+            context.startActivity(marketIntent)
+            return true
+        } catch (_: android.content.ActivityNotFoundException) {
+            // Device không có Play Store → fallback web.
+        }
+
+        val webIntent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}")
+        ).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        return try {
+            context.startActivity(webIntent)
+            true
+        } catch (_: android.content.ActivityNotFoundException) {
+            android.widget.Toast.makeText(
+                context,
+                "Không mở được Google Play. Vui lòng tìm \"Lịch Số\" trên Play Store.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            false
+        }
+    }
+
+    /**
      * Increment app open count in DataStore. Call this every time the main screen appears.
      */
     suspend fun incrementAppOpenCount(context: Context) {
@@ -37,7 +82,7 @@ object ReviewHelper {
      * Check if conditions are met to show the review prompt automatically.
      */
     suspend fun shouldShowReview(context: Context): Boolean {
-        val prefs = context.settingsDataStore.data.first()
+        val prefs = context.safeSettingsData.first()
         val openCount = prefs[SettingsKeys.APP_OPEN_COUNT] ?: 0
         val lastPromptTime = prefs[SettingsKeys.LAST_REVIEW_PROMPT_TIME] ?: 0L
 

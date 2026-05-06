@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import com.lichso.app.ui.screen.settings.safeSettingsData
 import com.lichso.app.ui.screen.settings.settingsDataStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +31,7 @@ object SmartRatingManager {
     private val KEY_LAST_ASKED_TIME    = longPreferencesKey("smart_rating_last_asked_time")
     private val KEY_TIMES_ASKED        = intPreferencesKey("smart_rating_times_asked")
     private val KEY_USER_RATED         = intPreferencesKey("smart_rating_user_rated") // 0=not yet, 1=rated, -1=declined
-    // 0=auto trigger gần nhất là skip, 1=user gửi feedback (cooldown dài hơn)
+    // 0=skip, 1=user gửi feedback, 2=user mở Google Play để đánh giá
     private val KEY_LAST_OUTCOME       = intPreferencesKey("smart_rating_last_outcome")
 
     // ── Thresholds ──
@@ -39,6 +40,7 @@ object SmartRatingManager {
     private const val MIN_DAYS_FIRST_ASK      = 1L    // mở app ≥ 1 ngày sau cài là đủ
     private const val MIN_DAYS_AFTER_SKIP     = 5L    // user skip → hỏi lại sau 5 ngày
     private const val MIN_DAYS_AFTER_FEEDBACK = 30L   // user gửi feedback → 30 ngày mới hỏi lại
+    private const val MIN_DAYS_AFTER_REVIEW_INTENT = 90L // đã mở Play Store → rất lâu mới hỏi lại
     private const val MAX_TIMES_TO_ASK        = 6     // tối đa 6 lần (~1 năm với cooldown 5 ngày)
 
     // ── Observable state for Compose ──
@@ -62,7 +64,7 @@ object SmartRatingManager {
      * @param actionWeight số điểm tăng thêm (mặc định 1, actions quan trọng hơn có thể dùng 2)
      */
     suspend fun recordHappyAction(context: Context, actionWeight: Int = 1) {
-        val prefs = context.settingsDataStore.data.first()
+        val prefs = context.safeSettingsData.first()
         val timesAsked = prefs[KEY_TIMES_ASKED] ?: 0
         val userRated = prefs[KEY_USER_RATED] ?: 0
 
@@ -81,7 +83,7 @@ object SmartRatingManager {
      * Kiểm tra điều kiện và trigger dialog nếu đủ.
      */
     suspend fun checkAndTrigger(context: Context) {
-        val prefs = context.settingsDataStore.data.first()
+        val prefs = context.safeSettingsData.first()
         val actionCount = prefs[KEY_HAPPY_ACTION_COUNT] ?: 0
         val lastAskedTime = prefs[KEY_LAST_ASKED_TIME] ?: 0L
         val timesAsked = prefs[KEY_TIMES_ASKED] ?: 0
@@ -105,7 +107,11 @@ object SmartRatingManager {
         if (lastAskedTime > 0L) {
             val daysSinceLastAsked =
                 (System.currentTimeMillis() - lastAskedTime) / (1000L * 60 * 60 * 24)
-            val cooldown = if (lastOutcome == 1) MIN_DAYS_AFTER_FEEDBACK else MIN_DAYS_AFTER_SKIP
+            val cooldown = when (lastOutcome) {
+                1 -> MIN_DAYS_AFTER_FEEDBACK
+                2 -> MIN_DAYS_AFTER_REVIEW_INTENT
+                else -> MIN_DAYS_AFTER_SKIP
+            }
             if (daysSinceLastAsked < cooldown) return
         }
         // Lần đầu: không có lastAskedTime, dùng MIN_DAYS_FIRST_ASK gián tiếp qua
@@ -155,6 +161,19 @@ object SmartRatingManager {
     suspend fun recordRated(context: Context) {
         context.settingsDataStore.edit { p ->
             p[KEY_USER_RATED] = 1
+        }
+        isManualTrigger = false
+        _shouldShow.value = false
+    }
+
+    /**
+     * User đã bấm 4-5 sao và app đã mở Google Play. Không thể biết họ có
+     * submit review thật hay không, nên chỉ đặt cooldown dài thay vì khóa vĩnh viễn.
+     */
+    suspend fun recordReviewIntent(context: Context) {
+        context.settingsDataStore.edit { p ->
+            p[KEY_LAST_OUTCOME] = 2
+            p[KEY_LAST_ASKED_TIME] = System.currentTimeMillis()
         }
         isManualTrigger = false
         _shouldShow.value = false

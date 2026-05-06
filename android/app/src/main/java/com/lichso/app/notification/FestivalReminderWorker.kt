@@ -3,7 +3,7 @@ package com.lichso.app.notification
 import android.content.Context
 import androidx.work.*
 import com.lichso.app.ui.screen.settings.SettingsKeys
-import com.lichso.app.ui.screen.settings.settingsDataStore
+import com.lichso.app.ui.screen.settings.safeSettingsData
 import com.lichso.app.util.HolidayUtil
 import com.lichso.app.util.LunarCalendarUtil
 import kotlinx.coroutines.flow.first
@@ -20,7 +20,7 @@ class FestivalReminderWorker(
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        val prefs = applicationContext.settingsDataStore.data.first()
+        val prefs = applicationContext.safeSettingsData.first()
         val enabled = prefs[SettingsKeys.FESTIVAL_REMINDER] ?: true
         if (!enabled) return Result.success()
 

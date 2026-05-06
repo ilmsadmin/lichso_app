@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -83,8 +84,6 @@ fun PointsTutorialScreen(
             ActionType.ADD_BOOKMARK,
             ActionType.READ_VAN_KHAN_FULL,
             ActionType.USE_DATE_PICKER,
-            ActionType.USE_OCR_CALENDAR,
-            ActionType.USE_AI_FENGSHUI,
         )
     }
     val bigActions = remember {
@@ -135,15 +134,15 @@ fun PointsTutorialScreen(
             ExplainCard()
 
             // ── Hằng ngày dễ ──
-            SectionHeader("🟢 Hằng ngày — Dễ dàng", "Điểm danh + lướt app cũng kiếm 50–80⚡/ngày")
+            SectionHeader("Hằng ngày — Dễ dàng", "Điểm danh + lướt app cũng kiếm 50–80 điểm/ngày", Color(0xFF66BB6A))
             ActionListCard(easyActions, onAction)
 
             // ── Hoạt động sâu ──
-            SectionHeader("🟡 Hoạt động sâu", "Tương tác với app, dùng tính năng nâng cao")
+            SectionHeader("Hoạt động sâu", "Tương tác với app, dùng tính năng nâng cao", Color(0xFFFFCA28))
             ActionListCard(mediumActions, onAction)
 
             // ── Phần thưởng lớn ──
-            SectionHeader("🔴 Phần thưởng lớn", "Mời bạn bè, đánh giá app, mốc streak...")
+            SectionHeader("Phần thưởng lớn", "Mời bạn bè, đánh giá app, mốc streak...", Color(0xFFEF5350))
             ActionListCard(bigActions, onAction)
 
             // ── Tip cuối ──
@@ -194,15 +193,15 @@ private fun HeroCard(ledgerDaily: Int, ledgerPermanent: Long) {
             )
             Spacer(Modifier.height(4.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatPill("⚡ $ledgerDaily", "Điểm hôm nay", c.gold)
-                StatPill("☯️ $ledgerPermanent", "Điểm vĩnh viễn", c.teal)
+                StatPill("$ledgerDaily", "Điểm hôm nay", c.gold, iconRes = com.lichso.app.R.drawable.ic_bolt)
+                StatPill("$ledgerPermanent", "Điểm vĩnh viễn", c.teal, iconRes = com.lichso.app.R.drawable.ic_yin_yang)
             }
         }
     }
 }
 
 @Composable
-private fun StatPill(value: String, label: String, accent: Color) {
+private fun StatPill(value: String, label: String, accent: Color, iconRes: Int? = null) {
     val c = LichSoThemeColors.current
     Column(
         modifier = Modifier
@@ -211,7 +210,14 @@ private fun StatPill(value: String, label: String, accent: Color) {
             .border(1.dp, accent.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
             .padding(horizontal = 14.dp, vertical = 10.dp),
     ) {
-        Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = accent)
+        if (iconRes != null) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Icon(painter = painterResource(iconRes), contentDescription = null, tint = accent, modifier = Modifier.size(14.dp))
+                Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = accent)
+            }
+        } else {
+            Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = accent)
+        }
         Text(label, fontSize = 11.sp, color = c.textTertiary)
     }
 }
@@ -231,7 +237,7 @@ private fun ExplainCard() {
                 Icon(Icons.Filled.Bolt, contentDescription = null, tint = c.gold)
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "⚡ Điểm ngày — reset 00:00 mỗi ngày",
+                    "Điểm ngày — reset 00:00 mỗi ngày",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = c.textPrimary,
@@ -248,7 +254,7 @@ private fun ExplainCard() {
                 Icon(Icons.Filled.Stars, contentDescription = null, tint = c.teal)
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "☯️ Điểm vĩnh viễn — không bao giờ mất",
+                    "Điểm vĩnh viễn — không bao giờ mất",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = c.textPrimary,
@@ -265,10 +271,20 @@ private fun ExplainCard() {
 }
 
 @Composable
-private fun SectionHeader(title: String, subtitle: String) {
+private fun SectionHeader(title: String, subtitle: String, dotColor: Color = Color.Transparent) {
     val c = LichSoThemeColors.current
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = c.textPrimary)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (dotColor != Color.Transparent) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(dotColor),
+                )
+            }
+            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = c.textPrimary)
+        }
         Text(subtitle, fontSize = 12.sp, color = c.textTertiary)
     }
 }
@@ -308,24 +324,52 @@ private fun ActionRow(action: ActionType, onClick: () -> Unit) {
         }
         Spacer(Modifier.width(8.dp))
         if (action.dailyPoints > 0) {
-            RewardChip("+${action.dailyPoints}⚡", c.gold)
+            BoltRewardChip(action.dailyPoints, c.gold)
         }
         if (action.permanentPoints > 0) {
             Spacer(Modifier.width(6.dp))
-            RewardChip("+${action.permanentPoints}☯️", c.teal)
+            KarmaRewardChip(action.permanentPoints, c.teal)
         }
     }
 }
 
 @Composable
-private fun RewardChip(text: String, accent: Color) {
-    Box(
+private fun BoltRewardChip(points: Int, accent: Color) {
+    Row(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
             .background(accent.copy(alpha = 0.12f))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {
-        Text(text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = accent)
+        Text("+$points", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = accent)
+        Icon(
+            painter = painterResource(com.lichso.app.R.drawable.ic_bolt),
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier.size(12.dp),
+        )
+    }
+}
+
+@Composable
+private fun KarmaRewardChip(points: Int, accent: Color) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(accent.copy(alpha = 0.12f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Text("+$points", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = accent)
+        Icon(
+            painter = painterResource(com.lichso.app.R.drawable.ic_yin_yang),
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier.size(12.dp),
+        )
     }
 }
 

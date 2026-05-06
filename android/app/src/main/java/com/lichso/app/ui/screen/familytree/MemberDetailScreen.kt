@@ -1,5 +1,7 @@
 package com.lichso.app.ui.screen.familytree
 
+import androidx.compose.ui.res.painterResource
+import com.lichso.app.R
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -429,7 +431,12 @@ private fun MissingDeathDateHint(c: LichSoColors) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Text("🪔", fontSize = 28.sp)
+        Icon(
+            painter = painterResource(R.drawable.ic_incense),
+            contentDescription = null,
+            tint = Color(0xFFFFAB40),
+            modifier = Modifier.size(28.dp)
+        )
         Text(
             "Chưa có ngày giỗ",
             style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = c.outline)
@@ -460,7 +467,12 @@ private fun MemorialMiniCard(memorial: MemorialDay, c: LichSoColors, onClick: ()
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("🪔", fontSize = 28.sp)
+        Icon(
+            painter = painterResource(R.drawable.ic_incense),
+            contentDescription = null,
+            tint = Color(0xFFFFAB40),
+            modifier = Modifier.size(28.dp)
+        )
 
         Column(modifier = Modifier.weight(1f)) {
             Text(

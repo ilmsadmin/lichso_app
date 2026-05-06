@@ -744,8 +744,14 @@ private fun SelectedDayDetailPanel(
                 "${dayInfo.dayOfWeek}, ${"%02d".format(dayInfo.solar.dd)}/${"%02d".format(dayInfo.solar.mm)}/${dayInfo.solar.yy}",
                 style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = c.textPrimary)
             )
+            val lunarDayText = when {
+                dayInfo.isRam -> "Rằm"
+                dayInfo.isMung1 -> "Mùng 1"
+                dayInfo.lunar.day <= 10 -> "Mùng ${dayInfo.lunar.day}"
+                else -> "${dayInfo.lunar.day}"
+            }
             Text(
-                "${if (dayInfo.isRam) "Rằm" else if (dayInfo.isMung1) "Mùng 1" else "Mùng ${dayInfo.lunar.day}"}/${dayInfo.lunar.month} Âm",
+                "$lunarDayText/${dayInfo.lunar.month} Âm",
                 style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = c.primary)
             )
         }

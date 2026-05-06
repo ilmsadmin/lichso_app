@@ -10,7 +10,6 @@ enum class PermanentUnlockKey(val label: String) {
     WATERMARKED_EXPORT   ("Export ảnh quẻ có watermark tên bạn"),
     LUCKY_HOURS_PERMANENT("Giờ hoàng đạo chi tiết vĩnh viễn"),
     PREMIUM_THEMES       ("Bộ 5 theme Premium"),
-    AR_FENG_SHUI_WEEKLY  ("AI Phong Thuỷ AR (1 lần/tuần)"),
     CHOOSE_DAY_TOOL_PERM ("Công cụ chọn ngày cưới / động thổ"),
     AI_UNLIMITED         ("AI Thầy Số không giới hạn"),
     BABY_NAME_TOOL       ("Đặt tên con / Thương hiệu"),
@@ -42,7 +41,6 @@ enum class PermanentRank(
         PermanentUnlockKey.PREMIUM_THEMES
     )),
     DAO_SI     (15_000L,  "Đạo sĩ",    listOf(
-        PermanentUnlockKey.AR_FENG_SHUI_WEEKLY,
         PermanentUnlockKey.CHOOSE_DAY_TOOL_PERM
     )),
     CHAN_NHAN  (40_000L,  "Chân nhân", listOf(

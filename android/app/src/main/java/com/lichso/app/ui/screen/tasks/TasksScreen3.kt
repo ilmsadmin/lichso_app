@@ -36,6 +36,7 @@ import com.lichso.app.data.local.entity.TaskEntity
 import com.lichso.app.ui.theme.*
 import com.lichso.app.ui.components.AppTopBar
 import com.lichso.app.ui.components.HeaderIconButton
+import com.lichso.app.util.LunarCalendarUtil
 import java.util.Calendar
 
 // ══════════════════════════════════════════
@@ -708,7 +709,7 @@ private fun TaskListV3(tasks: List<TaskEntity>, viewModel: TasksViewModel, onAdd
                 }
             }
             if (done.isNotEmpty()) {
-                item { SectionDivider("✅ Đã xong") }
+                item { SectionDivider("Đã xong") }
                 items(done, key = { it.id }) { task ->
                     TaskCardV3(task = task, viewModel = viewModel)
                 }
@@ -1027,7 +1028,14 @@ private fun ReminderCardV3(
             // Show date + time info
             Spacer(modifier = Modifier.height(2.dp))
             val dateTimeText = buildString {
-                append(viewModel.formatDateFull(reminder.triggerTime))
+                val solarDate = viewModel.formatDateFull(reminder.triggerTime)
+                if (reminder.useLunar) {
+                    append(formatLunarDateFull(reminder.triggerTime))
+                    append(" · Dương ")
+                    append(solarDate)
+                } else {
+                    append(solarDate)
+                }
                 append(" · ")
                 append(viewModel.formatTime(reminder.triggerTime))
                 if (reminder.subtitle.isNotBlank()) {
@@ -1038,7 +1046,7 @@ private fun ReminderCardV3(
             Text(
                 dateTimeText,
                 style = TextStyle(fontSize = 11.sp, color = c.textSecondary),
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
 
@@ -1334,6 +1342,17 @@ private fun getDaysUntil(targetMillis: Long): Long {
     val now = System.currentTimeMillis()
     val diff = targetMillis - now
     return diff / 86400_000L
+}
+
+private fun formatLunarDateFull(millis: Long): String {
+    val cal = Calendar.getInstance().apply { timeInMillis = millis }
+    val lunar = LunarCalendarUtil.convertSolar2Lunar(
+        cal.get(Calendar.DAY_OF_MONTH),
+        cal.get(Calendar.MONTH) + 1,
+        cal.get(Calendar.YEAR)
+    )
+    val leapLabel = if (lunar.lunarLeap == 1) " nhuận" else ""
+    return "Âm ${"%02d".format(lunar.lunarDay)}/${"%02d".format(lunar.lunarMonth)}/${lunar.lunarYear}$leapLabel"
 }
 
 private fun getRelativeTime(timestamp: Long): String {

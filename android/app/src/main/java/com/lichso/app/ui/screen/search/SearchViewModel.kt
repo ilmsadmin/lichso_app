@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lichso.app.domain.DayInfoProvider
+import com.lichso.app.ui.screen.settings.safeSettingsData
 import com.lichso.app.ui.screen.settings.settingsDataStore
 import com.lichso.app.util.HolidayUtil
 import com.lichso.app.util.LunarCalendarUtil
@@ -338,7 +339,7 @@ class SearchViewModel @Inject constructor(
 
     private fun loadRecentSearches() {
         viewModelScope.launch {
-            context.settingsDataStore.data.first().let { prefs ->
+            context.safeSettingsData.first().let { prefs ->
                 val raw = prefs[RECENT_SEARCHES_KEY] ?: ""
                 val list = if (raw.isBlank()) emptyList() else raw.split("|||")
                 _uiState.update { it.copy(recentSearches = list) }

@@ -9,6 +9,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.annotations.SerializedName
 import com.lichso.app.data.local.dao.*
 import com.lichso.app.data.local.entity.*
+import com.lichso.app.ui.screen.settings.safeSettingsData
 import com.lichso.app.ui.screen.settings.settingsDataStore
 import kotlinx.coroutines.flow.first
 import java.io.File
@@ -530,7 +531,7 @@ object AppBackupManager {
     // ══════════════════════════════════════════
 
     private suspend fun readAppSettings(context: Context): Map<String, Any?> {
-        val prefs = context.settingsDataStore.data.first()
+        val prefs = context.safeSettingsData.first()
         val map = mutableMapOf<String, Any?>()
         for (entry in prefs.asMap()) {
             val key = entry.key.name

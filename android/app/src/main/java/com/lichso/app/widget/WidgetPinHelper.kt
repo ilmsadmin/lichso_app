@@ -47,6 +47,11 @@ object WidgetPinHelper {
             description = "Xem tử vi & hỏi AI về ngày hôm nay",
             providerClass = AiWidget::class.java
         ),
+        WidgetInfo(
+            label = "Đếm ngược sự kiện",
+            description = "Hiển thị số ngày còn lại tới sự kiện gần nhất",
+            providerClass = CountdownWidget::class.java
+        ),
     )
 
     /**

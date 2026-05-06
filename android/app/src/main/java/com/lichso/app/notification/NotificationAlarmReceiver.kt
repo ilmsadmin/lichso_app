@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 import com.lichso.app.domain.DayInfoProvider
 import com.lichso.app.ui.screen.settings.SettingsKeys
-import com.lichso.app.ui.screen.settings.settingsDataStore
+import com.lichso.app.ui.screen.settings.safeSettingsData
 import com.lichso.app.util.HolidayUtil
 import com.lichso.app.util.LunarCalendarUtil
 import kotlinx.coroutines.CoroutineScope
@@ -41,7 +41,7 @@ class NotificationAlarmReceiver : BroadcastReceiver() {
             // ── Bước 1: Đọc setting + fire notification (có timeout để tránh ANR) ──
             try {
                 withTimeoutOrNull(8_000L) {
-                    val prefs = context.settingsDataStore.data.first()
+                    val prefs = context.safeSettingsData.first()
                     val notifyEnabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
                     reminderHour = prefs[SettingsKeys.REMINDER_HOUR] ?: 7
                     reminderMinute = prefs[SettingsKeys.REMINDER_MINUTE] ?: 0

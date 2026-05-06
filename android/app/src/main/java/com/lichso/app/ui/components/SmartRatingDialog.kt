@@ -1,6 +1,5 @@
 package com.lichso.app.ui.components
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -30,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.lichso.app.util.ReviewHelper
 import com.lichso.app.util.SmartRatingManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -93,34 +93,6 @@ fun SmartRatingDialog(
     var feedbackText by remember { mutableStateOf("") }
     var selectedStars by remember { mutableStateOf(0) }
 
-    // ── Prefetch ReviewInfo ngay khi dialog hiện ──
-    // Google khuyến nghị WARM-UP requestReviewFlow sớm vì nó cần network call.
-    // Nếu chỉ gọi khi user bấm 5 sao thì có thể mất 200–800ms → user thoát.
-    // Ngoài ra, có một ReviewInfo "fresh" sẵn giúp launchReviewFlow chạy gần
-    // như tức thì khi cần.
-    val prefetchedReviewInfo = remember {
-        mutableStateOf<com.google.android.play.core.review.ReviewInfo?>(null)
-    }
-    val reviewManagerRemember = remember(context) {
-        context.findActivity()?.let {
-            com.google.android.play.core.review.ReviewManagerFactory.create(it)
-        }
-    }
-    LaunchedEffect(Unit) {
-        reviewManagerRemember?.requestReviewFlow()?.addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                prefetchedReviewInfo.value = task.result
-                android.util.Log.d("SmartRating", "Prefetched ReviewInfo OK")
-            } else {
-                android.util.Log.w(
-                    "SmartRating",
-                    "Prefetch requestReviewFlow failed",
-                    task.exception
-                )
-            }
-        }
-    }
-
     // ── Notify SmartRatingManager that we're showing ──
     LaunchedEffect(Unit) {
         SmartRatingManager.recordShown(context)
@@ -168,38 +140,20 @@ fun SmartRatingDialog(
                         onStarSelect = { selectedStars = it },
                         onConfirm = { stars ->
                             if (stars >= 4) {
-                                // 4-5 sao → user đã bày tỏ ý định rate cao → ghi recordRated NGAY
-                                // (không chờ callback Play Core, vì nếu chờ và dialog Compose bị
-                                // dispose trước, coroutineScope sẽ bị cancel → recordRated không
-                                // bao giờ chạy → user vẫn bị hỏi lại lần sau).
+                                // 4-5 sao → mở Google Play thật. Không dùng In-App Review ở đây
+                                // vì API có thể callback success nhưng không hiện form do quota,
+                                // khiến production user tưởng đã đánh giá nhưng Play không nhận review.
                                 val appCtx = context.applicationContext
-                                @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
-                                kotlinx.coroutines.GlobalScope.launch {
-                                    SmartRatingManager.recordRated(appCtx)
-                                }
-
-                                // ⚠️ ROOT CAUSE FIX: Phải DISMISS Compose Dialog window TRƯỚC,
-                                // rồi mới launchReviewFlow. Lý do: In-App Review API mở một
-                                // BottomSheetDialog gắn vào Activity window. Nếu Compose Dialog
-                                // window vẫn còn (animation dismiss chưa xong) → bottom-sheet
-                                // review bị che/cancel → user không thấy gì → tưởng "đã rate xong"
-                                // nhưng thực tế Play KHÔNG nhận được review nào.
-                                //
-                                // Trick: post launch review qua Handler.postDelayed sau khi đã
-                                // gọi onDismiss(). Delay nhỏ (~250ms) đủ để Compose dispose dialog
-                                // window và Activity về RESUMED state.
-                                val activity = context.findActivity()
-                                val cachedReviewInfo = prefetchedReviewInfo.value
                                 onDismiss() // dismiss Compose Dialog NGAY
-
-                                if (activity != null) {
-                                    android.os.Handler(android.os.Looper.getMainLooper())
-                                        .postDelayed({
-                                            launchInAppReviewOrFallback(activity, cachedReviewInfo)
-                                        }, 250L)
-                                } else {
-                                    openPlayStore(context)
-                                }
+                                android.os.Handler(android.os.Looper.getMainLooper())
+                                    .postDelayed({
+                                        if (ReviewHelper.openPlayStoreListing(appCtx)) {
+                                            @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
+                                            kotlinx.coroutines.GlobalScope.launch {
+                                                SmartRatingManager.recordReviewIntent(appCtx)
+                                            }
+                                        }
+                                    }, 200L)
                             } else {
                                 // 1-3 sao → chuyển sang feedback
                                 step = "feedback"
@@ -227,8 +181,7 @@ fun SmartRatingDialog(
 
                     "thanks" -> ThanksStep(
                         onDismiss = {
-                            // Đã ghi recordFeedbackSafe ở step "feedback" rồi (hoặc
-                            // recordRated ở nhánh 4-5 sao) — chỉ cần đóng dialog.
+                            // Đã ghi recordFeedbackSafe ở step "feedback" rồi — chỉ cần đóng dialog.
                             onDismiss()
                         }
                     )
@@ -318,7 +271,7 @@ private fun EmotionStep(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                "Chỉ mất 10 giây — đánh giá của bạn giúp chúng tôi cải thiện ứng dụng tốt hơn mỗi ngày 🙏",
+                "Chỉ mất 10 giây — đánh giá của bạn giúp chúng tôi cải thiện ứng dụng tốt hơn mỗi ngày",
                 style = TextStyle(
                     fontSize = 13.sp,
                     color = TextSub,
@@ -344,7 +297,12 @@ private fun EmotionStep(
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSub)
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("😕", fontSize = 20.sp)
+                        Icon(
+                            Icons.Filled.SentimentDissatisfied,
+                            contentDescription = null,
+                            tint = TextSub,
+                            modifier = Modifier.size(20.dp),
+                        )
                         Text("Chưa hài lòng",
                             style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = TextSub))
                     }
@@ -370,7 +328,12 @@ private fun EmotionStep(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("😍", fontSize = 20.sp)
+                            Icon(
+                                Icons.Filled.Favorite,
+                                contentDescription = null,
+                                tint = Color(0xFF5D3A00),
+                                modifier = Modifier.size(20.dp),
+                            )
                             Text("Rất hài lòng!",
                                 style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF5D3A00)))
                         }
@@ -434,7 +397,12 @@ private fun StarsStep(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            Text("⭐", fontSize = 48.sp)
+            Icon(
+                imageVector = Icons.Filled.Star,
+                contentDescription = null,
+                tint = Color(0xFFFFD700),
+                modifier = Modifier.size(48.dp)
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -454,9 +422,9 @@ private fun StarsStep(
 
             Text(
                 if (selectedStars >= 4)
-                    "Cảm ơn bạn! Đánh giá của bạn trên Play Store sẽ giúp nhiều người khám phá Lịch Số 🙏"
+                    "Cảm ơn bạn! Đánh giá của bạn trên Play Store sẽ giúp nhiều người khám phá Lịch Số"
                 else if (selectedStars in 1..3)
-                    "Chúng tôi muốn lắng nghe để cải thiện tốt hơn cho bạn 💬"
+                    "Chúng tôi muốn lắng nghe để cải thiện tốt hơn cho bạn"
                 else
                     "Chạm vào ngôi sao để chọn mức đánh giá của bạn",
                 style = TextStyle(
@@ -534,8 +502,8 @@ private fun StarsStep(
                 Text(
                     text = when {
                         selectedStars == 0 -> "Chọn số sao để tiếp tục"
-                        selectedStars >= 4 -> "⭐ Đánh giá ngay"
-                        else -> "💬 Gửi phản hồi cho chúng tôi"
+                        selectedStars >= 4 -> "Đánh giá ngay"
+                        else -> "Gửi phản hồi cho chúng tôi"
                     },
                     style = TextStyle(
                         fontSize = 14.sp,
@@ -732,7 +700,12 @@ private fun ThanksStep(onDismiss: () -> Unit) {
             modifier = Modifier.padding(36.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("🙏", fontSize = 52.sp, modifier = Modifier.scale(scale))
+            Icon(
+                Icons.Filled.Favorite,
+                contentDescription = null,
+                tint = GoldAccent,
+                modifier = Modifier.size(52.dp).scale(scale),
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -773,119 +746,8 @@ private fun ThanksStep(onDismiss: () -> Unit) {
 // Helpers
 // ══════════════════════════════════════════
 
-private fun openPlayStore(context: Context) {
-    // Ưu tiên mở Play Store app native bằng market:// để user thấy ngay ô "Đánh giá ứng dụng"
-    val marketUri = Uri.parse("market://details?id=${context.packageName}")
-    val marketIntent = Intent(Intent.ACTION_VIEW, marketUri).apply {
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or
-                Intent.FLAG_ACTIVITY_NO_HISTORY or
-                Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
-        // Ép mở Google Play chứ không phải trình duyệt
-        setPackage("com.android.vending")
-    }
-    try {
-        context.startActivity(marketIntent)
-        return
-    } catch (_: android.content.ActivityNotFoundException) {
-        // Device không có Play Store → fallback web
-    }
-    val webIntent = Intent(Intent.ACTION_VIEW,
-        Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}")).apply {
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    }
-    try {
-        context.startActivity(webIntent)
-    } catch (_: android.content.ActivityNotFoundException) {
-        android.widget.Toast.makeText(
-            context,
-            "Không mở được Google Play. Vui lòng tìm \"Lịch Số\" trên Play Store.",
-            android.widget.Toast.LENGTH_LONG
-        ).show()
-    }
-}
-
-/**
- * Unwrap Context (có thể là ContextWrapper từ Dialog window) để tìm Activity gốc.
- * `LocalContext.current` trong một Compose Dialog KHÔNG bảo đảm là Activity —
- * cast thẳng `context as? Activity` rất hay null → rơi nhầm vào nhánh fallback
- * Play Store thay vì In-App Review.
- */
-private fun Context.findActivity(): Activity? {
-    var ctx: Context? = this
-    while (ctx is android.content.ContextWrapper) {
-        if (ctx is Activity) return ctx
-        ctx = ctx.baseContext
-    }
-    return null
-}
-
-/**
- * Thử launch In-App Review API của Google Play.
- *
- * Nguyên tắc: TIN tưởng Play Core. Chỉ fallback Play Store khi API thực sự
- * báo fail (`isSuccessful == false`). KHÔNG dùng heuristic thời gian
- * (`launchElapsed < Xms`) vì Google không bảo đảm thời gian — máy nhanh,
- * user đã review trước đó, hoặc cache hit đều có thể khiến callback về
- * gần như tức thì NGAY CẢ KHI dialog đã hiển thị thật. Mở Play Store đè
- * lên trong các trường hợp đó sẽ làm user thoát app, không submit review.
- *
- * Điều kiện để In-App Review thực sự hoạt động (ngoài tầm code):
- *   1. App được cài từ Google Play (Production / Open / Closed / Internal testing).
- *   2. Thiết bị có Google Play Services + đăng nhập tài khoản Google.
- *   3. Signing cert của bundle khớp với App Signing Key trên Play Console.
- *   4. Quota của Google còn (1–2 lần/user/năm — Google không công bố con số).
- *
- * Nếu (1)–(3) không thoả → `requestReviewFlow` sẽ fail → ta fallback Play Store.
- * Nếu (4) hết quota → `launchReviewFlow` complete success nhưng dialog không
- * hiển thị: KHÔNG có cách phát hiện đáng tin cậy. User vẫn có thể vào
- * Settings → "Đánh giá ứng dụng" để mở thẳng Play Store khi cần.
- */
-private fun launchInAppReviewOrFallback(
-    activity: Activity,
-    cachedReviewInfo: com.google.android.play.core.review.ReviewInfo? = null
-) {
-    val reviewManager = com.google.android.play.core.review.ReviewManagerFactory.create(activity)
-
-    fun launch(info: com.google.android.play.core.review.ReviewInfo) {
-        reviewManager.launchReviewFlow(activity, info)
-            .addOnCompleteListener { launchTask ->
-                if (!launchTask.isSuccessful) {
-                    android.util.Log.w(
-                        "SmartRating",
-                        "launchReviewFlow failed → fallback Play Store",
-                        launchTask.exception
-                    )
-                    openPlayStore(activity)
-                } else {
-                    android.util.Log.d("SmartRating", "launchReviewFlow completed successfully")
-                }
-            }
-    }
-
-    // Nếu đã có ReviewInfo prefetch → dùng luôn, bỏ qua request mới (nhanh hơn,
-    // và tránh trường hợp Google rate-limit request lần 2 trong cùng session).
-    if (cachedReviewInfo != null) {
-        android.util.Log.d("SmartRating", "Using prefetched ReviewInfo")
-        launch(cachedReviewInfo)
-        return
-    }
-
-    reviewManager.requestReviewFlow().addOnCompleteListener { requestTask ->
-        if (!requestTask.isSuccessful) {
-            android.util.Log.w(
-                "SmartRating",
-                "requestReviewFlow failed → fallback Play Store",
-                requestTask.exception
-            )
-            openPlayStore(activity)
-            return@addOnCompleteListener
-        }
-        launch(requestTask.result)
-    }
-}
-
 private fun sendFeedbackEmail(context: Context, feedback: String, stars: Int = 0) {
-    val starText = if (stars > 0) "${"⭐".repeat(stars)} ($stars/5 sao)" else "Không chọn"
+    val starText = if (stars > 0) "$stars/5 sao" else "Không chọn"
     val subject = "[Lịch Số] Phản hồi – $starText"
 
     val body = buildString {

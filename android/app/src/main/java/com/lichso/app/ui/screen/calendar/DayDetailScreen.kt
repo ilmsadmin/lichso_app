@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.ui.res.painterResource
+import com.lichso.app.R
 import com.lichso.app.data.local.entity.NoteEntity
 import com.lichso.app.data.local.entity.ReminderEntity
 import com.lichso.app.data.local.entity.TaskEntity
@@ -256,7 +258,12 @@ private fun DayDetailHero(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text("🌙", fontSize = 16.sp)
+                        Icon(
+                            painter = painterResource(R.drawable.ic_moon),
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.9f),
+                            modifier = Modifier.size(16.dp)
+                        )
                         Text(
                             text = "${dayInfo.lunar.day} tháng ${dayInfo.lunar.month} Âm · ${dayInfo.dayCanChi}",
                             style = TextStyle(

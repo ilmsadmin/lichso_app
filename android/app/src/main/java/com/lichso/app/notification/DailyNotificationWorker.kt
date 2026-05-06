@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.work.*
 import com.lichso.app.domain.DayInfoProvider
 import com.lichso.app.ui.screen.settings.SettingsKeys
-import com.lichso.app.ui.screen.settings.settingsDataStore
+import com.lichso.app.ui.screen.settings.safeSettingsData
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.util.concurrent.TimeUnit
@@ -19,7 +19,7 @@ class DailyNotificationWorker(
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
-        val prefs = applicationContext.settingsDataStore.data.first()
+        val prefs = applicationContext.safeSettingsData.first()
         val enabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
         if (!enabled) return Result.success()
 

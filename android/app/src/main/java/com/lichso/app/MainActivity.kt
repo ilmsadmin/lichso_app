@@ -15,6 +15,7 @@ import androidx.datastore.preferences.core.edit
 import com.lichso.app.ui.LichSoMainScreen
 import com.lichso.app.ui.screen.onboarding.OnboardingScreen
 import com.lichso.app.ui.screen.settings.SettingsKeys
+import com.lichso.app.ui.screen.settings.safeSettingsData
 import com.lichso.app.ui.screen.settings.settingsDataStore
 import com.lichso.app.ui.screen.splash.SplashScreen
 import com.lichso.app.ui.theme.LichSoTheme
@@ -70,7 +71,7 @@ class MainActivity : ComponentActivity() {
             val coroutineScope = rememberCoroutineScope()
 
             val themeModeFlow = remember(context) {
-                context.settingsDataStore.data
+                context.safeSettingsData
                     .map { it[SettingsKeys.THEME_MODE] ?: "system" }
             }
             val themeMode by themeModeFlow.collectAsState(initial = "system")
@@ -93,7 +94,7 @@ class MainActivity : ComponentActivity() {
             // Read onboarding state once on first composition
             var onboardingCompleted by remember { mutableStateOf<Boolean?>(null) }
             LaunchedEffect(Unit) {
-                val prefs = context.settingsDataStore.data.first()
+                val prefs = context.safeSettingsData.first()
                 onboardingCompleted = prefs[SettingsKeys.ONBOARDING_COMPLETED] ?: false
             }
 

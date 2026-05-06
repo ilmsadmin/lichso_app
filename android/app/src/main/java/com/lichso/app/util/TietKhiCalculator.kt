@@ -33,6 +33,9 @@ object TietKhiCalculator {
         "Lập Xuân" to 315, "Vũ Thủy" to 330, "Kinh Trập" to 345
     )
 
+    // Cache kết quả theo năm để tránh tính lại nhiều lần
+    private val cache = HashMap<Int, List<SolarTerm>>(8)
+
     private fun findSolarTermDate(year: Int, termLongitude: Int): Int {
         val daysPerDegree = 365.25 / 360.0
         val marchEquinox = LunarCalendarUtil.jdFromDate(20, 3, year)
@@ -52,15 +55,15 @@ object TietKhiCalculator {
     }
 
     fun getAllSolarTerms(year: Int): List<SolarTerm> {
+        cache[year]?.let { return it }
         val terms = mutableListOf<SolarTerm>()
-
         for ((name, lon) in TERM_NAMES) {
             val jd = findSolarTermDate(year, lon)
             val (dd, mm, yy) = LunarCalendarUtil.jdToDate(jd)
             terms.add(SolarTerm(name, lon, jd, dd, mm, yy))
         }
-
         terms.sortBy { it.jd }
+        cache[year] = terms
         return terms
     }
 

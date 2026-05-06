@@ -20,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import com.lichso.app.R
 import com.lichso.app.domain.model.CityCoordinates
 import com.lichso.app.domain.model.WeatherInfo
 import com.lichso.app.ui.theme.LichSoThemeColors
@@ -336,7 +338,12 @@ private fun WeatherFengShuiTip(weather: WeatherInfo) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("🔮", style = TextStyle(fontSize = 16.sp))
+                Icon(
+                    painter = painterResource(R.drawable.ic_sparkle),
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
                 Text(
                     "Gợi ý phong thuỷ theo thời tiết",
                     style = TextStyle(

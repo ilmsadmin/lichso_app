@@ -183,7 +183,7 @@ fun ZodiacCollectionScreen(
             confirmButton = {
                 TextButton(onClick = { revealCard = null }) { Text("Đóng") }
             },
-            title = { Text("🎉 Bạn rút được:") },
+            title = { Text("Bạn rút được:") },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(card.emoji, style = TextStyle(fontSize = 64.sp))

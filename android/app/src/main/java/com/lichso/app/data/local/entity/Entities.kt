@@ -1,6 +1,8 @@
 package com.lichso.app.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "tasks")
@@ -73,4 +75,42 @@ data class ChatMessageEntity(
     val content: String,
     val isUser: Boolean,
     val timestamp: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "countdown_events", indices = [Index(value = ["targetEpochDay"])])
+data class CountdownEventEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String,
+    val targetEpochDay: Long,
+    @ColumnInfo(defaultValue = "") val note: String = "",
+    @ColumnInfo(defaultValue = "1") val showOnHome: Boolean = true,
+    @ColumnInfo(defaultValue = "1") val showOnWidget: Boolean = true,
+    @ColumnInfo(defaultValue = "0") val createdAt: Long = System.currentTimeMillis()
+)
+
+// ── World Clock ──────────────────────────────────────────────────────────────
+@Entity(tableName = "world_clock_cities")
+data class WorldClockCityEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val cityName: String,
+    val timezone: String,
+    @ColumnInfo(defaultValue = "") val country: String = "",
+    @ColumnInfo(defaultValue = "0") val sortOrder: Int = 0,
+)
+
+// ── Cycle Tracker ────────────────────────────────────────────────────────────
+@Entity(tableName = "cycle_settings")
+data class CycleSettingsEntity(
+    @PrimaryKey val id: Int = 1,
+    @ColumnInfo(defaultValue = "28") val cycleLength: Int = 28,
+    @ColumnInfo(defaultValue = "5") val periodLength: Int = 5,
+)
+
+@Entity(tableName = "cycle_logs", indices = [Index(value = ["startEpochDay"])])
+data class CycleLogEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val startEpochDay: Long,
+    @ColumnInfo(defaultValue = "-1") val endEpochDay: Long = -1L,
+    @ColumnInfo(defaultValue = "") val notes: String = "",
+    @ColumnInfo(defaultValue = "0") val createdAt: Long = System.currentTimeMillis(),
 )

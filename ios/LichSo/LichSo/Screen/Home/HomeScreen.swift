@@ -474,7 +474,8 @@ private struct CalendarPageBody: View {
             }
 
             VStack(alignment: .leading, spacing: 1) {
-                Text("Mùng \(info.lunar.day) tháng \(info.lunar.month)")
+                let lunarDayLabel = info.lunar.day <= 10 ? "Mùng \(info.lunar.day)" : "\(info.lunar.day)"
+                Text("\(lunarDayLabel) tháng \(info.lunar.month)")
                     .font(.system(size: 15, weight: .bold))
                     .foregroundColor(TextPrimary)
                 Text("Năm \(info.yearCanChi)")

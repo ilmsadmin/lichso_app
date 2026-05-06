@@ -105,7 +105,11 @@ fun LichSoMainScreen(
     var rankUpEvent by remember { mutableStateOf<PointsEvent.RankUp?>(null) }
     LaunchedEffect(Unit) {
         pointsViewModel.events.collect { ev ->
-            if (ev is PointsEvent.RankUp) rankUpEvent = ev
+            when (ev) {
+                is PointsEvent.RankUp -> rankUpEvent = ev
+                is PointsEvent.CheckedIn -> SmartRatingManager.recordHappyAction(context.applicationContext)
+                else -> Unit
+            }
         }
     }
     rankUpEvent?.let { ev ->
@@ -133,8 +137,6 @@ fun LichSoMainScreen(
             "profile" -> ActionType.VIEW_PROFILE
             "daily_store" -> ActionType.VIEW_DAILY_STORE
             "date_picker" -> ActionType.USE_DATE_PICKER
-            "fengshui_ar" -> ActionType.USE_AI_FENGSHUI
-            "ocr_calendar" -> ActionType.USE_OCR_CALENDAR
             "tiet_khi" -> ActionType.VIEW_TIET_KHI
             else -> null
         }
@@ -166,7 +168,7 @@ fun LichSoMainScreen(
         }
     }
 
-    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays", "profile", "oracle_draw", "oracle_result", "ledger", "daily_store", "zodiac_collection", "date_picker", "fengshui_ar", "ocr_calendar", "streak_freeze", "points_tutorial", "tiet_khi") || prayerDetailShowing || taskEditShowing
+    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays", "profile", "oracle_draw", "oracle_result", "ledger", "daily_store", "zodiac_collection", "date_picker", "streak_freeze", "points_tutorial", "tiet_khi") || prayerDetailShowing || taskEditShowing
 
     val toggleDrawer: () -> Unit = {
         scope.launch {
@@ -210,6 +212,7 @@ fun LichSoMainScreen(
                     onHistoryClick = { currentRoute = "history" },
                     onNotificationClick = { currentRoute = "notifications" },
                     onPointsPillClick = { currentRoute = "ledger" },
+                    onCountdownClick = { currentRoute = "countdown" },
                     onFortuneCardShown = {
                         pointsViewModel.award(ActionType.VIEW_FORTUNE_CARD)
                     },
@@ -272,11 +275,14 @@ fun LichSoMainScreen(
                             ToolAction.POINTS_LEDGER -> currentRoute = "ledger"
                             ToolAction.ZODIAC_COLLECTION -> currentRoute = "zodiac_collection"
                             ToolAction.DATE_PICKER -> currentRoute = "date_picker"
-                            ToolAction.FENGSHUI_AR -> currentRoute = "fengshui_ar"
-                            ToolAction.OCR_CALENDAR -> currentRoute = "ocr_calendar"
                             ToolAction.STREAK_FREEZE -> currentRoute = "streak_freeze"
                             ToolAction.TIET_KHI -> currentRoute = "tiet_khi"
                             ToolAction.HOW_TO_EARN -> currentRoute = "points_tutorial"
+                            ToolAction.DATE_MATH -> currentRoute = "date_math"
+                            ToolAction.COUNTDOWN -> currentRoute = "countdown"
+                            ToolAction.BIRTH_PLANNER -> currentRoute = "birth_planner"
+                            ToolAction.CYCLE_TRACKER -> currentRoute = "cycle_tracker"
+                            ToolAction.WORLD_CLOCK -> currentRoute = "world_clock"
                         }
                     }
                 )
@@ -339,16 +345,25 @@ fun LichSoMainScreen(
                 "date_picker" -> com.lichso.app.feature.datepicker.DatePickerToolScreen(
                     onBackClick = { currentRoute = "tools" },
                 )
-                "fengshui_ar" -> com.lichso.app.feature.fengshui.FengShuiArScreen(
-                    onBackClick = { currentRoute = "tools" },
-                )
-                "ocr_calendar" -> com.lichso.app.feature.ocr.OcrCalendarScreen(
-                    onBackClick = { currentRoute = "tools" },
-                )
                 "streak_freeze" -> com.lichso.app.feature.points.ui.StreakFreezeScreen(
                     onBackClick = { currentRoute = "profile" },
                 )
                 "tiet_khi" -> com.lichso.app.feature.tietkhi.TietKhiScreen(
+                    onBackClick = { currentRoute = "tools" },
+                )
+                "date_math" -> com.lichso.app.feature.datemath.DateMathScreen(
+                    onBackClick = { currentRoute = "tools" },
+                )
+                "countdown" -> com.lichso.app.feature.countdown.CountdownScreen(
+                    onBackClick = { currentRoute = "tools" },
+                )
+                "birth_planner" -> com.lichso.app.feature.birthplanner.BirthDatePlannerScreen(
+                    onBackClick = { currentRoute = "tools" },
+                )
+                "cycle_tracker" -> com.lichso.app.feature.cycle.CycleTrackerScreen(
+                    onBackClick = { currentRoute = "tools" },
+                )
+                "world_clock" -> com.lichso.app.feature.worldclock.WorldClockScreen(
                     onBackClick = { currentRoute = "tools" },
                 )
                 "points_tutorial" -> com.lichso.app.feature.points.ui.PointsTutorialScreen(
@@ -367,8 +382,6 @@ fun LichSoMainScreen(
                             "lichso://store" -> "daily_store"
                             "lichso://search" -> "search"
                             "lichso://date_picker" -> "date_picker"
-                            "lichso://fengshui_ar" -> "fengshui_ar"
-                            "lichso://ocr_calendar" -> "ocr_calendar"
                             "lichso://bookmarks" -> "bookmarks"
                             "lichso://tiet_khi" -> "tiet_khi"
                             "lichso://tasks" -> "home" // tasks integrated in home
@@ -632,13 +645,16 @@ private fun DrawerMenuContent(
 
                 // Info items
                 val context = LocalContext.current
+                val infoScope = rememberCoroutineScope()
 
                 DrawerActionItem(
                     icon = Icons.Outlined.StarRate,
                     title = "Đánh giá ứng dụng",
                     c = c
                 ) {
-                    SmartRatingManager.triggerManually()
+                    if (ReviewHelper.openPlayStoreListing(context)) {
+                        infoScope.launch { SmartRatingManager.recordReviewIntent(context.applicationContext) }
+                    }
                 }
 
                 DrawerActionItem(

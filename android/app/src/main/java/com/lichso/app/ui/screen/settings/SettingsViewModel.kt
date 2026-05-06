@@ -19,10 +19,24 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.io.FileNotFoundException
+import java.io.IOException
 import javax.inject.Inject
 
 // DataStore extension
 val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "lichso_settings")
+
+/**
+ * Safe settings flow: fallback rỗng khi file DataStore chưa tồn tại hoặc IO tạm thời lỗi.
+ */
+val Context.safeSettingsData: Flow<Preferences>
+    get() = settingsDataStore.data.catch { e ->
+        if (e is IOException || e is FileNotFoundException) {
+            emit(emptyPreferences())
+        } else {
+            throw e
+        }
+    }
 
 object SettingsKeys {
     val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
@@ -93,7 +107,7 @@ class SettingsViewModel @Inject constructor(
     init {
         // Collect DataStore prefs
         viewModelScope.launch {
-            dataStore.data.collect { prefs ->
+            context.safeSettingsData.collect { prefs ->
                 _uiState.update {
                     it.copy(
                         notifyEnabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true,

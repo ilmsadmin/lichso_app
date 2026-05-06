@@ -3,7 +3,7 @@ package com.lichso.app.notification
 import android.content.Context
 import com.lichso.app.domain.DayInfoProvider
 import com.lichso.app.ui.screen.profile.ProfileKeys
-import com.lichso.app.ui.screen.settings.settingsDataStore
+import com.lichso.app.ui.screen.settings.safeSettingsData
 import com.lichso.app.util.CanChiCalculator
 import com.lichso.app.util.LunarCalendarUtil
 import kotlinx.coroutines.flow.first
@@ -103,7 +103,7 @@ object PersonalHoroscopeHelper {
      */
     suspend fun loadProfile(context: Context): UserProfile? {
         return try {
-            val prefs = context.settingsDataStore.data.first()
+            val prefs = context.safeSettingsData.first()
             val rawName = prefs[ProfileKeys.DISPLAY_NAME]?.trim().orEmpty()
             val bd = prefs[ProfileKeys.BIRTH_DAY] ?: 0
             val bm = prefs[ProfileKeys.BIRTH_MONTH] ?: 0
@@ -172,7 +172,7 @@ object PersonalHoroscopeHelper {
             else -> "Xấu"
         }
 
-        val title = "Tử Vi ${profile.displayName.substringBefore(' ').take(20)} — $dateLabel"
+        val title = "Tử Vi ${profile.displayName.trim().take(40)} — $dateLabel"
         val subtitle = "${profile.conGiapEmoji} Tuổi ${profile.conGiap} · ${rel.label} · $personalLabel"
 
         val topGio = dayInfo.gioHoangDao.take(3)

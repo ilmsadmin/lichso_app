@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import com.lichso.app.data.local.LichSoDatabase
 import com.lichso.app.ui.screen.settings.SettingsKeys
+import com.lichso.app.ui.screen.settings.safeSettingsData
 import com.lichso.app.ui.screen.settings.settingsDataStore
 import com.lichso.app.widget.CalendarWidgetScheduler
 import kotlinx.coroutines.CoroutineScope
@@ -18,7 +19,14 @@ import kotlinx.coroutines.withTimeoutOrNull
  */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
+        val action = intent.action ?: return
+        val shouldHandle = action == Intent.ACTION_BOOT_COMPLETED ||
+            action == Intent.ACTION_LOCKED_BOOT_COMPLETED ||
+            action == Intent.ACTION_MY_PACKAGE_REPLACED ||
+            action == Intent.ACTION_TIME_CHANGED ||
+            action == Intent.ACTION_TIMEZONE_CHANGED
+        if (!shouldHandle) return
+        val isLockedBoot = action == Intent.ACTION_LOCKED_BOOT_COMPLETED
 
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
@@ -31,14 +39,17 @@ class BootReceiver : BroadcastReceiver() {
             var settingsLoaded = false
 
             try {
-                withTimeoutOrNull(5_000L) {
-                    val prefs = context.settingsDataStore.data.first()
-                    notifyEnabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
-                    gioDaiCatEnabled = prefs[SettingsKeys.GIO_DAI_CAT] ?: false
-                    festivalReminderEnabled = prefs[SettingsKeys.FESTIVAL_REMINDER] ?: true
-                    reminderHour = prefs[SettingsKeys.REMINDER_HOUR] ?: 7
-                    reminderMinute = prefs[SettingsKeys.REMINDER_MINUTE] ?: 0
-                    settingsLoaded = true
+                // Ở LOCKED_BOOT_COMPLETED, credential-protected storage có thể chưa sẵn sàng.
+                if (!isLockedBoot) {
+                    withTimeoutOrNull(5_000L) {
+                        val prefs = context.safeSettingsData.first()
+                        notifyEnabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
+                        gioDaiCatEnabled = prefs[SettingsKeys.GIO_DAI_CAT] ?: false
+                        festivalReminderEnabled = prefs[SettingsKeys.FESTIVAL_REMINDER] ?: true
+                        reminderHour = prefs[SettingsKeys.REMINDER_HOUR] ?: 7
+                        reminderMinute = prefs[SettingsKeys.REMINDER_MINUTE] ?: 0
+                        settingsLoaded = true
+                    }
                 }
             } catch (e: Exception) {
                 android.util.Log.e("BootReceiver", "Load settings failed: ${e.message}")
@@ -48,6 +59,8 @@ class BootReceiver : BroadcastReceiver() {
             // (hoặc defaults). Không nằm trong cùng timeout/try với phần đọc DB
             // để tránh bị "kẹt" do timeout.
             try {
+                NotificationWatchdogWorker.schedule(context)
+
                 if (notifyEnabled) {
                     // Reschedule daily notification alarm
                     DailyNotificationWorker.schedule(context, reminderHour, reminderMinute)
@@ -77,7 +90,7 @@ class BootReceiver : BroadcastReceiver() {
             }
 
             // Reschedule individual task reminders (cần DB, tách timeout riêng)
-            if (settingsLoaded && notifyEnabled) {
+            if (!isLockedBoot && settingsLoaded && notifyEnabled) {
                 try {
                     withTimeoutOrNull(5_000L) {
                         val db = LichSoDatabase.getInstance(context)

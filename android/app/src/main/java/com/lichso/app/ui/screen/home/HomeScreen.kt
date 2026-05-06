@@ -41,6 +41,8 @@ import com.lichso.app.ui.theme.*
 import com.lichso.app.ui.components.AppTopBar
 import com.lichso.app.ui.components.CalendarPatternBackground
 import com.lichso.app.ui.components.HeaderIconButton
+import androidx.compose.ui.res.painterResource
+import com.lichso.app.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -55,6 +57,7 @@ fun HomeScreen(
     onHistoryClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
     onPointsPillClick: () -> Unit = {},
+    onCountdownClick: () -> Unit = {},
     onFortuneCardShown: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -247,6 +250,14 @@ fun HomeScreen(
                             showFestival = uiState.showFestival,
                             onHistoryClick = onHistoryClick
                         )
+
+                        if (uiState.countdownEvents.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            HomeCountdownCard(
+                                items = uiState.countdownEvents,
+                                onClick = onCountdownClick
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(16.dp))
                     }
@@ -458,6 +469,7 @@ private fun RedHeader(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 com.lichso.app.feature.points.ui.PointsPill(onClick = onPointsPillClick)
+                Spacer(Modifier.weight(1f))
                 com.lichso.app.feature.points.ui.StreakBadge()
             }
         }
@@ -749,12 +761,18 @@ private fun BigDateSection(info: DayInfo) {
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text("🌙", style = TextStyle(fontSize = 18.sp))
+                Icon(
+                    painter = painterResource(R.drawable.ic_moon),
+                    contentDescription = "Âm lịch",
+                    tint = Color(0xFF1A237E),
+                    modifier = Modifier.size(18.dp)
+                )
             }
 
             Column {
+                val lunarDayLabel = if (info.lunar.day <= 10) "Mùng ${info.lunar.day}" else "${info.lunar.day}"
                 Text(
-                    "Mùng ${info.lunar.day} tháng ${info.lunar.month}",
+                    "$lunarDayLabel tháng ${info.lunar.month}",
                     style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = c.textPrimary)
                 )
                 Text(
@@ -932,5 +950,71 @@ private fun SmartHintBanner(text: String) {
             color = tint,
             style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
         )
+    }
+}
+
+@Composable
+private fun HomeCountdownCard(
+    items: List<HomeCountdownItem>,
+    onClick: () -> Unit,
+) {
+    val c = LichSoThemeColors.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (c.isDark) Color(0xFF1B2A1B) else Color(0xFFE8F5E9))
+            .border(
+                1.dp,
+                if (c.isDark) Color(0xFF2E4A2E) else Color(0xFF81C784),
+                RoundedCornerShape(14.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Sắp tới",
+                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (c.isDark) Color(0xFF81C784) else Color(0xFF2E7D32))
+            )
+            Text(
+                "Xem tất cả",
+                style = TextStyle(fontSize = 11.sp, color = c.textTertiary)
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        items.take(3).forEach { item ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    item.title,
+                    style = TextStyle(fontSize = 12.sp, color = c.textPrimary),
+                    maxLines = 1,
+                )
+                val txt = when {
+                    item.daysLeft > 0 -> "${item.daysLeft} ngày"
+                    item.daysLeft == 0L -> "Hôm nay"
+                    else -> "Đã qua"
+                }
+                Text(
+                    txt,
+                    style = TextStyle(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (item.daysLeft > 0) Color(0xFF2E7D32) else Color(0xFFE65100)
+                    )
+                )
+            }
+        }
     }
 }

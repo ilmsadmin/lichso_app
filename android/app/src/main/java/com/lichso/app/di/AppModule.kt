@@ -64,6 +64,15 @@ object AppModule {
     fun provideNotificationDao(db: LichSoDatabase): NotificationDao = db.notificationDao()
 
     @Provides
+    fun provideCountdownEventDao(db: LichSoDatabase): CountdownEventDao = db.countdownEventDao()
+
+    @Provides
+    fun provideWorldClockCityDao(db: LichSoDatabase): WorldClockCityDao = db.worldClockCityDao()
+
+    @Provides
+    fun provideCycleDao(db: LichSoDatabase): CycleDao = db.cycleDao()
+
+    @Provides
     fun provideFamilyMemberDao(db: LichSoDatabase): FamilyMemberDao = db.familyMemberDao()
 
     @Provides

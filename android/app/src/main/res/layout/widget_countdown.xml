@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_countdown_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/widget_countdown_bg">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ĐẾM NGƯỢC"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:textColor="#C8E6C9" />
+
+    <TextView
+        android:id="@+id/tv_countdown_days"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="12"
+        android:textSize="40sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF" />
+
+    <TextView
+        android:id="@+id/tv_countdown_sub"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ngày tới sự kiện"
+        android:textSize="11sp"
+        android:textColor="#E8F5E9" />
+
+    <TextView
+        android:id="@+id/tv_countdown_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Sinh nhật Mẹ"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/tv_countdown_date"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="30/05/2026 · 24/4 Âm"
+        android:textSize="11sp"
+        android:textColor="#C8E6C9"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+</LinearLayout>
