@@ -3,6 +3,7 @@ package com.lichso.app.notification
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.lichso.app.data.local.LichSoDatabase
 import com.lichso.app.domain.DayInfoProvider
 import com.lichso.app.ui.screen.settings.SettingsKeys
 import com.lichso.app.ui.screen.settings.safeSettingsData
@@ -16,101 +17,114 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalDate
 
 /**
- * Broadcast receiver nhận alarm từ [NotificationAlarmScheduler].
+ * BroadcastReceiver DUY NHẤT cho mọi alarm trong app.
  *
- * Xử lý cho cả 4 loại notification:
- *  - daily         : Tóm tắt ngày mới (fire theo giờ user cấu hình, mặc định 07:00)
- *  - gio_dai_cat   : Giờ Hoàng Đạo (cùng giờ với daily)
- *  - festival      : Nhắc ngày lễ ngày mai (20:00)
- *  - ai_tuvi       : Gợi ý AI Tử Vi (21:00)
+ * Dispatch theo [NotificationScheduler.EXTRA_TYPE]:
+ *  - daily / gio_dai_cat / festival / ai_tuvi : 4 system notification định kỳ
+ *  - reminder : per-row ReminderEntity của user
  *
- * Sau khi fire xong tự reschedule alarm cho ngày hôm sau.
+ * Sau khi fire xong → gọi [NotificationScheduler.rescheduleAll] để self-heal:
+ * dựng lại toàn bộ chuỗi alarm. Cách này đảm bảo nếu OEM có drop alarm nào
+ * khác (xảy ra trên Xiaomi/Vivo/Oppo sau vài ngày idle) thì lần fire kế tiếp
+ * sẽ tự khôi phục, KHÔNG cần user mở app.
  */
-class NotificationAlarmReceiver : BroadcastReceiver() {
+class NotificationReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val type = intent.getStringExtra(NotificationAlarmScheduler.EXTRA_TYPE) ?: return
-        android.util.Log.i("NotifAlarm", "Received alarm for $type")
+        val type = intent.getStringExtra(NotificationScheduler.EXTRA_TYPE) ?: return
+        android.util.Log.i(TAG, "Received alarm: type=$type")
 
         val pendingResult = goAsync()
-        CoroutineScope(Dispatchers.IO).launch {
-            // Fallback defaults — dùng khi đọc settings fail để vẫn reschedule được
-            var reminderHour = 7
-            var reminderMinute = 0
+        // Capture extras now (intent có thể bị recycle)
+        val reminderId = intent.getLongExtra(NotificationScheduler.EXTRA_REMINDER_ID, -1L)
+        val reminderTitle = intent.getStringExtra(NotificationScheduler.EXTRA_TITLE)
+        val reminderBody = intent.getStringExtra(NotificationScheduler.EXTRA_BODY)
+        val appContext = context.applicationContext
 
-            // ── Bước 1: Đọc setting + fire notification (có timeout để tránh ANR) ──
+        CoroutineScope(Dispatchers.IO).launch {
             try {
                 withTimeoutOrNull(8_000L) {
-                    val prefs = context.safeSettingsData.first()
-                    val notifyEnabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
-                    reminderHour = prefs[SettingsKeys.REMINDER_HOUR] ?: 7
-                    reminderMinute = prefs[SettingsKeys.REMINDER_MINUTE] ?: 0
-
                     when (type) {
-                        NotificationAlarmScheduler.TYPE_DAILY -> {
-                            if (notifyEnabled) fireDaily(context)
-                        }
-                        NotificationAlarmScheduler.TYPE_GIO_DAI_CAT -> {
-                            val enabled = prefs[SettingsKeys.GIO_DAI_CAT] ?: false
-                            if (notifyEnabled && enabled) fireGioDaiCat(context)
-                        }
-                        NotificationAlarmScheduler.TYPE_FESTIVAL -> {
-                            val enabled = prefs[SettingsKeys.FESTIVAL_REMINDER] ?: true
-                            if (notifyEnabled && enabled) fireFestival(context)
-                        }
-                        NotificationAlarmScheduler.TYPE_AI_TUVI -> {
-                            if (notifyEnabled) fireAiTuVi(context)
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("NotifAlarm", "Error firing $type: ${e.message}")
-            }
-
-            // ── Bước 2: LUÔN reschedule alarm cho lần kế tiếp ──
-            // Kể cả khi bước 1 timeout / throw, ta vẫn phải đăng ký alarm
-            // tiếp theo, nếu không chuỗi notification sẽ chết vĩnh viễn cho tới
-            // khi user mở lại app (LichSoApp.scheduleWorkersFromSettings).
-            // Đây chính là root cause khiến thông báo biến mất sau vài ngày.
-            try {
-                when (type) {
-                    NotificationAlarmScheduler.TYPE_DAILY,
-                    NotificationAlarmScheduler.TYPE_GIO_DAI_CAT -> {
-                        NotificationAlarmScheduler.schedule(
-                            context, type, reminderHour, reminderMinute
+                        NotificationScheduler.TYPE_DAILY -> fireDaily(appContext)
+                        NotificationScheduler.TYPE_GIO_DAI_CAT -> fireGioDaiCatGuarded(appContext)
+                        NotificationScheduler.TYPE_FESTIVAL -> fireFestivalGuarded(appContext)
+                        NotificationScheduler.TYPE_AI_TUVI -> fireAiTuViGuarded(appContext)
+                        NotificationScheduler.TYPE_REMINDER -> fireReminder(
+                            appContext, reminderId, reminderTitle, reminderBody
                         )
                     }
-                    NotificationAlarmScheduler.TYPE_FESTIVAL -> {
-                        NotificationAlarmScheduler.schedule(context, type, 20, 0)
-                    }
-                    NotificationAlarmScheduler.TYPE_AI_TUVI -> {
-                        NotificationAlarmScheduler.schedule(context, type, 21, 0)
-                    }
                 }
             } catch (e: Exception) {
-                android.util.Log.e("NotifAlarm", "Reschedule $type failed: ${e.message}")
+                android.util.Log.e(TAG, "Fire $type failed: ${e.message}", e)
+            }
+
+            // Self-healing: dựng lại TOÀN BỘ alarm chain.
+            // Nếu type là per-row reminder → reschedule chính nó. Nếu là
+            // system → rescheduleAll cũng đặt lại nó cho hôm sau.
+            try {
+                if (type == NotificationScheduler.TYPE_REMINDER && reminderId > 0) {
+                    val r = LichSoDatabase.getInstance(appContext)
+                        .reminderDao().getAllRemindersOnce()
+                        .find { it.id == reminderId }
+                    if (r != null && r.isEnabled && r.repeatType != 0) {
+                        NotificationScheduler.scheduleReminder(appContext, r)
+                    }
+                } else {
+                    NotificationScheduler.rescheduleAll(appContext)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "Reschedule after $type failed: ${e.message}")
             } finally {
                 pendingResult.finish()
             }
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────
+    // Fire handlers
+    // ─────────────────────────────────────────────────────────────────────
+
+    private suspend fun fireGioDaiCatGuarded(context: Context) {
+        val prefs = context.safeSettingsData.first()
+        val notify = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
+        val enabled = prefs[SettingsKeys.GIO_DAI_CAT] ?: false
+        if (notify && enabled) fireGioDaiCat(context)
+    }
+
+    private suspend fun fireFestivalGuarded(context: Context) {
+        val prefs = context.safeSettingsData.first()
+        val notify = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
+        val enabled = prefs[SettingsKeys.FESTIVAL_REMINDER] ?: true
+        if (notify && enabled) fireFestival(context)
+    }
+
+    private suspend fun fireAiTuViGuarded(context: Context) {
+        val prefs = context.safeSettingsData.first()
+        val notify = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
+        if (notify) fireAiTuVi(context)
+    }
+
+    private fun fireReminder(context: Context, id: Long, title: String?, body: String?) {
+        if (id <= 0L) return
+        NotificationHelper.sendReminderNotification(
+            context, id.toInt(),
+            title ?: "Nhắc nhở",
+            body ?: ""
+        )
+    }
+
     private fun fireDaily(context: Context) {
         val today = LocalDate.now()
         val dayInfo = DayInfoProvider().getDayInfo(today.dayOfMonth, today.monthValue, today.year)
-
         val dd = "%02d".format(today.dayOfMonth)
         val mm = "%02d".format(today.monthValue)
         val lunarStr = "${dayInfo.lunar.day}/${dayInfo.lunar.month} Âm lịch"
         val canChi = dayInfo.dayCanChi
-
-        // Nhãn ngày kiêng kỵ (nếu có) — ưu tiên Nguyệt kỵ trước Tam nương
         val kyLabel = when {
             dayInfo.activities.isNguyetKy -> "Ngày Nguyệt kỵ"
             dayInfo.activities.isTamNuong -> "Ngày Tam nương"
             else -> null
         }
-
         val gioText = dayInfo.gioHoangDao.take(3)
             .joinToString(", ") { "${it.name} (${it.time})" }
 
@@ -121,6 +135,7 @@ class NotificationAlarmReceiver : BroadcastReceiver() {
             if (kyLabel != null) append(" | $kyLabel")
         }
         val lines = mutableListOf<String>()
+        SmartReminderProvider.contextualHintFor(dayInfo)?.let { hint -> lines.add("💡 $hint") }
         lines.add("Can Chi: $canChi")
         lines.add(
             if (kyLabel != null) "Đánh giá: ${dayInfo.dayRating.label} — $kyLabel"
@@ -137,7 +152,6 @@ class NotificationAlarmReceiver : BroadcastReceiver() {
         }
         dayInfo.solarHoliday?.let { lines.add("Ngày lễ: $it") }
         dayInfo.lunarHoliday?.let { lines.add("Âm lịch: $it") }
-
         NotificationHelper.sendDailyNotification(context, title, subtitle, lines)
     }
 
@@ -146,13 +160,11 @@ class NotificationAlarmReceiver : BroadcastReceiver() {
         val dayInfo = DayInfoProvider().getDayInfo(today.dayOfMonth, today.monthValue, today.year)
         val dd = "%02d".format(today.dayOfMonth)
         val mm = "%02d".format(today.monthValue)
-
         val kyLabel = when {
             dayInfo.activities.isNguyetKy -> "Ngày Nguyệt kỵ"
             dayInfo.activities.isTamNuong -> "Ngày Tam nương"
             else -> null
         }
-
         val title = "Giờ Hoàng Đạo — ${dayInfo.dayOfWeek} $dd/$mm"
         val topGio = dayInfo.gioHoangDao.take(3)
             .joinToString(", ") { "${it.name} (${it.time})" }
@@ -174,34 +186,21 @@ class NotificationAlarmReceiver : BroadcastReceiver() {
         HolidayUtil.getSolarHoliday(dd, mm)?.let { festivals.add(it) }
         val lunar = LunarCalendarUtil.convertSolar2Lunar(dd, mm, yy)
         HolidayUtil.getLunarHoliday(lunar.lunarDay, lunar.lunarMonth)?.let { festivals.add(it) }
-        if (lunar.lunarDay == 1) {
-            festivals.add("Mùng 1 tháng ${lunar.lunarMonth} Âm lịch")
-        } else if (lunar.lunarDay == 15) {
-            festivals.add("Rằm tháng ${lunar.lunarMonth} Âm lịch")
+        if (lunar.lunarDay == 1) festivals.add("Mùng 1 tháng ${lunar.lunarMonth} Âm lịch")
+        else if (lunar.lunarDay == 15) festivals.add("Rằm tháng ${lunar.lunarMonth} Âm lịch")
+        if (festivals.isEmpty()) {
+            android.util.Log.d(TAG, "Festival: no holiday tomorrow ($dd/$mm)")
+            return
         }
-        if (festivals.isNotEmpty()) {
-            val title = "Ngày lễ ngày mai — $dd/$mm/$yy"
-            val subtitle = festivals.joinToString(" | ")
-            val lines = mutableListOf<String>()
-            lines.add("Ngày $dd/$mm/$yy (${lunar.lunarDay}/${lunar.lunarMonth} Âm lịch)")
-            festivals.forEach { lines.add(it) }
-            lines.add("Hãy chuẩn bị lễ vật và sắp xếp công việc phù hợp.")
-            NotificationHelper.sendFestivalReminderNotification(context, title, subtitle, lines)
-        } else {
-            android.util.Log.d("NotifAlarm", "Festival: no holiday tomorrow ($dd/$mm)")
-        }
+        val title = "Ngày lễ ngày mai — $dd/$mm/$yy"
+        val subtitle = festivals.joinToString(" | ")
+        val lines = mutableListOf<String>()
+        lines.add("Ngày $dd/$mm/$yy (${lunar.lunarDay}/${lunar.lunarMonth} Âm lịch)")
+        festivals.forEach { lines.add(it) }
+        lines.add("Hãy chuẩn bị lễ vật và sắp xếp công việc phù hợp.")
+        NotificationHelper.sendFestivalReminderNotification(context, title, subtitle, lines)
     }
 
-    /**
-     * Fire AI Tử Vi notification.
-     * - Nếu user đã setup đầy đủ profile (tên + ngày sinh hợp lệ) → gửi bản
-     *   cá nhân hoá cho NGÀY MAI (21:00 tối là thời điểm người ta xem tử vi
-     *   chuẩn bị cho hôm sau).
-     * - Nếu chưa đủ profile → fallback về bản generic cũ.
-     *
-     * Hàm này là `suspend` để có thể đọc DataStore. Được gọi từ coroutine
-     * scope trong onReceive.
-     */
     private suspend fun fireAiTuVi(context: Context) {
         try {
             val profile = PersonalHoroscopeHelper.loadProfile(context)
@@ -219,9 +218,12 @@ class NotificationAlarmReceiver : BroadcastReceiver() {
                 return
             }
         } catch (e: Exception) {
-            android.util.Log.e("NotifAlarm", "Personal horoscope failed, fallback: ${e.message}")
+            android.util.Log.e(TAG, "Personal horoscope failed, fallback: ${e.message}")
         }
-        // Fallback: user chưa setup profile → notification generic
         NotificationHelper.sendAiTuViNotification(context)
+    }
+
+    companion object {
+        private const val TAG = "NotifReceiver"
     }
 }

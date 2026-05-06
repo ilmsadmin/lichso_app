@@ -12,7 +12,7 @@ import com.lichso.app.data.local.entity.ReminderEntity
 import com.lichso.app.data.local.entity.TaskEntity
 import com.lichso.app.feature.points.domain.ActionType
 import com.lichso.app.feature.points.domain.AwardPointsUseCase
-import com.lichso.app.util.ReviewHelper
+import com.lichso.app.util.SmartRatingManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Context
@@ -178,7 +178,7 @@ class DayActionsViewModel @Inject constructor(
                 )
                 _uiState.update { it.copy(toastMessage = "Đã đánh dấu ngày ${"%02d".format(day)}/${"%02d".format(month)}") }
                 // Happy action: user bookmarked a day → trigger smart rating
-                ReviewHelper.triggerAfterAction(appContext)
+                SmartRatingManager.recordHappyAction(appContext)
                 runCatching { awardPointsUseCase(ActionType.ADD_BOOKMARK) }
             }
         }
@@ -213,7 +213,7 @@ class DayActionsViewModel @Inject constructor(
                 )
             }
             // Happy action: user saved a labelled bookmark
-            ReviewHelper.triggerAfterAction(appContext, weight = 2)
+            SmartRatingManager.recordHappyAction(appContext, weight = 2)
         }
     }
 

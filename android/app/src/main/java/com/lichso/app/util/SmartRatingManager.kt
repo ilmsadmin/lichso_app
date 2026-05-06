@@ -1,9 +1,13 @@
 package com.lichso.app.util
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import com.google.android.play.core.review.ReviewManagerFactory
 import com.lichso.app.ui.screen.settings.safeSettingsData
 import com.lichso.app.ui.screen.settings.settingsDataStore
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,208 +16,203 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 
 /**
- * SmartRatingManager — Singleton quản lý logic "xin đánh giá thông minh"
+ * SmartRatingManager — Quản lý logic "xin đánh giá in-app".
  *
- * Chiến lược:
- * - Trigger sau khi user hoàn thành một "happy action" (bookmark, lưu gia phả, lưu văn khấn, v.v.)
- * - Chỉ hỏi sau khi user đã thực hiện đủ [MIN_ACTIONS_BEFORE_ASK] happy actions
- * - Không hỏi lại trong vòng [MIN_DAYS_BETWEEN_ASKS] ngày
- * - Tối đa [MAX_TIMES_TO_ASK] lần, sau đó dừng hẳn (tránh làm phiền)
+ * Triết lý đơn giản:
+ *  - Sau N happy action + cooldown đủ lâu → bật dialog 1-5 sao.
+ *  - 1-3 sao → mở email feedback (đang hoạt động tốt, giữ nguyên).
+ *  - 4-5 sao → gọi [launchInAppReview] để hiển thị Google Play In-App Review,
+ *    fallback mở Play Store nếu API không sẵn sàng.
  *
- * Luồng:
- * - Hài lòng (👍) → Google Play In-App Review
- * - Không hài lòng (👎) → Mở mailto gửi feedback tới zenixhq.com@gmail.com
+ * Không có "EmotionStep" emoji dư thừa, không có 2 hệ thống cooldown song song.
  */
 object SmartRatingManager {
 
-    // ── Prefs keys ──
+    // ── DataStore keys ──
     private val KEY_HAPPY_ACTION_COUNT = intPreferencesKey("smart_rating_happy_action_count")
     private val KEY_LAST_ASKED_TIME    = longPreferencesKey("smart_rating_last_asked_time")
     private val KEY_TIMES_ASKED        = intPreferencesKey("smart_rating_times_asked")
-    private val KEY_USER_RATED         = intPreferencesKey("smart_rating_user_rated") // 0=not yet, 1=rated, -1=declined
-    // 0=skip, 1=user gửi feedback, 2=user mở Google Play để đánh giá
+    // 0 = chưa | 1 = mở Play/in-app review (4-5 sao) | 2 = đã gửi feedback (1-3 sao)
     private val KEY_LAST_OUTCOME       = intPreferencesKey("smart_rating_last_outcome")
 
     // ── Thresholds ──
-    // Giảm ngưỡng để dễ trigger hơn (trước đây quá khắt khe → không user nào đạt).
-    private const val MIN_ACTIONS_BEFORE_ASK  = 2     // chỉ cần 2 happy actions
-    private const val MIN_DAYS_FIRST_ASK      = 1L    // mở app ≥ 1 ngày sau cài là đủ
-    private const val MIN_DAYS_AFTER_SKIP     = 5L    // user skip → hỏi lại sau 5 ngày
-    private const val MIN_DAYS_AFTER_FEEDBACK = 30L   // user gửi feedback → 30 ngày mới hỏi lại
-    private const val MIN_DAYS_AFTER_REVIEW_INTENT = 90L // đã mở Play Store → rất lâu mới hỏi lại
-    private const val MAX_TIMES_TO_ASK        = 6     // tối đa 6 lần (~1 năm với cooldown 5 ngày)
+    private const val MIN_ACTIONS_BEFORE_ASK    = 3      // tối thiểu 3 happy action mới hỏi
+    private const val COOLDOWN_AFTER_SKIP_DAYS  = 7L     // user skip → 7 ngày
+    private const val COOLDOWN_AFTER_REVIEW_DAYS = 90L   // đã 4-5 sao → 90 ngày
+    private const val COOLDOWN_AFTER_FEEDBACK_DAYS = 30L // đã gửi feedback → 30 ngày
+    private const val MAX_TIMES_TO_ASK          = 5      // tối đa 5 lần auto-trigger
 
-    // ── Observable state for Compose ──
+    // ── Observable state ──
     private val _shouldShow = MutableStateFlow(false)
     val shouldShow: StateFlow<Boolean> = _shouldShow.asStateFlow()
 
-    /**
-     * True khi dialog đang được mở thủ công từ Settings — KHÔNG ghi recordShown
-     * (không tăng timesAsked, không reset action count). Tránh việc user bấm thử
-     * vài lần trong Settings là cạn quota auto-trigger vĩnh viễn.
-     */
+    /** True = trigger thủ công (Settings/Drawer); không tính vào quota auto. */
     @Volatile
     var isManualTrigger: Boolean = false
         private set
 
+    // ─────────────────────────────────────────────────────────────────────
+    // PUBLIC API
+    // ─────────────────────────────────────────────────────────────────────
+
     /**
-     * Gọi sau khi user hoàn thành một "happy action" — ứng dụng làm người dùng vui.
-     * Ví dụ: lưu bookmark, lưu thành viên gia phả, lưu văn khấn yêu thích, v.v.
+     * Gọi sau khi user hoàn thành 1 hành động "vui vẻ" (lưu bookmark, tạo task,
+     * thêm thành viên gia phả, hoàn thành check-in...). Tăng counter và check
+     * điều kiện để tự động bật dialog.
      *
-     * @param context Android context
-     * @param actionWeight số điểm tăng thêm (mặc định 1, actions quan trọng hơn có thể dùng 2)
+     * @param weight trọng số (mặc định 1, action lớn hơn dùng 2)
      */
-    suspend fun recordHappyAction(context: Context, actionWeight: Int = 1) {
+    suspend fun recordHappyAction(context: Context, weight: Int = 1) {
         val prefs = context.safeSettingsData.first()
         val timesAsked = prefs[KEY_TIMES_ASKED] ?: 0
-        val userRated = prefs[KEY_USER_RATED] ?: 0
-
-        // Đừng hỏi nữa nếu đã hỏi đủ lần hoặc user đã đánh giá/từ chối dứt khoát
-        if (timesAsked >= MAX_TIMES_TO_ASK || userRated == 1) return
-
-        context.settingsDataStore.edit { p ->
-            val current = p[KEY_HAPPY_ACTION_COUNT] ?: 0
-            p[KEY_HAPPY_ACTION_COUNT] = current + actionWeight
-        }
-
-        checkAndTrigger(context)
-    }
-
-    /**
-     * Kiểm tra điều kiện và trigger dialog nếu đủ.
-     */
-    suspend fun checkAndTrigger(context: Context) {
-        val prefs = context.safeSettingsData.first()
-        val actionCount = prefs[KEY_HAPPY_ACTION_COUNT] ?: 0
-        val lastAskedTime = prefs[KEY_LAST_ASKED_TIME] ?: 0L
-        val timesAsked = prefs[KEY_TIMES_ASKED] ?: 0
-        val userRated = prefs[KEY_USER_RATED] ?: 0
-        val lastOutcome = prefs[KEY_LAST_OUTCOME] ?: 0
-
-        // Đã đánh giá (chọn 4-5 sao + xác nhận) → KHÔNG BAO GIỜ hỏi nữa
-        if (userRated == 1) return
-        // Đã hỏi quá nhiều lần (kể cả khi user toàn skip) → dừng để không làm phiền
         if (timesAsked >= MAX_TIMES_TO_ASK) return
 
-        // Chưa đủ happy actions
-        if (actionCount < MIN_ACTIONS_BEFORE_ASK) return
-
-        // Cooldown:
-        //  - Lần đầu (lastAskedTime = 0): chỉ cần đủ MIN_DAYS_FIRST_ASK ngày
-        //    (tính từ lần đầu happy action — gần như là install date thực tế)
-        //  - Sau khi user gửi feedback: chờ MIN_DAYS_AFTER_FEEDBACK (lâu hơn)
-        //  - Sau khi user skip: chờ MIN_DAYS_AFTER_SKIP (ngắn hơn — vì có thể họ
-        //    chỉ đang bận, không có nghĩa là không thích app)
-        if (lastAskedTime > 0L) {
-            val daysSinceLastAsked =
-                (System.currentTimeMillis() - lastAskedTime) / (1000L * 60 * 60 * 24)
-            val cooldown = when (lastOutcome) {
-                1 -> MIN_DAYS_AFTER_FEEDBACK
-                2 -> MIN_DAYS_AFTER_REVIEW_INTENT
-                else -> MIN_DAYS_AFTER_SKIP
-            }
-            if (daysSinceLastAsked < cooldown) return
+        context.settingsDataStore.edit { p ->
+            p[KEY_HAPPY_ACTION_COUNT] = (p[KEY_HAPPY_ACTION_COUNT] ?: 0) + weight
         }
-        // Lần đầu: không có lastAskedTime, dùng MIN_DAYS_FIRST_ASK gián tiếp qua
-        // số lượng happy actions đã tích luỹ (≥ MIN_ACTIONS_BEFORE_ASK đã check ở trên).
-
-        // Đủ điều kiện → show dialog
-        triggerAuto()
+        checkAndTriggerAuto(context)
     }
 
-    /**
-     * Trigger thủ công — dùng khi user bấm "Đánh giá ứng dụng" trong sidebar.
-     * Bỏ qua mọi điều kiện và KHÔNG đếm vào quota auto-trigger.
-     */
+    /** Trigger thủ công từ Settings / Drawer — bypass mọi điều kiện. */
     fun triggerManually() {
         isManualTrigger = true
         _shouldShow.value = true
     }
 
-    /**
-     * Auto-trigger từ checkAndTrigger (sau happy action). Đếm vào quota.
-     */
-    private fun triggerAuto() {
+    /** Đóng dialog không thay đổi state (gọi khi user dismiss bằng back/outside tap). */
+    fun dismissNow() {
         isManualTrigger = false
-        _shouldShow.value = true
+        _shouldShow.value = false
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Outcome recorders — gọi từ Dialog sau mỗi nhánh kết thúc
+    // ─────────────────────────────────────────────────────────────────────
+
+    /** User chọn 4-5 sao (đã trigger in-app review hoặc Play Store). */
+    suspend fun recordReviewIntent(context: Context) {
+        writeOutcome(context, outcome = 1)
+        dismissNow()
+    }
+
+    /** User gửi feedback (1-3 sao). */
+    suspend fun recordFeedbackSent(context: Context) {
+        writeOutcome(context, outcome = 2)
+        dismissNow()
+    }
+
+    /** User skip / đóng dialog mà không tương tác. */
+    suspend fun recordSkipped(context: Context) {
+        writeOutcome(context, outcome = 0)
+        dismissNow()
     }
 
     /**
-     * Ghi nhận đã hỏi lần này (trước khi show dialog).
-     * Chỉ lưu prefs để tính cooldown — KHÔNG set shouldShow = false ở đây.
-     * Skip nếu là manual trigger (bấm từ Settings).
+     * Ghi nhận đã hiển thị dialog auto: tăng timesAsked, reset action count.
+     * Skip nếu là manual trigger để không cạn quota auto.
      */
     suspend fun recordShown(context: Context) {
         if (isManualTrigger) return
         context.settingsDataStore.edit { p ->
-            val current = p[KEY_TIMES_ASKED] ?: 0
-            p[KEY_TIMES_ASKED] = current + 1
+            p[KEY_TIMES_ASKED] = (p[KEY_TIMES_ASKED] ?: 0) + 1
             p[KEY_LAST_ASKED_TIME] = System.currentTimeMillis()
-            // Reset action count để không trigger lại ngay sau này
             p[KEY_HAPPY_ACTION_COUNT] = 0
         }
-        // Không set _shouldShow.value = false ở đây — dialog tự quản lý việc đóng
     }
 
+    // ─────────────────────────────────────────────────────────────────────
+    // Play Store / In-App Review launchers
+    // ─────────────────────────────────────────────────────────────────────
+
     /**
-     * User chọn "Hài lòng" → ghi nhận rated. Sau đó sẽ KHÔNG BAO GIỜ hỏi lại.
+     * Hiển thị Google Play In-App Review dialog. Nếu API không sẵn sàng (quota,
+     * thiết bị không có Play Store...) → fallback mở Play Store listing.
+     *
+     * Bắt buộc truyền Activity (API yêu cầu). [onComplete] luôn được gọi
+     * (success / fail).
      */
-    suspend fun recordRated(context: Context) {
-        context.settingsDataStore.edit { p ->
-            p[KEY_USER_RATED] = 1
+    fun launchInAppReview(activity: Activity, onComplete: () -> Unit = {}) {
+        try {
+            val manager = ReviewManagerFactory.create(activity)
+            manager.requestReviewFlow().addOnCompleteListener { req ->
+                if (req.isSuccessful) {
+                    manager.launchReviewFlow(activity, req.result)
+                        .addOnCompleteListener { onComplete() }
+                } else {
+                    // API fail → fallback Play Store
+                    openPlayStoreListing(activity)
+                    onComplete()
+                }
+            }
+        } catch (_: Exception) {
+            openPlayStoreListing(activity)
+            onComplete()
         }
-        isManualTrigger = false
-        _shouldShow.value = false
     }
 
     /**
-     * User đã bấm 4-5 sao và app đã mở Google Play. Không thể biết họ có
-     * submit review thật hay không, nên chỉ đặt cooldown dài thay vì khóa vĩnh viễn.
+     * Mở trang Lịch Số trên Google Play (market:// → fallback https://).
+     * Trả về true nếu mở được activity nào đó.
      */
-    suspend fun recordReviewIntent(context: Context) {
+    fun openPlayStoreListing(context: Context): Boolean {
+        val market = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}")).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+            setPackage("com.android.vending")
+        }
+        try {
+            context.startActivity(market)
+            return true
+        } catch (_: android.content.ActivityNotFoundException) { /* fallback web */ }
+
+        val web = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}")
+        ).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+        return try {
+            context.startActivity(web)
+            true
+        } catch (_: android.content.ActivityNotFoundException) {
+            android.widget.Toast.makeText(
+                context,
+                "Không mở được Google Play. Vui lòng tìm \"Lịch Số\" trên Play Store.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            false
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // INTERNAL
+    // ─────────────────────────────────────────────────────────────────────
+
+    private suspend fun checkAndTriggerAuto(context: Context) {
+        val prefs = context.safeSettingsData.first()
+        val actionCount = prefs[KEY_HAPPY_ACTION_COUNT] ?: 0
+        val lastAsked = prefs[KEY_LAST_ASKED_TIME] ?: 0L
+        val timesAsked = prefs[KEY_TIMES_ASKED] ?: 0
+        val lastOutcome = prefs[KEY_LAST_OUTCOME] ?: 0
+
+        if (timesAsked >= MAX_TIMES_TO_ASK) return
+        if (actionCount < MIN_ACTIONS_BEFORE_ASK) return
+
+        if (lastAsked > 0L) {
+            val daysSince = (System.currentTimeMillis() - lastAsked) / (1000L * 60 * 60 * 24)
+            val cooldown = when (lastOutcome) {
+                1 -> COOLDOWN_AFTER_REVIEW_DAYS
+                2 -> COOLDOWN_AFTER_FEEDBACK_DAYS
+                else -> COOLDOWN_AFTER_SKIP_DAYS
+            }
+            if (daysSince < cooldown) return
+        }
+
+        isManualTrigger = false
+        _shouldShow.value = true
+    }
+
+    private suspend fun writeOutcome(context: Context, outcome: Int) {
         context.settingsDataStore.edit { p ->
-            p[KEY_LAST_OUTCOME] = 2
+            p[KEY_LAST_OUTCOME] = outcome
             p[KEY_LAST_ASKED_TIME] = System.currentTimeMillis()
         }
-        isManualTrigger = false
-        _shouldShow.value = false
-    }
-
-    /**
-     * User đã gửi feedback (1-3 sao hoặc "Chưa hài lòng") — đánh dấu cooldown DÀI
-     * (30 ngày) để không làm phiền user vừa phàn nàn.
-     */
-    suspend fun recordFeedbackSent(context: Context) {
-        context.settingsDataStore.edit { p ->
-            p[KEY_LAST_OUTCOME] = 1
-            p[KEY_LAST_ASKED_TIME] = System.currentTimeMillis()
-        }
-        isManualTrigger = false
-        _shouldShow.value = false
-    }
-
-    /**
-     * User bỏ qua / đóng dialog mà không tương tác — cooldown NGẮN (5 ngày)
-     * vì có thể chỉ là họ đang bận, không có nghĩa là ghét app.
-     */
-    suspend fun recordSkipped(context: Context) {
-        context.settingsDataStore.edit { p ->
-            p[KEY_LAST_OUTCOME] = 0
-            // Nếu đây là auto-trigger (không phải manual từ Settings), recordShown
-            // đã set lastAskedTime rồi, nhưng set lại cho chắc chắn.
-            p[KEY_LAST_ASKED_TIME] = System.currentTimeMillis()
-        }
-        isManualTrigger = false
-        _shouldShow.value = false
-    }
-
-    /**
-     * @deprecated Dùng [recordSkipped] (suspend, có context) hoặc [dismissNoCooldown] thay thế.
-     * Hàm này chỉ ẩn dialog ngay lập tức KHÔNG cập nhật cooldown — gọi từ chỗ
-     * không có CoroutineScope tiện. Vẫn giữ để tương thích code cũ.
-     */
-    fun dismiss() {
-        isManualTrigger = false
-        _shouldShow.value = false
     }
 }

@@ -14,7 +14,7 @@ import com.lichso.app.data.local.entity.ReminderEntity
 import com.lichso.app.data.local.entity.TaskEntity
 import com.lichso.app.feature.points.domain.ActionType
 import com.lichso.app.feature.points.domain.AwardPointsUseCase
-import com.lichso.app.notification.ReminderScheduler
+import com.lichso.app.notification.NotificationScheduler
 import com.lichso.app.util.SmartRatingManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -62,7 +62,11 @@ class TasksViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(TasksUiState())
     val uiState: StateFlow<TasksUiState> = _uiState.asStateFlow()
 
-    private val reminderScheduler = ReminderScheduler(context)
+    private fun scheduleReminder(reminder: ReminderEntity) =
+        NotificationScheduler.scheduleReminder(context, reminder)
+
+    private fun cancelReminder(id: Long) =
+        NotificationScheduler.cancelReminder(context, id)
 
     init {
         viewModelScope.launch {
@@ -209,7 +213,7 @@ class TasksViewModel @Inject constructor(
             val entity = ReminderEntity(title = title, triggerTime = triggerTime, repeatType = repeatType)
             val id = reminderDao.insert(entity)
             // Schedule alarm notification
-            reminderScheduler.schedule(entity.copy(id = id))
+            scheduleReminder(entity.copy(id = id))
             Analytics.logEvent("reminder_created", mapOf(
                 "repeat_type" to repeatType,
                 "source" to "tasks_screen"
@@ -223,7 +227,7 @@ class TasksViewModel @Inject constructor(
         if (reminder.title.isBlank()) return
         viewModelScope.launch {
             val id = reminderDao.insert(reminder)
-            reminderScheduler.schedule(reminder.copy(id = id))
+            scheduleReminder(reminder.copy(id = id))
             runCatching { awardPointsUseCase(ActionType.CREATE_REMINDER) }
         }
     }
@@ -232,7 +236,7 @@ class TasksViewModel @Inject constructor(
         viewModelScope.launch {
             reminderDao.update(reminder)
             // Reschedule with updated time/settings
-            reminderScheduler.schedule(reminder)
+            scheduleReminder(reminder)
         }
     }
 
@@ -241,9 +245,9 @@ class TasksViewModel @Inject constructor(
             val newEnabled = !reminder.isEnabled
             reminderDao.toggleEnabled(reminder.id, newEnabled)
             if (newEnabled) {
-                reminderScheduler.schedule(reminder.copy(isEnabled = true))
+                scheduleReminder(reminder.copy(isEnabled = true))
             } else {
-                reminderScheduler.cancel(reminder.id)
+                cancelReminder(reminder.id)
             }
         }
     }
@@ -256,7 +260,7 @@ class TasksViewModel @Inject constructor(
         val reminder = _uiState.value.deletingReminder ?: return
         viewModelScope.launch {
             reminderDao.delete(reminder)
-            reminderScheduler.cancel(reminder.id)
+            cancelReminder(reminder.id)
         }
         _uiState.update { it.copy(deletingReminder = null) }
     }
@@ -264,7 +268,7 @@ class TasksViewModel @Inject constructor(
     fun deleteReminder(reminder: ReminderEntity) {
         viewModelScope.launch {
             reminderDao.delete(reminder)
-            reminderScheduler.cancel(reminder.id)
+            cancelReminder(reminder.id)
         }
     }
 
@@ -364,7 +368,7 @@ class TasksViewModel @Inject constructor(
                                     repeatType = item.repeatType
                                 )
                             val id = reminderDao.insert(entity)
-                            reminderScheduler.schedule(entity.copy(id = id))
+                            scheduleReminder(entity.copy(id = id))
                         }
                     }
                     "create_note" -> {
@@ -387,7 +391,7 @@ class TasksViewModel @Inject constructor(
                                     repeatType = item.repeatType
                                 )
                             val id = reminderDao.insert(entity)
-                            reminderScheduler.schedule(entity.copy(id = id))
+                            scheduleReminder(entity.copy(id = id))
                         }
                     }
                     "delete_task" -> {
@@ -413,7 +417,7 @@ class TasksViewModel @Inject constructor(
                                 r.title.lowercase().contains(keyword)
                             }?.let { found ->
                                 reminderDao.delete(found)
-                                reminderScheduler.cancel(found.id)
+                                cancelReminder(found.id)
                             }
                         }
                     }
@@ -462,7 +466,7 @@ class TasksViewModel @Inject constructor(
                                 }
                                 val updated = found.copy(triggerTime = cal.timeInMillis)
                                 reminderDao.update(updated)
-                                reminderScheduler.schedule(updated)
+                                scheduleReminder(updated)
                             }
                         }
                     }

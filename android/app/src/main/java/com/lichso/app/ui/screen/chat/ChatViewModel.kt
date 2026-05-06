@@ -24,7 +24,7 @@ import com.lichso.app.feature.points.domain.DailyUnlockKey
 import com.lichso.app.feature.points.domain.PermanentUnlockKey
 import com.lichso.app.feature.points.domain.SpendDailyPointsUseCase
 import com.lichso.app.feature.points.domain.SpendResult
-import com.lichso.app.notification.ReminderScheduler
+import com.lichso.app.notification.NotificationScheduler
 import com.lichso.app.ui.screen.profile.ProfileKeys
 import com.lichso.app.ui.screen.settings.settingsDataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -416,7 +416,7 @@ class ChatViewModel @Inject constructor(
                             repeatType = item.repeatType
                         )
                     val id = reminderDao.insert(entity)
-                    ReminderScheduler(context).schedule(entity.copy(id = id))
+                    NotificationScheduler.scheduleReminder(context, entity.copy(id = id))
                 }
                 "date_query" -> {
                     // Date queries don't create anything — message only
@@ -459,7 +459,7 @@ class ChatViewModel @Inject constructor(
                             r.title.lowercase().contains(keyword)
                         }?.let { found ->
                             reminderDao.delete(found)
-                            ReminderScheduler(context).cancel(found.id)
+                            NotificationScheduler.cancelReminder(context, found.id)
                         }
                     } catch (_: Exception) {}
                 }

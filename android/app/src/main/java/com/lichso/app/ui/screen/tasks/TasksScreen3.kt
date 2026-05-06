@@ -940,13 +940,13 @@ private fun ReminderListV3(reminders: List<ReminderEntity>, viewModel: TasksView
             // ── Phân loại reminder ──
             // Reminder Once (repeatType==0) sau khi đã đến giờ trigger thì coi
             // như "đã nhắc" — vì AlarmManager đã fire xong, scheduler không
-            // schedule lại (xem ReminderScheduler.schedule), nhưng `isEnabled`
+            // schedule lại (xem NotificationScheduler.schedule), nhưng `isEnabled`
             // trong DB vẫn = true. Nếu để chung "Sắp tới" sẽ gây hiểu nhầm
             // (user thấy reminder 11:40 vẫn còn ở danh sách dù đã thông báo).
             //
             // Reminder lặp (Daily/Weekly/Monthly/Yearly) thì triggerTime gốc
             // dù đã qua vẫn coi là "Sắp tới" — vì lần fire kế tiếp được tính
-            // động trong ReminderScheduler.
+            // động trong NotificationScheduler.
             val now = System.currentTimeMillis()
             val (enabled, disabled) = reminders.partition { it.isEnabled }
             val (alreadyFired, upcoming) = enabled.partition { r ->

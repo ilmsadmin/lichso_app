@@ -971,7 +971,7 @@ private fun HomeCountdownCard(
                 RoundedCornerShape(14.dp)
             )
             .clickable(onClick = onClick)
-            .padding(12.dp)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -983,23 +983,25 @@ private fun HomeCountdownCard(
                 style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (c.isDark) Color(0xFF81C784) else Color(0xFF2E7D32))
             )
             Text(
-                "Xem tất cả",
+                if (items.size > 2) "Xem tất cả (${items.size})" else "Xem tất cả",
                 style = TextStyle(fontSize = 11.sp, color = c.textTertiary)
             )
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        items.take(3).forEach { item ->
+        Spacer(modifier = Modifier.height(6.dp))
+        items.take(2).forEach { item ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 2.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                    .padding(vertical = 1.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     item.title,
                     style = TextStyle(fontSize = 12.sp, color = c.textPrimary),
                     maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
                 val txt = when {
                     item.daysLeft > 0 -> "${item.daysLeft} ngày"
@@ -1008,6 +1010,7 @@ private fun HomeCountdownCard(
                 }
                 Text(
                     txt,
+                    maxLines = 1,
                     style = TextStyle(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,

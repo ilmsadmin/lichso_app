@@ -40,7 +40,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lichso.app.ui.theme.*
 import com.lichso.app.ui.components.AppTopBar
-import com.lichso.app.util.ReviewHelper
 import com.lichso.app.widget.WidgetPinHelper
 
 // ══════════════════════════════════════════════════════════

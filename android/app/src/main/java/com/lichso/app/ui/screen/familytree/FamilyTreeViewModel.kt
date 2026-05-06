@@ -17,7 +17,7 @@ import com.lichso.app.data.local.entity.MemorialChecklistEntity
 import com.lichso.app.data.local.entity.MemberPhotoEntity
 import com.lichso.app.data.local.entity.NoteEntity
 import com.lichso.app.data.local.entity.ReminderEntity
-import com.lichso.app.notification.ReminderScheduler
+import com.lichso.app.notification.NotificationScheduler
 import com.lichso.app.util.CanChiCalculator
 import com.lichso.app.util.SmartRatingManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -802,7 +802,7 @@ class FamilyTreeViewModel @Inject constructor(
             closeEditMember()
 
             // Happy action: thêm thành viên mới vào gia phả → cảm xúc tích cực mạnh
-            if (isNew) SmartRatingManager.recordHappyAction(context, actionWeight = 2)
+            if (isNew) SmartRatingManager.recordHappyAction(context, weight = 2)
         }
     }
 
@@ -945,7 +945,7 @@ class FamilyTreeViewModel @Inject constructor(
     fun saveReminderForMemorial(reminder: ReminderEntity) {
         viewModelScope.launch {
             val id = reminderDao.insert(reminder)
-            ReminderScheduler(context).schedule(reminder.copy(id = id))
+            NotificationScheduler.scheduleReminder(context, reminder.copy(id = id))
             // Happy action: tạo nhắc nhở giỗ — engagement cao
             SmartRatingManager.recordHappyAction(context)
         }
@@ -964,7 +964,7 @@ class FamilyTreeViewModel @Inject constructor(
     fun saveMemberReminder(reminder: ReminderEntity) {
         viewModelScope.launch {
             val id = reminderDao.insert(reminder)
-            ReminderScheduler(context).schedule(reminder.copy(id = id))
+            NotificationScheduler.scheduleReminder(context, reminder.copy(id = id))
             SmartRatingManager.recordHappyAction(context)
         }
     }

@@ -3,107 +3,49 @@ package com.lichso.app.notification
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.lichso.app.data.local.LichSoDatabase
-import com.lichso.app.ui.screen.settings.SettingsKeys
-import com.lichso.app.ui.screen.settings.safeSettingsData
-import com.lichso.app.ui.screen.settings.settingsDataStore
 import com.lichso.app.widget.CalendarWidgetScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * Reschedule tất cả reminders và workers đang enabled sau khi device reboot.
+ * Reschedule toàn bộ alarm notification + widget sau khi:
+ *  - Device reboot (BOOT_COMPLETED, LOCKED_BOOT_COMPLETED)
+ *  - App được update (MY_PACKAGE_REPLACED)
+ *  - User đổi giờ / múi giờ (TIME_SET, TIMEZONE_CHANGED)
  */
 class BootReceiver : BroadcastReceiver() {
+
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
-        val shouldHandle = action == Intent.ACTION_BOOT_COMPLETED ||
+        val handle = action == Intent.ACTION_BOOT_COMPLETED ||
             action == Intent.ACTION_LOCKED_BOOT_COMPLETED ||
             action == Intent.ACTION_MY_PACKAGE_REPLACED ||
             action == Intent.ACTION_TIME_CHANGED ||
             action == Intent.ACTION_TIMEZONE_CHANGED
-        if (!shouldHandle) return
+        if (!handle) return
+
+        // LOCKED_BOOT_COMPLETED: credential-protected DataStore/Room có thể chưa sẵn sàng,
+        // bỏ qua — sẽ được handle ở BOOT_COMPLETED kế tiếp.
         val isLockedBoot = action == Intent.ACTION_LOCKED_BOOT_COMPLETED
 
         val pendingResult = goAsync()
+        val appContext = context.applicationContext
         CoroutineScope(Dispatchers.IO).launch {
-            // Fallback defaults nếu đọc DataStore fail/timeout
-            var notifyEnabled = true
-            var gioDaiCatEnabled = false
-            var festivalReminderEnabled = true
-            var reminderHour = 7
-            var reminderMinute = 0
-            var settingsLoaded = false
-
             try {
-                // Ở LOCKED_BOOT_COMPLETED, credential-protected storage có thể chưa sẵn sàng.
                 if (!isLockedBoot) {
-                    withTimeoutOrNull(5_000L) {
-                        val prefs = context.safeSettingsData.first()
-                        notifyEnabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
-                        gioDaiCatEnabled = prefs[SettingsKeys.GIO_DAI_CAT] ?: false
-                        festivalReminderEnabled = prefs[SettingsKeys.FESTIVAL_REMINDER] ?: true
-                        reminderHour = prefs[SettingsKeys.REMINDER_HOUR] ?: 7
-                        reminderMinute = prefs[SettingsKeys.REMINDER_MINUTE] ?: 0
-                        settingsLoaded = true
+                    withTimeoutOrNull(10_000L) {
+                        NotificationScheduler.rescheduleAll(appContext)
                     }
                 }
-            } catch (e: Exception) {
-                android.util.Log.e("BootReceiver", "Load settings failed: ${e.message}")
-            }
-
-            // LUÔN reschedule các alarm với giá trị settings đã đọc được
-            // (hoặc defaults). Không nằm trong cùng timeout/try với phần đọc DB
-            // để tránh bị "kẹt" do timeout.
-            try {
-                NotificationWatchdogWorker.schedule(context)
-
-                if (notifyEnabled) {
-                    // Reschedule daily notification alarm
-                    DailyNotificationWorker.schedule(context, reminderHour, reminderMinute)
-                    AiTuViWorker.schedule(context)
-                } else {
-                    DailyNotificationWorker.cancel(context)
-                    AiTuViWorker.cancel(context)
-                }
-
-                if (gioDaiCatEnabled && notifyEnabled) {
-                    GioDaiCatWorker.schedule(context, reminderHour, reminderMinute)
-                } else {
-                    GioDaiCatWorker.cancel(context)
-                }
-
-                if (festivalReminderEnabled && notifyEnabled) {
-                    FestivalReminderWorker.schedule(context)
-                } else {
-                    FestivalReminderWorker.cancel(context)
-                }
-
-                // Widget updates + midnight alarm
-                CalendarWidgetScheduler.scheduleWidgetUpdates(context)
-                CalendarWidgetScheduler.triggerImmediateUpdate(context)
+                CalendarWidgetScheduler.scheduleWidgetUpdates(appContext)
+                CalendarWidgetScheduler.triggerImmediateUpdate(appContext)
             } catch (e: Exception) {
                 android.util.Log.e("BootReceiver", "Reschedule failed: ${e.message}")
+            } finally {
+                pendingResult.finish()
             }
-
-            // Reschedule individual task reminders (cần DB, tách timeout riêng)
-            if (!isLockedBoot && settingsLoaded && notifyEnabled) {
-                try {
-                    withTimeoutOrNull(5_000L) {
-                        val db = LichSoDatabase.getInstance(context)
-                        val reminders = db.reminderDao().getEnabledReminders().first()
-                        val scheduler = ReminderScheduler(context)
-                        reminders.forEach { scheduler.schedule(it) }
-                    }
-                } catch (e: Exception) {
-                    android.util.Log.e("BootReceiver", "Reschedule reminders failed: ${e.message}")
-                }
-            }
-
-            pendingResult.finish()
         }
     }
 }

@@ -2,90 +2,38 @@ package com.lichso.app
 
 import android.app.Application
 import com.lichso.app.analytics.Analytics
-import com.lichso.app.data.local.LichSoDatabase
-import com.lichso.app.notification.AiTuViWorker
 import com.lichso.app.notification.AppUpdateChecker
-import com.lichso.app.notification.DailyNotificationWorker
-import com.lichso.app.notification.FestivalReminderWorker
-import com.lichso.app.notification.GioDaiCatWorker
 import com.lichso.app.notification.NotificationHelper
-import com.lichso.app.notification.NotificationWatchdogWorker
-import com.lichso.app.notification.ReminderScheduler
-import com.lichso.app.ui.screen.settings.SettingsKeys
-import com.lichso.app.ui.screen.settings.safeSettingsData
+import com.lichso.app.notification.NotificationScheduler
 import com.lichso.app.widget.CalendarWidgetScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class LichSoApp : Application() {
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun onCreate() {
         super.onCreate()
 
         NotificationHelper.createChannels(this)
         Analytics.init(this)
-        scheduleWorkersFromSettings()
-        NotificationWatchdogWorker.schedule(this)
-        // Schedule widget updates
-        CalendarWidgetScheduler.scheduleWidgetUpdates(this)
-        // Schedule daily update check
-        AppUpdateChecker.schedule(this)
-    }
 
-    /**
-     * Đọc settings và lên lịch các workers nếu đã được bật.
-     * Chạy lúc app khởi động để đảm bảo workers luôn active.
-     */
-    private fun scheduleWorkersFromSettings() {
-        val context = this
+        // Reschedule toàn bộ notification alarm từ settings + DB.
+        // Idempotent — gọi lại an toàn ở mỗi cold start.
         appScope.launch {
             try {
-                val prefs = context.safeSettingsData.first()
-                val notifyEnabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
-                val gioDaiCatEnabled = prefs[SettingsKeys.GIO_DAI_CAT] ?: false
-                val festivalReminderEnabled = prefs[SettingsKeys.FESTIVAL_REMINDER] ?: true
-                val reminderHour = prefs[SettingsKeys.REMINDER_HOUR] ?: 7
-                val reminderMinute = prefs[SettingsKeys.REMINDER_MINUTE] ?: 0
-
-                if (notifyEnabled) {
-                    DailyNotificationWorker.schedule(context, reminderHour, reminderMinute)
-                    // Schedule tất cả individual reminders đang enabled
-                    val db = LichSoDatabase.getInstance(context)
-                    val scheduler = ReminderScheduler(context)
-                    db.reminderDao().getEnabledReminders().first().forEach { scheduler.schedule(it) }
-                } else {
-                    DailyNotificationWorker.cancel(context)
-                }
-
-                // Giờ Hoàng Đạo: tôn trọng setting của user
-                if (gioDaiCatEnabled && notifyEnabled) {
-                    GioDaiCatWorker.schedule(context, reminderHour, reminderMinute)
-                } else {
-                    GioDaiCatWorker.cancel(context)
-                }
-
-                // Nhắc ngày lễ (20:00, chỉ fire khi ngày mai có lễ/rằm/mùng 1)
-                if (festivalReminderEnabled && notifyEnabled) {
-                    FestivalReminderWorker.schedule(context)
-                } else {
-                    FestivalReminderWorker.cancel(context)
-                }
-
-                // AI Tử Vi — gợi ý buổi tối 21h (luôn bật nếu notification enabled)
-                if (notifyEnabled) {
-                    AiTuViWorker.schedule(context)
-                } else {
-                    AiTuViWorker.cancel(context)
-                }
-            } catch (_: Exception) {
-                // Ignore errors during initial scheduling
+                NotificationScheduler.rescheduleAll(this@LichSoApp)
+            } catch (e: Exception) {
+                android.util.Log.e("LichSoApp", "rescheduleAll failed: ${e.message}")
             }
         }
+
+        CalendarWidgetScheduler.scheduleWidgetUpdates(this)
+        AppUpdateChecker.schedule(this)
     }
 }

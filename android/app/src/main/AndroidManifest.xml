@@ -64,14 +64,9 @@
             </intent-filter>
         </activity>
 
-        <!-- Nhận alarm nhắc nhở -->
+        <!-- Receiver duy nhất cho mọi notification alarm (system + per-row reminder) -->
         <receiver
-            android:name=".notification.ReminderReceiver"
-            android:exported="false" />
-
-        <!-- Nhận alarm cho daily / giờ hoàng đạo / festival / AI Tử Vi -->
-        <receiver
-            android:name=".notification.NotificationAlarmReceiver"
+            android:name=".notification.NotificationReceiver"
             android:exported="false" />
 
         <!-- Reschedule alarms sau reboot -->

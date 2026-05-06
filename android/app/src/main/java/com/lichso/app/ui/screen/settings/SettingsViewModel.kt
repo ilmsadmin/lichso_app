@@ -9,11 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.lichso.app.data.auth.AuthRepository
 import com.lichso.app.data.auth.UserInfo
 import com.lichso.app.analytics.Analytics
-import com.lichso.app.data.local.LichSoDatabase
-import com.lichso.app.notification.DailyNotificationWorker
-import com.lichso.app.notification.FestivalReminderWorker
-import com.lichso.app.notification.GioDaiCatWorker
-import com.lichso.app.notification.ReminderScheduler
+import com.lichso.app.notification.NotificationScheduler
 import com.lichso.app.widget.WidgetWeatherHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -54,9 +50,6 @@ object SettingsKeys {
     val REMINDER_MINUTE = intPreferencesKey("reminder_minute")
     val TEMP_UNIT = stringPreferencesKey("temp_unit")
     val LOCATION_NAME = stringPreferencesKey("location_name")
-    // In-App Review tracking
-    val APP_OPEN_COUNT = intPreferencesKey("app_open_count")
-    val LAST_REVIEW_PROMPT_TIME = longPreferencesKey("last_review_prompt_time")
 }
 
 data class SettingsUiState(
@@ -167,21 +160,9 @@ class SettingsViewModel @Inject constructor(
         savePref(SettingsKeys.NOTIFY_ENABLED, value)
         Analytics.logEvent("setting_toggle", mapOf("key" to "notify_enabled", "value" to value))
         viewModelScope.launch {
-            val db = LichSoDatabase.getInstance(context)
-            val scheduler = ReminderScheduler(context)
-            if (value) {
-                // Reschedule tất cả reminders đang enabled
-                db.reminderDao().getEnabledReminders().first().forEach { scheduler.schedule(it) }
-                // Schedule daily notification worker
-                val state = _uiState.value
-                DailyNotificationWorker.schedule(context, state.reminderHour, state.reminderMinute)
-                _uiState.update { it.copy(toastMessage = "Đã bật thông báo nhắc nhở") }
-            } else {
-                // Huỷ tất cả alarms
-                db.reminderDao().getAllReminders().first().forEach { scheduler.cancel(it.id) }
-                // Cancel daily notification worker
-                DailyNotificationWorker.cancel(context)
-                _uiState.update { it.copy(toastMessage = "Đã tắt thông báo nhắc nhở") }
+            NotificationScheduler.applySettingsChange(context)
+            _uiState.update {
+                it.copy(toastMessage = if (value) "Đã bật thông báo nhắc nhở" else "Đã tắt thông báo nhắc nhở")
             }
         }
     }
@@ -196,13 +177,11 @@ class SettingsViewModel @Inject constructor(
     fun setGioDaiCat(value: Boolean) {
         savePref(SettingsKeys.GIO_DAI_CAT, value)
         Analytics.logEvent("setting_toggle", mapOf("key" to "gio_dai_cat", "value" to value))
-        if (value) {
-            val state = _uiState.value
-            GioDaiCatWorker.schedule(context, state.reminderHour, state.reminderMinute)
-            _uiState.update { it.copy(toastMessage = "Sẽ nhận thông báo giờ hoàng đạo mỗi ngày") }
-        } else {
-            GioDaiCatWorker.cancel(context)
-            _uiState.update { it.copy(toastMessage = "Đã tắt thông báo giờ hoàng đạo") }
+        viewModelScope.launch {
+            NotificationScheduler.applySettingsChange(context)
+            _uiState.update {
+                it.copy(toastMessage = if (value) "Sẽ nhận thông báo giờ hoàng đạo mỗi ngày" else "Đã tắt thông báo giờ hoàng đạo")
+            }
         }
     }
 
@@ -237,12 +216,11 @@ class SettingsViewModel @Inject constructor(
     fun setFestivalReminder(value: Boolean) {
         savePref(SettingsKeys.FESTIVAL_REMINDER, value)
         Analytics.logEvent("setting_toggle", mapOf("key" to "festival_reminder", "value" to value))
-        if (value) {
-            FestivalReminderWorker.schedule(context)
-            _uiState.update { it.copy(toastMessage = "Đã bật nhắc ngày lễ") }
-        } else {
-            FestivalReminderWorker.cancel(context)
-            _uiState.update { it.copy(toastMessage = "Đã tắt nhắc ngày lễ") }
+        viewModelScope.launch {
+            NotificationScheduler.applySettingsChange(context)
+            _uiState.update {
+                it.copy(toastMessage = if (value) "Đã bật nhắc ngày lễ" else "Đã tắt nhắc ngày lễ")
+            }
         }
     }
 
@@ -252,14 +230,7 @@ class SettingsViewModel @Inject constructor(
                 it[SettingsKeys.REMINDER_HOUR] = hour
                 it[SettingsKeys.REMINDER_MINUTE] = minute
             }
-        }
-        // Reschedule daily notification worker with the new time
-        if (_uiState.value.notifyEnabled) {
-            DailyNotificationWorker.schedule(context, hour, minute)
-        }
-        // Also reschedule giờ đại cát with updated time if enabled
-        if (_uiState.value.gioDaiCatEnabled) {
-            GioDaiCatWorker.schedule(context, hour, minute)
+            NotificationScheduler.applySettingsChange(context)
         }
         _uiState.update {
             it.copy(

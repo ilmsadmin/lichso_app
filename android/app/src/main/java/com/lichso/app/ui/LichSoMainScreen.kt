@@ -49,7 +49,6 @@ import com.lichso.app.ui.theme.*
 import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
-import com.lichso.app.util.ReviewHelper
 import com.lichso.app.util.SmartRatingManager
 import com.lichso.app.ui.components.SmartRatingDialog
 import com.lichso.app.update.InAppUpdateManager
@@ -79,17 +78,6 @@ fun LichSoMainScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-
-    // ── In-App Review: chỉ tăng open count để phục vụ logic SmartRating ──
-    // KHÔNG tự gọi ReviewHelper.tryShowReview(activity) mỗi lần mở app, vì mỗi
-    // lần launch In-App Review đều "đốt" quota của Google Play (quota rất hạn
-    // chế: ước tính 1–2 lần/user/năm). Khi quota hết, các lần user chủ động
-    // bấm 5 sao sẽ không hiển thị dialog → không có review nào thực sự được
-    // gửi đi. Việc xin review chỉ thực hiện qua SmartRatingDialog (happy path)
-    // hoặc manual từ Settings.
-    LaunchedEffect(Unit) {
-        ReviewHelper.incrementAppOpenCount(context)
-    }
 
     // Phase 4 — redeem streak-freeze gift từ deep link (1 lần duy nhất / token)
     LaunchedEffect(giftToken) {
@@ -147,7 +135,7 @@ fun LichSoMainScreen(
     val showRatingDialog by SmartRatingManager.shouldShow.collectAsState()
     SmartRatingDialog(
         visible = showRatingDialog,
-        onDismiss = { SmartRatingManager.dismiss() }
+        onDismiss = { SmartRatingManager.dismissNow() }
     )
 
     // ── In-App Update: hiển thị Snackbar "Khởi động lại" khi bản FLEXIBLE
@@ -398,52 +386,6 @@ fun LichSoMainScreen(
             }
         }
 
-        // AI FAB — only show when bottom bar is visible
-        if (!hideBottomBar) {
-            val fabBottom = bottomBarTotalHeight + 8.dp
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = fabBottom)
-            ) {
-                // Circle background + icon
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (c.isDark)
-                                Brush.linearGradient(listOf(Color(0xFF7F1D1D), Color(0xFF5D1212)))
-                            else
-                                Brush.linearGradient(listOf(c.primary, Color(0xFFC62828))),
-                            CircleShape
-                        )
-                        .clickable { currentRoute = "chat" },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Filled.AutoAwesome,
-                        contentDescription = "AI Chat",
-                        tint = Color.White,
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
-                // AI badge (outside the clipped circle)
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = 4.dp, y = (-4).dp)
-                        .background(c.gold, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        "AI",
-                        style = TextStyle(fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                    )
-                }
-            }
-        }
-
         // Bottom Navigation Bar (Material 3 style)
         if (!hideBottomBar) {
             BottomNavBar(
@@ -645,16 +587,13 @@ private fun DrawerMenuContent(
 
                 // Info items
                 val context = LocalContext.current
-                val infoScope = rememberCoroutineScope()
 
                 DrawerActionItem(
                     icon = Icons.Outlined.StarRate,
                     title = "Đánh giá ứng dụng",
                     c = c
                 ) {
-                    if (ReviewHelper.openPlayStoreListing(context)) {
-                        infoScope.launch { SmartRatingManager.recordReviewIntent(context.applicationContext) }
-                    }
+                    SmartRatingManager.triggerManually()
                 }
 
                 DrawerActionItem(
