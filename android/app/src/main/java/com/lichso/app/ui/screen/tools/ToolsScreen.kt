@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lichso.app.ui.components.AppTopBar
+import com.lichso.app.ui.icons.PrayerIcons
 import com.lichso.app.ui.theme.LichSoThemeColors
 
 // ══════════════════════════════════════════════════════════
@@ -130,7 +131,7 @@ fun ToolsScreen(
             ToolAction.PRAYERS,
             "Văn khấn",
             "Bài cúng truyền thống",
-            Icons.Filled.LocalFireDepartment,
+            PrayerIcons.Filled,
             listOf(Color(0xFFBF360C), Color(0xFFE65100))
         ),
         ToolItem(

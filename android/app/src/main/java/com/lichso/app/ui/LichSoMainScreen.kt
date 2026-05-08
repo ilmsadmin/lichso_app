@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -45,6 +43,7 @@ import com.lichso.app.ui.screen.tools.ToolsScreen
 import com.lichso.app.ui.screen.tools.ToolAction
 import com.lichso.app.R
 import com.lichso.app.analytics.Analytics
+import com.lichso.app.ui.icons.PrayerIcons
 import com.lichso.app.ui.theme.*
 import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -780,7 +779,7 @@ private fun BottomNavBar(
         NavItem("tasks", "Ghi chú", Icons.Outlined.EditNote, Icons.Filled.EditNote),
     )
     val rightItems = listOf(
-        NavItem("prayers", "Văn Khấn", Icons.AutoMirrored.Outlined.MenuBook, Icons.AutoMirrored.Filled.MenuBook),
+        NavItem("prayers", "Văn Khấn", PrayerIcons.Outlined, PrayerIcons.Filled),
         NavItem("tools", "Tiện ích", Icons.Outlined.Apps, Icons.Filled.Apps),
     )
 

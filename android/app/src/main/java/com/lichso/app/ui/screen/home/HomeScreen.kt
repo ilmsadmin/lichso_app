@@ -653,8 +653,11 @@ private fun MiniCalendarStrip(
                     style = TextStyle(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium,
-                        color = if (isToday) Color.White.copy(alpha = 0.8f)
-                        else c.textTertiary
+                        color = when {
+                            isToday -> Color.White.copy(alpha = 0.8f)
+                            isWeekend -> if (c.isDark) Color(0xFFEF9A9A) else c.primary
+                            else -> c.textTertiary
+                        }
                     )
                 )
                 Spacer(modifier = Modifier.height(2.dp))

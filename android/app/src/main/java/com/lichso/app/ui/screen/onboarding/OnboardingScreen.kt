@@ -18,7 +18,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -41,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.datastore.preferences.core.edit
+import com.lichso.app.ui.icons.PrayerIcons
 import com.lichso.app.ui.screen.profile.ProfileKeys
 import com.lichso.app.ui.screen.settings.settingsDataStore
 import kotlinx.coroutines.launch
@@ -102,7 +102,7 @@ private val onboardingPages = listOf(
         )
     ),
     OnboardingPage(
-        icon = Icons.AutoMirrored.Filled.MenuBook,
+        icon = PrayerIcons.Filled,
         iconBg = listOf(GoldAccent, GoldLight),
         accentColor = GoldAccent,
         title = "Văn Khấn · Cúng Lễ",
