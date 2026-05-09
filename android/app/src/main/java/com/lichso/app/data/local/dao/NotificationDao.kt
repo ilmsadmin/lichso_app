@@ -15,6 +15,9 @@ interface NotificationDao {
     @Query("SELECT COUNT(*) FROM notifications WHERE isRead = 0")
     fun getUnreadCount(): Flow<Int>
 
+    @Query("SELECT COUNT(*) FROM notifications WHERE isRead = 0")
+    suspend fun getUnreadCountOnce(): Int
+
     @Query("UPDATE notifications SET isRead = 1 WHERE id = :id")
     suspend fun markAsRead(id: Long)
 

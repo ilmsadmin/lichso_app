@@ -39,8 +39,12 @@ import com.lichso.app.ui.screen.profile.ProfileScreen
 import com.lichso.app.ui.screen.search.SearchScreen
 import com.lichso.app.ui.screen.settings.SettingsScreen
 import com.lichso.app.ui.screen.tasks.TasksScreen3
+import com.lichso.app.feature.fengshui.BatTrachScreen
+import com.lichso.app.feature.fengshui.CompassScreen
+import com.lichso.app.feature.fengshui.LoBanScreen
 import com.lichso.app.ui.screen.tools.ToolsScreen
 import com.lichso.app.ui.screen.tools.ToolAction
+import com.lichso.app.ui.screen.tools.WidgetManagerScreen
 import com.lichso.app.R
 import com.lichso.app.analytics.Analytics
 import com.lichso.app.ui.icons.PrayerIcons
@@ -155,7 +159,7 @@ fun LichSoMainScreen(
         }
     }
 
-    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays", "profile", "oracle_draw", "oracle_result", "ledger", "daily_store", "zodiac_collection", "date_picker", "streak_freeze", "points_tutorial", "tiet_khi") || prayerDetailShowing || taskEditShowing
+    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays", "profile", "oracle_draw", "oracle_result", "ledger", "daily_store", "zodiac_collection", "date_picker", "streak_freeze", "points_tutorial", "tiet_khi", "widget_manager") || prayerDetailShowing || taskEditShowing
 
     val toggleDrawer: () -> Unit = {
         scope.launch {
@@ -241,7 +245,29 @@ fun LichSoMainScreen(
                     onMenuClick = toggleDrawer,
                     onToolClick = { action ->
                         when (action) {
-                            ToolAction.AI_CHAT -> currentRoute = "chat"
+                            ToolAction.AI_CHAT -> {
+                                initialAiMessage = null
+                                currentRoute = "chat"
+                            }
+                            ToolAction.FENG_SHUI_COMPASS -> currentRoute = "feng_shui_compass"
+                            ToolAction.LO_BAN_RULER -> currentRoute = "lo_ban"
+                            ToolAction.BAT_TRACH -> currentRoute = "bat_trach"
+                            ToolAction.XONG_DAT -> {
+                                initialAiMessage = "Hãy gợi ý người xông đất hợp tuổi, hợp mệnh và các lưu ý cần tránh cho năm nay."
+                                currentRoute = "chat"
+                            }
+                            ToolAction.XUAT_HANH -> {
+                                initialAiMessage = "Hãy gợi ý hướng và giờ xuất hành tốt, kèm giải thích ngắn gọn theo phong thuỷ."
+                                currentRoute = "chat"
+                            }
+                            ToolAction.SAO_HAN -> {
+                                initialAiMessage = "Hãy phân tích sao hạn năm nay và cho lời khuyên hoá giải đơn giản, dễ hiểu."
+                                currentRoute = "chat"
+                            }
+                            ToolAction.PHI_TINH -> {
+                                initialAiMessage = "Hãy giải thích phi tinh cửu cung và gợi ý cách đọc cơ bản cho người mới."
+                                currentRoute = "chat"
+                            }
                             ToolAction.FAMILY_TREE -> currentRoute = "familytree"
                             ToolAction.HISTORY -> currentRoute = "history"
                             ToolAction.GOOD_DAYS -> currentRoute = "gooddays"
@@ -270,7 +296,30 @@ fun LichSoMainScreen(
                             ToolAction.BIRTH_PLANNER -> currentRoute = "birth_planner"
                             ToolAction.CYCLE_TRACKER -> currentRoute = "cycle_tracker"
                             ToolAction.WORLD_CLOCK -> currentRoute = "world_clock"
+                            ToolAction.WIDGET_MANAGER -> currentRoute = "widget_manager"
+                            else -> {}
                         }
+                    }
+                )
+                "feng_shui_compass" -> CompassScreen(
+                    onBackClick = { currentRoute = "tools" },
+                    onAskAiClick = { prompt ->
+                        initialAiMessage = prompt
+                        currentRoute = "chat"
+                    }
+                )
+                "lo_ban" -> LoBanScreen(
+                    onBackClick = { currentRoute = "tools" },
+                    onAskAiClick = { prompt ->
+                        initialAiMessage = prompt
+                        currentRoute = "chat"
+                    }
+                )
+                "bat_trach" -> BatTrachScreen(
+                    onBackClick = { currentRoute = "tools" },
+                    onAskAiClick = { prompt ->
+                        initialAiMessage = prompt
+                        currentRoute = "chat"
                     }
                 )
                 "notifications" -> NotificationScreen(
@@ -375,6 +424,9 @@ fun LichSoMainScreen(
                             else -> "home"
                         }
                     },
+                )
+                "widget_manager" -> WidgetManagerScreen(
+                    onBackClick = { currentRoute = "tools" }
                 )
                 else -> HomeScreen(
                     onSettingsClick = { currentRoute = "settings" },

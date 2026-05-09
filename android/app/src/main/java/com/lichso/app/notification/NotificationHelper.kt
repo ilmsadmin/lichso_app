@@ -60,6 +60,7 @@ object NotificationHelper {
             ).apply {
                 description = "Thông báo nhắc nhở task và lịch hẹn"
                 enableVibration(true)
+                setShowBadge(true)
             }
         )
 
@@ -71,6 +72,7 @@ object NotificationHelper {
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = "Thông báo giờ hoàng đạo trong ngày"
+                setShowBadge(true)
             }
         )
 
@@ -82,6 +84,7 @@ object NotificationHelper {
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = "Thông báo tóm tắt ngày mới mỗi sáng"
+                setShowBadge(true)
             }
         )
 
@@ -93,6 +96,7 @@ object NotificationHelper {
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = "Nhắc trước 1 ngày khi có ngày lễ sắp tới"
+                setShowBadge(true)
             }
         )
 
@@ -105,6 +109,7 @@ object NotificationHelper {
             ).apply {
                 description = "Thông báo khi có phiên bản Lịch Số mới"
                 enableVibration(true)
+                setShowBadge(true)
             }
         )
 
@@ -116,6 +121,7 @@ object NotificationHelper {
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = "Gợi ý xem tử vi AI mỗi tối"
+                setShowBadge(true)
             }
         )
     }

@@ -43,6 +43,11 @@ import com.lichso.app.ui.components.CalendarPatternBackground
 import com.lichso.app.ui.components.HeaderIconButton
 import androidx.compose.ui.res.painterResource
 import com.lichso.app.R
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import java.io.File
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -101,6 +106,7 @@ fun HomeScreen(
                 onWeatherClick = { showWeatherSheet = true },
                 notificationUnreadCount = uiState.notificationUnreadCount,
                 onPointsPillClick = onPointsPillClick,
+                avatarPath = uiState.avatarPath,
             )
 
             // ═══ TEAR LINE (perforation) ═══
@@ -364,6 +370,7 @@ private fun RedHeader(
     onWeatherClick: () -> Unit = {},
     notificationUnreadCount: Int = 0,
     onPointsPillClick: () -> Unit = {},
+    avatarPath: String = "",
 ) {
     val c = LichSoThemeColors.current
     val colors = if (c.isDark) {
@@ -415,9 +422,8 @@ private fun RedHeader(
                         onClick = onNotificationClick,
                         badgeCount = notificationUnreadCount
                     )
-                    HeaderIconButton(
-                        icon = Icons.Outlined.Person,
-                        contentDescription = "Cá nhân",
+                    ProfileAvatarButton(
+                        avatarPath = avatarPath,
                         onClick = onProfileClick
                     )
                 }
@@ -479,6 +485,49 @@ private fun RedHeader(
 // ══════════════════════════════════════════
 // WEATHER CHIP (hiển thị thời tiết thật)
 // ══════════════════════════════════════════
+
+@Composable
+private fun ProfileAvatarButton(
+    avatarPath: String,
+    onClick: () -> Unit,
+) {
+    val hasAvatar = avatarPath.isNotEmpty() && File(avatarPath).exists()
+    Box(
+        modifier = Modifier
+            .size(40.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        // Circle background + click
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(Color.White.copy(alpha = 0.12f), CircleShape)
+                .clip(CircleShape)
+                .clickable(onClick = onClick)
+        )
+        if (hasAvatar) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(File(avatarPath))
+                    .memoryCacheKey(avatarPath)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "Cá nhân",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+            )
+        } else {
+            Icon(
+                Icons.Outlined.Person,
+                contentDescription = "Cá nhân",
+                tint = Color.White,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+    }
+}
 
 @Composable
 private fun WeatherChip(

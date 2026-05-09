@@ -49,7 +49,8 @@ data class HomeUiState(
     val weekStartSunday: Boolean = false,
     val tempUnit: String = "°C",
     val weatherState: WeatherState = WeatherState.Loading,
-    val notificationUnreadCount: Int = 0
+    val notificationUnreadCount: Int = 0,
+    val avatarPath: String = ""
 )
 
 @HiltViewModel
@@ -134,6 +135,13 @@ class HomeViewModel @Inject constructor(
                 weatherRepository.fetchWeather(forceRefresh = true)
             }
             .launchIn(viewModelScope)
+        // Lắng nghe avatar path từ profile
+        viewModelScope.launch {
+            context.settingsDataStore.data.collect { prefs ->
+                val path = prefs[com.lichso.app.ui.screen.profile.ProfileKeys.AVATAR_PATH] ?: ""
+                _uiState.update { it.copy(avatarPath = path) }
+            }
+        }
         // Tải thời tiết
         loadWeather()
     }

@@ -11,8 +11,9 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -40,6 +41,13 @@ import com.lichso.app.ui.theme.LichSoThemeColors
 
 enum class ToolAction {
     AI_CHAT,
+    FENG_SHUI_COMPASS,
+    LO_BAN_RULER,
+    BAT_TRACH,
+    XONG_DAT,
+    XUAT_HANH,
+    SAO_HAN,
+    PHI_TINH,
     FAMILY_TREE,
     HISTORY,
     GOOD_DAYS,
@@ -64,6 +72,7 @@ enum class ToolAction {
     BIRTH_PLANNER,
     CYCLE_TRACKER,
     WORLD_CLOCK,
+    WIDGET_MANAGER,
 }
 
 private data class ToolItem(
@@ -75,6 +84,13 @@ private data class ToolItem(
     val badge: String? = null
 )
 
+private data class ToolSection(
+    val title: String,
+    val subtitle: String,
+    val accent: Color,
+    val items: List<ToolItem>
+)
+
 @Composable
 fun ToolsScreen(
     onBackClick: () -> Unit = {},
@@ -83,35 +99,22 @@ fun ToolsScreen(
 ) {
     val c = LichSoThemeColors.current
 
-    val tools = listOf(
-        ToolItem(
-            ToolAction.AI_CHAT,
-            "Tử vi AI",
-            "Phân tích vận mệnh",
-            Icons.Filled.AutoAwesome,
-            listOf(Color(0xFFD32F2F), Color(0xFF7B1FA2)),
-            badge = "AI"
-        ),
-        ToolItem(
-            ToolAction.FAMILY_TREE,
-            "Cây gia phả",
-            "Quản lý gia tộc",
-            Icons.Filled.AccountTree,
-            listOf(Color(0xFF1E88E5), Color(0xFF26A69A))
-        ),
-        ToolItem(
-            ToolAction.HISTORY,
-            "Ngày này năm xưa",
-            "Sự kiện lịch sử",
-            Icons.Filled.HistoryEdu,
-            listOf(Color(0xFFE65100), Color(0xFFF9A825))
-        ),
+    // ── Nhóm 1: Lịch & Ngày tốt ──
+    val calendarTools = listOf(
         ToolItem(
             ToolAction.GOOD_DAYS,
             "Ngày tốt / xấu",
             "Hoàng đạo · Hắc đạo",
             Icons.Filled.WbSunny,
             listOf(Color(0xFF2E7D32), Color(0xFF66BB6A))
+        ),
+        ToolItem(
+            ToolAction.DATE_PICKER,
+            "Chọn ngày đại sự",
+            "Nhập trạch · Khai trương · Cưới hỏi",
+            Icons.Filled.EventAvailable,
+            listOf(Color(0xFF8B0000), Color(0xFFD4A017)),
+            badge = "PRO"
         ),
         ToolItem(
             ToolAction.ZODIAC_COMPAT,
@@ -128,83 +131,83 @@ fun ToolsScreen(
             listOf(Color(0xFF512DA8), Color(0xFF7E57C2))
         ),
         ToolItem(
+            ToolAction.TIET_KHI,
+            "24 Tiết Khí",
+            "Vòng năm Á Đông · phong thuỷ",
+            Icons.Filled.Spa,
+            listOf(Color(0xFF388E3C), Color(0xFFFFB300))
+        ),
+        ToolItem(
             ToolAction.PRAYERS,
             "Văn khấn",
             "Bài cúng truyền thống",
             PrayerIcons.Filled,
             listOf(Color(0xFFBF360C), Color(0xFFE65100))
         ),
+    )
+
+    // ── Nhóm 2: Phong thủy & Nghi lễ ──
+    val fengShuiTools = listOf(
         ToolItem(
-            ToolAction.BOOKMARKS,
-            "Ngày đã lưu",
-            "Đánh dấu quan trọng",
-            Icons.Filled.Bookmarks,
-            listOf(Color(0xFF00838F), Color(0xFF26C6DA))
-        ),
-        // ── v2 — Points Engine ──
-        ToolItem(
-            ToolAction.ORACLE_DRAW,
-            "Rút quẻ đầu ngày",
-            "Kinh Dịch · 1 lần/ngày",
-            Icons.Filled.AutoAwesome,
-            listOf(Color(0xFF8B0000), Color(0xFFD4A017)),
-            badge = "v2"
-        ),
-        ToolItem(
-            ToolAction.DAILY_STORE,
-            "Kho mở khoá",
-            "Tiêu ⚡ mở tính năng",
-            Icons.Filled.Storefront,
-            listOf(Color(0xFFD4A017), Color(0xFFF9A825))
-        ),
-        ToolItem(
-            ToolAction.POINTS_LEDGER,
-            "Nhật ký điểm",
-            "Lịch sử công đức",
-            Icons.AutoMirrored.Filled.MenuBook,
-            listOf(Color(0xFF5D4037), Color(0xFF8D6E63))
-        ),
-        ToolItem(
-            ToolAction.ZODIAC_COLLECTION,
-            "Sưu tập 12 con giáp",
-            "Rút thẻ ngày · Đổi điểm ⚡",
-            Icons.Filled.Pets,
-            listOf(Color(0xFF2E7D32), Color(0xFFD4A017)),
-            badge = "NEW"
-        ),
-        // ── Phase 3 — Premium / Doanh thu ──
-        ToolItem(
-            ToolAction.DATE_PICKER,
-            "Chọn ngày tốt",
-            "Cưới · Động thổ · Khai trương",
-            Icons.Filled.EventAvailable,
-            listOf(Color(0xFF8B0000), Color(0xFFD4A017)),
-            badge = "PRO"
-        ),
-        ToolItem(
-            ToolAction.STREAK_FREEZE,
-            "Đóng băng streak",
-            "Mua vé · tặng bạn bè",
-            Icons.Filled.AcUnit,
-            listOf(Color(0xFF1565C0), Color(0xFF26C6DA)),
+            ToolAction.FENG_SHUI_COMPASS,
+            "La bàn phong thủy",
+            "Đo hướng, định cung, xem trạch",
+            Icons.Filled.Explore,
+            listOf(Color(0xFF1565C0), Color(0xFF26A69A)),
             badge = "NEW"
         ),
         ToolItem(
-            ToolAction.TIET_KHI,
-            "24 Tiết Khí",
-            "Vòng năm Á Đông · phong thuỷ",
-            Icons.Filled.Spa,
-            listOf(Color(0xFF388E3C), Color(0xFFFFB300)),
+            ToolAction.LO_BAN_RULER,
+            "Thước Lỗ Ban",
+            "Đo kích thước cát hung",
+            Icons.Filled.Straighten,
+            listOf(Color(0xFF6D4C41), Color(0xFFBCAAA4)),
+            badge = "NEW"
         ),
         ToolItem(
-            ToolAction.HOW_TO_EARN,
-            "Hướng dẫn kiếm điểm",
-            "+100☘️ khi xem lần đầu",
-            Icons.AutoMirrored.Filled.MenuBook,
-            listOf(Color(0xFFD4A017), Color(0xFF8B0000)),
-            badge = "+100"
+            ToolAction.BAT_TRACH,
+            "Bát trạch",
+            "Hướng tốt theo tuổi",
+            Icons.Filled.Home,
+            listOf(Color(0xFF8E24AA), Color(0xFFBA68C8)),
+            badge = "NEW"
         ),
-        // ── Phase 5 — Date utilities ──
+        ToolItem(
+            ToolAction.XONG_DAT,
+            "Xông đất",
+            "Chọn người mở vận đầu năm",
+            Icons.Filled.Home,
+            listOf(Color(0xFFEF6C00), Color(0xFFFFB74D)),
+            badge = "AI"
+        ),
+        ToolItem(
+            ToolAction.XUAT_HANH,
+            "Xuất hành",
+            "Chọn hướng & giờ xuất phát",
+            Icons.AutoMirrored.Filled.DirectionsWalk,
+            listOf(Color(0xFF00897B), Color(0xFF4DB6AC)),
+            badge = "AI"
+        ),
+        ToolItem(
+            ToolAction.SAO_HAN,
+            "Sao hạn năm",
+            "Xem sao chiếu mệnh",
+            Icons.Filled.Warning,
+            listOf(Color(0xFFE53935), Color(0xFFFFA726)),
+            badge = "AI"
+        ),
+        ToolItem(
+            ToolAction.PHI_TINH,
+            "Phi tinh cửu cung",
+            "Luồng khí theo từng cung",
+            Icons.Filled.GridView,
+            listOf(Color(0xFF3949AB), Color(0xFF5C6BC0)),
+            badge = "AI"
+        ),
+    )
+
+    // ── Nhóm 3: Công cụ thực dụng ──
+    val utilityTools = listOf(
         ToolItem(
             ToolAction.DATE_MATH,
             "Máy tính ngày",
@@ -222,6 +225,28 @@ fun ToolsScreen(
             badge = "NEW"
         ),
         ToolItem(
+            ToolAction.WORLD_CLOCK,
+            "Múi giờ thế giới",
+            "Đồng hồ & đổi múi giờ",
+            Icons.Filled.Public,
+            listOf(Color(0xFF1565C0), Color(0xFF5C6BC0)),
+            badge = "NEW"
+        ),
+        ToolItem(
+            ToolAction.FAMILY_TREE,
+            "Cây gia phả",
+            "Quản lý gia tộc",
+            Icons.Filled.AccountTree,
+            listOf(Color(0xFF1E88E5), Color(0xFF26A69A))
+        ),
+        ToolItem(
+            ToolAction.HISTORY,
+            "Ngày này năm xưa",
+            "Sự kiện lịch sử",
+            Icons.Filled.HistoryEdu,
+            listOf(Color(0xFFE65100), Color(0xFFF9A825))
+        ),
+        ToolItem(
             ToolAction.BIRTH_PLANNER,
             "Ngày sinh đẹp",
             "Gợi ý quanh ngày dự sinh",
@@ -236,14 +261,104 @@ fun ToolsScreen(
             Icons.Filled.Female,
             listOf(Color(0xFFC2185B), Color(0xFFF06292)),
             badge = "NEW"
+        ),        ToolItem(
+            ToolAction.WIDGET_MANAGER,
+            "Quản lý Widget",
+            "Thêm widget vào màn hình",
+            Icons.Filled.Widgets,
+            listOf(Color(0xFF6A1B9A), Color(0xFF9C27B0)),
+            badge = null
+        ),    )
+
+    // ── Nhóm 4: Kho & Khám phá ──
+    val collectionTools = listOf(
+        ToolItem(
+            ToolAction.AI_CHAT,
+            "Tử vi AI",
+            "Phân tích vận mệnh",
+            Icons.Filled.AutoAwesome,
+            listOf(Color(0xFFD32F2F), Color(0xFF7B1FA2)),
+            badge = "AI"
         ),
         ToolItem(
-            ToolAction.WORLD_CLOCK,
-            "Múi giờ thế giới",
-            "Đồng hồ & đổi múi giờ",
-            Icons.Filled.Public,
-            listOf(Color(0xFF1565C0), Color(0xFF5C6BC0)),
+            ToolAction.ORACLE_DRAW,
+            "Rút quẻ đầu ngày",
+            "Kinh Dịch · 1 lần/ngày",
+            Icons.Filled.AutoAwesome,
+            listOf(Color(0xFF8B0000), Color(0xFFD4A017)),
+            badge = "v2"
+        ),
+        ToolItem(
+            ToolAction.ZODIAC_COLLECTION,
+            "Sưu tập 12 con giáp",
+            "Rút thẻ ngày · Đổi điểm ⚡",
+            Icons.Filled.Pets,
+            listOf(Color(0xFF2E7D32), Color(0xFFD4A017)),
             badge = "NEW"
+        ),
+        ToolItem(
+            ToolAction.BOOKMARKS,
+            "Ngày đã lưu",
+            "Đánh dấu quan trọng",
+            Icons.Filled.Bookmarks,
+            listOf(Color(0xFF00838F), Color(0xFF26C6DA))
+        ),
+        ToolItem(
+            ToolAction.POINTS_LEDGER,
+            "Nhật ký điểm",
+            "Lịch sử công đức",
+            Icons.AutoMirrored.Filled.MenuBook,
+            listOf(Color(0xFF5D4037), Color(0xFF8D6E63))
+        ),
+        ToolItem(
+            ToolAction.DAILY_STORE,
+            "Kho mở khoá",
+            "Tiêu ⚡ mở tính năng",
+            Icons.Filled.Storefront,
+            listOf(Color(0xFFD4A017), Color(0xFFF9A825))
+        ),
+        ToolItem(
+            ToolAction.HOW_TO_EARN,
+            "Hướng dẫn kiếm điểm",
+            "+100☘️ khi xem lần đầu",
+            Icons.AutoMirrored.Filled.MenuBook,
+            listOf(Color(0xFFD4A017), Color(0xFF8B0000)),
+            badge = "+100"
+        ),
+        ToolItem(
+            ToolAction.STREAK_FREEZE,
+            "Đóng băng streak",
+            "Mua vé · tặng bạn bè",
+            Icons.Filled.AcUnit,
+            listOf(Color(0xFF1565C0), Color(0xFF26C6DA)),
+            badge = "NEW"
+        ),
+    )
+
+    val sections = listOf(
+        ToolSection(
+            title = "Lịch & Ngày tốt",
+            subtitle = "Chọn ngày · Đổi lịch · Tiết khí · Văn khấn",
+            accent = Color(0xFF2E7D32),
+            items = calendarTools
+        ),
+        ToolSection(
+            title = "Phong thủy & Nghi lễ",
+            subtitle = "La bàn · Lỗ Ban · Bát trạch · Nghi lễ năm",
+            accent = Color(0xFF1565C0),
+            items = fengShuiTools
+        ),
+        ToolSection(
+            title = "Công cụ thực dụng",
+            subtitle = "Tính ngày · Đếm ngược · Đồng hồ · Gia phả",
+            accent = Color(0xFF1565C0),
+            items = utilityTools
+        ),
+        ToolSection(
+            title = "Kho & Khám phá",
+            subtitle = "AI · Rút quẻ · Sưu tập · Điểm thưởng",
+            accent = Color(0xFF6A1B9A),
+            items = collectionTools
         ),
     )
 
@@ -265,35 +380,38 @@ fun ToolsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 16.dp)
         ) {
-            // ── Section 1: Tiện ích trong app ──
-            ToolsSectionHeader(
-                title = "Công cụ trong ứng dụng",
-                subtitle = "Tiện ích tích hợp sẵn",
-                accent = Color(0xFFD32F2F)
-            )
+            sections.forEachIndexed { index, section ->
+                ToolsSectionHeader(
+                    title = section.title,
+                    subtitle = section.subtitle,
+                    accent = section.accent
+                )
 
-            // Render grid as plain rows (3 per row) so it fits inside scroll
-            val rows = tools.chunked(3)
-            Column(
-                modifier = Modifier.padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                rows.forEach { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        row.forEach { item ->
-                            Box(modifier = Modifier.weight(1f)) {
-                                ToolCard(item = item, onClick = { onToolClick(item.action) })
+                val rows = section.items.chunked(3)
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    rows.forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            row.forEach { item ->
+                                Box(modifier = Modifier.weight(1f)) {
+                                    ToolCard(item = item, onClick = { onToolClick(item.action) })
+                                }
                             }
-                        }
-                        // Fill empty slots so last row keeps card width consistent
-                        repeat(3 - row.size) {
-                            Box(modifier = Modifier.weight(1f))
+                            repeat(3 - row.size) {
+                                Box(modifier = Modifier.weight(1f))
+                            }
                         }
                     }
                 }
+
+                if (index != sections.lastIndex) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // ── Section 2: Ứng dụng khác từ Zenix Labs ──
             ToolsSectionHeader(

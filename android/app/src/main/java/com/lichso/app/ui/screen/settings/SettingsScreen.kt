@@ -364,9 +364,8 @@ fun SettingsScreen(
                 ) { viewModel.showClearCacheDialog() }
             }
 
-            // ── WIDGET ──
-            SectionTitle("Widget")
-            WidgetSection(context = context, iconGreen = iconGreen, iconBlue = iconBlue, iconOrange = iconOrange, iconPurple = iconPurple, iconTeal = iconTeal)
+            // ── WIDGET (moved to Tools) ──
+            // WidgetSection(context = context, iconGreen = iconGreen, iconBlue = iconBlue, iconOrange = iconOrange, iconPurple = iconPurple, iconTeal = iconTeal)
 
             Spacer(modifier = Modifier.height(32.dp))
         }
@@ -1563,11 +1562,11 @@ private fun WidgetSection(
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Thêm widget vào màn hình",
+                    "Thêm widget vào màn hình chính / khoá",
                     style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium, color = c.textPrimary)
                 )
                 Text(
-                    if (pinSupported) "Nhấn nút để thêm ngay — launcher sẽ xác nhận"
+                    if (pinSupported) "Nhấn để thêm nhanh (thiết bị hỗ trợ sẽ hiện cả lock screen)"
                     else "Nhấn để xem hướng dẫn thêm widget thủ công",
                     style = TextStyle(fontSize = 12.sp, color = c.textSecondary)
                 )

@@ -48,6 +48,11 @@ object WidgetPinHelper {
             providerClass = AiWidget::class.java
         ),
         WidgetInfo(
+            label = "Canh Giờ",
+            description = "Hiển thị 12 canh giờ (Tý, Sửu, Dần...) tự đổi mỗi 2 giờ",
+            providerClass = CanhGioWidget::class.java
+        ),
+        WidgetInfo(
             label = "Đếm ngược sự kiện",
             description = "Hiển thị số ngày còn lại tới sự kiện gần nhất",
             providerClass = CountdownWidget::class.java
