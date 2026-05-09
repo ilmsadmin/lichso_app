@@ -16,7 +16,7 @@ struct OpenRouterRequest: Codable {
     let max_tokens: Int
     let temperature: Double
     
-    init(messages: [ChatMessage], model: String = "google/gemini-2.5-flash", maxTokens: Int = 2048, temperature: Double = 0.7) {
+    init(messages: [ChatMessage], model: String = "mistralai/mistral-small-24b-instruct-2501", maxTokens: Int = 2048, temperature: Double = 0.7) {
         self.model = model
         self.messages = messages
         self.max_tokens = maxTokens

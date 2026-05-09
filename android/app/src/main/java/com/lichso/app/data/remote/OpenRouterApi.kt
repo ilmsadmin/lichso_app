@@ -17,7 +17,7 @@ import javax.inject.Singleton
 data class ChatMessage(val role: String, val content: String)
 
 data class OpenRouterRequest(
-    val model: String = "x-ai/grok-4-fast",
+    val model: String = "mistralai/mistral-small-24b-instruct-2501",
     val messages: List<ChatMessage>,
     @SerializedName("max_tokens") val maxTokens: Int = 2048,
     val temperature: Double = 0.7

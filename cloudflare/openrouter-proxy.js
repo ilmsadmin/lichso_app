@@ -19,28 +19,70 @@ export default {
       return json({ error: "messages is required" }, 400)
     }
 
-    const openRouterRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": env.OPENROUTER_HTTP_REFERER || "https://lichso.app",
-        "X-Title": env.OPENROUTER_APP_TITLE || "Lich So - Lich Van Nien"
-      },
-      body: JSON.stringify({
-        model: payload.model || "google/gemini-2.5-flash",
-        messages: payload.messages,
-        max_tokens: payload.max_tokens ?? 2048,
-        temperature: payload.temperature ?? 0.7
-      })
-    })
+    const defaultFastModels = (env.OPENROUTER_FAST_MODELS || "")
+      .split(",")
+      .map((m) => m.trim())
+      .filter(Boolean)
 
-    const text = await openRouterRes.text()
-    return new Response(text, {
-      status: openRouterRes.status,
+    const fallbackModels = defaultFastModels.length > 0
+      ? defaultFastModels
+      : [
+          "mistralai/mistral-small-24b-instruct-2501",
+          "meta-llama/llama-3.3-70b-instruct",
+          "x-ai/grok-4-fast",
+          "deepseek/deepseek-chat-v3.1"
+        ]
+
+    const requestedModel = typeof payload.model === "string" ? payload.model.trim() : ""
+    const modelCandidates = requestedModel
+      ? [requestedModel, ...fallbackModels.filter((m) => m !== requestedModel)]
+      : fallbackModels
+
+    let lastText = ""
+    let lastStatus = 502
+    let lastModel = ""
+
+    for (const model of modelCandidates) {
+      const openRouterRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": env.OPENROUTER_HTTP_REFERER || "https://lichso.app",
+          "X-Title": env.OPENROUTER_APP_TITLE || "Lich So - Lich Van Nien"
+        },
+        body: JSON.stringify({
+          model,
+          messages: payload.messages,
+          max_tokens: payload.max_tokens ?? 2048,
+          temperature: payload.temperature ?? 0.7
+        })
+      })
+
+      const text = await openRouterRes.text()
+
+      if (openRouterRes.ok) {
+        return new Response(text, {
+          status: openRouterRes.status,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            "Cache-Control": "no-store",
+            "X-Model-Used": model
+          }
+        })
+      }
+
+      lastText = text
+      lastStatus = openRouterRes.status
+      lastModel = model
+    }
+
+    return new Response(lastText, {
+      status: lastStatus,
       headers: {
         "Content-Type": "application/json; charset=utf-8",
-        "Cache-Control": "no-store"
+        "Cache-Control": "no-store",
+        "X-Model-Used": lastModel
       }
     })
   }
