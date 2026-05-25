@@ -5,10 +5,12 @@ import androidx.room.Room
 import com.lichso.app.data.local.FamilyTreeRepository
 import com.lichso.app.data.local.LichSoDatabase
 import com.lichso.app.data.local.dao.*
+import com.lichso.app.data.remote.LichSoApi
 import com.lichso.app.data.settings.AppSettingsRepository
 import com.lichso.app.domain.DayInfoProvider
 import com.lichso.app.feature.points.domain.Clock
 import com.lichso.app.feature.points.domain.SystemClock
+import com.lichso.app.feature.quiz.QuizRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -115,4 +117,18 @@ object AppModule {
     @Singleton
     fun provideAppSettingsRepository(@ApplicationContext context: Context): AppSettingsRepository =
         AppSettingsRepository(context)
+
+    // ── v3 LichSo API + Quiz ──
+    @Provides
+    @Singleton
+    fun provideLichSoApi(client: OkHttpClient): LichSoApi = LichSoApi(client)
+
+    @Provides
+    @Singleton
+    fun provideQuizRepository(api: LichSoApi): QuizRepository = QuizRepository(api)
+
+    @Provides
+    @Singleton
+    fun provideContentRepository(api: LichSoApi): com.lichso.app.feature.content.ContentRepository =
+        com.lichso.app.feature.content.ContentRepository(api)
 }

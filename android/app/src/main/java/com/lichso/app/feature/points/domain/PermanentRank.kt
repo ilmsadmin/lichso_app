@@ -27,28 +27,30 @@ enum class PermanentRank(
     val displayName: String,
     val unlocks: List<PermanentUnlockKey>
 ) {
-    NOVICE     (0L,       "Vô danh",   emptyList()),
-    SO_CO      (500L,     "Sơ cơ",     listOf(
+    // Ngưỡng thiết kế: người dùng casual (~6 ☯/ngày) đạt Thiên sư sau ~2 năm (~800 ngày)
+    // Người dùng tích cực (~15 ☯/ngày) đạt sau ~1 năm. Max hiển thị: ≤ 9.999 (không cần chữ K)
+    NOVICE     (0L,    "Vô danh",    emptyList()),
+    SO_CO      (30L,   "Sơ cơ",      listOf(
         PermanentUnlockKey.REMOVE_ADS,
         PermanentUnlockKey.THEME_TRANG_RAM
     )),
-    TU_TAP     (2_000L,   "Tu tập",    listOf(
+    TU_TAP     (100L,  "Tu tập",     listOf(
         PermanentUnlockKey.AI_20_MSG_PER_DAY,
         PermanentUnlockKey.WATERMARKED_EXPORT
     )),
-    THONG_THAO (5_000L,   "Thông thạo",listOf(
+    THONG_THAO (300L,  "Thông thạo", listOf(
         PermanentUnlockKey.LUCKY_HOURS_PERMANENT,
         PermanentUnlockKey.PREMIUM_THEMES
     )),
-    DAO_SI     (15_000L,  "Đạo sĩ",    listOf(
+    DAO_SI     (800L,  "Đạo sĩ",     listOf(
         PermanentUnlockKey.CHOOSE_DAY_TOOL_PERM
     )),
-    CHAN_NHAN  (40_000L,  "Chân nhân", listOf(
+    CHAN_NHAN  (2_000L,"Chân nhân",  listOf(
         PermanentUnlockKey.AI_UNLIMITED,
         PermanentUnlockKey.BABY_NAME_TOOL,
         PermanentUnlockKey.PDF_EXPORT
     )),
-    THIEN_SU   (100_000L, "Thiên sư",  listOf(
+    THIEN_SU   (5_000L,"Thiên sư",   listOf(
         PermanentUnlockKey.ALL_PREMIUM,
         PermanentUnlockKey.BADGE_CROWN,
         PermanentUnlockKey.GOLD_FRAME

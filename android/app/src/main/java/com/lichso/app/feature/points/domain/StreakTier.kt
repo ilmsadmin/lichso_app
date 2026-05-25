@@ -9,11 +9,13 @@ enum class StreakTier(
     val permanentMultiplier: Float,
     val displayName: String
 ) {
+    // dailyMultiplier (⚡) giữ cao — thưởng người dùng trung thành với nhiều ⚡ hơn mỗi ngày
+    // permanentMultiplier (☯) giảm mạnh — tránh tích lũy quá nhanh, max ×1.5 ở 365 ngày
     BEGINNER (0,   1.0f, 1.0f, "Tân thủ"),
-    WEEK     (7,   1.5f, 1.2f, "Tu tập"),
-    MONTH    (30,  2.0f, 1.5f, "Kiên tâm"),
-    CENTURY  (100, 3.0f, 2.0f, "Đại định"),
-    YEAR     (365, 5.0f, 3.0f, "Thiên mệnh");
+    WEEK     (7,   1.5f, 1.1f, "Tu tập"),
+    MONTH    (30,  2.0f, 1.2f, "Kiên tâm"),
+    CENTURY  (100, 3.0f, 1.4f, "Đại định"),
+    YEAR     (365, 5.0f, 1.5f, "Thiên mệnh");
 
     companion object {
         fun fromStreak(days: Int): StreakTier =

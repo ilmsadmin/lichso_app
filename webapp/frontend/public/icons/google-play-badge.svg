@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 54" fill="none">
+  <rect x="0.5" y="0.5" width="179" height="53" rx="8.5" fill="#3D2E1A" stroke="#C4783A" stroke-opacity="0.4"/>
+  <!-- Google Play triangle icon -->
+  <g transform="translate(14, 10)">
+    <!-- Play icon background -->
+    <path d="M2 3.5C2 2.12 3.56 1.33 4.72 2.13L24 15.5C25.04 16.22 25.04 17.78 24 18.5L4.72 31.87C3.56 32.67 2 31.88 2 30.5V3.5Z" fill="url(#playGrad)"/>
+    <defs>
+      <linearGradient id="playGrad" x1="2" y1="2" x2="25" y2="32" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#4A8B7F"/>
+        <stop offset="50%" stop-color="#D4956A"/>
+        <stop offset="100%" stop-color="#C4783A"/>
+      </linearGradient>
+    </defs>
+  </g>
+  <!-- Text -->
+  <text x="44" y="20" fill="#B8A090" font-family="sans-serif" font-size="8.5" letter-spacing="0.5">TẢI VỀ TỪ</text>
+  <text x="44" y="38" fill="#F5E8CC" font-family="serif" font-size="15" font-weight="600" letter-spacing="0.5">Google Play</text>
+</svg>

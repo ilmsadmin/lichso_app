@@ -1,0 +1,64 @@
+# ============================================
+# Zplus Base - Air Configuration (Hot Reload)
+# ============================================
+# Documentation: https://github.com/air-verse/air
+# ============================================
+
+root = "."
+testdata_dir = "testdata"
+tmp_dir = "tmp"
+
+[build]
+  # Build command
+  cmd = "go build -o ./tmp/main ./cmd/server/main.go"
+  # Binary file
+  bin = "./tmp/main"
+  # Watch file extensions
+  include_ext = ["go", "tpl", "tmpl", "html", "toml"]
+  # Exclude directories
+  exclude_dir = ["assets", "tmp", "vendor", "testdata", "node_modules"]
+  # Exclude files
+  exclude_file = []
+  # Exclude specific regular expressions
+  exclude_regex = ["_test.go"]
+  # Exclude unchanged files
+  exclude_unchanged = false
+  # Follow symbolic links
+  follow_symlink = false
+  # Delay after file change (ms)
+  delay = 1000
+  # Stop running old binary on build error
+  stop_on_error = true
+  # Send interrupt signal before killing process
+  send_interrupt = false
+  # Kill delay after interrupt (ms)
+  kill_delay = 500
+  # Arguments to pass to the binary
+  args_bin = []
+  # Rerun binary even if it hasn't changed
+  rerun = false
+  # Delay after each rerun (ms)
+  rerun_delay = 500
+  # Log build output
+  log = "build-errors.log"
+  # Poll files for changes (useful for Docker)
+  poll = false
+  # Poll interval (ms)
+  poll_interval = 0
+
+[log]
+  # Show log time
+  time = false
+  # Only show main log
+  main_only = false
+
+[color]
+  # Customize colors (true = color, false = no color)
+  main = "magenta"
+  watcher = "cyan"
+  build = "yellow"
+  runner = "green"
+
+[misc]
+  # Delete tmp directory on exit
+  clean_on_exit = true

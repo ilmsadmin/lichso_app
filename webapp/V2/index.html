@@ -1,0 +1,1769 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch Số — Lịch Vạn Niên Số 1 Việt Nam</title>
+    <meta name="description" content="Lịch Số - Lịch Vạn Niên Số 1 Việt Nam. Tra cứu lịch âm dương, ngày tốt, phong thuỷ, tử vi AI và khám phá văn hoá truyền thống Việt Nam.">
+    <link rel="icon" href="lich-so-icon.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* ══════════════════════════════════════════
+           CSS CUSTOM PROPERTIES — DUAL THEME
+           Truyền thống × Hiện đại số
+        ══════════════════════════════════════════ */
+        :root {
+            --bg-primary: #F9F5EE;
+            --bg-secondary: #FFFFFF;
+            --bg-card: #FFFFFF;
+            --bg-card-alt: #FBF8F3;
+            --bg-header: linear-gradient(135deg, #1A0F0A 0%, #2C1810 50%, #1A0F0A 100%);
+            --bg-accent: #9B2335;
+            --bg-accent-hover: #B82E42;
+            --bg-accent-soft: rgba(155, 35, 53, 0.08);
+            --bg-gold: #C8A84E;
+            --bg-gold-soft: rgba(200, 168, 78, 0.1);
+            --bg-hero: linear-gradient(145deg, #9B2335 0%, #7A1B2A 40%, #5C1520 100%);
+            --bg-hero-glow: radial-gradient(ellipse at 30% 50%, rgba(200, 168, 78, 0.15) 0%, transparent 60%);
+            --bg-tag: #FFF7ED;
+            --bg-hover: #F5F0E8;
+            --bg-input: #F5F1EA;
+            --bg-divider: #EDE7DC;
+            --bg-overlay: rgba(26, 15, 10, 0.6);
+            --bg-glass: rgba(255, 255, 255, 0.85);
+
+            --text-primary: #1A0F0A;
+            --text-secondary: #5C4A3E;
+            --text-muted: #9B8E82;
+            --text-inverse: #FFFFFF;
+            --text-accent: #9B2335;
+            --text-gold: #A68B3C;
+            --text-link: #9B2335;
+
+            --border-primary: #E8DFD2;
+            --border-light: #F0EAE0;
+            --border-accent: #9B2335;
+            --border-gold: #C8A84E;
+
+            --shadow-xs: 0 1px 2px rgba(26, 15, 10, 0.04);
+            --shadow-sm: 0 2px 8px rgba(26, 15, 10, 0.06);
+            --shadow-md: 0 4px 16px rgba(26, 15, 10, 0.08);
+            --shadow-lg: 0 8px 32px rgba(26, 15, 10, 0.12);
+            --shadow-xl: 0 20px 60px rgba(26, 15, 10, 0.16);
+            --shadow-glow: 0 0 40px rgba(155, 35, 53, 0.15);
+
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-2xl: 28px;
+            --radius-full: 9999px;
+
+            --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+            --font-body: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --transition-fast: 0.15s var(--ease-out);
+            --transition: 0.3s var(--ease-out);
+            --transition-slow: 0.5s var(--ease-out);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0F0B08;
+            --bg-secondary: #1A1410;
+            --bg-card: #1E1814;
+            --bg-card-alt: #241C17;
+            --bg-header: linear-gradient(135deg, #0F0B08 0%, #1A1410 50%, #0F0B08 100%);
+            --bg-accent: #D4475C;
+            --bg-accent-hover: #E85A6E;
+            --bg-accent-soft: rgba(212, 71, 92, 0.12);
+            --bg-gold: #D4B65A;
+            --bg-gold-soft: rgba(212, 182, 90, 0.1);
+            --bg-hero: linear-gradient(145deg, #9B2335 0%, #6E1928 40%, #4A1220 100%);
+            --bg-tag: #2A1F18;
+            --bg-hover: #261E18;
+            --bg-input: #241C17;
+            --bg-divider: #2A2118;
+            --bg-overlay: rgba(0, 0, 0, 0.7);
+            --bg-glass: rgba(30, 24, 20, 0.9);
+
+            --text-primary: #F0E8DC;
+            --text-secondary: #C4B8A8;
+            --text-muted: #7A6E62;
+            --text-accent: #E85A6E;
+            --text-gold: #D4B65A;
+            --text-link: #E85A6E;
+
+            --border-primary: #2E2520;
+            --border-light: #241C17;
+
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        /* ══════════════════════════════════════════
+           RESET & BASE
+        ══════════════════════════════════════════ */
+        *, *::before, *::after {
+            margin: 0; padding: 0; box-sizing: border-box;
+        }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            transition: background var(--transition), color var(--transition);
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+        a { text-decoration: none; color: inherit; }
+        button { font-family: var(--font-body); cursor: pointer; }
+        img { display: block; max-width: 100%; }
+
+        /* Subtle grain texture */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            opacity: 0.015;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* ══════════════════════════════════════════
+           HEADER — Thanh lịch, tối giản
+        ══════════════════════════════════════════ */
+        .header {
+            background: var(--bg-header);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(20px);
+        }
+
+        .header-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            height: 64px;
+        }
+
+        /* Logo */
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-img {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            object-fit: cover;
+            filter: drop-shadow(0 2px 8px rgba(200, 168, 78, 0.3));
+        }
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.15;
+        }
+        .logo-name {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--bg-gold);
+            letter-spacing: 0.5px;
+        }
+        .logo-slogan {
+            font-size: 10px;
+            font-weight: 500;
+            color: rgba(200, 168, 78, 0.5);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Navigation */
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.65);
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+            position: relative;
+            white-space: nowrap;
+        }
+        .nav-link:hover {
+            color: rgba(255,255,255,0.95);
+            background: rgba(255,255,255,0.06);
+        }
+        .nav-link.active {
+            color: var(--bg-gold);
+            background: rgba(200, 168, 78, 0.08);
+        }
+        .nav-link i { font-size: 14px; }
+        .nav-badge {
+            width: 6px; height: 6px;
+            background: #E85A6E;
+            border-radius: 50%;
+            position: absolute;
+            top: 6px; right: 8px;
+        }
+
+        /* Dropdown */
+        .nav-dropdown { position: relative; }
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-md);
+            padding: 6px;
+            min-width: 200px;
+            box-shadow: var(--shadow-lg);
+            z-index: 100;
+        }
+        .nav-dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+        }
+        .dropdown-item:hover {
+            background: var(--bg-accent-soft);
+            color: var(--text-accent);
+        }
+        .dropdown-item i { width: 18px; text-align: center; color: var(--text-accent); font-size: 13px; }
+
+        /* Header Actions */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .icon-btn {
+            width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.6);
+            font-size: 15px;
+            transition: all var(--transition-fast);
+        }
+        .icon-btn:hover {
+            background: rgba(255,255,255,0.12);
+            color: var(--bg-gold);
+            border-color: rgba(200, 168, 78, 0.3);
+        }
+        .btn-login {
+            display: flex; align-items: center; gap: 6px;
+            padding: 8px 20px;
+            border-radius: var(--radius-full);
+            border: 1px solid rgba(200, 168, 78, 0.3);
+            background: rgba(200, 168, 78, 0.08);
+            color: var(--bg-gold);
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: all var(--transition-fast);
+        }
+        .btn-login:hover {
+            background: var(--bg-gold);
+            color: #1A0F0A;
+            border-color: var(--bg-gold);
+        }
+        .hamburger {
+            display: none;
+            width: 36px; height: 36px;
+            border: none;
+            background: rgba(255,255,255,0.08);
+            border-radius: var(--radius-sm);
+            color: var(--bg-gold);
+            font-size: 18px;
+        }
+
+        /* Gold accent line */
+        .header::after {
+            content: '';
+            display: block;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, var(--bg-gold) 50%, transparent 100%);
+            opacity: 0.3;
+        }
+
+        /* ══════════════════════════════════════════
+           MAIN WRAPPER
+        ══════════════════════════════════════════ */
+        .main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 28px 32px;
+        }
+
+        /* ══════════════════════════════════════════
+           HERO — Ngày hôm nay
+        ══════════════════════════════════════════ */
+        .hero {
+            background: var(--bg-hero);
+            border-radius: var(--radius-2xl);
+            padding: 40px 44px 36px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 28px;
+            box-shadow: var(--shadow-glow);
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--bg-hero-glow);
+            pointer-events: none;
+        }
+        /* Decorative pattern — trống đồng */
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -60px;
+            right: -40px;
+            width: 320px;
+            height: 320px;
+            border: 2px solid rgba(200, 168, 78, 0.06);
+            border-radius: 50%;
+            box-shadow: 
+                0 0 0 24px rgba(200, 168, 78, 0.03),
+                0 0 0 48px rgba(200, 168, 78, 0.02),
+                0 0 0 72px rgba(200, 168, 78, 0.01);
+            pointer-events: none;
+        }
+        .hero-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-date {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+        .hero-day {
+            font-size: 88px;
+            font-family: var(--font-display);
+            font-weight: 700;
+            line-height: 1;
+            color: var(--bg-gold);
+            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .hero-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .hero-weekday {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .hero-solar {
+            font-size: 14px;
+            opacity: 0.7;
+            font-weight: 300;
+        }
+        .hero-lunar {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+            padding: 5px 14px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: var(--radius-full);
+            font-size: 13px;
+            backdrop-filter: blur(10px);
+        }
+        .hero-lunar i { color: var(--bg-gold); font-size: 12px; }
+
+        .hero-actions {
+            display: flex;
+            gap: 8px;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-btn {
+            width: 38px; height: 38px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.8);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px;
+            transition: all var(--transition-fast);
+        }
+        .hero-btn:hover {
+            background: rgba(255,255,255,0.15);
+            transform: translateY(-2px);
+            color: var(--bg-gold);
+        }
+
+        .hero-meta {
+            display: flex;
+            gap: 16px;
+            margin-top: 28px;
+            position: relative;
+            z-index: 1;
+        }
+        .meta-chip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: var(--radius-md);
+            backdrop-filter: blur(10px);
+            flex: 1;
+        }
+        .meta-icon {
+            width: 34px; height: 34px;
+            border-radius: var(--radius-sm);
+            background: rgba(200, 168, 78, 0.15);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px;
+            color: var(--bg-gold);
+        }
+        .meta-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            opacity: 0.5;
+        }
+        .meta-value {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        /* Slogan banner under hero */
+        .slogan-strip {
+            text-align: center;
+            padding: 14px;
+            margin-bottom: 24px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            position: relative;
+        }
+        .slogan-strip span {
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+        .slogan-strip::before,
+        .slogan-strip::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 80px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-primary));
+        }
+        .slogan-strip::before { right: calc(50% + 200px); background: linear-gradient(90deg, transparent, var(--border-primary)); }
+        .slogan-strip::after { left: calc(50% + 200px); background: linear-gradient(270deg, transparent, var(--border-primary)); }
+
+        /* ══════════════════════════════════════════
+           LAYOUT GRID
+        ══════════════════════════════════════════ */
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 24px;
+        }
+
+        /* ══════════════════════════════════════════
+           CARDS — Unified design system
+        ══════════════════════════════════════════ */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-xs);
+            transition: box-shadow var(--transition), transform var(--transition);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-sm);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .card-icon {
+            width: 32px; height: 32px;
+            border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px;
+        }
+        .card-icon.red { background: var(--bg-accent-soft); color: var(--text-accent); }
+        .card-icon.gold { background: var(--bg-gold-soft); color: var(--text-gold); }
+        .card-icon.green { background: rgba(34, 139, 34, 0.08); color: #228B22; }
+        .card-icon.blue { background: rgba(30, 100, 200, 0.08); color: #1E64C8; }
+
+        .card-link {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-accent);
+            display: flex; align-items: center; gap: 4px;
+            transition: gap var(--transition-fast);
+        }
+        .card-link:hover { gap: 8px; }
+
+        /* ══════════════════════════════════════════
+           QUOTE CARD — Ca dao tục ngữ
+        ══════════════════════════════════════════ */
+        .quote-card {
+            position: relative;
+            padding: 28px 32px;
+            border-left: 3px solid var(--bg-gold);
+        }
+        .quote-card::before {
+            content: '"';
+            position: absolute;
+            top: 8px; left: 20px;
+            font-size: 80px;
+            font-family: var(--font-display);
+            color: var(--bg-accent);
+            opacity: 0.06;
+            line-height: 1;
+        }
+        .quote-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-gold);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 14px;
+        }
+        .quote-text {
+            font-family: var(--font-display);
+            font-size: 19px;
+            font-style: italic;
+            line-height: 1.9;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+        .quote-source {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: right;
+        }
+        .quote-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 6px;
+            margin-top: 14px;
+        }
+        .quote-btn {
+            padding: 5px 12px;
+            border: 1px solid var(--border-primary);
+            background: transparent;
+            color: var(--text-muted);
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            display: flex; align-items: center; gap: 4px;
+            transition: all var(--transition-fast);
+        }
+        .quote-btn:hover {
+            border-color: var(--text-accent);
+            color: var(--text-accent);
+            background: var(--bg-accent-soft);
+        }
+
+        /* ══════════════════════════════════════════
+           HISTORY ITEMS
+        ══════════════════════════════════════════ */
+        .history-item {
+            display: flex;
+            gap: 16px;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .history-item:last-child { border-bottom: none; }
+        .history-year {
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-accent);
+            min-width: 50px;
+            padding-top: 1px;
+        }
+        .history-body h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
+        .history-body p {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+        .history-tag {
+            display: inline-block;
+            padding: 2px 10px;
+            background: var(--bg-tag);
+            color: var(--text-accent);
+            border-radius: var(--radius-full);
+            font-size: 11px;
+            font-weight: 500;
+            margin-top: 6px;
+        }
+
+        /* ══════════════════════════════════════════
+           FESTIVAL ITEMS
+        ══════════════════════════════════════════ */
+        .festival-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 14px;
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            margin-bottom: 6px;
+        }
+        .festival-item:hover {
+            background: var(--bg-hover);
+            transform: translateX(4px);
+        }
+        .festival-emoji {
+            width: 40px; height: 40px;
+            border-radius: var(--radius-md);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            background: var(--bg-accent-soft);
+            flex-shrink: 0;
+        }
+        .festival-info h4 { font-size: 14px; font-weight: 600; margin-bottom: 1px; }
+        .festival-info p { font-size: 12px; color: var(--text-muted); }
+        .festival-badge {
+            margin-left: auto;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 3px 10px;
+            border-radius: var(--radius-full);
+            white-space: nowrap;
+        }
+        .festival-badge.live {
+            background: rgba(34, 139, 34, 0.08);
+            color: #228B22;
+        }
+        .festival-badge.soon {
+            background: var(--bg-gold-soft);
+            color: var(--text-gold);
+        }
+
+        /* ══════════════════════════════════════════
+           SIDEBAR
+        ══════════════════════════════════════════ */
+        .sidebar { display: flex; flex-direction: column; gap: 20px; }
+
+        /* Mini Calendar */
+        .mini-cal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .mini-cal-title {
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 700;
+        }
+        .mini-cal-nav { display: flex; gap: 4px; }
+        .mini-cal-btn {
+            width: 28px; height: 28px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-primary);
+            background: transparent;
+            color: var(--text-secondary);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px;
+            transition: all var(--transition-fast);
+        }
+        .mini-cal-btn:hover {
+            background: var(--bg-accent);
+            color: white;
+            border-color: var(--bg-accent);
+        }
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            text-align: center;
+        }
+        .cal-dow {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
+            padding: 6px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .cal-dow.sun { color: var(--text-accent); }
+        .cal-day {
+            aspect-ratio: 1;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-size: 13px;
+            font-weight: 500;
+            position: relative;
+        }
+        .cal-day:hover { background: var(--bg-hover); }
+        .cal-day.today {
+            background: var(--bg-accent);
+            color: white;
+            font-weight: 700;
+            box-shadow: 0 2px 10px rgba(155, 35, 53, 0.3);
+        }
+        .cal-day.sun { color: var(--text-accent); }
+        .cal-day.today.sun { color: white; }
+        .cal-day.other { opacity: 0.25; }
+        .cal-day .lunar {
+            font-size: 8px;
+            color: var(--text-muted);
+            line-height: 1;
+        }
+        .cal-day.today .lunar { color: rgba(255,255,255,0.6); }
+        .cal-day.event::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            width: 4px; height: 4px;
+            background: var(--bg-gold);
+            border-radius: 50%;
+        }
+
+        /* Tiết Khí */
+        .tietkhi-box {
+            display: flex; align-items: center; gap: 12px;
+            padding: 14px;
+            background: linear-gradient(135deg, rgba(34,139,34,0.06), rgba(200,168,78,0.06));
+            border-radius: var(--radius-md);
+            margin-bottom: 14px;
+        }
+        .tietkhi-emoji {
+            width: 44px; height: 44px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, #228B22, #2EAA2E);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; color: white;
+        }
+        .tietkhi-name {
+            font-family: var(--font-display);
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .tietkhi-date { font-size: 12px; color: var(--text-muted); }
+        .tietkhi-next {
+            display: flex; align-items: center; justify-content: space-between;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-light);
+        }
+        .tietkhi-next-label { font-size: 11px; color: var(--text-muted); }
+        .tietkhi-next-name { font-size: 13px; font-weight: 600; }
+        .countdown-badge {
+            display: flex; align-items: center; gap: 4px;
+            padding: 3px 10px;
+            background: var(--bg-accent-soft);
+            border-radius: var(--radius-full);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-accent);
+        }
+
+        /* Search Widget */
+        .search-box {
+            display: flex; align-items: center; gap: 8px;
+            padding: 9px 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+        }
+        .search-box:focus-within {
+            border-color: var(--bg-accent);
+            box-shadow: 0 0 0 3px var(--bg-accent-soft);
+        }
+        .search-box i { color: var(--text-muted); font-size: 13px; }
+        .search-box input {
+            flex: 1; border: none; background: transparent;
+            color: var(--text-primary); font-size: 13px;
+            font-family: var(--font-body); outline: none;
+        }
+        .search-box input::placeholder { color: var(--text-muted); }
+        .quick-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .quick-tag {
+            padding: 4px 12px;
+            background: var(--bg-tag);
+            color: var(--text-secondary);
+            border-radius: var(--radius-full);
+            font-size: 11px;
+            border: none;
+            transition: all var(--transition-fast);
+        }
+        .quick-tag:hover {
+            background: var(--bg-accent);
+            color: white;
+        }
+
+        /* Reminders */
+        .reminder-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .reminder-item:last-child { border-bottom: none; }
+        .reminder-check {
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            border: 2px solid var(--border-primary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            flex-shrink: 0;
+            position: relative;
+        }
+        .reminder-check.done {
+            background: var(--bg-accent);
+            border-color: var(--bg-accent);
+        }
+        .reminder-check.done::after {
+            content: '✓';
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 10px;
+        }
+        .reminder-text {
+            flex: 1; font-size: 13px;
+        }
+        .reminder-text.done { text-decoration: line-through; opacity: 0.4; }
+        .reminder-date { font-size: 11px; color: var(--text-muted); }
+        .add-btn {
+            display: flex; align-items: center; justify-content: center;
+            gap: 6px; width: 100%; padding: 9px; margin-top: 10px;
+            border: 1px dashed var(--border-primary);
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--text-muted); font-size: 12px;
+            transition: all var(--transition-fast);
+        }
+        .add-btn:hover {
+            border-color: var(--text-accent);
+            color: var(--text-accent);
+            background: var(--bg-accent-soft);
+        }
+
+        /* ══════════════════════════════════════════
+           MONTHLY CALENDAR PAGE
+        ══════════════════════════════════════════ */
+        .page { display: none; }
+        .page.active { display: block; }
+
+        .month-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .month-nav { display: flex; align-items: center; gap: 14px; }
+        .month-btn {
+            width: 38px; height: 38px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-primary);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            display: flex; align-items: center; justify-content: center;
+            transition: all var(--transition-fast);
+        }
+        .month-btn:hover {
+            background: var(--bg-accent);
+            color: white; border-color: var(--bg-accent);
+        }
+        .month-title {
+            font-family: var(--font-display);
+            font-size: 26px;
+            font-weight: 700;
+        }
+        .view-toggle {
+            display: flex; gap: 2px;
+            background: var(--bg-input);
+            padding: 3px; border-radius: var(--radius-sm);
+        }
+        .view-btn {
+            padding: 6px 14px; border: none;
+            background: transparent; color: var(--text-muted);
+            font-size: 12px; font-weight: 500;
+            border-radius: 6px; transition: all var(--transition-fast);
+        }
+        .view-btn.active {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            box-shadow: var(--shadow-xs);
+        }
+
+        .month-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: var(--border-light);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+        .mg-dow {
+            background: var(--bg-accent);
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .mg-cell {
+            background: var(--bg-card);
+            padding: 8px 10px;
+            min-height: 90px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            position: relative;
+        }
+        .mg-cell:hover {
+            background: var(--bg-hover);
+            z-index: 1;
+            box-shadow: inset 0 0 0 2px var(--bg-accent);
+        }
+        .mg-cell.today { background: var(--bg-accent-soft); }
+        .mg-cell.today::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: var(--bg-accent);
+        }
+        .mg-cell .s-num { font-size: 16px; font-weight: 600; margin-bottom: 1px; }
+        .mg-cell .l-num { font-size: 10px; color: var(--text-accent); opacity: 0.7; }
+        .mg-cell .ev { 
+            font-size: 9px; padding: 1px 6px; margin-top: 4px;
+            background: var(--bg-tag); color: var(--text-accent);
+            border-radius: 3px; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis;
+        }
+        .mg-cell .ev.fest { background: rgba(34,139,34,0.08); color: #228B22; }
+        .mg-cell.other { opacity: 0.3; }
+        .mg-cell.sun .s-num { color: var(--text-accent); }
+
+        /* ══════════════════════════════════════════
+           DAY MODAL
+        ══════════════════════════════════════════ */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: var(--bg-overlay);
+            z-index: 2000;
+            align-items: center; justify-content: center;
+            padding: 24px;
+            backdrop-filter: blur(4px);
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--bg-card);
+            border-radius: var(--radius-2xl);
+            max-width: 520px; width: 100%;
+            max-height: 85vh; overflow-y: auto;
+            box-shadow: var(--shadow-xl);
+            animation: modalIn 0.35s var(--ease-spring);
+        }
+        @keyframes modalIn {
+            from { transform: translateY(16px) scale(0.97); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .modal-head {
+            background: var(--bg-hero);
+            padding: 28px 28px 24px;
+            color: white;
+            border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+            position: relative;
+        }
+        .modal-close {
+            position: absolute; top: 14px; right: 14px;
+            width: 32px; height: 32px;
+            border-radius: 50%; border: none;
+            background: rgba(255,255,255,0.12); color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; transition: all var(--transition-fast);
+        }
+        .modal-close:hover { background: rgba(255,255,255,0.25); }
+        .modal-day { font-size: 52px; font-family: var(--font-display); font-weight: 700; color: var(--bg-gold); line-height: 1; }
+        .modal-date { margin-top: 4px; font-size: 15px; opacity: 0.85; }
+        .modal-lunar {
+            margin-top: 8px; padding: 6px 14px;
+            background: rgba(255,255,255,0.08);
+            border-radius: var(--radius-md);
+            display: inline-flex; align-items: center; gap: 8px;
+            font-size: 13px;
+        }
+        .modal-body { padding: 24px 28px; }
+        .detail-section { margin-bottom: 18px; }
+        .detail-section h3 {
+            font-size: 14px; font-weight: 700;
+            color: var(--text-accent);
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 10px;
+        }
+        .detail-row {
+            display: flex; justify-content: space-between;
+            padding: 7px 0; border-bottom: 1px solid var(--border-light);
+            font-size: 13px;
+        }
+        .detail-label { color: var(--text-muted); }
+        .detail-val { font-weight: 500; }
+        .detail-val.good { color: #228B22; }
+        .detail-val.bad { color: #D4475C; }
+        .tag-group { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .tag-good {
+            padding: 3px 12px; background: rgba(34,139,34,0.08);
+            color: #228B22; border-radius: var(--radius-full); font-size: 12px;
+        }
+        .tag-bad {
+            padding: 3px 12px; background: rgba(212,71,92,0.08);
+            color: #D4475C; border-radius: var(--radius-full); font-size: 12px;
+        }
+
+        /* ══════════════════════════════════════════
+           PAGE TABS
+        ══════════════════════════════════════════ */
+        .page-tabs {
+            display: flex; gap: 4px; margin-bottom: 20px;
+            background: var(--bg-card);
+            padding: 4px; border-radius: var(--radius-lg);
+            border: 1px solid var(--border-primary);
+            overflow-x: auto;
+        }
+        .ptab {
+            padding: 8px 18px; border: none;
+            background: transparent; color: var(--text-muted);
+            font-size: 13px; font-weight: 500;
+            border-radius: var(--radius-sm);
+            display: flex; align-items: center; gap: 6px;
+            white-space: nowrap; transition: all var(--transition-fast);
+        }
+        .ptab:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .ptab.active { background: var(--bg-accent); color: white; }
+
+        /* ══════════════════════════════════════════
+           FOOTER
+        ══════════════════════════════════════════ */
+        .footer {
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-primary);
+            margin-top: 48px;
+            padding: 40px 32px 20px;
+        }
+        .footer-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 36px;
+            padding-bottom: 28px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .footer-brand-head {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+        }
+        .footer-brand-head img {
+            width: 32px; height: 32px; border-radius: 6px;
+        }
+        .footer-brand-name {
+            font-family: var(--font-display);
+            font-size: 18px; font-weight: 700;
+            color: var(--text-accent);
+        }
+        .footer-desc {
+            font-size: 13px; color: var(--text-muted); line-height: 1.7;
+            margin-bottom: 14px;
+        }
+        .footer-social { display: flex; gap: 6px; }
+        .footer-social a {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            border: 1px solid var(--border-primary);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted); font-size: 13px;
+            transition: all var(--transition-fast);
+        }
+        .footer-social a:hover {
+            background: var(--bg-accent); color: white;
+            border-color: var(--bg-accent);
+        }
+        .footer-col h4 {
+            font-size: 13px; font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 14px;
+            color: var(--text-primary);
+        }
+        .footer-col a {
+            display: block; font-size: 13px;
+            color: var(--text-muted); padding: 4px 0;
+            transition: all var(--transition-fast);
+        }
+        .footer-col a:hover { color: var(--text-accent); padding-left: 4px; }
+        .footer-bottom {
+            display: flex; align-items: center; justify-content: space-between;
+            padding-top: 20px; font-size: 12px; color: var(--text-muted);
+            flex-wrap: wrap; gap: 8px;
+        }
+        .footer-bottom a { color: var(--text-link); text-decoration: underline; }
+        .footer-bottom strong { font-weight: 600; color: var(--text-secondary); }
+
+        /* ══════════════════════════════════════════
+           BACK TO TOP
+        ══════════════════════════════════════════ */
+        .btt {
+            position: fixed; bottom: 20px; right: 20px;
+            width: 44px; height: 44px;
+            border-radius: var(--radius-md);
+            background: var(--bg-accent); color: white;
+            border: none; font-size: 16px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: var(--shadow-md);
+            transition: all var(--transition);
+            z-index: 999;
+            opacity: 0; pointer-events: none;
+            transform: translateY(8px);
+        }
+        .btt.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+        .btt:hover { background: var(--bg-accent-hover); transform: translateY(-2px); }
+
+        /* Decorative separator */
+        .ornament {
+            text-align: center; color: var(--text-muted);
+            font-size: 12px; margin: 12px 0; opacity: 0.3;
+            letter-spacing: 10px;
+        }
+
+        /* ══════════════════════════════════════════
+           RESPONSIVE
+        ══════════════════════════════════════════ */
+        @media (max-width: 1100px) {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+            .footer-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 768px) {
+            .nav { display: none; }
+            .nav.open { display: flex; flex-direction: column; position: absolute; top: 64px; left: 0; right: 0; background: var(--bg-card); border-bottom: 1px solid var(--border-primary); padding: 8px; box-shadow: var(--shadow-lg); z-index: 100; }
+            .nav.open .nav-link { color: var(--text-primary); padding: 10px 14px; }
+            .hamburger { display: flex; align-items: center; justify-content: center; }
+            .header-inner { padding: 0 16px; }
+            .main { padding: 16px; }
+            .hero { padding: 24px 20px 20px; border-radius: var(--radius-xl); }
+            .hero-day { font-size: 60px; }
+            .hero-meta { flex-direction: column; gap: 8px; }
+            .sidebar { grid-template-columns: 1fr; }
+            .footer-grid { grid-template-columns: 1fr; gap: 20px; }
+            .footer-bottom { flex-direction: column; text-align: center; }
+            .btn-login span { display: none; }
+            .slogan-strip::before, .slogan-strip::after { display: none; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-primary); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+    <!-- ═══════ HEADER ═══════ -->
+    <header class="header">
+        <div class="header-inner">
+            <a href="#" class="logo">
+                <img src="lich-so-icon.png" alt="Lịch Số" class="logo-img">
+                <div class="logo-text">
+                    <span class="logo-name">Lịch Số</span>
+                    <span class="logo-slogan">Vạn Niên Số 1 Việt Nam</span>
+                </div>
+            </a>
+
+            <nav class="nav" id="mainNav">
+                <a href="#" class="nav-link active" data-page="today"><i class="fas fa-calendar-day"></i> Hôm Nay</a>
+                <a href="#" class="nav-link" data-page="good-days"><i class="fas fa-star"></i> Ngày Tốt</a>
+                <a href="#" class="nav-link" data-page="fengshui"><i class="fas fa-yin-yang"></i> Phong Thuỷ</a>
+                <a href="#" class="nav-link" data-page="tuvi"><i class="fas fa-robot"></i> Tử Vi AI <span class="nav-badge"></span></a>
+                <div class="nav-dropdown">
+                    <a href="#" class="nav-link"><i class="fas fa-book-open"></i> Bài Viết <i class="fas fa-chevron-down" style="font-size:9px;margin-left:2px"></i></a>
+                    <div class="dropdown-menu">
+                        <a href="#" class="dropdown-item"><i class="fas fa-landmark"></i> Lịch sử Việt Nam</a>
+                        <a href="#" class="dropdown-item"><i class="fas fa-masks-theater"></i> Văn hoá dân gian</a>
+                        <a href="#" class="dropdown-item"><i class="fas fa-user-tie"></i> Nhân vật lịch sử</a>
+                        <a href="#" class="dropdown-item"><i class="fas fa-dragon"></i> Lễ hội truyền thống</a>
+                        <a href="#" class="dropdown-item"><i class="fas fa-scroll"></i> Ca dao tục ngữ</a>
+                    </div>
+                </div>
+                <a href="#" class="nav-link" data-page="family"><i class="fas fa-sitemap"></i> Gia Phả</a>
+                <a href="#" class="nav-link" data-page="about"><i class="fas fa-info-circle"></i> Giới Thiệu</a>
+            </nav>
+
+            <div class="header-actions">
+                <button class="icon-btn" id="themeToggle" title="Sáng / Tối"><i class="fas fa-moon"></i></button>
+                <button class="btn-login"><i class="fas fa-user-circle"></i> <span>Đăng nhập</span></button>
+                <button class="hamburger" id="hamburger"><i class="fas fa-bars"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══════ MAIN ═══════ -->
+    <main class="main">
+
+        <!-- Page Tabs -->
+        <div class="page-tabs">
+            <button class="ptab active" data-page="today"><i class="fas fa-sun"></i> Hôm Nay</button>
+            <button class="ptab" data-page="month"><i class="fas fa-calendar"></i> Lịch Tháng</button>
+            <button class="ptab" data-page="search"><i class="fas fa-search"></i> Tra Cứu</button>
+        </div>
+
+        <!-- ═══════ PAGE: TODAY ═══════ -->
+        <div class="page active" id="page-today">
+
+            <!-- Hero -->
+            <section class="hero">
+                <div class="hero-top">
+                    <div class="hero-date">
+                        <div class="hero-day">08</div>
+                        <div class="hero-info">
+                            <div class="hero-weekday">Thứ Tư</div>
+                            <div class="hero-solar">Tháng 4, 2026</div>
+                            <div class="hero-lunar"><i class="fas fa-moon"></i> 22 tháng 2, Bính Ngọ</div>
+                        </div>
+                    </div>
+                    <div class="hero-actions">
+                        <button class="hero-btn" title="Bookmark"><i class="far fa-bookmark"></i></button>
+                        <button class="hero-btn" title="Nhắc nhở"><i class="far fa-bell"></i></button>
+                        <button class="hero-btn" title="Chia sẻ"><i class="fas fa-share-alt"></i></button>
+                    </div>
+                </div>
+                <div class="hero-meta">
+                    <div class="meta-chip">
+                        <div class="meta-icon"><i class="fas fa-paw"></i></div>
+                        <div>
+                            <div class="meta-label">Con giáp</div>
+                            <div class="meta-value">Ngọ (Ngựa)</div>
+                        </div>
+                    </div>
+                    <div class="meta-chip">
+                        <div class="meta-icon"><i class="fas fa-fire"></i></div>
+                        <div>
+                            <div class="meta-label">Ngũ hành</div>
+                            <div class="meta-value">Hoả — Thiên Hà Thuỷ</div>
+                        </div>
+                    </div>
+                    <div class="meta-chip">
+                        <div class="meta-icon"><i class="fas fa-compass"></i></div>
+                        <div>
+                            <div class="meta-label">Hướng tốt</div>
+                            <div class="meta-value">Đông Nam, Tây Bắc</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slogan -->
+            <div class="slogan-strip">
+                <span>Lịch Số</span> — Nơi truyền thống gặp gỡ công nghệ, giữ hồn Việt trong thời đại số
+            </div>
+
+            <!-- Content Grid -->
+            <div class="layout">
+                <div class="content">
+
+                    <!-- Quote -->
+                    <div class="card quote-card">
+                        <div class="quote-label"><i class="fas fa-feather-alt"></i> CA DAO VIỆT NAM</div>
+                        <div class="quote-text">
+                            "Công cha như núi Thái Sơn,<br>
+                            Nghĩa mẹ như nước trong nguồn chảy ra."
+                        </div>
+                        <div class="quote-source">— Ca dao Việt Nam</div>
+                        <div class="quote-actions">
+                            <button class="quote-btn"><i class="far fa-heart"></i> Yêu thích</button>
+                            <button class="quote-btn"><i class="fas fa-sync-alt"></i> Câu khác</button>
+                            <button class="quote-btn"><i class="fas fa-share-alt"></i> Chia sẻ</button>
+                        </div>
+                    </div>
+
+                    <!-- Ngày này trong lịch sử -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <div class="card-icon red"><i class="fas fa-landmark"></i></div>
+                                Ngày này trong lịch sử
+                            </div>
+                            <a href="#" class="card-link">Xem tất cả <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                        <div class="history-item">
+                            <div class="history-year">1911</div>
+                            <div class="history-body">
+                                <h4>Nguyễn Ái Quốc ra đi tìm đường cứu nước</h4>
+                                <p>Người thanh niên Nguyễn Tất Thành lên tàu tại bến Nhà Rồng, bắt đầu hành trình tìm đường cứu nước.</p>
+                                <span class="history-tag">Lịch sử</span>
+                            </div>
+                        </div>
+                        <div class="history-item">
+                            <div class="history-year">1946</div>
+                            <div class="history-body">
+                                <h4>Hội nghị Fontainebleau khai mạc</h4>
+                                <p>Hội nghị trù bị giữa Việt Nam Dân chủ Cộng hòa và Pháp tại Fontainebleau, Pháp.</p>
+                                <span class="history-tag">Ngoại giao</span>
+                            </div>
+                        </div>
+                        <div class="history-item">
+                            <div class="history-year">1975</div>
+                            <div class="history-body">
+                                <h4>Chiến dịch giải phóng duyên hải miền Trung</h4>
+                                <p>Quân giải phóng tiến vào giải phóng các tỉnh duyên hải trong chiến dịch lịch sử.</p>
+                                <span class="history-tag">Quân sự</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lễ hội -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <div class="card-icon gold"><i class="fas fa-dragon"></i></div>
+                                Lễ hội & Văn hoá
+                            </div>
+                            <a href="#" class="card-link">Xem tất cả <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                        <div class="festival-item">
+                            <div class="festival-emoji" style="background:rgba(155,35,53,0.06)">🏮</div>
+                            <div class="festival-info">
+                                <h4>Lễ hội Chùa Hương</h4>
+                                <p>Mỹ Đức, Hà Nội — Tháng Giêng đến tháng 3 Âm lịch</p>
+                            </div>
+                            <span class="festival-badge live">Đang diễn ra</span>
+                        </div>
+                        <div class="festival-item">
+                            <div class="festival-emoji" style="background:rgba(200,168,78,0.08)">🎭</div>
+                            <div class="festival-info">
+                                <h4>Giỗ Tổ Hùng Vương</h4>
+                                <p>Phú Thọ — Mùng 10 tháng 3 Âm lịch</p>
+                            </div>
+                            <span class="festival-badge soon">Còn 18 ngày</span>
+                        </div>
+                        <div class="festival-item">
+                            <div class="festival-emoji" style="background:rgba(34,139,34,0.06)">🎋</div>
+                            <div class="festival-info">
+                                <h4>Tết Thanh Minh</h4>
+                                <p>Tảo mộ, tri ân tổ tiên</p>
+                            </div>
+                            <span class="festival-badge soon">Còn 43 ngày</span>
+                        </div>
+                    </div>
+
+                    <div class="ornament">◆ ◆ ◆</div>
+                </div>
+
+                <!-- ═══════ SIDEBAR ═══════ -->
+                <aside class="sidebar">
+
+                    <!-- Mini Calendar -->
+                    <div class="card">
+                        <div class="mini-cal-header">
+                            <div class="mini-cal-title">Tháng 4, 2026</div>
+                            <div class="mini-cal-nav">
+                                <button class="mini-cal-btn"><i class="fas fa-chevron-left"></i></button>
+                                <button class="mini-cal-btn"><i class="fas fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                        <div class="cal-grid">
+                            <div class="cal-dow sun">CN</div><div class="cal-dow">T2</div><div class="cal-dow">T3</div><div class="cal-dow">T4</div><div class="cal-dow">T5</div><div class="cal-dow">T6</div><div class="cal-dow">T7</div>
+                            <div class="cal-day other">29<div class="lunar">12</div></div>
+                            <div class="cal-day other">30<div class="lunar">13</div></div>
+                            <div class="cal-day other">31<div class="lunar">14</div></div>
+                            <div class="cal-day">1<div class="lunar">15</div></div>
+                            <div class="cal-day">2<div class="lunar">16</div></div>
+                            <div class="cal-day">3<div class="lunar">17</div></div>
+                            <div class="cal-day">4<div class="lunar">18</div></div>
+                            <div class="cal-day sun event">5<div class="lunar">19</div></div>
+                            <div class="cal-day">6<div class="lunar">20</div></div>
+                            <div class="cal-day">7<div class="lunar">21</div></div>
+                            <div class="cal-day today">8<div class="lunar">22</div></div>
+                            <div class="cal-day">9<div class="lunar">23</div></div>
+                            <div class="cal-day">10<div class="lunar">24</div></div>
+                            <div class="cal-day">11<div class="lunar">25</div></div>
+                            <div class="cal-day sun">12<div class="lunar">26</div></div>
+                            <div class="cal-day">13<div class="lunar">27</div></div>
+                            <div class="cal-day">14<div class="lunar">28</div></div>
+                            <div class="cal-day">15<div class="lunar">29</div></div>
+                            <div class="cal-day">16<div class="lunar">1/3</div></div>
+                            <div class="cal-day">17<div class="lunar">2</div></div>
+                            <div class="cal-day">18<div class="lunar">3</div></div>
+                            <div class="cal-day sun">19<div class="lunar">4</div></div>
+                            <div class="cal-day">20<div class="lunar">5</div></div>
+                            <div class="cal-day">21<div class="lunar">6</div></div>
+                            <div class="cal-day">22<div class="lunar">7</div></div>
+                            <div class="cal-day">23<div class="lunar">8</div></div>
+                            <div class="cal-day">24<div class="lunar">9</div></div>
+                            <div class="cal-day event">25<div class="lunar">10</div></div>
+                            <div class="cal-day sun">26<div class="lunar">11</div></div>
+                            <div class="cal-day">27<div class="lunar">12</div></div>
+                            <div class="cal-day">28<div class="lunar">13</div></div>
+                            <div class="cal-day">29<div class="lunar">14</div></div>
+                            <div class="cal-day event">30<div class="lunar">15</div></div>
+                            <div class="cal-day other">1<div class="lunar">16</div></div>
+                            <div class="cal-day other">2<div class="lunar">17</div></div>
+                        </div>
+                    </div>
+
+                    <!-- Tiết Khí -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title"><div class="card-icon green"><i class="fas fa-seedling"></i></div> Tiết Khí</div>
+                        </div>
+                        <div class="tietkhi-box">
+                            <div class="tietkhi-emoji">🌸</div>
+                            <div>
+                                <div class="tietkhi-name">Thanh Minh</div>
+                                <div class="tietkhi-date">04/04 – 19/04/2026</div>
+                            </div>
+                        </div>
+                        <div class="tietkhi-next">
+                            <div>
+                                <div class="tietkhi-next-label">Tiết khí tiếp theo</div>
+                                <div class="tietkhi-next-name">Cốc Vũ (穀雨)</div>
+                            </div>
+                            <div class="countdown-badge"><i class="fas fa-clock"></i> 12 ngày</div>
+                        </div>
+                    </div>
+
+                    <!-- Tra cứu nhanh -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title"><div class="card-icon blue"><i class="fas fa-search"></i></div> Tra cứu nhanh</div>
+                        </div>
+                        <div class="search-box">
+                            <i class="fas fa-calendar-alt"></i>
+                            <input type="text" placeholder="Nhập ngày (VD: 01/01/2000)">
+                        </div>
+                        <div class="quick-tags">
+                            <button class="quick-tag">Hôm qua</button>
+                            <button class="quick-tag">Ngày mai</button>
+                            <button class="quick-tag">Giỗ Tổ Hùng Vương</button>
+                            <button class="quick-tag">Rằm tháng 7</button>
+                            <button class="quick-tag">Tết 2027</button>
+                        </div>
+                    </div>
+
+                    <!-- Nhắc nhở -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title"><div class="card-icon red"><i class="fas fa-bookmark"></i></div> Nhắc nhở</div>
+                            <a href="#" class="card-link">Tất cả <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                        <div class="reminder-item">
+                            <div class="reminder-check"></div>
+                            <div class="reminder-text">Giỗ Tổ Hùng Vương — 10/3 ÂL</div>
+                            <div class="reminder-date">26/04</div>
+                        </div>
+                        <div class="reminder-item">
+                            <div class="reminder-check"></div>
+                            <div class="reminder-text">Sinh nhật mẹ — 15/3 ÂL</div>
+                            <div class="reminder-date">01/05</div>
+                        </div>
+                        <div class="reminder-item">
+                            <div class="reminder-check done"></div>
+                            <div class="reminder-text done">Tảo mộ đầu năm</div>
+                            <div class="reminder-date">05/04</div>
+                        </div>
+                        <button class="add-btn"><i class="fas fa-plus"></i> Thêm nhắc nhở</button>
+                    </div>
+
+                </aside>
+            </div>
+        </div>
+
+        <!-- ═══════ PAGE: MONTH ═══════ -->
+        <div class="page" id="page-month">
+            <div class="month-header">
+                <div class="month-nav">
+                    <button class="month-btn"><i class="fas fa-chevron-left"></i></button>
+                    <div class="month-title">Tháng 4, 2026</div>
+                    <button class="month-btn"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="view-toggle">
+                    <button class="view-btn active">Tháng</button>
+                    <button class="view-btn">Tuần</button>
+                    <button class="view-btn">Năm</button>
+                </div>
+            </div>
+            <div class="month-grid">
+                <div class="mg-dow">Chủ Nhật</div><div class="mg-dow">Thứ Hai</div><div class="mg-dow">Thứ Ba</div><div class="mg-dow">Thứ Tư</div><div class="mg-dow">Thứ Năm</div><div class="mg-dow">Thứ Sáu</div><div class="mg-dow">Thứ Bảy</div>
+
+                <div class="mg-cell other"><div class="s-num">29</div><div class="l-num">12/2</div></div>
+                <div class="mg-cell other"><div class="s-num">30</div><div class="l-num">13/2</div></div>
+                <div class="mg-cell other"><div class="s-num">31</div><div class="l-num">14/2</div></div>
+                <div class="mg-cell"><div class="s-num">1</div><div class="l-num">15/2</div><div class="ev">Rằm tháng 2</div></div>
+                <div class="mg-cell"><div class="s-num">2</div><div class="l-num">16/2</div></div>
+                <div class="mg-cell"><div class="s-num">3</div><div class="l-num">17/2</div></div>
+                <div class="mg-cell"><div class="s-num">4</div><div class="l-num">18/2</div></div>
+
+                <div class="mg-cell sun"><div class="s-num">5</div><div class="l-num">19/2</div><div class="ev fest">Lễ hội Chùa Hương</div></div>
+                <div class="mg-cell"><div class="s-num">6</div><div class="l-num">20/2</div></div>
+                <div class="mg-cell"><div class="s-num">7</div><div class="l-num">21/2</div></div>
+                <div class="mg-cell today"><div class="s-num">8</div><div class="l-num">22/2</div><div class="ev">Thanh Minh</div></div>
+                <div class="mg-cell"><div class="s-num">9</div><div class="l-num">23/2</div></div>
+                <div class="mg-cell"><div class="s-num">10</div><div class="l-num">24/2</div></div>
+                <div class="mg-cell"><div class="s-num">11</div><div class="l-num">25/2</div></div>
+
+                <div class="mg-cell sun"><div class="s-num">12</div><div class="l-num">26/2</div></div>
+                <div class="mg-cell"><div class="s-num">13</div><div class="l-num">27/2</div></div>
+                <div class="mg-cell"><div class="s-num">14</div><div class="l-num">28/2</div></div>
+                <div class="mg-cell"><div class="s-num">15</div><div class="l-num">29/2</div></div>
+                <div class="mg-cell"><div class="s-num">16</div><div class="l-num">1/3</div><div class="ev">Mùng 1 tháng 3</div></div>
+                <div class="mg-cell"><div class="s-num">17</div><div class="l-num">2/3</div></div>
+                <div class="mg-cell"><div class="s-num">18</div><div class="l-num">3/3</div></div>
+
+                <div class="mg-cell sun"><div class="s-num">19</div><div class="l-num">4/3</div></div>
+                <div class="mg-cell"><div class="s-num">20</div><div class="l-num">5/3</div><div class="ev">Cốc Vũ</div></div>
+                <div class="mg-cell"><div class="s-num">21</div><div class="l-num">6/3</div></div>
+                <div class="mg-cell"><div class="s-num">22</div><div class="l-num">7/3</div></div>
+                <div class="mg-cell"><div class="s-num">23</div><div class="l-num">8/3</div></div>
+                <div class="mg-cell"><div class="s-num">24</div><div class="l-num">9/3</div></div>
+                <div class="mg-cell"><div class="s-num">25</div><div class="l-num">10/3</div><div class="ev fest">Giỗ Tổ Hùng Vương</div></div>
+
+                <div class="mg-cell sun"><div class="s-num">26</div><div class="l-num">11/3</div></div>
+                <div class="mg-cell"><div class="s-num">27</div><div class="l-num">12/3</div></div>
+                <div class="mg-cell"><div class="s-num">28</div><div class="l-num">13/3</div></div>
+                <div class="mg-cell"><div class="s-num">29</div><div class="l-num">14/3</div></div>
+                <div class="mg-cell"><div class="s-num">30</div><div class="l-num">15/3</div><div class="ev">Rằm tháng 3</div></div>
+                <div class="mg-cell other"><div class="s-num">1</div><div class="l-num">16/3</div></div>
+                <div class="mg-cell other"><div class="s-num">2</div><div class="l-num">17/3</div></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ═══════ DAY MODAL ═══════ -->
+    <div class="modal-overlay" id="dayModal">
+        <div class="modal">
+            <div class="modal-head">
+                <button class="modal-close" onclick="closeDayModal()"><i class="fas fa-times"></i></button>
+                <div class="modal-day">08</div>
+                <div class="modal-date">Thứ Tư, 08 tháng 4, 2026</div>
+                <div class="modal-lunar"><i class="fas fa-moon"></i> 22 tháng 2, Bính Ngọ — Canh Thìn ngày</div>
+            </div>
+            <div class="modal-body">
+                <div class="detail-section">
+                    <h3><i class="fas fa-info-circle"></i> Thông tin chung</h3>
+                    <div class="detail-row"><span class="detail-label">Ngày Dương lịch</span><span class="detail-val">08/04/2026</span></div>
+                    <div class="detail-row"><span class="detail-label">Ngày Âm lịch</span><span class="detail-val">22 tháng 2</span></div>
+                    <div class="detail-row"><span class="detail-label">Năm Can Chi</span><span class="detail-val">Bính Ngọ</span></div>
+                    <div class="detail-row"><span class="detail-label">Con giáp</span><span class="detail-val">🐴 Ngọ (Ngựa)</span></div>
+                    <div class="detail-row"><span class="detail-label">Ngũ hành</span><span class="detail-val">Hoả — Thiên Hà Thuỷ</span></div>
+                    <div class="detail-row"><span class="detail-label">Tiết khí</span><span class="detail-val">Thanh Minh (清明)</span></div>
+                    <div class="detail-row"><span class="detail-label">Trực</span><span class="detail-val">Trực Bình</span></div>
+                    <div class="detail-row"><span class="detail-label">Sao</span><span class="detail-val">Sao Ngưu (Tốt)</span></div>
+                </div>
+                <div class="detail-section">
+                    <h3><i class="fas fa-check-circle" style="color:#228B22"></i> Việc nên làm</h3>
+                    <div class="tag-group">
+                        <span class="tag-good">Cúng tế</span><span class="tag-good">Cầu phúc</span>
+                        <span class="tag-good">Xuất hành</span><span class="tag-good">Khai trương</span>
+                        <span class="tag-good">Ký kết</span><span class="tag-good">Nhập trạch</span>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3><i class="fas fa-times-circle" style="color:#D4475C"></i> Việc nên tránh</h3>
+                    <div class="tag-group">
+                        <span class="tag-bad">Động thổ</span><span class="tag-bad">Phá dỡ</span>
+                        <span class="tag-bad">An táng</span>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3><i class="fas fa-compass" style="color:var(--text-gold)"></i> Phương hướng</h3>
+                    <div class="detail-row"><span class="detail-label">Hướng tốt</span><span class="detail-val good">Đông Nam, Tây Bắc</span></div>
+                    <div class="detail-row"><span class="detail-label">Hướng xấu</span><span class="detail-val bad">Tây Nam</span></div>
+                    <div class="detail-row"><span class="detail-label">Giờ Hoàng Đạo</span><span class="detail-val good">Tý, Sửu, Thìn, Tỵ, Mùi, Tuất</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════ FOOTER ═══════ -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-grid">
+                <div>
+                    <div class="footer-brand-head">
+                        <img src="lich-so-icon.png" alt="Lịch Số">
+                        <span class="footer-brand-name">Lịch Số</span>
+                    </div>
+                    <p class="footer-desc">
+                        Lịch Vạn Niên Số 1 Việt Nam — Nơi truyền thống gặp gỡ công nghệ.<br>
+                        Tra cứu lịch âm dương, ngày tốt, phong thuỷ và khám phá văn hoá dân tộc Việt.
+                    </p>
+                    <div class="footer-social">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-youtube"></i></a>
+                        <a href="#"><i class="fab fa-tiktok"></i></a>
+                        <a href="#"><i class="fas fa-envelope"></i></a>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h4>Tính năng</h4>
+                    <a href="#">Lịch Hôm Nay</a>
+                    <a href="#">Tra cứu ngày</a>
+                    <a href="#">Ngày tốt xấu</a>
+                    <a href="#">Phong Thuỷ</a>
+                    <a href="#">Tử Vi AI</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Khám phá</h4>
+                    <a href="#">Lịch sử Việt Nam</a>
+                    <a href="#">Văn hoá dân gian</a>
+                    <a href="#">Nhân vật lịch sử</a>
+                    <a href="#">Lễ hội truyền thống</a>
+                    <a href="#">Ca dao tục ngữ</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Hỗ trợ</h4>
+                    <a href="#">Giới thiệu</a>
+                    <a href="#">Liên hệ</a>
+                    <a href="#">Chính sách</a>
+                    <a href="#">Góp ý</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <div>
+                    <span>© 2026 Lịch Số by <strong>Zenix Labs</strong> — Lịch Vạn Niên Việt Nam.</span><br>
+                    <span>Thuật toán Âm lịch dựa trên <a href="https://www.informatik.uni-leipzig.de/~duc/amlich/" target="_blank" rel="noopener">Lịch Vạn Niên mở</a> của <strong>Hồ Ngọc Đức</strong>.</span>
+                </div>
+                <span>Thiết kế với ❤️ cho người Việt</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Back to Top -->
+    <button class="btt" id="btt"><i class="fas fa-arrow-up"></i></button>
+
+    <!-- ═══════ JAVASCRIPT ═══════ -->
+    <script>
+        // Theme toggle
+        const themeBtn = document.getElementById('themeToggle');
+        const root = document.documentElement;
+        const saved = localStorage.getItem('theme');
+        if (saved) {
+            root.setAttribute('data-theme', saved);
+            themeBtn.innerHTML = saved === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        }
+        themeBtn.addEventListener('click', () => {
+            const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+            root.setAttribute('data-theme', next);
+            themeBtn.innerHTML = next === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+            localStorage.setItem('theme', next);
+        });
+
+        // Hamburger
+        document.getElementById('hamburger').addEventListener('click', () => {
+            document.getElementById('mainNav').classList.toggle('open');
+        });
+
+        // Page navigation
+        function switchPage(page) {
+            document.querySelectorAll('.nav-link[data-page]').forEach(el => el.classList.toggle('active', el.dataset.page === page));
+            document.querySelectorAll('.ptab[data-page]').forEach(el => el.classList.toggle('active', el.dataset.page === page));
+            document.querySelectorAll('.page').forEach(el => {
+                const active = el.id === `page-${page}`;
+                el.classList.toggle('active', active);
+                el.style.display = active ? 'block' : 'none';
+            });
+        }
+        document.querySelectorAll('.page').forEach(p => p.style.display = p.classList.contains('active') ? 'block' : 'none');
+        document.querySelectorAll('.nav-link[data-page]').forEach(el => el.addEventListener('click', e => { e.preventDefault(); switchPage(el.dataset.page); document.getElementById('mainNav').classList.remove('open'); }));
+        document.querySelectorAll('.ptab[data-page]').forEach(el => el.addEventListener('click', () => switchPage(el.dataset.page)));
+
+        // Day modal
+        function openDayModal() { document.getElementById('dayModal').classList.add('open'); document.body.style.overflow = 'hidden'; }
+        function closeDayModal() { document.getElementById('dayModal').classList.remove('open'); document.body.style.overflow = ''; }
+        document.getElementById('dayModal').addEventListener('click', e => { if (e.target === document.getElementById('dayModal')) closeDayModal(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDayModal(); });
+        document.querySelectorAll('.mg-cell:not(.other)').forEach(c => c.addEventListener('click', openDayModal));
+
+        // Hero bookmark toggle
+        document.querySelectorAll('.hero-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const i = btn.querySelector('i');
+                if (i.classList.contains('far')) { i.classList.replace('far', 'fas'); i.style.color = 'var(--bg-gold)'; }
+                else { i.classList.replace('fas', 'far'); i.style.color = ''; }
+            });
+        });
+
+        // Reminder toggle
+        document.querySelectorAll('.reminder-check').forEach(c => {
+            c.addEventListener('click', () => {
+                c.classList.toggle('done');
+                const t = c.nextElementSibling;
+                if (t) t.classList.toggle('done');
+            });
+        });
+
+        // Back to top
+        const btt = document.getElementById('btt');
+        window.addEventListener('scroll', () => btt.classList.toggle('show', window.scrollY > 300));
+        btt.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    </script>
+
+</body>
+</html>

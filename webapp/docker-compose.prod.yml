@@ -1,0 +1,136 @@
+# Lịch Số - Docker Compose Production Override
+
+# ============================================
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# ============================================
+
+services:
+  api:
+    build:
+      target: production
+    volumes: []
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+      - DB_SSL_MODE=prefer
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 128M
+          cpus: "0.25"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    restart: always
+
+  web:
+    build:
+      target: production
+    volumes: []
+    environment:
+      - NODE_ENV=production
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 128M
+          cpus: "0.25"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    restart: always
+
+  nginx:
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Uncomment for SSL
+      # - /etc/letsencrypt:/etc/letsencrypt:ro
+      # - /etc/ssl/certs/dhparam.pem:/etc/ssl/certs/dhparam.pem:ro
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.5"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    restart: always
+
+  postgres:
+    ports: []
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-zplus_db}
+      POSTGRES_USER: ${POSTGRES_USER:-zplus_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: always
+
+  mongodb:
+    ports: []
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: always
+
+  redis:
+    ports: []
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD:-}
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+        reservations:
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+    restart: always

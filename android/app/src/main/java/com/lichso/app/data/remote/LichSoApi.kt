@@ -1,0 +1,315 @@
+package com.lichso.app.data.remote
+
+import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import javax.inject.Inject
+import javax.inject.Singleton
+
+private const val BASE_URL = "https://api.lichso.vn/api"
+
+// ── Generic API response wrapper ──
+
+data class ApiResponse<T>(
+    val success: Boolean,
+    val message: String?,
+    val data: T?,
+)
+
+// ── Content data classes ──
+
+data class ContentEvent(
+    val id: Long,
+    val title: String,
+    val description: String?,
+    @SerializedName("event_day") val eventDay: Int,
+    @SerializedName("event_month") val eventMonth: Int,
+    @SerializedName("event_year") val eventYear: Int?,
+    @SerializedName("image_url") val imageUrl: String?,
+    @SerializedName("short_description") val shortDescription: String?,
+)
+
+data class FamousPerson(
+    val id: String,
+    val name: String,
+    val biography: String?,
+    @SerializedName("birth_year") val birthYear: Int?,
+    @SerializedName("avatar_url") val avatarUrl: String?,
+    val description: String?,
+)
+
+data class Article(
+    val id: String,
+    val title: String,
+    val slug: String,
+    val excerpt: String?,
+    val content: String?,
+    @SerializedName("featured_image") val featuredImage: String?,
+    @SerializedName("published_at") val publishedAt: String?,
+    val category: ArticleCategory?,
+    @SerializedName("reading_time") val readingTime: Int? = null,
+)
+
+data class ArticleCategory(
+    val id: String,
+    val name: String,
+    val slug: String,
+)
+
+data class Festival(
+    val id: String,
+    val name: String,
+    @SerializedName("lunar_month") val lunarMonth: Int?,
+    @SerializedName("lunar_day") val lunarDay: Int?,
+    val description: String?,
+    val location: String?,
+    @SerializedName("image_url") val imageUrl: String?,
+)
+
+data class Quote(
+    val id: String,
+    val quote: String,
+    val author: String?,
+)
+
+data class DayContentResponse(val date: String, val data: DayContentData?)
+data class DayContentData(
+    val quote: Quote?,
+    val events: List<ContentEvent>?,
+    @SerializedName("famous_people") val famousPeople: List<FamousPerson>?,
+    val festivals: List<Festival>?,
+    val articles: List<Article>?,
+)
+
+// ── Quiz data classes ──
+
+data class QuizQuestion(
+    val id: Long,
+    val content: String,
+    @SerializedName("option_a") val optionA: String,
+    @SerializedName("option_b") val optionB: String,
+    @SerializedName("option_c") val optionC: String,
+    @SerializedName("option_d") val optionD: String,
+    val category: String,
+    val difficulty: String,
+    @SerializedName("article_id") val articleId: Long? = null,
+    val correct: String? = null,
+    @SerializedName("correct_answer") val correctAnswer: String? = null,
+    val explanation: String? = null,
+)
+
+data class SubmitAnswerResult(
+    @SerializedName("question_id") val questionId: Long,
+    val chosen: String,
+    val correct: String,
+    @SerializedName("is_correct") val isCorrect: Boolean,
+    val explanation: String?,
+    @SerializedName("article_id") val articleId: Long?,
+    @SerializedName("points_earned") val pointsEarned: Int,
+)
+
+data class SessionResult(
+    @SerializedName("session_id") val sessionId: String,
+    val score: Int,
+    val total: Int,
+    @SerializedName("points_earned") val pointsEarned: Int,
+    @SerializedName("bonus_points") val bonusPoints: Int,
+    @SerializedName("new_week_score") val newWeekScore: Int,
+    val rank: Int,
+)
+
+data class LeaderboardEntry(
+    val rank: Int = 0,  // not in JSON; populated from list index in repository
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("display_name") val displayName: String,
+    @SerializedName("avatar_url") val avatarUrl: String?,
+    @SerializedName("week_score") val weekScore: Int,
+    @SerializedName("month_score") val monthScore: Int,
+    @SerializedName("total_score") val totalScore: Int,
+)
+
+data class LeaderboardResponse(val entries: List<LeaderboardEntry>)
+
+data class MyRankResponse(
+    val rank: Int,
+    @SerializedName("week_score") val weekScore: Int,
+    @SerializedName("month_score") val monthScore: Int,
+    @SerializedName("total_score") val totalScore: Int,
+    @SerializedName("cur_streak") val curStreak: Int,
+)
+
+data class QuizSession(
+    val id: String,
+    @SerializedName("session_type") val sessionType: String,
+    val category: String?,
+    @SerializedName("question_ids") val questionIds: List<Long>,
+    val questions: List<QuizQuestion>?,
+)
+
+data class StartSessionResponse(
+    val session: QuizSession,
+    val questions: List<QuizQuestion>,
+)
+
+// ── API Client ──
+
+@Singleton
+class LichSoApi @Inject constructor(
+    private val client: OkHttpClient,
+) {
+    private val gson = Gson()
+    private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
+
+    // ── Helpers ──
+
+    private fun get(path: String, token: String? = null): Request {
+        val builder = Request.Builder().url("$BASE_URL$path").get()
+        if (token != null) builder.header("Authorization", "Bearer $token")
+        return builder.build()
+    }
+
+    private fun post(path: String, body: Map<String, Any?>, token: String? = null): Request {
+        val json = gson.toJson(body)
+        val requestBody = json.toRequestBody(jsonMediaType)
+        val builder = Request.Builder().url("$BASE_URL$path").post(requestBody)
+        if (token != null) builder.header("Authorization", "Bearer $token")
+        return builder.build()
+    }
+
+    private inline fun <reified T> execute(request: Request): Result<T> {
+        return try {
+            val response = client.newCall(request).execute()
+            val body = response.body?.string()
+            if (!response.isSuccessful || body.isNullOrBlank()) {
+                return Result.failure(Exception("HTTP ${response.code}"))
+            }
+            val type = object : TypeToken<ApiResponse<T>>() {}.type
+            val wrapper: ApiResponse<T> = gson.fromJson(body, type)
+            if (!wrapper.success || wrapper.data == null) {
+                return Result.failure(Exception(wrapper.message ?: "API error"))
+            }
+            Result.success(wrapper.data)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // ── Content endpoints ──
+
+    suspend fun getTodayContent(): Result<DayContentResponse> = withContext(Dispatchers.IO) {
+        execute(get("/day-content/today"))
+    }
+
+    suspend fun getEventsByDate(month: Int, day: Int): Result<List<ContentEvent>> =
+        withContext(Dispatchers.IO) {
+            execute(get("/events/date/$month/$day"))
+        }
+
+    suspend fun getFamousPeopleByBirthday(month: Int, day: Int): Result<List<FamousPerson>> =
+        withContext(Dispatchers.IO) {
+            execute(get("/famous-people/birthday/$month/$day"))
+        }
+
+    suspend fun getArticles(
+        page: Int = 1,
+        limit: Int = 20,
+        category: String? = null,
+    ): Result<List<Article>> = withContext(Dispatchers.IO) {
+        val path = buildString {
+            append("/articles/?page=$page&limit=$limit")
+            if (category != null) append("&category=${category.encodeUrl()}")
+        }
+        execute(get(path))
+    }
+
+    suspend fun getArticle(id: String): Result<Article> = withContext(Dispatchers.IO) {
+        execute(get("/articles/$id"))
+    }
+
+    suspend fun getFestivalsByLunarDate(month: Int, day: Int): Result<List<Festival>> =
+        withContext(Dispatchers.IO) {
+            execute(get("/festivals/lunar/$month/$day"))
+        }
+
+    suspend fun getTodayQuote(): Result<Quote> = withContext(Dispatchers.IO) {
+        execute(get("/quotes/today"))
+    }
+
+    // ── Quiz public endpoints ──
+
+    suspend fun getDailyQuizQuestions(date: String): Result<List<QuizQuestion>> =
+        withContext(Dispatchers.IO) {
+            execute(get("/quiz/questions/daily?date=$date"))
+        }
+
+    suspend fun getQuizQuestions(
+        category: String? = null,
+        difficulty: String? = null,
+        limit: Int = 10,
+    ): Result<List<QuizQuestion>> = withContext(Dispatchers.IO) {
+        val path = buildString {
+            append("/quiz/questions?limit=$limit")
+            if (category != null) append("&category=${category.encodeUrl()}")
+            if (difficulty != null) append("&difficulty=${difficulty.encodeUrl()}")
+        }
+        execute(get(path))
+    }
+
+    suspend fun getLeaderboard(
+        period: String = "weekly",
+        limit: Int = 50,
+    ): Result<List<LeaderboardEntry>> = withContext(Dispatchers.IO) {
+        execute(get("/quiz/leaderboard?period=$period&limit=$limit"))
+    }
+
+    // ── Quiz auth endpoints ──
+
+    suspend fun startQuizSession(
+        token: String,
+        sessionType: String,
+        category: String?,
+    ): Result<StartSessionResponse> = withContext(Dispatchers.IO) {
+        val body = mapOf("session_type" to sessionType, "category" to category)
+        execute(post("/quiz/sessions", body, token))
+    }
+
+    suspend fun submitAnswer(
+        token: String,
+        sessionId: String,
+        questionId: Long,
+        chosen: String,
+        timeMs: Int,
+    ): Result<SubmitAnswerResult> = withContext(Dispatchers.IO) {
+        val body = mapOf(
+            "question_id" to questionId,
+            "chosen" to chosen,
+            "time_ms" to timeMs,
+        )
+        execute(post("/quiz/sessions/$sessionId/submit", body, token))
+    }
+
+    suspend fun finishQuizSession(
+        token: String,
+        sessionId: String,
+    ): Result<SessionResult> = withContext(Dispatchers.IO) {
+        execute(post("/quiz/sessions/$sessionId/finish", emptyMap(), token))
+    }
+
+    suspend fun getMyRank(
+        token: String,
+        period: String = "weekly",
+    ): Result<MyRankResponse> = withContext(Dispatchers.IO) {
+        execute(get("/quiz/leaderboard/me?period=$period", token))
+    }
+
+    // ── Helpers ──
+
+    private fun String.encodeUrl(): String =
+        java.net.URLEncoder.encode(this, "UTF-8")
+}

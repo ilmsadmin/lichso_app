@@ -1,0 +1,74 @@
+# golangci-lint configuration
+# Docs: https://golangci-lint.run/usage/configuration/
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - typecheck
+    - bodyclose
+    - goimports
+    - goconst
+    - gocritic
+    - gosec
+    - misspell
+    - prealloc
+    - unconvert
+    - unparam
+    - whitespace
+
+linters-settings:
+  errcheck:
+    check-blank: false
+    check-type-assertions: true
+
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance
+      - style
+
+  gosec:
+    excludes:
+      - G101 # Look for hard coded credentials (false positives)
+      - G304 # Potential file inclusion via variable
+
+  misspell:
+    locale: US
+
+  goimports:
+    local-prefixes: github.com/zplus/base
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on test files
+    - path: _test\.go
+      linters:
+        - goconst
+        - gosec
+        - unparam
+
+    # Exclude known false positives
+    - linters:
+        - gocritic
+      text: "commentedOutCode"
+
+  max-issues-per-linter: 50
+  max-same-issues: 10

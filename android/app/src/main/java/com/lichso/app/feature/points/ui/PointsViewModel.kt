@@ -2,6 +2,7 @@ package com.lichso.app.feature.points.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lichso.app.data.settings.AppSettingsRepository
 import com.lichso.app.feature.points.data.PointsRepository
 import com.lichso.app.feature.points.data.mapToLedgerEntries
 import com.lichso.app.feature.points.domain.*
@@ -28,6 +29,7 @@ class PointsViewModel @Inject constructor(
     private val awardPoints: AwardPointsUseCase,
     private val spendDailyPoints: SpendDailyPointsUseCase,
     private val dailyCheckIn: DailyCheckInUseCase,
+    private val settings: AppSettingsRepository,
 ) : ViewModel() {
 
     val balance: StateFlow<PointsBalance> = repo.observeLedger()
@@ -50,12 +52,25 @@ class PointsViewModel @Inject constructor(
         .mapToLedgerEntries()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    // ── Daily Oracle popup — hiển thị 1 lần/ngày khi mở app ──
+    val shouldShowDailyOraclePopup: StateFlow<Boolean> =
+        settings.dailyOraclePopupLastShownEpochDay
+            .map { lastShown -> lastShown < clock.todayEpochDay() }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
     // ── One-shot events (rank-up, insufficient points, etc) ──
     private val _events = MutableSharedFlow<PointsEvent>(extraBufferCapacity = 8)
     val events: SharedFlow<PointsEvent> = _events
 
     init {
         viewModelScope.launch { repo.rolloverIfNeeded() }
+    }
+
+    /** Đánh dấu popup đã hiển thị hôm nay — gọi ngay khi Dialog được show lần đầu */
+    fun dismissDailyOraclePopup() {
+        viewModelScope.launch {
+            settings.markDailyOraclePopupShown(clock.todayEpochDay())
+        }
     }
 
     // ── Intents ──

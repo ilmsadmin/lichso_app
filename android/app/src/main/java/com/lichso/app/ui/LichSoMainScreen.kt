@@ -58,6 +58,7 @@ import com.lichso.app.update.InAppUpdateManager
 import com.lichso.app.feature.points.ui.PointsViewModel
 import com.lichso.app.feature.points.ui.PointsEvent
 import com.lichso.app.feature.points.ui.RankUpDialog
+import com.lichso.app.feature.points.ui.DailyOracleDialog
 import com.lichso.app.feature.points.domain.ActionType
 import com.lichso.app.feature.points.domain.Clock as PointsClock
 
@@ -75,6 +76,7 @@ fun LichSoMainScreen(
     var initialPrayerId by remember { mutableStateOf<Int?>(null) }
     var initialAiMessage by remember { mutableStateOf<String?>(null) }
     var initialSearchTool by remember { mutableStateOf<String?>(null) }
+    var quizCategory by remember { mutableStateOf<String?>(null) }
     val homeViewModel: HomeViewModel = hiltViewModel()
     val pointsViewModel: PointsViewModel = hiltViewModel()
     val pointsClock: PointsClock = remember { com.lichso.app.feature.points.domain.SystemClock() }
@@ -111,9 +113,32 @@ fun LichSoMainScreen(
         )
     }
 
-    // ── Analytics: log screen_view mỗi khi route đổi ──
+    // ── Daily Oracle Popup: hiển thị 1 lần/ngày khi mở app ──
+    // shouldShowDailyOraclePopup là true khi chưa show hôm nay → chốt vào local state
+    // ngay lập tức để tránh dialog biến mất khi DataStore ghi xong và flow emit false.
+    val shouldShowDailyOracle by pointsViewModel.shouldShowDailyOraclePopup.collectAsState()
+    var dailyOracleVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(shouldShowDailyOracle) {
+        if (shouldShowDailyOracle && !dailyOracleVisible) {
+            dailyOracleVisible = true
+            pointsViewModel.dismissDailyOraclePopup() // ghi ngày hôm nay vào DataStore
+        }
+    }
+    if (dailyOracleVisible) {
+        DailyOracleDialog(
+            clock = pointsClock,
+            onDismiss = { dailyOracleVisible = false },
+            onAskAi = { prompt ->
+                dailyOracleVisible = false
+                initialAiMessage = prompt
+                currentRoute = "chat"
+            },
+        )
+    }
+
+    // ── Analytics: log screen_view + custom screen event mỗi khi route đổi ──
     LaunchedEffect(currentRoute) {
-        Analytics.logScreen(currentRoute, screenClass = "LichSoMainScreen")
+        Analytics.logScreen(currentRoute)
     }
 
     // ── Phase 4+: trao điểm khi user mở các route quan trọng (cap theo dailyCap) ──
@@ -159,7 +184,7 @@ fun LichSoMainScreen(
         }
     }
 
-    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays", "profile", "oracle_draw", "oracle_result", "ledger", "daily_store", "zodiac_collection", "date_picker", "streak_freeze", "points_tutorial", "tiet_khi", "widget_manager") || prayerDetailShowing || taskEditShowing
+    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays", "profile", "oracle_draw", "oracle_result", "ledger", "daily_store", "zodiac_collection", "date_picker", "streak_freeze", "points_tutorial", "tiet_khi", "widget_manager", "quiz_session", "quiz_result", "leaderboard", "knowledge_feed") || prayerDetailShowing || taskEditShowing
 
     val toggleDrawer: () -> Unit = {
         scope.launch {
@@ -297,6 +322,8 @@ fun LichSoMainScreen(
                             ToolAction.CYCLE_TRACKER -> currentRoute = "cycle_tracker"
                             ToolAction.WORLD_CLOCK -> currentRoute = "world_clock"
                             ToolAction.WIDGET_MANAGER -> currentRoute = "widget_manager"
+                            ToolAction.QUIZ -> currentRoute = "quiz_home"
+                            ToolAction.KNOWLEDGE_FEED -> currentRoute = "knowledge_feed"
                             else -> {}
                         }
                     }
@@ -428,6 +455,44 @@ fun LichSoMainScreen(
                 "widget_manager" -> WidgetManagerScreen(
                     onBackClick = { currentRoute = "tools" }
                 )
+                "quiz_home" -> com.lichso.app.feature.quiz.QuizHomeScreen(
+                    onBackClick = { currentRoute = "home" },
+                    onStartDaily = {
+                        quizCategory = null
+                        currentRoute = "quiz_session"
+                    },
+                    onStartTopic = { category ->
+                        quizCategory = category
+                        currentRoute = "quiz_session"
+                    },
+                    onLeaderboard = { currentRoute = "leaderboard" },
+                )
+                "quiz_session" -> com.lichso.app.feature.quiz.QuizSessionScreen(
+                    onBackClick = { currentRoute = "quiz_home" },
+                    onFinished = { currentRoute = "quiz_result" },
+                    initialCategory = quizCategory,
+                    onAskAi = { prompt ->
+                        initialAiMessage = prompt
+                        currentRoute = "chat"
+                    },
+                )
+                "quiz_result" -> com.lichso.app.feature.quiz.QuizResultScreen(
+                    onBackClick = { currentRoute = "quiz_home" },
+                    onAskAi = { prompt ->
+                        initialAiMessage = prompt
+                        currentRoute = "chat"
+                    },
+                )
+                "leaderboard" -> com.lichso.app.feature.quiz.LeaderboardScreen(
+                    onBackClick = { currentRoute = "quiz_home" },
+                )
+                "knowledge_feed" -> com.lichso.app.feature.content.KnowledgeFeedScreen(
+                    onBackClick = { currentRoute = "tools" },
+                    onAskAi = { prompt ->
+                        initialAiMessage = prompt
+                        currentRoute = "chat"
+                    },
+                )
                 else -> HomeScreen(
                     onSettingsClick = { currentRoute = "settings" },
                     onMenuClick = toggleDrawer,
@@ -488,6 +553,7 @@ private fun DrawerMenuContent(
     val mainItems = listOf(
         DrawerMenuItem("home", "Trang chủ", Icons.Outlined.Today, Icons.Filled.Today),
         DrawerMenuItem("bookmarks", "Ngày đã lưu", Icons.Outlined.Bookmarks, Icons.Filled.Bookmarks),
+        DrawerMenuItem("prayers", "Văn Khấn", PrayerIcons.Outlined, PrayerIcons.Filled),
     )
 
     val exploreItems = listOf(
@@ -831,7 +897,7 @@ private fun BottomNavBar(
         NavItem("tasks", "Ghi chú", Icons.Outlined.EditNote, Icons.Filled.EditNote),
     )
     val rightItems = listOf(
-        NavItem("prayers", "Văn Khấn", PrayerIcons.Outlined, PrayerIcons.Filled),
+        NavItem("quiz_home", "Đố Vui", Icons.Outlined.Quiz, Icons.Filled.Quiz),
         NavItem("tools", "Tiện ích", Icons.Outlined.Apps, Icons.Filled.Apps),
     )
 

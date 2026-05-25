@@ -1,0 +1,113 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Calendar body gradient (deep red) -->
+    <linearGradient id="calBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#B03040"/>
+      <stop offset="40%" stop-color="#9B2335"/>
+      <stop offset="100%" stop-color="#7A1A28"/>
+    </linearGradient>
+    <!-- Inner panel gradient (gold/parchment) -->
+    <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E8D5A0"/>
+      <stop offset="30%" stop-color="#D4B878"/>
+      <stop offset="70%" stop-color="#C8A84E"/>
+      <stop offset="100%" stop-color="#B89740"/>
+    </linearGradient>
+    <!-- Calendar hooks gradient -->
+    <linearGradient id="hookGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E8D5A0"/>
+      <stop offset="50%" stop-color="#C8A84E"/>
+      <stop offset="100%" stop-color="#B89740"/>
+    </linearGradient>
+    <!-- Bird body gradient -->
+    <linearGradient id="birdGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B2030"/>
+      <stop offset="50%" stop-color="#6B1520"/>
+      <stop offset="100%" stop-color="#5A1018"/>
+    </linearGradient>
+    <!-- Shadow filter -->
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+    <filter id="innerGlow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur"/>
+      <feOffset dx="0" dy="2" result="offsetBlur"/>
+      <feFlood flood-color="#C8A84E" flood-opacity="0.3" result="color"/>
+      <feComposite in="color" in2="offsetBlur" operator="in" result="shadow"/>
+      <feMerge>
+        <feMergeNode in="shadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Calendar Body -->
+  <rect x="56" y="80" width="400" height="380" rx="40" ry="40" fill="url(#calBg)" filter="url(#shadow)"/>
+
+  <!-- Calendar Hooks -->
+  <rect x="152" y="48" width="28" height="72" rx="14" fill="url(#hookGrad)"/>
+  <rect x="332" y="48" width="28" height="72" rx="14" fill="url(#hookGrad)"/>
+
+  <!-- Inner gold panel -->
+  <rect x="80" y="130" width="352" height="310" rx="24" ry="24" fill="url(#panelGrad)"/>
+
+  <!-- Đông Sơn Lạc Bird (stylized geometric) -->
+  <g transform="translate(256, 290)" filter="url(#innerGlow)">
+    <!-- Bird body (geometric style inspired by Đông Sơn bronze drum) -->
+    <g fill="url(#birdGrad)" stroke="#5A1018" stroke-width="2">
+      <!-- Main body - elongated oval -->
+      <ellipse cx="0" cy="-10" rx="70" ry="35"/>
+
+      <!-- Head -->
+      <circle cx="80" cy="-25" r="22"/>
+      <!-- Eye -->
+      <circle cx="85" cy="-28" r="8" fill="#E8D5A0"/>
+      <circle cx="87" cy="-28" r="4" fill="#3A0A10"/>
+
+      <!-- Long beak -->
+      <polygon points="100,-30 175,-40 100,-22" fill="url(#birdGrad)" stroke="#5A1018" stroke-width="2"/>
+
+      <!-- Neck connection -->
+      <path d="M 55,-20 Q 70,-15 80,-25" fill="url(#birdGrad)" stroke="none"/>
+      <path d="M 55,-5 Q 70,0 75,-15" fill="url(#birdGrad)" stroke="none"/>
+
+      <!-- Wing decorations (geometric stripes like Đông Sơn pattern) -->
+      <line x1="-40" y1="-25" x2="40" y2="-25" stroke="#E8D5A0" stroke-width="3" opacity="0.4"/>
+      <line x1="-35" y1="-15" x2="45" y2="-15" stroke="#E8D5A0" stroke-width="2" opacity="0.3"/>
+      <line x1="-30" y1="-5" x2="40" y2="-5" stroke="#E8D5A0" stroke-width="2" opacity="0.3"/>
+      <line x1="-25" y1="5" x2="35" y2="5" stroke="#E8D5A0" stroke-width="3" opacity="0.4"/>
+      <line x1="-20" y1="15" x2="25" y2="15" stroke="#E8D5A0" stroke-width="2" opacity="0.3"/>
+
+      <!-- Tail feathers (geometric fan) -->
+      <g transform="translate(-70, 0)">
+        <line x1="0" y1="0" x2="-55" y2="-40" stroke="url(#birdGrad)" stroke-width="8" stroke-linecap="round"/>
+        <line x1="0" y1="0" x2="-60" y2="-20" stroke="url(#birdGrad)" stroke-width="8" stroke-linecap="round"/>
+        <line x1="0" y1="0" x2="-60" y2="0" stroke="url(#birdGrad)" stroke-width="8" stroke-linecap="round"/>
+        <line x1="0" y1="0" x2="-55" y2="20" stroke="url(#birdGrad)" stroke-width="8" stroke-linecap="round"/>
+        <line x1="0" y1="0" x2="-45" y2="35" stroke="url(#birdGrad)" stroke-width="8" stroke-linecap="round"/>
+        <!-- Feather tips -->
+        <line x1="-50" y1="-38" x2="-60" y2="-45" stroke="#5A1018" stroke-width="4" stroke-linecap="round"/>
+        <line x1="-55" y1="-18" x2="-65" y2="-22" stroke="#5A1018" stroke-width="4" stroke-linecap="round"/>
+        <line x1="-55" y1="2" x2="-66" y2="2" stroke="#5A1018" stroke-width="4" stroke-linecap="round"/>
+        <line x1="-50" y1="22" x2="-60" y2="25" stroke="#5A1018" stroke-width="4" stroke-linecap="round"/>
+        <line x1="-42" y1="37" x2="-50" y2="44" stroke="#5A1018" stroke-width="4" stroke-linecap="round"/>
+      </g>
+
+      <!-- Legs -->
+      <g transform="translate(10, 30)">
+        <!-- Left leg -->
+        <line x1="-15" y1="0" x2="-20" y2="40" stroke="url(#birdGrad)" stroke-width="6" stroke-linecap="round"/>
+        <!-- Left foot -->
+        <line x1="-20" y1="40" x2="-35" y2="50" stroke="#5A1018" stroke-width="4" stroke-linecap="round"/>
+        <line x1="-20" y1="40" x2="-15" y2="52" stroke="#5A1018" stroke-width="4" stroke-linecap="round"/>
+        <line x1="-20" y1="40" x2="-5" y2="48" stroke="#5A1018" stroke-width="4" stroke-linecap="round"/>
+        <!-- Right leg -->
+        <line x1="20" y1="0" x2="25" y2="40" stroke="url(#birdGrad)" stroke-width="6" stroke-linecap="round"/>
+        <!-- Right foot -->
+        <line x1="25" y1="40" x2="10" y2="50" stroke="#5A1018" stroke-width="4" stroke-linecap="round"/>
+        <line x1="25" y1="40" x2="30" y2="52" stroke="#5A1018" stroke-width="4" stroke-linecap="round"/>
+        <line x1="25" y1="40" x2="40" y2="48" stroke="#5A1018" stroke-width="4" stroke-linecap="round"/>
+      </g>
+    </g>
+  </g>
+</svg>

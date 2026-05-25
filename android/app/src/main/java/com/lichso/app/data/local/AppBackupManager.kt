@@ -3,12 +3,12 @@ package com.lichso.app.data.local
 import android.content.Context
 import android.net.Uri
 import android.util.Base64
-import android.util.Log
 import androidx.datastore.preferences.core.*
 import com.google.gson.GsonBuilder
 import com.google.gson.annotations.SerializedName
 import com.lichso.app.data.local.dao.*
 import com.lichso.app.data.local.entity.*
+import com.lichso.app.ui.screen.settings.SettingsKeys
 import com.lichso.app.ui.screen.settings.safeSettingsData
 import com.lichso.app.ui.screen.settings.settingsDataStore
 import kotlinx.coroutines.flow.first
@@ -17,23 +17,29 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Full app backup / restore manager.
+ * Full app backup / restore manager — v2.
  *
  * Backs up ALL user data:
  *  - App settings (DataStore "lichso_settings")
  *  - AI memory (DataStore "ai_memory")
- *  - Tasks, Notes, Reminders, Bookmarks, Notifications, Chat messages (Room DB)
- *  - Family tree: members, memorials, checklist, settings, photos (Room DB)
+ *  - Tasks, Notes, Reminders, Bookmarks, Notifications, Chat messages (Room)
+ *  - Family tree: members, memorials, checklist, settings, photos (Room)
+ *  - Points Engine: ledger, action_log, daily_unlock, permanent_unlock, streak (Room)
+ *  - Countdown events, World clock cities, Cycle tracker (Room)
  *  - Profile avatar (Base64)
- *  - Family member avatars & photos (Base64)
  */
 object AppBackupManager {
 
-    private const val CURRENT_VERSION = 1
-    private const val MAX_PHOTO_BYTES = 500_000 // ~500KB per photo
+    private const val CURRENT_VERSION = 2
+    private const val MAX_PHOTO_BYTES = 500_000
+
+    // Keys known to be Long in DataStore — needed to restore correct type
+    private val LONG_PREF_KEYS = setOf(
+        SettingsKeys.DAILY_ORACLE_EPOCH_DAY.name,
+    )
 
     // ══════════════════════════════════════════
-    // Data Models
+    // Top-level backup envelope
     // ══════════════════════════════════════════
 
     data class AppBackupData(
@@ -42,14 +48,14 @@ object AppBackupManager {
         @SerializedName("appId") val appId: String = "com.lichso.app",
         @SerializedName("type") val type: String = "full_backup",
 
-        // DataStore preferences
+        // DataStore
         @SerializedName("appSettings") val appSettings: Map<String, Any?> = emptyMap(),
         @SerializedName("aiMemory") val aiMemory: Map<String, String> = emptyMap(),
 
-        // Profile avatar
+        // Profile
         @SerializedName("profileAvatarBase64") val profileAvatarBase64: String? = null,
 
-        // Room DB tables
+        // Core user data
         @SerializedName("tasks") val tasks: List<BackupTask> = emptyList(),
         @SerializedName("notes") val notes: List<BackupNote> = emptyList(),
         @SerializedName("reminders") val reminders: List<BackupReminder> = emptyList(),
@@ -63,9 +69,22 @@ object AppBackupManager {
         @SerializedName("memorialDays") val memorialDays: List<BackupMemorialDay> = emptyList(),
         @SerializedName("memorialChecklist") val memorialChecklist: List<BackupMemorialChecklist> = emptyList(),
         @SerializedName("memberPhotos") val memberPhotos: List<BackupMemberPhoto> = emptyList(),
+
+        // Points Engine v2
+        @SerializedName("pointsLedger") val pointsLedger: BackupPointsLedger? = null,
+        @SerializedName("actionLogs") val actionLogs: List<BackupActionLog> = emptyList(),
+        @SerializedName("dailyUnlocks") val dailyUnlocks: List<BackupDailyUnlock> = emptyList(),
+        @SerializedName("permanentUnlocks") val permanentUnlocks: List<BackupPermanentUnlock> = emptyList(),
+        @SerializedName("streakRecord") val streakRecord: BackupStreakRecord? = null,
+
+        // V2 features
+        @SerializedName("countdownEvents") val countdownEvents: List<BackupCountdownEvent> = emptyList(),
+        @SerializedName("worldClockCities") val worldClockCities: List<BackupWorldClockCity> = emptyList(),
+        @SerializedName("cycleSettings") val cycleSettings: BackupCycleSettings? = null,
+        @SerializedName("cycleLogs") val cycleLogs: List<BackupCycleLog> = emptyList(),
     )
 
-    // ── Backup data classes for each entity ──
+    // ── Original backup entities ──────────────────────────────────────────────
 
     data class BackupTask(
         @SerializedName("title") val title: String,
@@ -163,7 +182,7 @@ object AppBackupManager {
         @SerializedName("isSelf") val isSelf: Boolean = false,
         @SerializedName("isElder") val isElder: Boolean = false,
         @SerializedName("emoji") val emoji: String = "👤",
-        @SerializedName("spouseId") val spouseId: String? = null,       // legacy (backward compat)
+        @SerializedName("spouseId") val spouseId: String? = null,
         @SerializedName("spouseIds") val spouseIds: String = "",
         @SerializedName("spouseOrder") val spouseOrder: Int = 0,
         @SerializedName("parentIds") val parentIds: String = "",
@@ -198,35 +217,116 @@ object AppBackupManager {
         @SerializedName("photoBase64") val photoBase64: String? = null,
     )
 
+    // ── Points Engine v2 backup entities ────────────────────────────────────
+
+    data class BackupPointsLedger(
+        @SerializedName("dailyPoints") val dailyPoints: Int,
+        @SerializedName("spentDailyPoints") val spentDailyPoints: Int,
+        @SerializedName("permanentPoints") val permanentPoints: Long,
+        @SerializedName("lastResetEpochDay") val lastResetEpochDay: Long,
+        @SerializedName("updatedAt") val updatedAt: Long,
+    )
+
+    data class BackupActionLog(
+        @SerializedName("actionType") val actionType: String,
+        @SerializedName("dailyPointsAwarded") val dailyPointsAwarded: Int,
+        @SerializedName("permanentPointsAwarded") val permanentPointsAwarded: Int,
+        @SerializedName("streakMultiplierApplied") val streakMultiplierApplied: Float,
+        @SerializedName("epochDay") val epochDay: Long,
+        @SerializedName("timestamp") val timestamp: Long,
+        @SerializedName("metadata") val metadata: String? = null,
+    )
+
+    data class BackupDailyUnlock(
+        @SerializedName("unlockKey") val unlockKey: String,
+        @SerializedName("epochDay") val epochDay: Long,
+        @SerializedName("cost") val cost: Int,
+        @SerializedName("unlockedAt") val unlockedAt: Long,
+    )
+
+    data class BackupPermanentUnlock(
+        @SerializedName("unlockKey") val unlockKey: String,
+        @SerializedName("rank") val rank: String,
+        @SerializedName("unlockedAt") val unlockedAt: Long,
+    )
+
+    data class BackupStreakRecord(
+        @SerializedName("currentStreak") val currentStreak: Int,
+        @SerializedName("longestStreak") val longestStreak: Int,
+        @SerializedName("lastCheckInEpochDay") val lastCheckInEpochDay: Long,
+        @SerializedName("freezeTokens") val freezeTokens: Int,
+        @SerializedName("lastFreezeGrantedMonth") val lastFreezeGrantedMonth: Int,
+        @SerializedName("updatedAt") val updatedAt: Long,
+    )
+
+    // ── V2 feature backup entities ───────────────────────────────────────────
+
+    data class BackupCountdownEvent(
+        @SerializedName("title") val title: String,
+        @SerializedName("targetEpochDay") val targetEpochDay: Long,
+        @SerializedName("note") val note: String = "",
+        @SerializedName("showOnHome") val showOnHome: Boolean = true,
+        @SerializedName("showOnWidget") val showOnWidget: Boolean = true,
+        @SerializedName("createdAt") val createdAt: Long = 0,
+    )
+
+    data class BackupWorldClockCity(
+        @SerializedName("cityName") val cityName: String,
+        @SerializedName("timezone") val timezone: String,
+        @SerializedName("country") val country: String = "",
+        @SerializedName("sortOrder") val sortOrder: Int = 0,
+    )
+
+    data class BackupCycleSettings(
+        @SerializedName("cycleLength") val cycleLength: Int,
+        @SerializedName("periodLength") val periodLength: Int,
+    )
+
+    data class BackupCycleLog(
+        @SerializedName("startEpochDay") val startEpochDay: Long,
+        @SerializedName("endEpochDay") val endEpochDay: Long,
+        @SerializedName("notes") val notes: String = "",
+        @SerializedName("createdAt") val createdAt: Long = 0,
+    )
+
     // ══════════════════════════════════════════
     // EXPORT (BUILD JSON)
     // ══════════════════════════════════════════
 
     suspend fun buildBackupJson(
         context: Context,
-        // Room DAOs
+        // Core DAOs
         taskDao: TaskDao,
         noteDao: NoteDao,
         reminderDao: ReminderDao,
         bookmarkDao: BookmarkDao,
         notificationDao: NotificationDao,
         chatMessageDao: ChatMessageDao,
+        // Family tree DAOs
         familyMemberDao: FamilyMemberDao,
         memorialDayDao: MemorialDayDao,
         memorialChecklistDao: MemorialChecklistDao,
         familySettingsDao: FamilySettingsDao,
         memberPhotoDao: MemberPhotoDao,
+        // Points Engine DAOs
+        pointsDao: PointsDao,
+        unlockDao: UnlockDao,
+        streakDao: StreakDao,
+        // V2 feature DAOs
+        countdownEventDao: CountdownEventDao,
+        worldClockCityDao: WorldClockCityDao,
+        cycleDao: CycleDao,
     ): String {
         val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
 
-        // ── Read DataStore preferences ──
+        // ── DataStore ──
         val appSettings = readAppSettings(context)
         val aiMemory = readAiMemory(context)
 
         // ── Profile avatar ──
         val profileAvatarBase64 = readProfileAvatar(context)
 
-        // ── Room DB data ──
+        // ── Core Room data ──
         val tasks = taskDao.getAllTasksOnce().map { t ->
             BackupTask(t.title, t.description, t.dueDate, t.dueTime, t.priority,
                 t.isDone, t.labels, t.hasReminder, t.createdAt, t.updatedAt)
@@ -277,30 +377,61 @@ object AppBackupManager {
             BackupMemberPhoto(p.memberId, p.caption, p.sortOrder, photoBase64)
         }
 
+        // ── Points Engine v2 ──
+        val ledger = pointsDao.getLedger()?.let { l ->
+            BackupPointsLedger(l.dailyPoints, l.spentDailyPoints, l.permanentPoints,
+                l.lastResetEpochDay, l.updatedAt)
+        }
+        val actionLogs = pointsDao.getAllActionLogsOnce().map { a ->
+            BackupActionLog(a.actionType, a.dailyPointsAwarded, a.permanentPointsAwarded,
+                a.streakMultiplierApplied, a.epochDay, a.timestamp, a.metadata)
+        }
+        val dailyUnlocks = unlockDao.getAllDailyUnlocksOnce().map { u ->
+            BackupDailyUnlock(u.unlockKey, u.epochDay, u.cost, u.unlockedAt)
+        }
+        val permanentUnlocks = unlockDao.getAllPermanent().map { u ->
+            BackupPermanentUnlock(u.unlockKey, u.rank, u.unlockedAt)
+        }
+        val streak = streakDao.getStreak()?.let { s ->
+            BackupStreakRecord(s.currentStreak, s.longestStreak, s.lastCheckInEpochDay,
+                s.freezeTokens, s.lastFreezeGrantedMonth, s.updatedAt)
+        }
+
+        // ── V2 features ──
+        val countdownEvents = countdownEventDao.getAllOnce().map { e ->
+            BackupCountdownEvent(e.title, e.targetEpochDay, e.note, e.showOnHome, e.showOnWidget, e.createdAt)
+        }
+        val worldClockCities = worldClockCityDao.getAllOnce().map { c ->
+            BackupWorldClockCity(c.cityName, c.timezone, c.country, c.sortOrder)
+        }
+        val cycleSettings = cycleDao.getSettingsOnce()?.let { s ->
+            BackupCycleSettings(s.cycleLength, s.periodLength)
+        }
+        val cycleLogs = cycleDao.getAllLogsOnce().map { l ->
+            BackupCycleLog(l.startEpochDay, l.endEpochDay, l.notes, l.createdAt)
+        }
+
         val backupData = AppBackupData(
             version = CURRENT_VERSION,
             exportDate = dateStr,
             appSettings = appSettings,
             aiMemory = aiMemory,
             profileAvatarBase64 = profileAvatarBase64,
-            tasks = tasks,
-            notes = notes,
-            reminders = reminders,
-            bookmarks = bookmarks,
-            notifications = notifications,
-            chatMessages = chatMessages,
-            familySettings = familySettings,
-            familyMembers = familyMembers,
-            memorialDays = memorialDays,
-            memorialChecklist = memorialChecklist,
-            memberPhotos = memberPhotos,
+            tasks = tasks, notes = notes, reminders = reminders,
+            bookmarks = bookmarks, notifications = notifications, chatMessages = chatMessages,
+            familySettings = familySettings, familyMembers = familyMembers,
+            memorialDays = memorialDays, memorialChecklist = memorialChecklist, memberPhotos = memberPhotos,
+            pointsLedger = ledger, actionLogs = actionLogs,
+            dailyUnlocks = dailyUnlocks, permanentUnlocks = permanentUnlocks, streakRecord = streak,
+            countdownEvents = countdownEvents, worldClockCities = worldClockCities,
+            cycleSettings = cycleSettings, cycleLogs = cycleLogs,
         )
 
         return GsonBuilder().setPrettyPrinting().create().toJson(backupData)
     }
 
     // ══════════════════════════════════════════
-    // WRITE TO FILE
+    // WRITE / READ FILE
     // ══════════════════════════════════════════
 
     fun writeToUri(context: Context, uri: Uri, json: String) {
@@ -314,10 +445,6 @@ object AppBackupManager {
         return "lichso_backup_$date.json"
     }
 
-    // ══════════════════════════════════════════
-    // READ FROM FILE
-    // ══════════════════════════════════════════
-
     fun readFromUri(context: Context, uri: Uri): String {
         return context.contentResolver.openInputStream(uri)?.use { input ->
             input.bufferedReader(Charsets.UTF_8).readText()
@@ -325,18 +452,15 @@ object AppBackupManager {
     }
 
     fun parseBackupJson(json: String): AppBackupData {
-        // Guard against excessively large backups (max 50MB)
         if (json.length > 50 * 1024 * 1024) {
             throw IllegalStateException("File sao lưu quá lớn (>50MB)")
         }
         val data = GsonBuilder().create().fromJson(json, AppBackupData::class.java)
             ?: throw IllegalStateException("Không thể đọc dữ liệu sao lưu")
 
-        // Validate schema
         if (data.appId != "com.lichso.app") {
             throw IllegalStateException("File không phải bản sao lưu Lịch Số")
         }
-        // Sanity limits to prevent OOM
         if (data.familyMembers.size > 5000 || data.chatMessages.size > 50000 ||
             data.memberPhotos.size > 10000) {
             throw IllegalStateException("Dữ liệu sao lưu vượt quá giới hạn cho phép")
@@ -345,35 +469,42 @@ object AppBackupManager {
     }
 
     // ══════════════════════════════════════════
-    // IMPORT (RESTORE)
+    // RESTORE
     // ══════════════════════════════════════════
 
     suspend fun restoreFromBackup(
         context: Context,
         data: AppBackupData,
-        // Room DAOs
+        // Core DAOs
         taskDao: TaskDao,
         noteDao: NoteDao,
         reminderDao: ReminderDao,
         bookmarkDao: BookmarkDao,
         notificationDao: NotificationDao,
         chatMessageDao: ChatMessageDao,
+        // Family tree DAOs
         familyMemberDao: FamilyMemberDao,
         memorialDayDao: MemorialDayDao,
         memorialChecklistDao: MemorialChecklistDao,
         familySettingsDao: FamilySettingsDao,
         memberPhotoDao: MemberPhotoDao,
+        // Points Engine DAOs
+        pointsDao: PointsDao,
+        unlockDao: UnlockDao,
+        streakDao: StreakDao,
+        // V2 feature DAOs
+        countdownEventDao: CountdownEventDao,
+        worldClockCityDao: WorldClockCityDao,
+        cycleDao: CycleDao,
     ) {
-        // ── 1. Restore DataStore preferences ──
+        // 1. DataStore
         restoreAppSettings(context, data.appSettings)
         restoreAiMemory(context, data.aiMemory)
 
-        // ── 2. Restore profile avatar ──
-        data.profileAvatarBase64?.let { base64 ->
-            restoreProfileAvatar(context, base64)
-        }
+        // 2. Profile avatar
+        data.profileAvatarBase64?.let { restoreProfileAvatar(context, it) }
 
-        // ── 3. Clear existing Room data ──
+        // 3. Clear all Room tables
         taskDao.deleteAll()
         noteDao.deleteAll()
         reminderDao.deleteAll()
@@ -384,130 +515,125 @@ object AppBackupManager {
         memorialChecklistDao.deleteAll()
         memorialDayDao.deleteAll()
         familyMemberDao.deleteAll()
+        clearPointsData(pointsDao, unlockDao, streakDao)
+        clearV2Data(countdownEventDao, worldClockCityDao, cycleDao)
 
-        // ── 4. Insert tasks ──
+        // 4. Core data
         data.tasks.forEach { t ->
-            taskDao.insert(TaskEntity(
-                title = t.title, description = t.description, dueDate = t.dueDate,
+            taskDao.insert(TaskEntity(title = t.title, description = t.description, dueDate = t.dueDate,
                 dueTime = t.dueTime, priority = t.priority, isDone = t.isDone,
-                labels = t.labels, hasReminder = t.hasReminder,
-                createdAt = t.createdAt, updatedAt = t.updatedAt
-            ))
+                labels = t.labels, hasReminder = t.hasReminder, createdAt = t.createdAt, updatedAt = t.updatedAt))
         }
-
-        // ── 5. Insert notes ──
         data.notes.forEach { n ->
-            noteDao.insert(NoteEntity(
-                title = n.title, content = n.content, colorIndex = n.colorIndex,
-                isPinned = n.isPinned, labels = n.labels,
-                createdAt = n.createdAt, updatedAt = n.updatedAt
-            ))
+            noteDao.insert(NoteEntity(title = n.title, content = n.content, colorIndex = n.colorIndex,
+                isPinned = n.isPinned, labels = n.labels, createdAt = n.createdAt, updatedAt = n.updatedAt))
         }
-
-        // ── 6. Insert reminders ──
         data.reminders.forEach { r ->
-            reminderDao.insert(ReminderEntity(
-                title = r.title, subtitle = r.subtitle, triggerTime = r.triggerTime,
+            reminderDao.insert(ReminderEntity(title = r.title, subtitle = r.subtitle, triggerTime = r.triggerTime,
                 repeatType = r.repeatType, isEnabled = r.isEnabled, useLunar = r.useLunar,
-                advanceDays = r.advanceDays, category = r.category, labels = r.labels,
-                createdAt = r.createdAt
-            ))
+                advanceDays = r.advanceDays, category = r.category, labels = r.labels, createdAt = r.createdAt))
         }
-
-        // ── 7. Insert bookmarks ──
         data.bookmarks.forEach { b ->
-            bookmarkDao.insert(BookmarkEntity(
-                solarDay = b.solarDay, solarMonth = b.solarMonth, solarYear = b.solarYear,
-                label = b.label, note = b.note, colorIndex = b.colorIndex,
-                createdAt = b.createdAt
-            ))
+            bookmarkDao.insert(BookmarkEntity(solarDay = b.solarDay, solarMonth = b.solarMonth,
+                solarYear = b.solarYear, label = b.label, note = b.note, colorIndex = b.colorIndex, createdAt = b.createdAt))
         }
-
-        // ── 8. Insert notifications ──
         data.notifications.forEach { n ->
-            notificationDao.insert(NotificationEntity(
-                title = n.title, description = n.description, type = n.type,
-                isRead = n.isRead, createdAt = n.createdAt
-            ))
+            notificationDao.insert(NotificationEntity(title = n.title, description = n.description,
+                type = n.type, isRead = n.isRead, createdAt = n.createdAt))
         }
-
-        // ── 9. Insert chat messages ──
         data.chatMessages.forEach { m ->
-            chatMessageDao.insert(ChatMessageEntity(
-                content = m.content, isUser = m.isUser, timestamp = m.timestamp
-            ))
+            chatMessageDao.insert(ChatMessageEntity(content = m.content, isUser = m.isUser, timestamp = m.timestamp))
         }
 
-        // ── 10. Family settings ──
+        // 5. Family tree
         data.familySettings?.let { s ->
-            familySettingsDao.insert(FamilySettingsEntity(
-                familyName = s.familyName, familyCrest = s.familyCrest,
-                hometown = s.hometown, treeDisplayMode = s.treeDisplayMode,
-                treeTheme = s.treeTheme, showAvatar = s.showAvatar,
-                showYears = s.showYears, remindMemorial = s.remindMemorial,
-                remindBirthday = s.remindBirthday, remindDaysBefore = s.remindDaysBefore
-            ))
+            familySettingsDao.insert(FamilySettingsEntity(familyName = s.familyName, familyCrest = s.familyCrest,
+                hometown = s.hometown, treeDisplayMode = s.treeDisplayMode, treeTheme = s.treeTheme,
+                showAvatar = s.showAvatar, showYears = s.showYears, remindMemorial = s.remindMemorial,
+                remindBirthday = s.remindBirthday, remindDaysBefore = s.remindDaysBefore))
         }
-
-        // ── 11. Family members (with avatar restoration) ──
-        val photosDir = File(context.filesDir, "family_photos")
-        if (!photosDir.exists()) photosDir.mkdirs()
-
+        val photosDir = File(context.filesDir, "family_photos").also { if (!it.exists()) it.mkdirs() }
         data.familyMembers.forEach { m ->
             val avatarPath = m.avatarBase64?.let { base64 ->
                 decodeBase64ToFile(base64, File(photosDir, "avatar_${m.id}.jpg"))
             }
-            familyMemberDao.insert(FamilyMemberEntity(
-                id = m.id, name = m.name, role = m.role, gender = m.gender,
-                generation = m.generation, birthYear = m.birthYear, deathYear = m.deathYear,
+            familyMemberDao.insert(FamilyMemberEntity(id = m.id, name = m.name, role = m.role,
+                gender = m.gender, generation = m.generation, birthYear = m.birthYear, deathYear = m.deathYear,
                 birthDateLunar = m.birthDateLunar, deathDateLunar = m.deathDateLunar,
-                canChi = m.canChi, menh = m.menh, zodiacEmoji = m.zodiacEmoji,
-                menhEmoji = m.menhEmoji, hanhEmoji = m.hanhEmoji, menhDetail = m.menhDetail,
-                zodiacName = m.zodiacName, menhName = m.menhName, hometown = m.hometown,
-                occupation = m.occupation, isSelf = m.isSelf, isElder = m.isElder,
-                emoji = m.emoji,
+                canChi = m.canChi, menh = m.menh, zodiacEmoji = m.zodiacEmoji, menhEmoji = m.menhEmoji,
+                hanhEmoji = m.hanhEmoji, menhDetail = m.menhDetail, zodiacName = m.zodiacName,
+                menhName = m.menhName, hometown = m.hometown, occupation = m.occupation,
+                isSelf = m.isSelf, isElder = m.isElder, emoji = m.emoji,
                 spouseIds = if (m.spouseIds.isNotBlank()) m.spouseIds else m.spouseId ?: "",
-                spouseOrder = m.spouseOrder,
-                parentIds = m.parentIds,
-                note = m.note, avatarPath = avatarPath
-            ))
+                spouseOrder = m.spouseOrder, parentIds = m.parentIds, note = m.note, avatarPath = avatarPath))
         }
-
-        // ── 12. Memorial days ──
         data.memorialDays.forEach { m ->
-            memorialDayDao.insert(MemorialDayEntity(
-                id = m.id, memberId = m.memberId, memberName = m.memberName,
-                relation = m.relation, lunarDay = m.lunarDay, lunarMonth = m.lunarMonth,
-                lunarLeap = m.lunarLeap, note = m.note,
-                remindBefore3Days = m.remindBefore3Days, remindBefore1Day = m.remindBefore1Day
-            ))
+            memorialDayDao.insert(MemorialDayEntity(id = m.id, memberId = m.memberId,
+                memberName = m.memberName, relation = m.relation, lunarDay = m.lunarDay,
+                lunarMonth = m.lunarMonth, lunarLeap = m.lunarLeap, note = m.note,
+                remindBefore3Days = m.remindBefore3Days, remindBefore1Day = m.remindBefore1Day))
         }
-
-        // ── 13. Memorial checklist ──
         data.memorialChecklist.forEach { c ->
-            memorialChecklistDao.insert(MemorialChecklistEntity(
-                memorialId = c.memorialId, text = c.text,
-                isDone = c.isDone, sortOrder = c.sortOrder
-            ))
+            memorialChecklistDao.insert(MemorialChecklistEntity(memorialId = c.memorialId,
+                text = c.text, isDone = c.isDone, sortOrder = c.sortOrder))
         }
-
-        // ── 14. Member photos (with file restoration) ──
         data.memberPhotos.forEach { p ->
             val filePath = p.photoBase64?.let { base64 ->
-                val photoFile = File(photosDir, "photo_${p.memberId}_${System.nanoTime()}.jpg")
-                decodeBase64ToFile(base64, photoFile)
+                decodeBase64ToFile(base64, File(photosDir, "photo_${p.memberId}_${System.nanoTime()}.jpg"))
             }
             if (filePath != null) {
-                memberPhotoDao.insert(MemberPhotoEntity(
-                    memberId = p.memberId, filePath = filePath,
-                    caption = p.caption, sortOrder = p.sortOrder
-                ))
+                memberPhotoDao.insert(MemberPhotoEntity(memberId = p.memberId, filePath = filePath,
+                    caption = p.caption, sortOrder = p.sortOrder))
             }
+        }
+
+        // 6. Points Engine v2
+        data.pointsLedger?.let { l ->
+            pointsDao.upsertLedger(PointsLedgerEntity(id = 1, dailyPoints = l.dailyPoints,
+                spentDailyPoints = l.spentDailyPoints, permanentPoints = l.permanentPoints,
+                lastResetEpochDay = l.lastResetEpochDay, updatedAt = l.updatedAt))
+        }
+        data.actionLogs.forEach { a ->
+            pointsDao.logAction(ActionLogEntity(actionType = a.actionType,
+                dailyPointsAwarded = a.dailyPointsAwarded, permanentPointsAwarded = a.permanentPointsAwarded,
+                streakMultiplierApplied = a.streakMultiplierApplied, epochDay = a.epochDay,
+                timestamp = a.timestamp, metadata = a.metadata))
+        }
+        data.dailyUnlocks.forEach { u ->
+            unlockDao.insertDailyUnlock(DailyUnlockEntity(unlockKey = u.unlockKey,
+                epochDay = u.epochDay, cost = u.cost, unlockedAt = u.unlockedAt))
+        }
+        data.permanentUnlocks.forEach { u ->
+            unlockDao.insertPermanentUnlock(PermanentUnlockEntity(unlockKey = u.unlockKey,
+                rank = u.rank, unlockedAt = u.unlockedAt))
+        }
+        data.streakRecord?.let { s ->
+            streakDao.upsertStreak(StreakRecordEntity(id = 1, currentStreak = s.currentStreak,
+                longestStreak = s.longestStreak, lastCheckInEpochDay = s.lastCheckInEpochDay,
+                freezeTokens = s.freezeTokens, lastFreezeGrantedMonth = s.lastFreezeGrantedMonth,
+                updatedAt = s.updatedAt))
+        }
+
+        // 7. V2 features
+        data.countdownEvents.forEach { e ->
+            countdownEventDao.insert(CountdownEventEntity(title = e.title, targetEpochDay = e.targetEpochDay,
+                note = e.note, showOnHome = e.showOnHome, showOnWidget = e.showOnWidget, createdAt = e.createdAt))
+        }
+        data.worldClockCities.forEach { c ->
+            worldClockCityDao.insert(WorldClockCityEntity(cityName = c.cityName, timezone = c.timezone,
+                country = c.country, sortOrder = c.sortOrder))
+        }
+        data.cycleSettings?.let { s ->
+            cycleDao.saveSettings(CycleSettingsEntity(id = 1, cycleLength = s.cycleLength, periodLength = s.periodLength))
+        }
+        data.cycleLogs.forEach { l ->
+            cycleDao.insertLog(CycleLogEntity(startEpochDay = l.startEpochDay, endEpochDay = l.endEpochDay,
+                notes = l.notes, createdAt = l.createdAt))
         }
     }
 
     // ══════════════════════════════════════════
-    // SUMMARY (for confirm dialog)
+    // SUMMARY
     // ══════════════════════════════════════════
 
     fun getBackupSummary(data: AppBackupData): String {
@@ -520,6 +646,12 @@ object AppBackupManager {
         if (data.chatMessages.isNotEmpty()) parts.add("💬 ${data.chatMessages.size} tin nhắn AI")
         if (data.familyMembers.isNotEmpty()) parts.add("👨‍👩‍👧‍👦 ${data.familyMembers.size} thành viên gia phả")
         if (data.memorialDays.isNotEmpty()) parts.add("🕯️ ${data.memorialDays.size} ngày giỗ")
+        data.pointsLedger?.let { parts.add("⚡ ${it.dailyPoints}đ / ☯ ${it.permanentPoints}đ tích lũy") }
+        data.streakRecord?.let { if (it.currentStreak > 0) parts.add("🔥 Chuỗi ${it.currentStreak} ngày") }
+        if (data.permanentUnlocks.isNotEmpty()) parts.add("🔓 ${data.permanentUnlocks.size} tính năng đã mở khóa")
+        if (data.countdownEvents.isNotEmpty()) parts.add("⏳ ${data.countdownEvents.size} sự kiện đếm ngược")
+        if (data.worldClockCities.isNotEmpty()) parts.add("🌍 ${data.worldClockCities.size} thành phố đồng hồ")
+        if (data.cycleLogs.isNotEmpty()) parts.add("🗓️ ${data.cycleLogs.size} chu kỳ đã lưu")
         if (data.appSettings.isNotEmpty()) parts.add("⚙️ Cài đặt ứng dụng")
         if (data.aiMemory.isNotEmpty()) parts.add("🧠 Bộ nhớ AI")
         if (data.profileAvatarBase64 != null) parts.add("🖼️ Ảnh đại diện")
@@ -534,8 +666,7 @@ object AppBackupManager {
         val prefs = context.safeSettingsData.first()
         val map = mutableMapOf<String, Any?>()
         for (entry in prefs.asMap()) {
-            val key = entry.key.name
-            map[key] = entry.value
+            map[entry.key.name] = entry.value
         }
         return map
     }
@@ -545,18 +676,14 @@ object AppBackupManager {
         val map = mutableMapOf<String, String>()
         for (entry in prefs.asMap()) {
             val value = entry.value
-            if (value is String) {
-                map[entry.key.name] = value
-            }
+            if (value is String) map[entry.key.name] = value
         }
         return map
     }
 
     private fun readProfileAvatar(context: Context): String? {
         val avatarFile = File(context.filesDir, "avatars/profile_avatar.jpg")
-        return if (avatarFile.exists()) {
-            encodeFileToBase64(avatarFile.absolutePath)
-        } else null
+        return if (avatarFile.exists()) encodeFileToBase64(avatarFile.absolutePath) else null
     }
 
     private suspend fun restoreAppSettings(context: Context, settings: Map<String, Any?>) {
@@ -568,12 +695,20 @@ object AppBackupManager {
                     is Boolean -> prefs[booleanPreferencesKey(key)] = value
                     is String -> prefs[stringPreferencesKey(key)] = value
                     is Number -> {
-                        // Gson deserializes numbers as Double, we need to handle int/long
-                        if (value.toDouble() == value.toLong().toDouble()) {
-                            prefs[intPreferencesKey(key)] = value.toInt()
-                        } else {
-                            // Store as string for safety
-                            prefs[stringPreferencesKey(key)] = value.toString()
+                        val longVal = value.toLong()
+                        when {
+                            // Known Long keys — must be restored as Long or they crash on read
+                            key in LONG_PREF_KEYS ->
+                                prefs[longPreferencesKey(key)] = longVal
+                            // Values too large for Int must be Long
+                            longVal > Int.MAX_VALUE || longVal < Int.MIN_VALUE ->
+                                prefs[longPreferencesKey(key)] = longVal
+                            // Regular integer-like numbers
+                            value.toDouble() == longVal.toDouble() ->
+                                prefs[intPreferencesKey(key)] = value.toInt()
+                            // Float/double
+                            else ->
+                                prefs[stringPreferencesKey(key)] = value.toString()
                         }
                     }
                 }
@@ -593,44 +728,46 @@ object AppBackupManager {
 
     private fun restoreProfileAvatar(context: Context, base64: String) {
         try {
-            // Guard against oversized data
             if (base64.length > MAX_PHOTO_BYTES * 2) return
-
-            val avatarDir = File(context.filesDir, "avatars")
-            if (!avatarDir.exists()) avatarDir.mkdirs()
-            val destFile = File(avatarDir, "profile_avatar.jpg")
+            val avatarDir = File(context.filesDir, "avatars").also { if (!it.exists()) it.mkdirs() }
             val bytes = Base64.decode(base64, Base64.DEFAULT)
             if (bytes.size > MAX_PHOTO_BYTES) return
-            destFile.writeBytes(bytes)
-        } catch (_: Exception) {
-            // Silently skip if avatar restore fails
-        }
+            File(avatarDir, "profile_avatar.jpg").writeBytes(bytes)
+        } catch (_: Exception) {}
+    }
+
+    private suspend fun clearPointsData(pointsDao: PointsDao, unlockDao: UnlockDao, streakDao: StreakDao) {
+        pointsDao.clearAll()
+        unlockDao.clearAll()
+        streakDao.clearAll()
+    }
+
+    private suspend fun clearV2Data(
+        countdownEventDao: CountdownEventDao,
+        worldClockCityDao: WorldClockCityDao,
+        cycleDao: CycleDao,
+    ) {
+        countdownEventDao.deleteAll()
+        worldClockCityDao.deleteAll()
+        cycleDao.deleteAll()
     }
 
     private fun encodeFileToBase64(path: String): String? {
         return try {
             val file = File(path)
             if (!file.exists() || file.length() > MAX_PHOTO_BYTES) return null
-            val bytes = file.readBytes()
-            Base64.encodeToString(bytes, Base64.NO_WRAP)
-        } catch (_: Exception) {
-            null
-        }
+            Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)
+        } catch (_: Exception) { null }
     }
 
     private fun decodeBase64ToFile(base64: String, dest: File): String? {
         return try {
-            // Guard against oversized data
             if (base64.length > MAX_PHOTO_BYTES * 2) return null
-
             val bytes = Base64.decode(base64, Base64.DEFAULT)
             if (bytes.size > MAX_PHOTO_BYTES) return null
-
             dest.parentFile?.let { if (!it.exists()) it.mkdirs() }
             dest.writeBytes(bytes)
             dest.absolutePath
-        } catch (_: Exception) {
-            null
-        }
+        } catch (_: Exception) { null }
     }
 }

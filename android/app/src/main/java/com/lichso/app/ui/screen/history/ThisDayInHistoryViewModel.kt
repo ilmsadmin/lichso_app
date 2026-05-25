@@ -1,27 +1,35 @@
 package com.lichso.app.ui.screen.history
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.lichso.app.data.remote.ContentEvent
 import com.lichso.app.domain.HistoricalEventProvider
+import com.lichso.app.domain.model.EventImportance
 import com.lichso.app.domain.model.HistoricalEvent
+import com.lichso.app.domain.model.HistoryCategory
+import com.lichso.app.feature.content.ContentRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.format.TextStyle
-import java.util.Locale
 import javax.inject.Inject
 
 data class ThisDayInHistoryUiState(
     val selectedDate: LocalDate = LocalDate.now(),
     val events: List<HistoricalEvent> = emptyList(),
-    val dayDisplay: String = "",       // "05"
-    val monthDisplay: String = "",     // "Tháng 4"
-    val fullDateDisplay: String = "",  // "Chủ Nhật, 05/04/2026"
+    val dayDisplay: String = "",
+    val monthDisplay: String = "",
+    val fullDateDisplay: String = "",
+    val isLoading: Boolean = false,
 )
 
 @HiltViewModel
-class ThisDayInHistoryViewModel @Inject constructor() : ViewModel() {
+class ThisDayInHistoryViewModel @Inject constructor(
+    private val contentRepository: ContentRepository,
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ThisDayInHistoryUiState())
     val uiState: StateFlow<ThisDayInHistoryUiState> = _uiState.asStateFlow()
@@ -43,8 +51,6 @@ class ThisDayInHistoryViewModel @Inject constructor() : ViewModel() {
     }
 
     private fun loadDate(date: LocalDate) {
-        val events = HistoricalEventProvider.getEvents(date.dayOfMonth, date.monthValue)
-
         val dayOfWeekVi = when (date.dayOfWeek.value) {
             1 -> "Thứ Hai"
             2 -> "Thứ Ba"
@@ -56,19 +62,42 @@ class ThisDayInHistoryViewModel @Inject constructor() : ViewModel() {
             else -> ""
         }
 
-        _uiState.value = ThisDayInHistoryUiState(
+        val dayDisplay = "%02d".format(date.dayOfMonth)
+        val monthDisplay = "Tháng ${date.monthValue}"
+        val fullDateDisplay = "$dayOfWeekVi, %02d/%02d/%d".format(date.dayOfMonth, date.monthValue, date.year)
+
+        _uiState.value = _uiState.value.copy(
             selectedDate = date,
-            events = events,
-            dayDisplay = "%02d".format(date.dayOfMonth),
-            monthDisplay = "Tháng ${date.monthValue}",
-            fullDateDisplay = "$dayOfWeekVi, %02d/%02d/%d".format(date.dayOfMonth, date.monthValue, date.year)
+            dayDisplay = dayDisplay,
+            monthDisplay = monthDisplay,
+            fullDateDisplay = fullDateDisplay,
+            isLoading = true,
         )
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = contentRepository.getEventsByDate(date.monthValue, date.dayOfMonth)
+            val apiEvents = result.getOrNull()
+            val events = if (!apiEvents.isNullOrEmpty()) {
+                apiEvents.map { it.toHistoricalEvent() }
+            } else {
+                HistoricalEventProvider.getEvents(date.dayOfMonth, date.monthValue)
+            }
+            _uiState.value = _uiState.value.copy(
+                events = events,
+                isLoading = false,
+            )
+        }
     }
 
-    /**
-     * Tính "X năm trước" dựa trên năm hiện tại.
-     */
     fun yearsAgo(eventYear: Int): Int {
         return _uiState.value.selectedDate.year - eventYear
     }
 }
+
+private fun ContentEvent.toHistoricalEvent() = HistoricalEvent(
+    year = eventYear ?: 0,
+    title = title,
+    description = shortDescription ?: description ?: "",
+    category = HistoryCategory.VIETNAM,
+    importance = EventImportance.MAJOR,
+)

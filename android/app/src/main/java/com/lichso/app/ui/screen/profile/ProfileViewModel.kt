@@ -129,6 +129,13 @@ class ProfileViewModel @Inject constructor(
     private val familySettingsDao: FamilySettingsDao,
     private val memberPhotoDao: MemberPhotoDao,
     private val awardPointsUseCase: AwardPointsUseCase,
+    // Points Engine & V2 feature DAOs (backup/restore)
+    private val pointsDao: PointsDao,
+    private val unlockDao: UnlockDao,
+    private val streakDao: StreakDao,
+    private val countdownEventDao: CountdownEventDao,
+    private val worldClockCityDao: WorldClockCityDao,
+    private val cycleDao: CycleDao,
 ) : ViewModel() {
 
     private val dataStore = context.settingsDataStore
@@ -620,17 +627,15 @@ class ProfileViewModel @Inject constructor(
                 val json = withContext(Dispatchers.IO) {
                     AppBackupManager.buildBackupJson(
                         context = context,
-                        taskDao = taskDao,
-                        noteDao = noteDao,
-                        reminderDao = reminderDao,
-                        bookmarkDao = bookmarkDao,
-                        notificationDao = notificationDao,
-                        chatMessageDao = chatMessageDao,
-                        familyMemberDao = familyMemberDao,
-                        memorialDayDao = memorialDayDao,
+                        taskDao = taskDao, noteDao = noteDao,
+                        reminderDao = reminderDao, bookmarkDao = bookmarkDao,
+                        notificationDao = notificationDao, chatMessageDao = chatMessageDao,
+                        familyMemberDao = familyMemberDao, memorialDayDao = memorialDayDao,
                         memorialChecklistDao = memorialChecklistDao,
-                        familySettingsDao = familySettingsDao,
-                        memberPhotoDao = memberPhotoDao,
+                        familySettingsDao = familySettingsDao, memberPhotoDao = memberPhotoDao,
+                        pointsDao = pointsDao, unlockDao = unlockDao, streakDao = streakDao,
+                        countdownEventDao = countdownEventDao,
+                        worldClockCityDao = worldClockCityDao, cycleDao = cycleDao,
                     )
                 }
                 val fileName = AppBackupManager.generateFileName()
@@ -712,6 +717,9 @@ class ProfileViewModel @Inject constructor(
                         familyMemberDao = familyMemberDao, memorialDayDao = memorialDayDao,
                         memorialChecklistDao = memorialChecklistDao,
                         familySettingsDao = familySettingsDao, memberPhotoDao = memberPhotoDao,
+                        pointsDao = pointsDao, unlockDao = unlockDao, streakDao = streakDao,
+                        countdownEventDao = countdownEventDao,
+                        worldClockCityDao = worldClockCityDao, cycleDao = cycleDao,
                     )
                 }
                 _uiState.update {

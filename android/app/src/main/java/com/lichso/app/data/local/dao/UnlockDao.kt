@@ -27,6 +27,9 @@ interface UnlockDao {
     """)
     fun observeDailyUnlocked(key: String, day: Long): Flow<Boolean>
 
+    @Query("SELECT * FROM daily_unlock ORDER BY epochDay DESC")
+    suspend fun getAllDailyUnlocksOnce(): List<DailyUnlockEntity>
+
     @Query("SELECT * FROM daily_unlock WHERE epochDay = :day")
     fun observeTodayUnlocks(day: Long): Flow<List<DailyUnlockEntity>>
 
@@ -45,4 +48,12 @@ interface UnlockDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM permanent_unlock WHERE unlockKey = :key)")
     suspend fun isPermanentUnlocked(key: String): Boolean
+
+    @Query("DELETE FROM daily_unlock")
+    suspend fun clearDailyUnlocks()
+
+    @Query("DELETE FROM permanent_unlock")
+    suspend fun clearPermanentUnlocks()
+
+    suspend fun clearAll() { clearDailyUnlocks(); clearPermanentUnlocks() }
 }

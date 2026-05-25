@@ -29,9 +29,20 @@ interface PointsDao {
     """)
     suspend fun countActionToday(type: String, day: Long): Int
 
+    @Query("SELECT * FROM action_log ORDER BY timestamp DESC")
+    suspend fun getAllActionLogsOnce(): List<ActionLogEntity>
+
     @Query("SELECT * FROM action_log WHERE epochDay >= :fromDay ORDER BY timestamp DESC LIMIT :limit")
     fun observeRecentLogs(fromDay: Long, limit: Int = 200): Flow<List<ActionLogEntity>>
 
     @Query("DELETE FROM action_log WHERE epochDay < :beforeDay")
     suspend fun pruneOldLogs(beforeDay: Long)
+
+    @Query("DELETE FROM points_ledger")
+    suspend fun clearLedger()
+
+    @Query("DELETE FROM action_log")
+    suspend fun clearActionLog()
+
+    suspend fun clearAll() { clearLedger(); clearActionLog() }
 }

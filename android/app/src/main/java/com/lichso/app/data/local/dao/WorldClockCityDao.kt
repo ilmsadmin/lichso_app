@@ -10,6 +10,9 @@ interface WorldClockCityDao {
     @Query("SELECT * FROM world_clock_cities ORDER BY sortOrder ASC, id ASC")
     fun observeAll(): Flow<List<WorldClockCityEntity>>
 
+    @Query("SELECT * FROM world_clock_cities ORDER BY sortOrder ASC, id ASC")
+    suspend fun getAllOnce(): List<WorldClockCityEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(city: WorldClockCityEntity): Long
 
@@ -18,4 +21,7 @@ interface WorldClockCityDao {
 
     @Query("SELECT COUNT(*) FROM world_clock_cities")
     suspend fun count(): Int
+
+    @Query("DELETE FROM world_clock_cities")
+    suspend fun deleteAll()
 }

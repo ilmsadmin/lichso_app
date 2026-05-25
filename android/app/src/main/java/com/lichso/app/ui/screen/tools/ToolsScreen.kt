@@ -73,6 +73,10 @@ enum class ToolAction {
     CYCLE_TRACKER,
     WORLD_CLOCK,
     WIDGET_MANAGER,
+    // v3 — Quiz Engine
+    QUIZ,
+    // v3 Phase 2 — Content Feed
+    KNOWLEDGE_FEED,
 }
 
 private data class ToolItem(
@@ -272,6 +276,22 @@ fun ToolsScreen(
 
     // ── Nhóm 4: Kho & Khám phá ──
     val collectionTools = listOf(
+        ToolItem(
+            ToolAction.QUIZ,
+            "Quiz Kiến thức",
+            "Thi đấu · Bảng xếp hạng",
+            Icons.Filled.Quiz,
+            listOf(Color(0xFF1565C0), Color(0xFF7B1FA2)),
+            badge = "NEW"
+        ),
+        ToolItem(
+            ToolAction.KNOWLEDGE_FEED,
+            "Khám Phá",
+            "Sự kiện · Nhân vật · Bài viết",
+            Icons.Filled.Explore,
+            listOf(Color(0xFF00838F), Color(0xFF26A69A)),
+            badge = "NEW"
+        ),
         ToolItem(
             ToolAction.AI_CHAT,
             "Tử vi AI",

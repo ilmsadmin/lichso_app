@@ -1,0 +1,2 @@
+-- Migration 000026 down: Cannot remove enum values in PostgreSQL without recreating the type.
+-- This is intentionally a no-op. To revert, manually recreate the enum without 'ai_pending'.

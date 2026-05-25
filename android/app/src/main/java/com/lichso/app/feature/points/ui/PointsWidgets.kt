@@ -223,8 +223,8 @@ fun RankProgressCard(
 }
 
 internal fun formatCompact(value: Long): String = when {
-    value >= 1_000_000 -> String.format("%.1fM", value / 1_000_000.0).removeSuffix(".0M") + "M"
-    value >= 1_000 -> String.format("%.1fK", value / 1_000.0).removeSuffix(".0K") + "K"
+    value >= 10_000 -> String.format(java.util.Locale.US, "%.0fK", value / 1_000.0) + "K"
+    value >= 1_000 -> String.format(java.util.Locale.US, "%.1f", value / 1_000.0).trimEnd('0').trimEnd('.') + "K"
     else -> value.toString()
 }
 

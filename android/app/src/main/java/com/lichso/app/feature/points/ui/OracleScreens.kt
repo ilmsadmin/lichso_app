@@ -1,13 +1,18 @@
 package com.lichso.app.feature.points.ui
 
 import android.content.Intent
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +32,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lichso.app.R
 import com.lichso.app.feature.points.domain.ActionType
@@ -467,6 +474,374 @@ private fun FourFortunesCard(que: OracleQue) {
         FortuneRow(label = "Sức khỏe", value = que.health)
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DailyOracleDialog — popup chào buổi sáng, hiển thị 1 lần/ngày khi mở app
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Popup rút quẻ đầu ngày.
+ *
+ * Vòng đời:
+ *  - Phase WELCOME  → chào mừng + ống xăm + nút "Rút quẻ"
+ *  - Phase RESULT   → hiển thị quẻ ngay trong popup + nút "Hỏi AI" / "Đóng"
+ *
+ * [onDismiss]  gọi khi user bấm X hoặc "Đóng" (không cho dismiss khi tap ngoài).
+ * [onAskAi]   gọi với prompt đã build sẵn → navigate tới AIChatScreen.
+ */
+@Composable
+fun DailyOracleDialog(
+    clock: Clock,
+    onDismiss: () -> Unit,
+    onAskAi: (String) -> Unit,
+    vm: PointsViewModel = hiltViewModel(),
+) {
+    val c = LichSoThemeColors.current
+    val que = remember(clock.todayEpochDay()) { OracleDeck.pickForDay(clock.todayEpochDay()) }
+
+    var phase by remember { mutableStateOf(OracleDialogPhase.WELCOME) }
+    var isShaking by remember { mutableStateOf(false) }
+
+    val shake = remember { Animatable(0f) }
+    LaunchedEffect(isShaking) {
+        if (isShaking) {
+            repeat(4) {
+                shake.animateTo(8f, tween(55))
+                shake.animateTo(-8f, tween(55))
+            }
+            shake.animateTo(0f, tween(70))
+            isShaking = false
+        }
+    }
+
+    Dialog(
+        onDismissRequest = { /* không cho dismiss khi tap ngoài */ },
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false,
+        ),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.6f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .wrapContentHeight(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = c.bg),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            ) {
+                AnimatedContent(
+                    targetState = phase,
+                    transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(200)) },
+                    label = "oracle_phase",
+                ) { currentPhase ->
+                    when (currentPhase) {
+                        OracleDialogPhase.WELCOME -> WelcomePhase(
+                            c = c,
+                            que = que,
+                            shake = shake,
+                            isShaking = isShaking,
+                            onDismiss = onDismiss,
+                            onDraw = {
+                                isShaking = true
+                                vm.award(ActionType.DRAW_KINH_DICH)
+                                phase = OracleDialogPhase.RESULT
+                            },
+                        )
+                        OracleDialogPhase.RESULT -> ResultPhase(
+                            c = c,
+                            que = que,
+                            onDismiss = onDismiss,
+                            onAskAi = { onAskAi(buildAiPrompt(que)) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private enum class OracleDialogPhase { WELCOME, RESULT }
+
+@Composable
+private fun WelcomePhase(
+    c: com.lichso.app.ui.theme.LichSoColors,
+    que: OracleQue,
+    shake: Animatable<Float, *>,
+    isShaking: Boolean,
+    onDismiss: () -> Unit,
+    onDraw: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color(0xFF3B0000), c.bg),
+                    endY = 600f,
+                )
+            )
+            .padding(bottom = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Rút quẻ đầu ngày",
+                    style = TextStyle(
+                        color = Color.White,
+                        fontFamily = FontFamily.Serif,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp,
+                    ),
+                )
+                Text(
+                    "Nghi lễ truyền thống · 1 lần/ngày",
+                    style = TextStyle(color = Color.White.copy(alpha = 0.65f), fontSize = 11.sp),
+                )
+            }
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Filled.Close, contentDescription = "Đóng", tint = Color.White.copy(alpha = 0.8f))
+            }
+        }
+
+        // Ống xăm
+        Box(
+            modifier = Modifier
+                .size(160.dp, 200.dp)
+                .rotate(shake.value),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            listOf(
+                Triple(-44f, 110.dp, -9f),
+                Triple(-22f, 125.dp, -3f),
+                Triple(0f,   132.dp,  0f),
+                Triple(22f,  128.dp,  4f),
+                Triple(44f,  115.dp,  9f),
+            ).forEach { (xOff, h, rot) ->
+                Box(
+                    modifier = Modifier
+                        .offset(x = xOff.dp, y = (-95).dp)
+                        .rotate(rot)
+                        .width(5.dp)
+                        .height(h)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                0f to c.gold,
+                                0.65f to Color(0xFFC6A300),
+                                0.65f to Color(0xFF8B0000),
+                                1f to c.deepRed,
+                            )
+                        )
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(140.dp, 105.dp)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 14.dp, topEnd = 14.dp,
+                            bottomStart = 70.dp, bottomEnd = 70.dp,
+                        )
+                    )
+                    .background(Brush.linearGradient(listOf(Color(0xFF8B0000), Color(0xFFB71C1C))))
+            )
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        Text(
+            "\"Tâm tĩnh lặng, niệm điều cầu mong\nlắc nhẹ 3 lần rồi rút một quẻ.\"",
+            style = TextStyle(
+                fontFamily = FontFamily.Serif,
+                fontStyle = FontStyle.Italic,
+                fontSize = 13.sp,
+                color = Color.White.copy(alpha = 0.75f),
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp,
+            ),
+            modifier = Modifier.padding(horizontal = 28.dp),
+        )
+
+        Spacer(Modifier.height(20.dp))
+
+        Button(
+            onClick = { if (!isShaking) onDraw() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = c.primary),
+            shape = RoundedCornerShape(14.dp),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_scroll),
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("Rút quẻ hôm nay", color = Color.White, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.22f))
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
+            ) {
+                Text("+15⚡ +2☯", style = TextStyle(color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ResultPhase(
+    c: com.lichso.app.ui.theme.LichSoColors,
+    que: OracleQue,
+    onDismiss: () -> Unit,
+    onAskAi: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.padding(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        // Tier badge
+        Box(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(Color(que.tier.colorHex))
+                .padding(horizontal = 14.dp, vertical = 4.dp),
+        ) {
+            Text(
+                que.tier.display,
+                style = TextStyle(color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp),
+            )
+        }
+
+        // Tên quẻ + Hán tự
+        Text(
+            "Quẻ ${que.index} · ${que.name}",
+            style = TextStyle(
+                fontFamily = FontFamily.Serif,
+                fontSize = 22.sp,
+                color = c.primary,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+            ),
+        )
+        Text(
+            que.han,
+            style = TextStyle(
+                fontFamily = FontFamily.Serif,
+                fontSize = 34.sp,
+                color = c.gold,
+                letterSpacing = 6.sp,
+            ),
+        )
+        Text(
+            que.subtitle,
+            style = TextStyle(fontSize = 11.sp, color = c.textTertiary, textAlign = TextAlign.Center),
+        )
+
+        // Thơ quẻ
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(c.surface)
+                .border(1.dp, c.gold.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                .padding(12.dp),
+        ) {
+            Text(
+                que.poem,
+                style = TextStyle(
+                    fontFamily = FontFamily.Serif,
+                    fontStyle = FontStyle.Italic,
+                    fontSize = 13.sp,
+                    color = c.textSecondary,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Center,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        // 4 phương diện (compact)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            listOf(
+                "Công danh" to que.career,
+                "Tài lộc" to que.wealth,
+                "Tình duyên" to que.love,
+                "Sức khỏe" to que.health,
+            ).forEach { (label, value) ->
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(c.surface)
+                        .border(1.dp, c.outlineVariant, RoundedCornerShape(10.dp))
+                        .padding(vertical = 8.dp, horizontal = 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(label, style = TextStyle(fontSize = 9.sp, color = c.textTertiary, fontWeight = FontWeight.SemiBold))
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        value.take(18),
+                        style = TextStyle(fontSize = 10.sp, color = c.textPrimary, textAlign = TextAlign.Center, lineHeight = 14.sp),
+                        maxLines = 2,
+                    )
+                }
+            }
+        }
+
+        // Buttons
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            OutlinedButton(
+                onClick = onAskAi,
+                modifier = Modifier.weight(1f).height(46.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, c.primary),
+            ) {
+                Text("Hỏi AI giải thêm", color = c.primary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            }
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.weight(1f).height(46.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = c.primary),
+            ) {
+                Text("Đóng", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+private fun buildAiPrompt(que: OracleQue): String =
+    "Giải thêm giúp tôi quẻ \"${que.name}\" (${que.han}) — ${que.subtitle}. " +
+    "Thơ quẻ: \"${que.poem.replace("\n", " ")}\". " +
+    "Tôi muốn hiểu rõ ứng với bản thân hôm nay."
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun FortuneRow(label: String, value: String) {

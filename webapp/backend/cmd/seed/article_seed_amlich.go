@@ -1,0 +1,153 @@
+package main
+
+import (
+	"fmt"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
+
+func seedAmLichArticles(db *gorm.DB, tagMap map[string]uuid.UUID, authorID *uuid.UUID) int {
+	fmt.Println("\n   📅 Seeding Âm Lịch articles...")
+
+	seeds := []ArticleSeed{
+		{
+			Title:           "Âm lịch là gì? Sự khác biệt giữa lịch âm, lịch dương và lịch can chi",
+			Slug:            "am-lich-la-gi-khac-biet-lich-am-lich-duong",
+			Excerpt:         "Tìm hiểu âm lịch là gì, cách tính và sự khác biệt với dương lịch. Hệ thống lịch can chi và ứng dụng trong đời sống.",
+			Content:         `<h2>Âm lịch là gì?</h2><p>Âm lịch (Lunar Calendar) là hệ thống lịch dựa trên chu kỳ của Mặt Trăng quay quanh Trái Đất. Một tháng âm lịch tương ứng với một chu kỳ trăng (khoảng 29.5 ngày).</p><h3>So sánh âm lịch và dương lịch</h3><ul><li><strong>Âm lịch:</strong> Dựa vào Mặt Trăng, 1 năm ~354 ngày, có tháng nhuận</li><li><strong>Dương lịch:</strong> Dựa vào Mặt Trời, 1 năm ~365 ngày</li><li><strong>Âm dương lịch:</strong> Kết hợp cả hai, là hệ thống Việt Nam đang dùng</li></ul><h3>Can Chi</h3><p>Hệ thống 10 Thiên Can (Giáp, Ất, Bính, Đinh, Mậu, Kỷ, Canh, Tân, Nhâm, Quý) và 12 Địa Chi (Tý, Sửu, Dần, Mão...) tạo chu kỳ 60 năm.</p><h3>Ứng dụng</h3><p>Âm lịch được sử dụng để xem ngày tốt xấu, tổ chức lễ hội, cúng giỗ và tính tuổi trong văn hóa Việt.</p>`,
+			CategorySlug:    "am-lich",
+			MetaTitle:       "Âm lịch là gì? So sánh âm lịch và dương lịch",
+			MetaDescription: "Âm lịch là gì? Sự khác biệt với dương lịch, hệ thống can chi. Ứng dụng âm lịch trong đời sống.",
+			ReadingTime:     6,
+			IsFeatured:      true,
+			TagNames:        []string{"Âm lịch", "Lịch vạn niên"},
+		},
+		{
+			Title:       "12 con giáp và ý nghĩa: Tý, Sửu, Dần, Mão, Thìn, Tỵ, Ngọ, Mùi, Thân, Dậu, Tuất, Hợi",
+			Slug:        "12-con-giap-y-nghia-ty-suu-dan-mao",
+			Excerpt:     "Tìm hiểu ý nghĩa 12 con giáp trong văn hóa Việt Nam: tính cách, tương hợp, tương khắc và vận mệnh.",
+			Content:     `<h2>12 con giáp</h2><p>12 con giáp (Thập nhị chi) là hệ thống 12 con vật tượng trưng cho 12 năm trong một chu kỳ, gắn liền với văn hóa phương Đông hàng nghìn năm.</p><h3>Ý nghĩa từng con giáp</h3><ul><li><strong>Tý (Chuột):</strong> Thông minh, lanh lợi, tiết kiệm</li><li><strong>Sửu (Trâu):</strong> Kiên nhẫn, chăm chỉ, trung thành</li><li><strong>Dần (Hổ):</strong> Dũng cảm, quyết đoán, mạnh mẽ</li><li><strong>Mão (Mèo/Thỏ):</strong> Khéo léo, nhạy cảm, may mắn</li><li><strong>Thìn (Rồng):</strong> Uy quyền, may mắn, tham vọng</li><li><strong>Tỵ (Rắn):</strong> Trí tuệ, bí ẩn, kiên trì</li><li><strong>Ngọ (Ngựa):</strong> Tự do, năng động, phóng khoáng</li><li><strong>Mùi (Dê):</strong> Hiền lành, nghệ sĩ, nhạy cảm</li><li><strong>Thân (Khỉ):</strong> Thông minh, hóm hỉnh, linh hoạt</li><li><strong>Dậu (Gà):</strong> Siêng năng, chỉn chu, thẳng thắn</li><li><strong>Tuất (Chó):</strong> Trung thành, nghĩa khí, bảo vệ</li><li><strong>Hợi (Lợn):</strong> Hào phóng, vui vẻ, may mắn</li></ul><h3>Tam Hợp</h3><p>Thân-Tý-Thìn, Hợi-Mão-Mùi, Dần-Ngọ-Tuất, Tỵ-Dậu-Sửu.</p>`,
+			CategorySlug:    "am-lich",
+			MetaTitle:       "12 con giáp - Ý nghĩa và tính cách",
+			MetaDescription: "12 con giáp: ý nghĩa, tính cách, tam hợp. Tý Sửu Dần Mão Thìn Tỵ Ngọ Mùi Thân Dậu Tuất Hợi.",
+			ReadingTime:     7,
+			IsFeatured:      true,
+			TagNames:        []string{"Âm lịch", "Con giáp"},
+		},
+		{
+			Title:       "Cách đổi ngày dương lịch sang âm lịch và ngược lại",
+			Slug:        "cach-doi-ngay-duong-lich-sang-am-lich",
+			Excerpt:     "Hướng dẫn chuyển đổi ngày dương lịch sang âm lịch chính xác. Công thức, công cụ trực tuyến và mẹo ghi nhớ.",
+			Content:     `<h2>Đổi ngày dương lịch sang âm lịch</h2><p>Việc chuyển đổi giữa dương lịch và âm lịch là nhu cầu thường xuyên của người Việt, đặc biệt khi cần xem ngày tốt hoặc tính ngày lễ.</p><h3>Tại sao cần đổi?</h3><p>Nhiều sự kiện quan trọng theo âm lịch: Tết Nguyên Đán, rằm, mùng 1, ngày giỗ... trong khi đời sống hàng ngày dùng dương lịch.</p><h3>Công cụ trực tuyến</h3><p>Sử dụng trang lichso.vn để tra cứu nhanh và chính xác nhất. Nhập ngày dương lịch, hệ thống tự động hiển thị ngày âm lịch tương ứng.</p><h3>Mẹo ghi nhớ</h3><ul><li>Tết Nguyên Đán thường rơi vào cuối tháng 1 hoặc tháng 2 dương lịch</li><li>Rằm tháng 8 (Trung Thu) thường vào tháng 9-10 dương lịch</li><li>Mỗi năm, âm lịch lệch dương lịch khoảng 11 ngày</li></ul>`,
+			CategorySlug:    "am-lich",
+			MetaTitle:       "Đổi ngày dương lịch sang âm lịch",
+			MetaDescription: "Cách đổi dương lịch sang âm lịch: công thức, công cụ trực tuyến. Tra cứu nhanh trên lichso.vn.",
+			ReadingTime:     4,
+			TagNames:        []string{"Âm lịch", "Lịch vạn niên"},
+		},
+		{
+			Title:       "Ngày tốt xấu theo âm lịch: Cách xem ngày hoàng đạo, hắc đạo",
+			Slug:        "ngay-tot-xau-theo-am-lich-hoang-dao-hac-dao",
+			Excerpt:     "Cách xem ngày tốt xấu trong âm lịch: ngày hoàng đạo, hắc đạo, ngày tam nương, ngày sát chủ. Hướng dẫn chi tiết.",
+			Content:     `<h2>Xem ngày tốt xấu</h2><p>Trong văn hóa Việt Nam, việc chọn ngày tốt để khởi công, cưới hỏi, khai trương... là truyền thống quan trọng.</p><h3>Ngày hoàng đạo</h3><p>12 ngày hoàng đạo mỗi tháng là những ngày tốt lành, thuận lợi cho mọi việc. Sáu vị thần hoàng đạo: Thanh Long, Minh Đường, Kim Quỹ, Thiên Đức, Ngọc Đường, Tư Mệnh.</p><h3>Ngày hắc đạo</h3><p>12 ngày hắc đạo mỗi tháng là những ngày không thuận lợi. Sáu vị thần hắc đạo: Thiên Hình, Chu Tước, Bạch Hổ, Thiên Lao, Huyền Vũ, Câu Trần.</p><h3>Ngày Tam Nương</h3><p>Các ngày 3, 7, 13, 14, 18, 22, 23, 27 âm lịch là ngày Tam Nương, kiêng kỵ cưới hỏi và khởi công.</p>`,
+			CategorySlug:    "am-lich",
+			MetaTitle:       "Ngày tốt xấu âm lịch - Hoàng đạo, hắc đạo",
+			MetaDescription: "Xem ngày tốt xấu: hoàng đạo, hắc đạo, tam nương. Cách chọn ngày tốt theo âm lịch.",
+			ReadingTime:     6,
+			IsFeatured:      true,
+			TagNames:        []string{"Âm lịch", "Lịch vạn niên", "Phong tục"},
+		},
+		{
+			Title:       "24 tiết khí trong năm: Lập Xuân, Xuân Phân, Lập Hạ... và ý nghĩa",
+			Slug:        "24-tiet-khi-trong-nam-lap-xuan-xuan-phan",
+			Excerpt:     "24 tiết khí (Solar Terms) là gì? Ý nghĩa từng tiết khí và ảnh hưởng đến nông nghiệp, đời sống người Việt.",
+			Content:     `<h2>24 tiết khí</h2><p>24 tiết khí (Nhị thập tứ tiết khí) là hệ thống phân chia năm dựa trên vị trí Mặt Trời, mỗi tiết khoảng 15 ngày. Đây là cơ sở quan trọng cho nông nghiệp và phong thủy.</p><h3>Mùa Xuân</h3><ul><li><strong>Lập Xuân:</strong> Bắt đầu mùa xuân (~4/2)</li><li><strong>Vũ Thủy:</strong> Mưa bắt đầu (~19/2)</li><li><strong>Kinh Trập:</strong> Côn trùng thức giấc (~6/3)</li><li><strong>Xuân Phân:</strong> Ngày đêm bằng nhau (~21/3)</li><li><strong>Thanh Minh:</strong> Trời trong sáng (~5/4)</li><li><strong>Cốc Vũ:</strong> Mưa nuôi hạt giống (~20/4)</li></ul><h3>Ứng dụng</h3><p>Tiết khí giúp nông dân xác định thời vụ gieo trồng, thu hoạch. Trong phong thủy, tiết khí ảnh hưởng đến vận khí.</p>`,
+			CategorySlug:    "am-lich",
+			MetaTitle:       "24 tiết khí trong năm - Ý nghĩa",
+			MetaDescription: "24 tiết khí: Lập Xuân, Xuân Phân, Lập Hạ... Ý nghĩa và ảnh hưởng đến nông nghiệp, đời sống.",
+			ReadingTime:     6,
+			TagNames:        []string{"Âm lịch", "Lịch vạn niên"},
+		},
+		{
+			Title:       "Giờ hoàng đạo hôm nay: Cách xem giờ tốt xấu trong ngày",
+			Slug:        "gio-hoang-dao-hom-nay-cach-xem",
+			Excerpt:     "Giờ hoàng đạo là gì? Cách xem giờ tốt xấu mỗi ngày theo âm lịch. Bảng tra 12 giờ hoàng đạo chi tiết.",
+			Content:     `<h2>Giờ hoàng đạo</h2><p>Giờ hoàng đạo là những khung giờ tốt lành trong ngày, phù hợp để khởi sự, ký kết, xuất hành. Mỗi ngày có 6 giờ hoàng đạo và 6 giờ hắc đạo.</p><h3>12 giờ trong ngày</h3><p>Tý (23-1h), Sửu (1-3h), Dần (3-5h), Mão (5-7h), Thìn (7-9h), Tỵ (9-11h), Ngọ (11-13h), Mùi (13-15h), Thân (15-17h), Dậu (17-19h), Tuất (19-21h), Hợi (21-23h).</p><h3>Cách xác định</h3><p>Dựa vào ngày âm lịch (Can ngày) để tra bảng giờ hoàng đạo tương ứng. Ví dụ ngày Giáp/Kỷ: giờ hoàng đạo là Tý, Sửu, Thìn, Tỵ, Mùi, Tuất.</p>`,
+			CategorySlug:    "am-lich",
+			MetaTitle:       "Giờ hoàng đạo hôm nay - Cách xem giờ tốt",
+			MetaDescription: "Giờ hoàng đạo: cách xem giờ tốt xấu mỗi ngày. Bảng tra 12 giờ và nguyên tắc xác định.",
+			ReadingTime:     5,
+			TagNames:        []string{"Âm lịch", "Lịch vạn niên"},
+		},
+		{
+			Title:       "Tháng nhuận trong âm lịch: Tại sao có và cách tính",
+			Slug:        "thang-nhuan-am-lich-tai-sao-cach-tinh",
+			Excerpt:     "Tháng nhuận là gì? Tại sao âm lịch có tháng nhuận? Cách xác định tháng nhuận và ảnh hưởng đến đời sống.",
+			Content:     `<h2>Tháng nhuận trong âm lịch</h2><p>Tháng nhuận là tháng được thêm vào để cân bằng giữa âm lịch (354 ngày/năm) và dương lịch (365 ngày/năm). Khoảng 3 năm sẽ có 1 năm nhuận (13 tháng).</p><h3>Tại sao có tháng nhuận?</h3><p>Năm âm lịch ngắn hơn năm dương lịch khoảng 11 ngày. Nếu không thêm tháng nhuận, sau vài năm, Tết sẽ rơi vào mùa hè!</p><h3>Cách xác định</h3><p>Tháng nhuận là tháng không chứa Trung Khí (giữa tiết). Quy tắc 19 năm Metonic: cứ 19 năm có 7 tháng nhuận.</p><h3>Ảnh hưởng</h3><ul><li>Người sinh tháng nhuận: tính ngày giỗ, sinh nhật theo tháng thường tương ứng</li><li>Năm nhuận dài hơn 1 tháng: ảnh hưởng đến lịch nông nghiệp</li></ul>`,
+			CategorySlug:    "am-lich",
+			MetaTitle:       "Tháng nhuận âm lịch - Tại sao và cách tính",
+			MetaDescription: "Tháng nhuận âm lịch: tại sao có, cách xác định. Ảnh hưởng đến đời sống và tính tuổi.",
+			ReadingTime:     5,
+			TagNames:        []string{"Âm lịch", "Lịch vạn niên"},
+		},
+		{
+			Title:       "Cúng rằm và mùng 1 hàng tháng: Ý nghĩa và cách cúng đúng",
+			Slug:        "cung-ram-mung-1-hang-thang-y-nghia-cach-cung",
+			Excerpt:     "Tại sao cúng rằm và mùng 1? Ý nghĩa tâm linh, mâm cúng đúng cách và những lưu ý quan trọng.",
+			Content:     `<h2>Cúng rằm và mùng 1</h2><p>Cúng rằm (ngày 15) và mùng 1 âm lịch là phong tục quan trọng trong đời sống tâm linh người Việt, thể hiện lòng thành kính với tổ tiên và thần linh.</p><h3>Ý nghĩa</h3><ul><li><strong>Mùng 1:</strong> Ngày đầu tháng, cầu bình an, thuận lợi cho tháng mới</li><li><strong>Rằm:</strong> Ngày trăng tròn, năng lượng tâm linh mạnh nhất, cầu may mắn, tài lộc</li></ul><h3>Mâm cúng</h3><p><strong>Mâm chay:</strong> Hương, hoa, quả, nước, xôi. Phù hợp ngày rằm.<br><strong>Mâm mặn:</strong> Thêm gà luộc, thịt heo, xôi. Phù hợp ngày mùng 1 hoặc giỗ.</p><h3>Lưu ý</h3><ul><li>Cúng vào buổi sáng hoặc trưa là tốt nhất</li><li>Thắp 1 hoặc 3 nén hương (số lẻ)</li><li>Giữ bàn thờ sạch sẽ, thay nước thường xuyên</li></ul>`,
+			CategorySlug:    "am-lich",
+			MetaTitle:       "Cúng rằm mùng 1 - Ý nghĩa và cách cúng",
+			MetaDescription: "Cúng rằm, mùng 1: ý nghĩa tâm linh, mâm cúng đúng cách. Hướng dẫn chi tiết cho người Việt.",
+			ReadingTime:     5,
+			TagNames:        []string{"Âm lịch", "Phong tục"},
+		},
+		{
+			Title:       "Thiên Can Địa Chi: Hệ thống đếm thời gian cổ đại phương Đông",
+			Slug:        "thien-can-dia-chi-he-thong-dem-thoi-gian",
+			Excerpt:     "Thiên Can Địa Chi là gì? 10 Thiên Can, 12 Địa Chi và chu kỳ 60 năm (lục thập hoa giáp). Ứng dụng trong tử vi.",
+			Content:     `<h2>Thiên Can Địa Chi</h2><p>Thiên Can Địa Chi (hay Can Chi) là hệ thống đếm thời gian truyền thống của phương Đông, được sử dụng hàng nghìn năm.</p><h3>10 Thiên Can</h3><p>Giáp (甲), Ất (乙), Bính (丙), Đinh (丁), Mậu (戊), Kỷ (己), Canh (庚), Tân (辛), Nhâm (壬), Quý (癸)</p><h3>12 Địa Chi</h3><p>Tý, Sửu, Dần, Mão, Thìn, Tỵ, Ngọ, Mùi, Thân, Dậu, Tuất, Hợi</p><h3>Lục thập hoa giáp</h3><p>Kết hợp 10 Can và 12 Chi tạo ra chu kỳ 60 năm. Ví dụ: 2026 là năm Bính Ngọ. Bính thuộc Hỏa, Ngọ thuộc Hỏa → Thiên Hà Thủy.</p><h3>Ứng dụng</h3><ul><li>Xác định tuổi và mệnh ngũ hành</li><li>Tử vi, phong thủy</li><li>Xem ngày giờ tốt xấu</li></ul>`,
+			CategorySlug:    "am-lich",
+			MetaTitle:       "Thiên Can Địa Chi - Hệ thống đếm thời gian",
+			MetaDescription: "Thiên Can Địa Chi: 10 Can, 12 Chi, chu kỳ 60 năm. Ứng dụng trong tử vi, phong thủy.",
+			ReadingTime:     6,
+			TagNames:        []string{"Âm lịch", "Lịch vạn niên", "Ngũ hành"},
+		},
+		{
+			Title:       "Năm Bính Ngọ 2026: Ý nghĩa, ngũ hành và điều cần biết",
+			Slug:        "nam-binh-ngo-2026-y-nghia-ngu-hanh",
+			Excerpt:     "Năm 2026 Bính Ngọ thuộc mệnh gì? Đặc điểm năm Ngọ, ngũ hành Thiên Hà Thủy và những điều cần biết.",
+			Content:     `<h2>Năm Bính Ngọ 2026</h2><p>Năm 2026 theo lịch can chi là năm Bính Ngọ. Thiên can Bính thuộc Hỏa, Địa chi Ngọ cũng thuộc Hỏa. Năm này thuộc mệnh Thiên Hà Thủy (Nước trên trời).</p><h3>Đặc điểm năm Ngọ</h3><ul><li>Ngọ tượng trưng cho con Ngựa: tự do, năng động, dũng mãnh</li><li>Năm đầy năng lượng, phù hợp cho khởi đầu mới</li><li>Cần chú ý sức khỏe tim mạch</li></ul><h3>Mệnh Thiên Hà Thủy</h3><p>Nước trên trời là nước mưa – mang năng lượng thanh khiết, nuôi dưỡng vạn vật. Người sinh năm Thiên Hà Thủy thông minh, hào phóng.</p><h3>Tuổi cần lưu ý</h3><ul><li>Tuổi Tý: xung Thái Tuế</li><li>Tuổi Ngọ: phạm Thái Tuế</li><li>Tuổi Dần, Tuất: Tam Hợp, rất may mắn</li></ul>`,
+			CategorySlug:    "am-lich",
+			MetaTitle:       "Năm Bính Ngọ 2026 - Ý nghĩa và ngũ hành",
+			MetaDescription: "Năm 2026 Bính Ngọ: mệnh Thiên Hà Thủy. Đặc điểm năm Ngọ, tuổi cần lưu ý.",
+			ReadingTime:     5,
+			IsFeatured:      true,
+			TagNames:        []string{"Âm lịch", "Tử vi 2026", "Ngũ hành"},
+		},
+		{
+			Title:       "Xem tuổi kết hôn: Tuổi nào hợp nhau, tuổi nào khắc nhau?",
+			Slug:        "xem-tuoi-ket-hon-tuoi-nao-hop-khac",
+			Excerpt:     "Xem tuổi cưới hỏi theo 12 con giáp. Bảng hợp tuổi vợ chồng: tam hợp, lục hợp và các tuổi xung khắc cần tránh.",
+			Content:     `<h2>Xem tuổi kết hôn</h2><p>Trong văn hóa Việt, việc xem tuổi trước khi kết hôn là truyền thống quan trọng, nhằm đảm bảo hôn nhân hạnh phúc, bền vững.</p><h3>Tam Hợp (rất tốt)</h3><ul><li>Thân – Tý – Thìn</li><li>Hợi – Mão – Mùi</li><li>Dần – Ngọ – Tuất</li><li>Tỵ – Dậu – Sửu</li></ul><h3>Lục Hợp (tốt)</h3><ul><li>Tý – Sửu, Dần – Hợi, Mão – Tuất</li><li>Thìn – Dậu, Tỵ – Thân, Ngọ – Mùi</li></ul><h3>Lục Xung (tránh)</h3><ul><li>Tý – Ngọ, Sửu – Mùi, Dần – Thân</li><li>Mão – Dậu, Thìn – Tuất, Tỵ – Hợi</li></ul>`,
+			CategorySlug:    "am-lich",
+			MetaTitle:       "Xem tuổi kết hôn - Hợp và khắc",
+			MetaDescription: "Xem tuổi cưới: tam hợp, lục hợp, lục xung. Bảng tra tuổi vợ chồng theo 12 con giáp.",
+			ReadingTime:     5,
+			TagNames:        []string{"Âm lịch", "Con giáp", "Tình yêu"},
+		},
+		{
+			Title:       "Mâm ngũ quả ngày Tết: Ý nghĩa, cách bày theo phong tục Bắc - Nam",
+			Slug:        "mam-ngu-qua-ngay-tet-bac-nam",
+			Excerpt:     "Mâm ngũ quả Tết mang ý nghĩa tâm linh sâu sắc. So sánh cách bày mâm ngũ quả miền Bắc và miền Nam.",
+			Content:     `<h2>Mâm ngũ quả ngày Tết</h2><p>Mâm ngũ quả là vật phẩm không thể thiếu trên bàn thờ tổ tiên ngày Tết, tượng trưng cho ngũ hành và lòng thành kính.</p><h3>Miền Bắc</h3><p>Mâm ngũ quả truyền thống: Chuối (phật thủ), Bưởi, Quất, Hồng, Đào. Mỗi loại quả mang một ý nghĩa riêng về may mắn, thịnh vượng.</p><h3>Miền Nam</h3><p>"Cầu Sung Vừa Đủ Xài": Mãng cầu (cầu), Sung (sung), Dừa (vừa), Đu đủ (đủ), Xoài (xài). Kiêng trưng: chuối (chúi – thất bại), cam (quýt làm cam chịu).</p><h3>Ý nghĩa ngũ hành</h3><ul><li>Kim (trắng): Lê, Na</li><li>Mộc (xanh): Chuối, Bưởi</li><li>Thủy (đen): Quả nho</li><li>Hỏa (đỏ): Hồng, Dưa hấu</li><li>Thổ (vàng): Quất, Quýt</li></ul>`,
+			CategorySlug:    "am-lich",
+			MetaTitle:       "Mâm ngũ quả Tết - Bắc và Nam",
+			MetaDescription: "Mâm ngũ quả Tết: ý nghĩa, cách bày miền Bắc và Nam. Cầu Sung Vừa Đủ Xài.",
+			ReadingTime:     5,
+			TagNames:        []string{"Âm lịch", "Tết Nguyên Đán", "Phong tục"},
+		},
+	}
+
+	return createSeedArticles(db, seeds, tagMap, authorID)
+}

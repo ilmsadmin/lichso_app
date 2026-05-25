@@ -1,0 +1,10 @@
+DROP INDEX IF EXISTS idx_articles_search;
+DROP INDEX IF EXISTS idx_articles_view_count;
+DROP INDEX IF EXISTS idx_articles_featured;
+DROP INDEX IF EXISTS idx_articles_published;
+DROP INDEX IF EXISTS idx_articles_author;
+DROP INDEX IF EXISTS idx_articles_category;
+DROP INDEX IF EXISTS idx_articles_status;
+DROP INDEX IF EXISTS idx_articles_slug;
+DROP TABLE IF EXISTS articles;
+DROP TYPE IF EXISTS article_status;

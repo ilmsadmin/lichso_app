@@ -14,6 +14,9 @@ interface CountdownEventDao {
     @Query("SELECT * FROM countdown_events ORDER BY targetEpochDay ASC, createdAt DESC")
     fun observeAll(): Flow<List<CountdownEventEntity>>
 
+    @Query("SELECT * FROM countdown_events ORDER BY targetEpochDay ASC, createdAt DESC")
+    suspend fun getAllOnce(): List<CountdownEventEntity>
+
     @Query("SELECT * FROM countdown_events WHERE showOnHome = 1 AND targetEpochDay >= :todayEpochDay ORDER BY targetEpochDay ASC LIMIT :limit")
     fun observeUpcomingForHome(todayEpochDay: Long, limit: Int = 3): Flow<List<CountdownEventEntity>>
 
@@ -28,4 +31,7 @@ interface CountdownEventDao {
 
     @Delete
     suspend fun delete(entity: CountdownEventEntity)
+
+    @Query("DELETE FROM countdown_events")
+    suspend fun deleteAll()
 }

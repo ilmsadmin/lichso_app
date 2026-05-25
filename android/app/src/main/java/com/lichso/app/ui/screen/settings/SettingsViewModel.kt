@@ -27,7 +27,7 @@ val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(na
  */
 val Context.safeSettingsData: Flow<Preferences>
     get() = settingsDataStore.data.catch { e ->
-        if (e is IOException || e is FileNotFoundException) {
+        if (e is IOException || e is FileNotFoundException || e is ClassCastException) {
             emit(emptyPreferences())
         } else {
             throw e
@@ -50,6 +50,8 @@ object SettingsKeys {
     val REMINDER_MINUTE = intPreferencesKey("reminder_minute")
     val TEMP_UNIT = stringPreferencesKey("temp_unit")
     val LOCATION_NAME = stringPreferencesKey("location_name")
+    /** epochDay lần cuối popup rút quẻ đầu ngày hiển thị — dùng để show 1 lần/ngày */
+    val DAILY_ORACLE_EPOCH_DAY = longPreferencesKey("daily_oracle_popup_epoch_day")
 }
 
 data class SettingsUiState(

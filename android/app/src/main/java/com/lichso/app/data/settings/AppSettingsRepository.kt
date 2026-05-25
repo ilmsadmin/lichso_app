@@ -1,8 +1,10 @@
 package com.lichso.app.data.settings
 
 import android.content.Context
+import androidx.datastore.preferences.core.edit
 import com.lichso.app.ui.screen.settings.SettingsKeys
 import com.lichso.app.ui.screen.settings.safeSettingsData
+import com.lichso.app.ui.screen.settings.settingsDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -65,4 +67,22 @@ class AppSettingsRepository @Inject constructor(
     /** Ngày bắt đầu tuần */
     val weekStart: Flow<String> =
         prefsFlow.map { it[SettingsKeys.WEEK_START] ?: "Thứ Hai" }
+
+    /** epochDay lần cuối popup rút quẻ đầu ngày được hiển thị (0 = chưa hiển thị lần nào) */
+    val dailyOraclePopupLastShownEpochDay: Flow<Long> =
+        prefsFlow.map { prefs ->
+            // Guard: backup cũ có thể lưu key này dưới dạng Int → ClassCastException nếu đọc thẳng Long
+            try {
+                prefs[SettingsKeys.DAILY_ORACLE_EPOCH_DAY] ?: 0L
+            } catch (_: ClassCastException) {
+                0L
+            }
+        }
+
+    /** Lưu epochDay hôm nay sau khi popup đã hiển thị */
+    suspend fun markDailyOraclePopupShown(epochDay: Long) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[SettingsKeys.DAILY_ORACLE_EPOCH_DAY] = epochDay
+        }
+    }
 }
