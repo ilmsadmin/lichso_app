@@ -2,7 +2,9 @@ package com.lichso.app.ui.screen.familytree
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -92,9 +94,9 @@ fun AddMemberScreen(
     // Member ID for avatar saving
     val memberId = remember { existingMember?.id ?: FamilyTreeRepository.generateId() }
 
-    // Image picker launcher
+    // Image picker launcher (Android Photo Picker – no permission needed)
     val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
         uri?.let {
             viewModel.saveAvatarFromUri(it, memberId) { savedPath ->
@@ -136,7 +138,7 @@ fun AddMemberScreen(
                 Box(
                     modifier = Modifier
                         .size(96.dp)
-                        .clickable { imagePickerLauncher.launch("image/*") },
+                        .clickable { imagePickerLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) },
                     contentAlignment = Alignment.Center
                 ) {
                     // Circle background + border (clipped separately)
@@ -189,7 +191,7 @@ fun AddMemberScreen(
                     style = TextStyle(fontSize = 12.sp, color = c.outline),
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { imagePickerLauncher.launch("image/*") }
+                        .clickable { imagePickerLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) }
                         .padding(horizontal = 8.dp, vertical = 2.dp)
                 )
                 if (hasAvatar) {
@@ -556,12 +558,13 @@ fun AddMemberScreen(
                             // Memorial is auto-synced inside saveMember()
 
                             // If spouse relation, also update the connected member's spouseIds
-                            if (effectiveRelation == "Vợ/Chồng" && selectedSpouse != null) {
-                                val updatedSpouseIds = if (selectedSpouse!!.spouseIds.contains(member.id))
-                                    selectedSpouse!!.spouseIds
+                            val spouse = selectedSpouse
+                            if (effectiveRelation == "Vợ/Chồng" && spouse != null) {
+                                val updatedSpouseIds = if (spouse.spouseIds.contains(member.id))
+                                    spouse.spouseIds
                                 else
-                                    selectedSpouse!!.spouseIds + member.id
-                                val updatedSpouse = selectedSpouse!!.copy(spouseIds = updatedSpouseIds)
+                                    spouse.spouseIds + member.id
+                                val updatedSpouse = spouse.copy(spouseIds = updatedSpouseIds)
                                 viewModel.saveMember(updatedSpouse)
                             }
                         }

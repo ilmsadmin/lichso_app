@@ -1095,39 +1095,11 @@ private fun PermissionsSetupPage(
         )
     }
 
-    // ── Photo library permission state ──
-    var photoGranted by remember {
-        mutableStateOf(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                // Android 14+: partial access via READ_MEDIA_VISUAL_USER_SELECTED or full via READ_MEDIA_IMAGES
-                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) ==
-                        android.content.pm.PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) ==
-                        android.content.pm.PackageManager.PERMISSION_GRANTED
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                // Android 13
-                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) ==
-                        android.content.pm.PackageManager.PERMISSION_GRANTED
-            } else {
-                // Android 12 and below
-                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) ==
-                        android.content.pm.PackageManager.PERMISSION_GRANTED
-            }
-        )
-    }
-
     // Notification permission launcher
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         notificationGranted = isGranted
-    }
-
-    // Photo permission launcher (handles multiple permissions)
-    val photoPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        photoGranted = permissions.values.any { it }
     }
 
     // Helper to recheck permissions
@@ -1136,19 +1108,6 @@ private fun PermissionsSetupPage(
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
                     android.content.pm.PackageManager.PERMISSION_GRANTED
         } else true
-
-        photoGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
-        } else {
-            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
-        }
     }
 
     // Recheck when returning from settings
@@ -1163,7 +1122,7 @@ private fun PermissionsSetupPage(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    val allGranted = notificationGranted && photoGranted
+    val allGranted = notificationGranted
 
     Column(
         modifier = Modifier
@@ -1264,29 +1223,6 @@ private fun PermissionsSetupPage(
             )
             Spacer(modifier = Modifier.height(12.dp))
         }
-
-        // 2. Photo Library Permission
-        PermissionItemCard(
-            icon = Icons.Filled.PhotoLibrary,
-            iconColor = Color(0xFF7B1FA2),
-            title = "Bộ sưu tập ảnh",
-            description = "Cho phép thêm hình ảnh kỷ niệm vào gia phả, đặt ảnh đại diện thành viên và ảnh hồ sơ cá nhân.",
-            isGranted = photoGranted,
-            onRequest = {
-                val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    arrayOf(
-                        Manifest.permission.READ_MEDIA_IMAGES,
-                        Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
-                    )
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
-                } else {
-                    arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-                }
-                photoPermissionLauncher.launch(permissions)
-            }
-        )
-        Spacer(modifier = Modifier.height(12.dp))
 
         Spacer(modifier = Modifier.height(8.dp))
 

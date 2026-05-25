@@ -4,7 +4,9 @@ import androidx.compose.ui.res.painterResource
 import com.lichso.app.R
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -67,9 +69,9 @@ fun MemberDetailScreen(
     val photos by viewModel.getPhotosFlow(member.id).collectAsStateWithLifecycle(initialValue = emptyList())
     var viewingPhoto by remember { mutableStateOf<MemberPhoto?>(null) }
 
-    // Multi-photo picker
+    // Multi-photo picker (Android Photo Picker – no permission needed)
     val multiPhotoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents()
+        contract = ActivityResultContracts.PickMultipleVisualMedia()
     ) { uris: List<Uri> ->
         if (uris.isNotEmpty()) {
             viewModel.addMemberPhotos(uris, member.id)
@@ -128,7 +130,7 @@ fun MemberDetailScreen(
             PhotoGrid(
                 photos = photos,
                 c = c,
-                onAddClick = { multiPhotoPickerLauncher.launch("image/*") },
+                onAddClick = { multiPhotoPickerLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) },
                 onPhotoClick = { viewingPhoto = it },
             )
 
@@ -225,9 +227,10 @@ private fun MemberHero(member: FamilyMember, isDeceased: Boolean, onBack: () -> 
                     contentAlignment = Alignment.Center
                 ) {
                     if (hasAvatar) {
+                        val avatarPath = member.avatarPath
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
-                                .data(File(member.avatarPath!!))
+                                .data(avatarPath?.let { File(it) })
                                 .crossfade(true)
                                 .build(),
                             contentDescription = member.name,
@@ -301,7 +304,7 @@ private fun HeroChip(label: String, bg: Color, textColor: Color) {
 @Composable
 private fun StatsRow(member: FamilyMember, c: LichSoColors) {
     val isDeceased = member.deathYear != null
-    val age = if (isDeceased && member.birthYear != null && member.deathYear != null)
+    val age = if (isDeceased && member.birthYear != null)
         member.deathYear - member.birthYear
     else if (member.birthYear != null)
         2026 - member.birthYear

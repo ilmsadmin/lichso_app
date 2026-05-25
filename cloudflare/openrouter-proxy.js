@@ -54,7 +54,7 @@ export default {
         body: JSON.stringify({
           model,
           messages: payload.messages,
-          max_tokens: payload.max_tokens ?? 2048,
+          max_tokens: payload.max_tokens ?? 4096,
           temperature: payload.temperature ?? 0.7
         })
       })

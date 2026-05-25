@@ -375,8 +375,9 @@ private fun FamilyTreeListScreen(
     val jsonExportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
-        if (uri != null && pendingExportJson != null) {
-            viewModel.writeExportToUri(uri, pendingExportJson!!)
+        val payload = pendingExportJson
+        if (uri != null && payload != null) {
+            viewModel.writeExportToUri(uri, payload)
         }
         pendingExportJson = null
     }
@@ -1422,9 +1423,10 @@ private fun PersonNodeView(member: FamilyMember, onClick: () -> Unit) {
         ) {
             val hasAvatar = !member.avatarPath.isNullOrEmpty() && File(member.avatarPath).exists()
             if (hasAvatar) {
+                val avatarPath = member.avatarPath
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(File(member.avatarPath!!))
+                        .data(avatarPath?.let { File(it) })
                         .crossfade(true)
                         .build(),
                     contentDescription = member.name,
@@ -1684,9 +1686,10 @@ private fun MemberListCard(member: FamilyMember, onClick: () -> Unit, onReminder
         ) {
             val hasAvatar = !member.avatarPath.isNullOrEmpty() && File(member.avatarPath).exists()
             if (hasAvatar) {
+                val avatarPath = member.avatarPath
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(File(member.avatarPath!!))
+                        .data(avatarPath?.let { File(it) })
                         .crossfade(true)
                         .build(),
                     contentDescription = member.name,
@@ -1713,7 +1716,9 @@ private fun MemberListCard(member: FamilyMember, onClick: () -> Unit, onReminder
                 style = TextStyle(fontSize = 11.sp, color = c.textSecondary),
             )
             val dateText = when {
-                isDeceased && member.birthYear != null -> "${member.birthYear} — ${member.deathYear} (thọ ${member.deathYear!! - member.birthYear} tuổi)"
+                isDeceased && member.birthYear != null -> {
+                    "${member.birthYear} — ${member.deathYear} (thọ ${member.deathYear - member.birthYear} tuổi)"
+                }
                 isDeceased -> "Mất ${member.deathYear}"
                 member.birthYear != null -> "Sinh ${member.birthYear} · ${2026 - member.birthYear} tuổi"
                 else -> ""

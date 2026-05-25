@@ -315,7 +315,9 @@ private fun DiffTab() {
     var d2 by remember { mutableStateOf<LocalDate?>(null) }
 
     val result = remember(d1, d2) {
-        if (d1 != null && d2 != null) DateMathLogic.computeDiff(d1!!, d2!!) else null
+        val from = d1
+        val to = d2
+        if (from != null && to != null) DateMathLogic.computeDiff(from, to) else null
     }
 
     Column(
@@ -413,8 +415,9 @@ private fun AddTab() {
 
     val amount = amountText.toLongOrNull()?.coerceIn(0, 100_000) ?: 0L
     val result = remember(base, amount, unit, subtract) {
-        if (base != null && amount > 0) {
-            DateMathLogic.computeAdd(base!!, amount, unit, subtract)
+        val selectedBase = base
+        if (selectedBase != null && amount > 0) {
+            DateMathLogic.computeAdd(selectedBase, amount, unit, subtract)
         } else null
     }
 

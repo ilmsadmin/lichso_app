@@ -8,7 +8,6 @@ import com.lichso.app.domain.model.CityCoordinates
 import com.lichso.app.domain.model.WeatherInfo
 import com.lichso.app.widget.ClockWidget
 import com.lichso.app.widget.ClockWidget2
-import com.lichso.app.widget.WidgetWeatherHelper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -57,10 +56,11 @@ class WeatherRepository @Inject constructor(
         }
 
         // Kiểm tra cache
-        if (!forceRefresh && cachedWeather != null &&
+        val currentCached = cachedWeather
+        if (!forceRefresh && currentCached != null &&
             System.currentTimeMillis() - lastFetchTime < cacheValidDuration
         ) {
-            _weatherState.value = WeatherState.Success(cachedWeather!!)
+            _weatherState.value = WeatherState.Success(currentCached)
             return
         }
 
@@ -80,8 +80,9 @@ class WeatherRepository @Inject constructor(
             },
             onFailure = { error ->
                 // Nếu có cache cũ thì vẫn dùng
-                if (cachedWeather != null) {
-                    _weatherState.value = WeatherState.Success(cachedWeather!!)
+                val fallback = cachedWeather
+                if (fallback != null) {
+                    _weatherState.value = WeatherState.Success(fallback)
                 } else {
                     _weatherState.value = WeatherState.Error(error.message ?: "Lỗi không xác định")
                 }

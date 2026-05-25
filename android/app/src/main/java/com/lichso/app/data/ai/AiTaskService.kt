@@ -1005,7 +1005,7 @@ Ví dụ:
                 else if (it.length == 2) 2000 + it.toInt()
                 else it.toInt()
             }
-            return LocalDate.of(yy, mm, dd).format(fmt)
+            return runCatching { LocalDate.of(yy, mm, dd).format(fmt) }.getOrNull()
         }
 
         return null

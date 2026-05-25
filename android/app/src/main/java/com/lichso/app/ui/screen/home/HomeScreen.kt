@@ -925,9 +925,10 @@ private fun EventChips(info: DayInfo, showFestival: Boolean = true, onHistoryCli
         horizontalArrangement = Arrangement.Center
     ) {
         if (showHoliday) {
+            val holidayText = holiday.orEmpty()
             EventChip(
                 icon = Icons.Filled.Celebration,
-                text = holiday!!,
+                text = holidayText,
                 bgColor = if (c.isDark) Color(0xFF3D2A10) else Color(0xFFFFF3E0),
                 textColor = if (c.isDark) Color(0xFFE8A06A) else Color(0xFFE65100),
                 borderColor = if (c.isDark) Color(0xFF5C3D1A) else Color(0xFFFFB74D)

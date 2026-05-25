@@ -33,9 +33,10 @@ fun TemplatesScreen(viewModel: TemplatesViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val filteredTemplates = viewModel.getFilteredTemplates()
 
-    if (state.showDetail && state.detailResult != null) {
+    val detailResult = state.detailResult
+    if (state.showDetail && detailResult != null) {
         TemplateDetailScreen(
-            result = state.detailResult!!,
+            result = detailResult,
             viewModel = viewModel,
             onBack = { viewModel.closeDetail() }
         )

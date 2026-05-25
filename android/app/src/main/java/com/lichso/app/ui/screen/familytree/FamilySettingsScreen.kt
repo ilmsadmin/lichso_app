@@ -64,8 +64,9 @@ fun FamilySettingsScreen(
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
-        if (uri != null && pendingExportJson != null) {
-            viewModel.writeExportToUri(uri, pendingExportJson!!)
+        val payload = pendingExportJson
+        if (uri != null && payload != null) {
+            viewModel.writeExportToUri(uri, payload)
         }
         pendingExportJson = null
     }

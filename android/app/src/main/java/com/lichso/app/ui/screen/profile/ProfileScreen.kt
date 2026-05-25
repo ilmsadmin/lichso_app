@@ -4,6 +4,8 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -73,8 +75,9 @@ fun ProfileScreen(
     val backupExportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
-        if (uri != null && pendingBackupJson != null) {
-            viewModel.writeBackupToUri(uri, pendingBackupJson!!)
+        val payload = pendingBackupJson
+        if (uri != null && payload != null) {
+            viewModel.writeBackupToUri(uri, payload)
         }
         pendingBackupJson = null
     }
@@ -505,9 +508,9 @@ private fun EditProfileSheet(
     val c = LichSoThemeColors.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // Image picker launcher
+    // Image picker launcher (Android Photo Picker – no permission needed)
     val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
         uri?.let { viewModel.saveAvatarFromUri(it) }
     }
@@ -555,7 +558,7 @@ private fun EditProfileSheet(
                 Box(
                     modifier = Modifier
                         .size(88.dp)
-                        .clickable { imagePickerLauncher.launch("image/*") },
+                        .clickable { imagePickerLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) },
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
@@ -589,7 +592,7 @@ private fun EditProfileSheet(
                     style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = c.primary),
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { imagePickerLauncher.launch("image/*") }
+                        .clickable { imagePickerLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) }
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 )
                 // Remove avatar option

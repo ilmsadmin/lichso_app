@@ -129,8 +129,8 @@ fun LichSoGradientCard(
 @Composable
 fun LichSoSectionHeader(
     title: String,
-    trailing: String? = null,
     modifier: Modifier = Modifier,
+    trailing: String? = null,
 ) {
     val c = LichSoThemeColors.current
     Row(

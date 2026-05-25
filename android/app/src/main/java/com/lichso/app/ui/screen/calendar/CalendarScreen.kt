@@ -858,9 +858,9 @@ private fun CalendarGrid(
     showLunarBadge: Boolean,
     showHoangDao: Boolean,
     weekStartSunday: Boolean,
-    bookmarkedDays: Set<Pair<Int, Int>> = emptySet(),
     onDayClick: (CalendarDay) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    bookmarkedDays: Set<Pair<Int, Int>> = emptySet(),
 ) {
     val c = LichSoThemeColors.current
 
@@ -934,9 +934,9 @@ private fun DayCell(
     isSelected: Boolean,
     showLunarBadge: Boolean,
     showHoangDao: Boolean,
-    isBookmarked: Boolean = false,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isBookmarked: Boolean = false,
 ) {
     val c = LichSoThemeColors.current
     val bgColor = when {

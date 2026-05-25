@@ -16,7 +16,7 @@ struct OpenRouterRequest: Codable {
     let max_tokens: Int
     let temperature: Double
     
-    init(messages: [ChatMessage], model: String = "mistralai/mistral-small-24b-instruct-2501", maxTokens: Int = 2048, temperature: Double = 0.7) {
+    init(messages: [ChatMessage], model: String = "mistralai/mistral-small-24b-instruct-2501", maxTokens: Int = 4096, temperature: Double = 0.7) {
         self.model = model
         self.messages = messages
         self.max_tokens = maxTokens
@@ -87,7 +87,9 @@ class OpenRouterService: ObservableObject {
 
         Quy tắc:
         - Luôn trả lời bằng tiếng Việt, tự nhiên, thân thiện
-        - Trả lời ngắn gọn, dễ hiểu
+        - Mặc định trả lời rõ ràng, dễ hiểu
+        - Với yêu cầu chuyên sâu gồm: phân tích bát tự, vận hạn hôm nay, tử vi trọn đời, đại vận/tiểu vận/lưu niên: bắt buộc trả lời CHI TIẾT và ĐẦY ĐỦ
+        - Khi gặp yêu cầu chuyên sâu, phân tích theo nhiều lớp: Tổng quan, Luận mệnh gốc, Luận vận hiện tại, Điểm mạnh/yếu, Khuyến nghị hành động
         - Nếu người dùng cung cấp thông tin ngày (can chi, âm lịch, giờ hoàng đạo), hãy tham khảo để trả lời chính xác
         - Nếu không chắc chắn, nói rõ và gợi ý tham khảo thêm
         - Nếu người dùng cho biết tên, ngày sinh — hãy ghi nhận và dùng tên họ khi trả lời
@@ -95,8 +97,11 @@ class OpenRouterService: ObservableObject {
         - Khi trả lời có dữ liệu dạng bảng/key-value, dùng format: KEY: VALUE (mỗi dòng một cặp)
         - Dùng ✦ ✓ ★ cho tốt, ✗ cho xấu. Dùng ↗ ↘ cho hướng.
         - Dùng **bold** CHỈ cho từ/cụm từ quan trọng BÊN TRONG đoạn văn
-        - Giữ câu trả lời ngắn gọn, có cấu trúc rõ ràng
-        - KHÔNG trả lời dài dòng. Tối đa 15 dòng key:value trong một bảng.
+        - Giữ câu trả lời có cấu trúc rõ ràng
+        - Nếu user hỏi thông thường: ưu tiên ngắn gọn
+        - Nếu user hỏi chuyên sâu (bát tự, vận hạn hôm nay, tử vi trọn đời): trả lời dài hơn, tối thiểu 25 dòng nội dung hữu ích; phần key:value có thể tới 35 dòng nếu cần
+        - Khi xem vận hạn hôm nay: luôn nêu rõ Công việc, Tài lộc, Tình cảm, Sức khỏe, Giờ tốt, Hướng tốt, Việc nên làm, Việc nên tránh
+        - Khi xem tử vi trọn đời: luôn nêu các chặng vận theo từng giai đoạn tuổi và điểm chuyển vận quan trọng
 
         GỢI Ý TIẾP TỤC (BẮT BUỘC):
         Sau mỗi câu trả lời, LUÔN LUÔN thêm phần gợi ý ở cuối với format CHÍNH XÁC:

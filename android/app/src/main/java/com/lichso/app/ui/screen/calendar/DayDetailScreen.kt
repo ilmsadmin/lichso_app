@@ -44,6 +44,7 @@ import com.lichso.app.ui.components.HeaderIconButton
 fun DayDetailScreen(
     dayInfo: DayInfo,
     onBackClick: () -> Unit,
+    modifier: Modifier = Modifier,
     onShareClick: () -> Unit = {},
     onBookmarkClick: () -> Unit = {},
     onAskAiClick: () -> Unit = {},
@@ -54,7 +55,6 @@ fun DayDetailScreen(
     dayNotes: List<NoteEntity> = emptyList(),
     dayTasks: List<TaskEntity> = emptyList(),
     dayReminders: List<ReminderEntity> = emptyList(),
-    modifier: Modifier = Modifier
 ) {
     val c = LichSoThemeColors.current
 
