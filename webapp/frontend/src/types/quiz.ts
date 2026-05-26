@@ -10,6 +10,7 @@ export interface QuizQuestion {
   option_c: string;
   option_d: string;
   correct: string; // "a"|"b"|"c"|"d"
+  hint?: string;
   explanation?: string;
   category: string;
   difficulty: string;
@@ -48,6 +49,7 @@ export interface CreateQuizQuestionRequest {
   option_c: string;
   option_d: string;
   correct: string;
+  hint?: string;
   explanation?: string;
   category?: string;
   difficulty?: string;
@@ -55,7 +57,7 @@ export interface CreateQuizQuestionRequest {
   is_active?: boolean;
 }
 
-export interface UpdateQuizQuestionRequest extends Partial<CreateQuizQuestionRequest> {}
+export type UpdateQuizQuestionRequest = Partial<CreateQuizQuestionRequest>;
 
 export interface QuizQuestionListParams {
   page?: number;
@@ -90,3 +92,39 @@ export const QUIZ_CORRECT_OPTIONS = [
   { value: "c", label: "C" },
   { value: "d", label: "D" },
 ] as const;
+
+// ============================================
+// AI Generation Types
+// ============================================
+
+export interface GenerateQuizQuestionsRequest {
+  topic?: string;
+  text?: string;
+  count: number;
+  category: string;
+  difficulty: string;
+}
+
+export interface GenerateQuizTopicsRequest {
+  category: string;
+  count: number;
+  existing_topics?: string[];
+}
+
+export interface GeneratedQuizTopic {
+  title: string;
+  description?: string;
+}
+
+export interface GeneratedQuizQuestion {
+  content: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct: string;
+  hint: string;
+  explanation: string;
+  category: string;
+  difficulty: string;
+}

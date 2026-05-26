@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { Plus, Pencil, Trash2, Trophy, CalendarDays, HelpCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Trophy, CalendarDays, HelpCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -39,6 +39,7 @@ import { ROUTES, DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { QUIZ_CATEGORIES, QUIZ_DIFFICULTIES } from "@/types/quiz";
 import type { QuizQuestion } from "@/types/quiz";
 import { DailySetManager } from "./DailySetManager";
+import AIQuizGenerator from "./AIQuizGenerator";
 import { cn } from "@/lib/utils";
 
 // ── helpers ──
@@ -71,6 +72,7 @@ function QuestionsTab() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [difficulty, setDifficulty] = useState("all");
+  const [aiOpen, setAiOpen] = useState(false);
 
   const { data, isLoading } = useQuizQuestions({
     page,
@@ -89,6 +91,8 @@ function QuestionsTab() {
 
   return (
     <div className="space-y-4">
+      <AIQuizGenerator open={aiOpen} onClose={() => setAiOpen(false)} />
+
       <div className="flex flex-wrap gap-3">
         <SearchInput
           value={search}
@@ -119,12 +123,23 @@ function QuestionsTab() {
           </SelectContent>
         </Select>
         <PermissionGate permission="content.create">
-          <Button size="sm" asChild className="ml-auto">
-            <Link href={`${ROUTES.ADMIN_QUIZ}/create`}>
-              <Plus className="mr-2 h-4 w-4" />
-              Thêm câu hỏi
-            </Link>
-          </Button>
+          <div className="ml-auto flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-purple-300 text-purple-700 hover:bg-purple-50"
+              onClick={() => setAiOpen(true)}
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Sinh bằng AI
+            </Button>
+            <Button size="sm" asChild>
+              <Link href={`${ROUTES.ADMIN_QUIZ}/create`}>
+                <Plus className="mr-2 h-4 w-4" />
+                Thêm câu hỏi
+              </Link>
+            </Button>
+          </div>
         </PermissionGate>
       </div>
 
@@ -158,6 +173,11 @@ function QuestionsTab() {
                     <TableCell className="text-muted-foreground text-xs">{q.id}</TableCell>
                     <TableCell>
                       <p className="line-clamp-2 text-sm font-medium">{q.content}</p>
+                      {q.hint && (
+                        <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">
+                          Gợi ý: {q.hint}
+                        </p>
+                      )}
                     </TableCell>
                     <TableCell>
                       <span className="text-xs">{categoryLabel(q.category)}</span>

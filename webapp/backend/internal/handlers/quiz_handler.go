@@ -129,9 +129,6 @@ func (h *QuizHandler) SubmitAnswer(c *fiber.Ctx) error {
 	if req.QuestionID == 0 {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, "question_id is required")
 	}
-	if req.Chosen == "" {
-		return utils.ErrorResponse(c, fiber.StatusBadRequest, "chosen is required")
-	}
 
 	result, err := h.service.SubmitAnswer(userID, sessionID, req.QuestionID, req.Chosen, req.TimeMs)
 	if err != nil {
@@ -159,6 +156,26 @@ func (h *QuizHandler) FinishSession(c *fiber.Ctx) error {
 	}
 
 	return utils.SuccessResponse(c, "Đã hoàn thành phiên quiz", result)
+}
+
+// SyncOfflineSessions handles POST /quiz/sessions/sync
+func (h *QuizHandler) SyncOfflineSessions(c *fiber.Ctx) error {
+	userID, err := getUserID(c)
+	if err != nil {
+		return utils.UnauthorizedResponse(c, "Invalid user")
+	}
+
+	var req services.SyncOfflineQuizRequest
+	if err := c.BodyParser(&req); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body")
+	}
+
+	result, err := h.service.SyncOfflineSessions(userID, req.Sessions)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, err.Error())
+	}
+
+	return utils.SuccessResponse(c, "Đã đồng bộ phiên quiz ngoại tuyến", result)
 }
 
 // GetSession handles GET /quiz/sessions/:id
@@ -217,18 +234,58 @@ func (h *QuizHandler) GetMyRank(c *fiber.Ctx) error {
 // Admin endpoints
 // ============================================
 
-// AdminListQuestions handles GET /admin/quiz/questions
+// AdminListQuestions handles GET /admin/quiz/questions?search=&category=&difficulty=
 func (h *QuizHandler) AdminListQuestions(c *fiber.Ctx) error {
 	pagination := utils.ParsePagination(c)
 	category := c.Query("category")
 	difficulty := c.Query("difficulty")
+	search := c.Query("search")
 
-	questions, total, err := h.service.ListQuestions(pagination.Page, pagination.Limit, category, difficulty)
+	questions, total, err := h.service.ListQuestions(pagination.Page, pagination.Limit, category, difficulty, search)
 	if err != nil {
 		return utils.ErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}
 
 	return utils.PaginatedResponse(c, "Danh sách câu hỏi", questions, pagination.Page, pagination.Limit, total)
+}
+
+// AdminGenerateQuestions handles POST /admin/quiz/questions/generate
+func (h *QuizHandler) AdminGenerateQuestions(c *fiber.Ctx) error {
+	var req services.GenerateQuizQuestionsRequest
+	if err := c.BodyParser(&req); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body")
+	}
+
+	if req.Topic == "" && req.Text == "" {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Cần cung cấp topic hoặc text làm nguồn sinh câu hỏi")
+	}
+
+	questions, err := h.service.GenerateQuizQuestions(req)
+	if err != nil {
+		h.logger.Error("AdminGenerateQuestions failed", zap.Error(err))
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, err.Error())
+	}
+
+	return utils.SuccessResponse(c, "Đã sinh câu hỏi", questions)
+}
+
+// AdminGenerateTopics handles POST /admin/quiz/topics/generate
+func (h *QuizHandler) AdminGenerateTopics(c *fiber.Ctx) error {
+	var req services.GenerateQuizTopicsRequest
+	if err := c.BodyParser(&req); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body")
+	}
+	if req.Category == "" {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Cần chọn danh mục để gợi ý chủ đề")
+	}
+
+	topics, err := h.service.GenerateQuizTopics(req)
+	if err != nil {
+		h.logger.Error("AdminGenerateTopics failed", zap.Error(err))
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, err.Error())
+	}
+
+	return utils.SuccessResponse(c, "Đã gợi ý chủ đề", topics)
 }
 
 // AdminGetQuestion handles GET /admin/quiz/questions/:id

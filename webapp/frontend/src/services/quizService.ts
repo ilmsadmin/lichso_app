@@ -8,6 +8,10 @@ import type {
   UpdateQuizQuestionRequest,
   QuizQuestionListParams,
   SetDailySetRequest,
+  GenerateQuizQuestionsRequest,
+  GenerateQuizTopicsRequest,
+  GeneratedQuizQuestion,
+  GeneratedQuizTopic,
 } from "@/types/quiz";
 
 // ── Questions ──
@@ -55,6 +59,30 @@ export async function getDailySets(): Promise<ApiResponse<QuizDailySet[]>> {
 
 export async function setDailySet(data: SetDailySetRequest): Promise<ApiResponse<unknown>> {
   const response = await api.post<ApiResponse<unknown>>("/admin/quiz/daily-sets", data);
+  return response.data;
+}
+
+// ── AI Generation ──
+
+export async function generateQuizQuestions(
+  data: GenerateQuizQuestionsRequest
+): Promise<ApiResponse<GeneratedQuizQuestion[]>> {
+  const response = await api.post<ApiResponse<GeneratedQuizQuestion[]>>(
+    "/admin/quiz/questions/generate",
+    data,
+    { timeout: 120000 }
+  );
+  return response.data;
+}
+
+export async function generateQuizTopics(
+  data: GenerateQuizTopicsRequest
+): Promise<ApiResponse<GeneratedQuizTopic[]>> {
+  const response = await api.post<ApiResponse<GeneratedQuizTopic[]>>(
+    "/admin/quiz/topics/generate",
+    data,
+    { timeout: 90000 }
+  );
   return response.data;
 }
 

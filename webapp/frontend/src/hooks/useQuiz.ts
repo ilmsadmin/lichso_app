@@ -7,6 +7,8 @@ import type {
   UpdateQuizQuestionRequest,
   QuizQuestionListParams,
   SetDailySetRequest,
+  GenerateQuizQuestionsRequest,
+  GenerateQuizTopicsRequest,
 } from "@/types/quiz";
 import { toast } from "sonner";
 
@@ -93,6 +95,34 @@ export function useSetDailySet() {
       }
     },
     onError: () => toast.error("Không thể cập nhật bộ câu hỏi ngày"),
+  });
+}
+
+// ── AI Generation ──
+
+export function useGenerateQuizQuestions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: GenerateQuizQuestionsRequest) => quizService.generateQuizQuestions(data),
+    onSuccess: (res) => {
+      if (res.success) {
+        toast.success(`Đã sinh ${res.data?.length ?? 0} câu hỏi`);
+        queryClient.invalidateQueries({ queryKey: [QUESTIONS_KEY] });
+      }
+    },
+    onError: () => toast.error("Không thể sinh câu hỏi, kiểm tra cấu hình AI"),
+  });
+}
+
+export function useGenerateQuizTopics() {
+  return useMutation({
+    mutationFn: (data: GenerateQuizTopicsRequest) => quizService.generateQuizTopics(data),
+    onSuccess: (res) => {
+      if (res.success) {
+        toast.success(`Đã gợi ý ${res.data?.length ?? 0} chủ đề`);
+      }
+    },
+    onError: () => toast.error("Không thể gợi ý chủ đề, kiểm tra cấu hình AI"),
   });
 }
 

@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import Link from "next/link";
+import AIFillQuizDialog from "./AIFillQuizDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +36,7 @@ interface QuestionFormProps {
 export function QuestionForm({ defaultValues }: QuestionFormProps) {
   const router = useRouter();
   const isEditing = !!defaultValues;
+  const [aiOpen, setAiOpen] = useState(false);
 
   const createQuestion = useCreateQuizQuestion();
   const updateQuestion = useUpdateQuizQuestion(defaultValues?.id ?? 0);
@@ -52,6 +55,7 @@ export function QuestionForm({ defaultValues }: QuestionFormProps) {
       option_c: defaultValues?.option_c ?? "",
       option_d: defaultValues?.option_d ?? "",
       correct: defaultValues?.correct ?? "a",
+      hint: defaultValues?.hint ?? "",
       explanation: defaultValues?.explanation ?? "",
       category: defaultValues?.category ?? "history_vn",
       difficulty: defaultValues?.difficulty ?? "medium",
@@ -64,6 +68,21 @@ export function QuestionForm({ defaultValues }: QuestionFormProps) {
   const isActive = watch("is_active");
   const difficulty = watch("difficulty");
   const category = watch("category");
+  const articleId = watch("article_id");
+
+  const handleApplyAIQuestion = (q: any) => {
+    setValue("content", q.content);
+    setValue("option_a", q.option_a);
+    setValue("option_b", q.option_b);
+    setValue("option_c", q.option_c);
+    setValue("option_d", q.option_d);
+    setValue("correct", q.correct);
+    if (q.hint) setValue("hint", q.hint);
+    if (q.explanation) setValue("explanation", q.explanation);
+    if (q.category) setValue("category", q.category);
+    if (q.difficulty) setValue("difficulty", q.difficulty);
+    if (q.article_id) setValue("article_id", q.article_id);
+  };
 
   const onSubmit = async (data: CreateQuizQuestionRequest) => {
     const mutation = isEditing ? updateQuestion : createQuestion;
@@ -99,7 +118,19 @@ export function QuestionForm({ defaultValues }: QuestionFormProps) {
         {/* Left: Content + Options */}
         <div className="space-y-6 lg:col-span-2">
           <Card>
-            <CardHeader><CardTitle className="text-base">Nội dung câu hỏi</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base">Nội dung câu hỏi</CardTitle>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-purple-300 text-purple-700 hover:bg-purple-50 hover:text-purple-800 hover:border-purple-400 gap-1.5 shadow-sm font-medium transition-all duration-150"
+                onClick={() => setAiOpen(true)}
+              >
+                <Sparkles className="h-3.5 w-3.5 text-purple-500 animate-pulse" />
+                Sinh bằng AI
+              </Button>
+            </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="content">Câu hỏi *</Label>
@@ -147,13 +178,30 @@ export function QuestionForm({ defaultValues }: QuestionFormProps) {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-base">Giải thích</CardTitle></CardHeader>
-            <CardContent>
-              <Textarea
-                rows={3}
-                placeholder="Giải thích tại sao đáp án đúng (tuỳ chọn)..."
-                {...register("explanation")}
-              />
+            <CardHeader><CardTitle className="text-base">Trợ giúp & giải thích</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="hint">Gợi ý cho người chơi</Label>
+                <Textarea
+                  id="hint"
+                  rows={3}
+                  placeholder="Gợi ý ngắn, không lộ trực tiếp đáp án. Ví dụ: Đây là ngày đầu tiên của năm âm lịch..."
+                  {...register("hint")}
+                />
+                <p className="text-muted-foreground text-xs">
+                  Nội dung này hiện khi người chơi dùng trợ giúp “Gợi ý”.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="explanation">Giải thích sau khi trả lời</Label>
+                <Textarea
+                  id="explanation"
+                  rows={3}
+                  placeholder="Giải thích tại sao đáp án đúng (tuỳ chọn)..."
+                  {...register("explanation")}
+                />
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -225,6 +273,15 @@ export function QuestionForm({ defaultValues }: QuestionFormProps) {
           </Button>
         </div>
       </div>
+
+      <AIFillQuizDialog
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        onApply={handleApplyAIQuestion}
+        defaultCategory={category}
+        defaultDifficulty={difficulty}
+        currentArticleId={articleId}
+      />
     </form>
   );
 }
