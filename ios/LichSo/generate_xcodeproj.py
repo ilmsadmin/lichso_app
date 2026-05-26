@@ -59,6 +59,7 @@ target_config_list_uid = uid()
 
 # Assets
 assets_ref_uid = uid()
+assets_build_uid = uid()
 assets_variant_group = uid()
 
 # Preview
@@ -135,6 +136,7 @@ lines_file_ref.append(f'\t\t{preview_assets_ref_uid} /* Preview Assets.xcassets 
 # Secrets.plist
 lines_file_ref.append(f'\t\t{secrets_plist_ref_uid} /* Secrets.plist */ = {{isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Secrets.plist; sourceTree = "<group>"; }};')
 lines_build_file.append(f'\t\t{secrets_plist_build_uid} /* Secrets.plist in Resources */ = {{isa = PBXBuildFile; fileRef = {secrets_plist_ref_uid} /* Secrets.plist */; }};')
+lines_build_file.append(f'\t\t{assets_build_uid} /* {ASSETS_CATALOG} in Resources */ = {{isa = PBXBuildFile; fileRef = {assets_ref_uid} /* {ASSETS_CATALOG} */; }};')
 # Product
 lines_file_ref.append(f'\t\t{product_ref_uid} /* {PROJECT_NAME}.app */ = {{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = {PROJECT_NAME}.app; sourceTree = BUILT_PRODUCTS_DIR; }};')
 
@@ -298,6 +300,7 @@ pbxproj = f"""// !$*UTF8*$!
 \t\t\tbuildActionMask = 2147483647;
 \t\t\tfiles = (
 \t\t\t\t{secrets_plist_build_uid} /* Secrets.plist in Resources */,
+\t\t\t\t{assets_build_uid} /* {ASSETS_CATALOG} in Resources */,
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t}};
@@ -561,6 +564,7 @@ with open(os.path.join(appicon_dir, "Contents.json"), "w") as f:
     f.write("""{
   "images" : [
     {
+      "filename" : "AppIcon.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"

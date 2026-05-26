@@ -29,9 +29,9 @@ import com.lichso.app.ui.components.AppTopBar
 import com.lichso.app.ui.theme.LichSoThemeColors
 
 private val periodLabels = listOf(
-    "weekly" to "Tuan nay",
-    "monthly" to "Thang nay",
-    "all_time" to "Toan thoi gian",
+    "weekly" to "Tuần này",
+    "monthly" to "Tháng này",
+    "all_time" to "Toàn thời gian",
 )
 
 @Composable
@@ -56,8 +56,8 @@ fun LeaderboardScreen(
             .background(c.bg)
     ) {
         AppTopBar(
-            title = "Bang xep hang",
-            subtitle = "Top nguoi choi quiz",
+            title = "Bảng xếp hạng",
+            subtitle = "Top người chơi quiz",
             onBackClick = onBackClick,
         )
 
@@ -129,7 +129,7 @@ fun LeaderboardScreen(
                         modifier = Modifier.size(48.dp),
                     )
                     Text(
-                        "Chua co du lieu",
+                        "Chưa có dữ liệu",
                         style = TextStyle(fontSize = 14.sp, color = c.textSecondary),
                     )
                 }
@@ -176,12 +176,12 @@ private fun MyRankBanner(rank: Int, score: Int, modifier: Modifier = Modifier) {
         ) {
             Icon(Icons.Filled.Person, contentDescription = null, tint = c.primary, modifier = Modifier.size(20.dp))
             Text(
-                "Hang cua ban: #$rank",
+                "Hạng của bạn: #$rank",
                 style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = c.textPrimary),
             )
         }
         Text(
-            "$score diem",
+            "$score điểm",
             style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = c.primary),
         )
     }
@@ -267,7 +267,7 @@ private fun LeaderboardRow(entry: LeaderboardEntry) {
                 maxLines = 1,
             )
             Text(
-                "${entry.weekScore} diem tuan",
+                "${entry.weekScore} điểm tuần",
                 style = TextStyle(fontSize = 12.sp, color = c.textSecondary),
             )
         }

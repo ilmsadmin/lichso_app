@@ -22,10 +22,18 @@ struct SearchScreen: View {
     @FocusState private var isSearchFocused: Bool
 
     // ── Quick lookup sheets ──
-    @State private var showLunarConverter = false
-    @State private var showGoodDays = false
-    @State private var showTuoiHop = false
-    @State private var showGotoDate = false
+    @State private var showLunarConverter: Bool
+    @State private var showGoodDays: Bool
+    @State private var showTuoiHop: Bool
+    @State private var showGotoDate: Bool
+
+    init(initialTool: String? = nil) {
+        _showLunarConverter = State(initialValue: initialTool == "lunar")
+        _showGoodDays = State(initialValue: initialTool == "gooddays")
+        _showTuoiHop = State(initialValue: initialTool == "zodiac")
+        _showGotoDate = State(initialValue: initialTool == "goto")
+    }
+
 
     // ── Day detail navigation ──
     @State private var selectedDayInfo: DayInfo? = nil

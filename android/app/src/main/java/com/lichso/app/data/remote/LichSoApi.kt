@@ -101,6 +101,7 @@ data class QuizQuestion(
     @SerializedName("article_id") val articleId: Long? = null,
     val correct: String? = null,
     @SerializedName("correct_answer") val correctAnswer: String? = null,
+    val hint: String? = null,
     val explanation: String? = null,
 )
 
@@ -112,16 +113,36 @@ data class SubmitAnswerResult(
     val explanation: String?,
     @SerializedName("article_id") val articleId: Long?,
     @SerializedName("points_earned") val pointsEarned: Int,
+    @SerializedName("time_ms") val timeMs: Int = 0,
 )
 
 data class SessionResult(
     @SerializedName("session_id") val sessionId: String,
     val score: Int,
+    @SerializedName("score_v2") val scoreV2: Int = 0,
     val total: Int,
     @SerializedName("points_earned") val pointsEarned: Int,
     @SerializedName("bonus_points") val bonusPoints: Int,
     @SerializedName("new_week_score") val newWeekScore: Int,
     val rank: Int,
+    @SerializedName("app_points_earned") val appPointsEarned: Int = 0,
+    @SerializedName("xp_earned") val xpEarned: Int = 0,
+    @SerializedName("session_title") val sessionTitle: String = "",
+    @SerializedName("unlocked_mastery_titles") val unlockedMasteryTitles: List<String> = emptyList(),
+    @SerializedName("unlocked_badges") val unlockedBadges: List<String> = emptyList(),
+)
+
+data class PointWallet(
+    @SerializedName("user_id") val userId: String,
+    val balance: Int,
+    @SerializedName("lifetime_earned") val lifetimeEarned: Int,
+    @SerializedName("lifetime_spent") val lifetimeSpent: Int,
+    @SerializedName("updated_at") val updatedAt: String,
+)
+
+data class SyncGuestPointsResponse(
+    @SerializedName("synced_count") val syncedCount: Int,
+    val wallet: PointWallet?,
 )
 
 data class LeaderboardEntry(
@@ -136,7 +157,31 @@ data class LeaderboardEntry(
 
 data class LeaderboardResponse(val entries: List<LeaderboardEntry>)
 
+// ── Auth data classes ──
+
+data class AuthUser(
+    val id: String,
+    val email: String,
+    @SerializedName("first_name") val firstName: String,
+    @SerializedName("last_name") val lastName: String,
+    @SerializedName("full_name") val fullName: String,
+    val avatar: String?,
+    val roles: List<String>,
+    val permissions: List<String> = emptyList(),
+)
+
+// GET /auth/me wraps user in {user: {...}}
+private data class GetMeData(val user: AuthUser)
+
+data class LoginResponse(
+    @SerializedName("access_token") val accessToken: String,
+    @SerializedName("refresh_token") val refreshToken: String,
+    @SerializedName("expires_in") val expiresIn: Int,
+    val user: AuthUser,
+)
+
 data class MyRankResponse(
+
     val rank: Int,
     @SerializedName("week_score") val weekScore: Int,
     @SerializedName("month_score") val monthScore: Int,
@@ -155,6 +200,27 @@ data class QuizSession(
 data class StartSessionResponse(
     val session: QuizSession,
     val questions: List<QuizQuestion>,
+)
+
+data class OfflineQuizAnswerPayload(
+    @SerializedName("question_id") val questionId: Long,
+    val chosen: String,
+    @SerializedName("time_ms") val timeMs: Int,
+)
+
+data class OfflineQuizSessionPayload(
+    @SerializedName("client_session_id") val clientSessionId: String,
+    @SerializedName("session_type") val sessionType: String,
+    val category: String?,
+    @SerializedName("question_ids") val questionIds: List<Long>,
+    val answers: List<OfflineQuizAnswerPayload>,
+    @SerializedName("started_at_ms") val startedAtMs: Long,
+    @SerializedName("finished_at_ms") val finishedAtMs: Long,
+)
+
+data class SyncOfflineQuizResponse(
+    @SerializedName("synced_session_ids") val syncedSessionIds: List<String>,
+    @SerializedName("skipped_session_ids") val skippedSessionIds: List<String>,
 )
 
 // ── API Client ──
@@ -182,6 +248,20 @@ class LichSoApi @Inject constructor(
         return builder.build()
     }
 
+    private fun postJson(path: String, body: Any, token: String? = null): Request {
+        val json = gson.toJson(body)
+        val requestBody = json.toRequestBody(jsonMediaType)
+        val builder = Request.Builder().url("$BASE_URL$path").post(requestBody)
+        if (token != null) builder.header("Authorization", "Bearer $token")
+        return builder.build()
+    }
+
+    private fun delete(path: String, token: String? = null): Request {
+        val builder = Request.Builder().url("$BASE_URL$path").delete()
+        if (token != null) builder.header("Authorization", "Bearer $token")
+        return builder.build()
+    }
+
     private inline fun <reified T> execute(request: Request): Result<T> {
         return try {
             val response = client.newCall(request).execute()
@@ -198,6 +278,26 @@ class LichSoApi @Inject constructor(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    // ── Auth endpoints ──
+
+    suspend fun loginWithGoogle(idToken: String): Result<LoginResponse> = withContext(Dispatchers.IO) {
+        execute(post("/auth/google", mapOf("id_token" to idToken)))
+    }
+
+    suspend fun refreshBackendToken(refreshToken: String): Result<LoginResponse> = withContext(Dispatchers.IO) {
+        execute(post("/auth/refresh", mapOf("refresh_token" to refreshToken)))
+    }
+
+    suspend fun getMe(token: String): Result<AuthUser> = withContext(Dispatchers.IO) {
+        execute<GetMeData>(get("/auth/me", token)).map { it.user }
+    }
+
+    suspend fun logout(token: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            client.newCall(post("/auth/logout", emptyMap(), token)).execute().use { it.isSuccessful }
+        } catch (_: Exception) { false }
     }
 
     // ── Content endpoints ──
@@ -301,11 +401,47 @@ class LichSoApi @Inject constructor(
         execute(post("/quiz/sessions/$sessionId/finish", emptyMap(), token))
     }
 
+    suspend fun syncOfflineQuizSessions(
+        token: String,
+        sessions: List<OfflineQuizSessionPayload>,
+    ): Result<SyncOfflineQuizResponse> = withContext(Dispatchers.IO) {
+        execute(postJson("/quiz/sessions/sync", mapOf("sessions" to sessions), token))
+    }
+
     suspend fun getMyRank(
         token: String,
         period: String = "weekly",
     ): Result<MyRankResponse> = withContext(Dispatchers.IO) {
         execute(get("/quiz/leaderboard/me?period=$period", token))
+    }
+
+    suspend fun getPointWallet(token: String): Result<PointWallet> = withContext(Dispatchers.IO) {
+        execute(get("/points/wallet", token))
+    }
+
+    suspend fun spendPoints(
+        token: String,
+        amount: Int,
+        source: String,
+        sourceId: String?,
+        idempotencyKey: String?,
+        metadata: Map<String, Any?> = emptyMap(),
+    ): Result<PointWallet> = withContext(Dispatchers.IO) {
+        val body = mapOf(
+            "amount" to amount,
+            "source" to source,
+            "source_id" to sourceId,
+            "idempotency_key" to idempotencyKey,
+            "metadata" to metadata,
+        )
+        execute(post("/points/spend", body, token))
+    }
+
+    suspend fun syncGuestPoints(
+        token: String,
+        transactions: List<Map<String, Any?>>,
+    ): Result<SyncGuestPointsResponse> = withContext(Dispatchers.IO) {
+        execute(postJson("/points/sync-guest", mapOf("transactions" to transactions), token))
     }
 
     // ── Helpers ──

@@ -13,16 +13,16 @@ enum MainTab: Int, CaseIterable {
     case calendar = 0
     case notes = 1
     case today = 2
-    case prayers = 3
-    case profile = 4
+    case quiz = 3
+    case tools = 4
 
     var label: String {
         switch self {
         case .calendar: return "Lịch tháng"
         case .notes: return "Ghi chú"
         case .today: return "Hôm nay"
-        case .prayers: return "Văn Khấn"
-        case .profile: return "Cá nhân"
+        case .quiz: return "Đố Vui"
+        case .tools: return "Tiện ích"
         }
     }
 
@@ -31,8 +31,8 @@ enum MainTab: Int, CaseIterable {
         case .calendar: return "calendar"
         case .notes: return "note.text"
         case .today: return "sun.min.fill"
-        case .prayers: return "book.fill"
-        case .profile: return "person"
+        case .quiz: return "questionmark.circle"
+        case .tools: return "square.grid.2x2"
         }
     }
 
@@ -41,8 +41,8 @@ enum MainTab: Int, CaseIterable {
         case .calendar: return "calendar"
         case .notes: return "note.text"
         case .today: return "sun.min.fill"
-        case .prayers: return "book.fill"
-        case .profile: return "person.fill"
+        case .quiz: return "questionmark.circle.fill"
+        case .tools: return "square.grid.2x2.fill"
         }
     }
 }
@@ -58,6 +58,8 @@ struct MainTabView: View {
     @State private var showGoodDays = false
     @State private var showHistory = false
     @State private var showBookmarks = false
+    @State private var showPrayers = false
+    @State private var showKnowledgeFeed = false
 
     var body: some View {
         ZStack {
@@ -89,8 +91,6 @@ struct MainTabView: View {
             // Calendar border margin = 16px from content edge
             let borderMargin: CGFloat = 16
             let fabInset: CGFloat = 5
-            let fabTrailing = borderMargin + fabInset + 3 // +3 for border stroke width
-            let fabBottomOffset = contentBottom + borderMargin + fabInset + 3
 
             ZStack(alignment: .bottom) {
                 // Content
@@ -102,25 +102,14 @@ struct MainTabView: View {
                         NotesScreen()
                     case .today:
                         HomeScreen(onMenuClick: { showSidebar = true })
-                    case .prayers:
-                        PrayersScreen()
-                    case .profile:
-                        ProfileScreen()
+                    case .quiz:
+                        QuizHomeScreen()
+                    case .tools:
+                        ToolsScreen(onMenuClick: { showSidebar = true })
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.bottom, contentBottom)
-
-                // ═══ AI FAB (floating above tab bar) ═══
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        AiFab { showAIChat = true }
-                    }
-                    .padding(.trailing, fabTrailing)
-                    .padding(.bottom, fabBottomOffset)
-                }
 
                 // Custom Tab Bar
                 CustomTabBar(selectedTab: $selectedTab, bottomInset: tabBarBottomPad)
@@ -155,6 +144,16 @@ struct MainTabView: View {
                 SearchScreen()
             }
         }
+        .fullScreenCover(isPresented: $showPrayers) {
+            NavigationStack {
+                PrayersScreen()
+            }
+        }
+        .fullScreenCover(isPresented: $showKnowledgeFeed) {
+            NavigationStack {
+                KnowledgeFeedScreen()
+            }
+        }
     }
 
     // MARK: - Sidebar Navigation
@@ -166,7 +165,7 @@ struct MainTabView: View {
         case "calendar":
             selectedTab = .calendar
         case "prayers":
-            selectedTab = .prayers
+            showPrayers = true
         case "settings":
             showSettings = true
         case "gooddays":
@@ -177,6 +176,8 @@ struct MainTabView: View {
             showHistory = true
         case "familytree":
             showFamilyTree = true
+        case "knowledge_feed":
+            showKnowledgeFeed = true
         default:
             break
         }

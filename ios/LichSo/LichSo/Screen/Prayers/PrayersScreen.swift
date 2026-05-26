@@ -18,6 +18,7 @@ private var TextDim: Color { LSTheme.textTertiary }
 private var OutlineVar: Color { LSTheme.outlineVariant }
 
 struct PrayersScreen: View {
+    @Environment(\.dismiss) private var dismiss
     @State private var selectedCategory: PrayerCategory = .all
     @State private var searchText = ""
     @State private var selectedPrayer: Prayer?
@@ -26,7 +27,10 @@ struct PrayersScreen: View {
     var body: some View {
         VStack(spacing: 0) {
             // ═══ HEADER ═══
-            PrayersHeader(onBookmarksTap: { showBookmarks = true })
+            PrayersHeader(
+                onBookmarksTap: { showBookmarks = true },
+                onCloseTap: { dismiss() }
+            )
 
             // ═══ SEARCH BAR ═══
             SearchBar(text: $searchText)
@@ -86,10 +90,23 @@ struct PrayersScreen: View {
 
 private struct PrayersHeader: View {
     let onBookmarksTap: () -> Void
+    let onCloseTap: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
+                if let onClose = onCloseTap {
+                    Button(action: onClose) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 40, height: 40)
+                            .background(.white.opacity(0.12))
+                            .clipShape(Circle())
+                    }
+                    Spacer().frame(width: 8)
+                }
+
                 Text("Văn Khấn")
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.white)

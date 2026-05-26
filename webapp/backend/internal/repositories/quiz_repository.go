@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +15,12 @@ import (
 // QuizRepository handles all quiz-related database operations.
 type QuizRepository struct {
 	db *gorm.DB
+}
+
+// QuizUserPublicInfo is the minimal user profile needed by leaderboard rows.
+type QuizUserPublicInfo struct {
+	DisplayName string
+	AvatarURL   string
 }
 
 // NewQuizRepository creates a new QuizRepository.
@@ -41,8 +49,8 @@ func (r *QuizRepository) GetQuestions(category, difficulty string, limit int) ([
 	return questions, err
 }
 
-// GetDailyQuestions returns the 5 questions for a given date.
-// If no daily set exists for that date, 5 random active questions are returned.
+// GetDailyQuestions returns the 15 questions for a given date.
+// If no daily set exists for that date, it falls back to 5 easy, 7 medium, and 3 hard questions.
 func (r *QuizRepository) GetDailyQuestions(date time.Time) ([]models.QuizQuestion, error) {
 	// Try to load the daily set first.
 	set, err := r.GetDailySet(date)
@@ -50,10 +58,34 @@ func (r *QuizRepository) GetDailyQuestions(date time.Time) ([]models.QuizQuestio
 		return r.GetQuestionsByIDs([]int64(set.QuestionIDs))
 	}
 
-	// Fallback: 5 random active questions.
-	var questions []models.QuizQuestion
-	err = r.db.Where("is_active = ?", true).Order("RANDOM()").Limit(5).Find(&questions).Error
-	return questions, err
+	// Fallback: 5 easy, 7 medium, 3 hard questions.
+	var easy, medium, hard []models.QuizQuestion
+
+	if err := r.db.Where("is_active = ? AND difficulty = ?", true, "easy").Order("RANDOM()").Limit(5).Find(&easy).Error; err != nil {
+		return nil, err
+	}
+	if err := r.db.Where("is_active = ? AND difficulty = ?", true, "medium").Order("RANDOM()").Limit(7).Find(&medium).Error; err != nil {
+		return nil, err
+	}
+	if err := r.db.Where("is_active = ? AND difficulty = ?", true, "hard").Order("RANDOM()").Limit(3).Find(&hard).Error; err != nil {
+		return nil, err
+	}
+
+	questions := make([]models.QuizQuestion, 0, 15)
+	questions = append(questions, easy...)
+	questions = append(questions, medium...)
+	questions = append(questions, hard...)
+
+	// If we couldn't get enough categorized questions, fall back to random active questions
+	if len(questions) < 15 {
+		var fallback []models.QuizQuestion
+		if err := r.db.Where("is_active = ?", true).Order("RANDOM()").Limit(15).Find(&fallback).Error; err != nil {
+			return nil, err
+		}
+		return fallback, nil
+	}
+
+	return questions, nil
 }
 
 // GetQuestionByID returns a single question by its ID.
@@ -118,7 +150,7 @@ func (r *QuizRepository) CountQuestions(category, difficulty string) (int64, err
 }
 
 // ListQuestionsAdmin returns paginated questions for admin (all, including inactive).
-func (r *QuizRepository) ListQuestionsAdmin(page, limit int, category, difficulty string) ([]models.QuizQuestion, int64, error) {
+func (r *QuizRepository) ListQuestionsAdmin(page, limit int, category, difficulty, search string) ([]models.QuizQuestion, int64, error) {
 	var questions []models.QuizQuestion
 	var total int64
 
@@ -128,6 +160,10 @@ func (r *QuizRepository) ListQuestionsAdmin(page, limit int, category, difficult
 	}
 	if difficulty != "" {
 		query = query.Where("difficulty = ?", difficulty)
+	}
+	if search != "" {
+		like := "%" + strings.ToLower(search) + "%"
+		query = query.Where("LOWER(content) LIKE ?", like)
 	}
 
 	if err := query.Count(&total).Error; err != nil {
@@ -183,6 +219,13 @@ func (r *QuizRepository) GetSession(id uuid.UUID) (*models.QuizSession, error) {
 	return &s, err
 }
 
+// GetSessionByClientID returns a synced guest session by its client-generated ID.
+func (r *QuizRepository) GetSessionByClientID(clientSessionID string) (*models.QuizSession, error) {
+	var s models.QuizSession
+	err := r.db.Where("client_session_id = ?", clientSessionID).First(&s).Error
+	return &s, err
+}
+
 // UpdateSession persists changes to an existing session.
 func (r *QuizRepository) UpdateSession(s *models.QuizSession) error {
 	return r.db.Save(s).Error
@@ -226,7 +269,25 @@ func (r *QuizRepository) GetScore(userID uuid.UUID) (*models.QuizScore, error) {
 // period: "weekly" | "monthly" | "alltime"
 func (r *QuizRepository) GetLeaderboard(period string, limit int) ([]models.QuizScore, error) {
 	var scores []models.QuizScore
-	query := r.db.Model(&models.QuizScore{})
+	query := r.db.Table("quiz_scores AS qs").
+		Select(`
+			qs.user_id,
+			COALESCE(
+				NULLIF(REGEXP_REPLACE(TRIM(COALESCE(qs.display_name, '')), '\s+', ' ', 'g'), ''),
+				NULLIF(REGEXP_REPLACE(TRIM(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')), '\s+', ' ', 'g'), ''),
+				u.email,
+				'Người dùng'
+			) AS display_name,
+			COALESCE(NULLIF(qs.avatar_url, ''), u.avatar, '') AS avatar_url,
+			qs.total_score,
+			qs.week_score,
+			qs.month_score,
+			qs.best_streak,
+			qs.cur_streak,
+			qs.last_quiz,
+			qs.updated_at
+		`).
+		Joins("LEFT JOIN users u ON u.id = qs.user_id")
 
 	switch period {
 	case "monthly":
@@ -269,6 +330,36 @@ func (r *QuizRepository) GetUserRank(userID uuid.UUID, period string) (int, erro
 	return int(rank) + 1, nil
 }
 
+// GetUserPublicInfo returns the best available display name + avatar for leaderboard usage.
+func (r *QuizRepository) GetUserPublicInfo(userID uuid.UUID) (*QuizUserPublicInfo, error) {
+	var row struct {
+		FirstName string `gorm:"column:first_name"`
+		LastName  string `gorm:"column:last_name"`
+		Email     string `gorm:"column:email"`
+		Avatar    string `gorm:"column:avatar"`
+	}
+
+	if err := r.db.Table("users").
+		Select("first_name, last_name, email, avatar").
+		Where("id = ?", userID).
+		Take(&row).Error; err != nil {
+		return nil, err
+	}
+
+	displayName := strings.TrimSpace(strings.TrimSpace(row.FirstName) + " " + strings.TrimSpace(row.LastName))
+	if displayName == "" {
+		displayName = strings.TrimSpace(row.Email)
+	}
+	if displayName == "" {
+		displayName = fmt.Sprintf("User %s", userID.String()[:8])
+	}
+
+	return &QuizUserPublicInfo{
+		DisplayName: displayName,
+		AvatarURL:   strings.TrimSpace(row.Avatar),
+	}, nil
+}
+
 // ResetWeeklyScores zeroes out week_score for all users.
 func (r *QuizRepository) ResetWeeklyScores() error {
 	return r.db.Model(&models.QuizScore{}).Where("1 = 1").Update("week_score", 0).Error
@@ -277,4 +368,16 @@ func (r *QuizRepository) ResetWeeklyScores() error {
 // ResetMonthlyScores zeroes out month_score for all users.
 func (r *QuizRepository) ResetMonthlyScores() error {
 	return r.db.Model(&models.QuizScore{}).Where("1 = 1").Update("month_score", 0).Error
+}
+
+// GetAssistUsages returns all assists used for a specific question in a session.
+func (r *QuizRepository) GetAssistUsages(sessionID uuid.UUID, questionID int64) ([]models.QuizAssistUsage, error) {
+	var usages []models.QuizAssistUsage
+	err := r.db.Where("session_id = ? AND question_id = ?", sessionID, questionID).Find(&usages).Error
+	return usages, err
+}
+
+// DB returns the underlying GORM database instance.
+func (r *QuizRepository) DB() *gorm.DB {
+	return r.db
 }

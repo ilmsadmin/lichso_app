@@ -34,6 +34,7 @@ import java.time.format.DateTimeFormatter
 fun KnowledgeFeedScreen(
     onBackClick: () -> Unit = {},
     onAskAi: (String) -> Unit = {},
+    onArticleClick: (String) -> Unit = {},
     viewModel: KnowledgeFeedViewModel = hiltViewModel(),
 ) {
     val c = LichSoThemeColors.current
@@ -114,7 +115,7 @@ fun KnowledgeFeedScreen(
                         SectionHeader(title = "Bài viết mới nhất")
                     }
                     items(uiState.articles) { article ->
-                        ArticleCard(article = article)
+                        ArticleCard(article = article, onClick = { onArticleClick(article.id) })
                     }
                 }
 
@@ -345,7 +346,7 @@ private fun PersonCard(person: FamousPerson) {
 }
 
 @Composable
-private fun ArticleCard(article: Article) {
+private fun ArticleCard(article: Article, onClick: () -> Unit = {}) {
     val c = LichSoThemeColors.current
     Row(
         modifier = Modifier
@@ -353,6 +354,7 @@ private fun ArticleCard(article: Article) {
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(c.surfaceContainer)
+            .clickable(onClick = onClick)
             .border(1.dp, c.outlineVariant, RoundedCornerShape(12.dp))
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),

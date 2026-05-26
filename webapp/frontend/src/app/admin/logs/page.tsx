@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Pagination } from "@/components/shared/Pagination";
 import { useActivityLogs, useExportLogs } from "@/hooks/useDashboard";
@@ -90,6 +90,20 @@ function getStatusBadge(status: string) {
 }
 
 function getActionBadge(action: string) {
+  if (action === "user.login") {
+    return (
+      <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+        Đăng nhập
+      </Badge>
+    );
+  }
+  if (action === "user.login_failed") {
+    return <Badge variant="destructive">Đăng nhập lỗi</Badge>;
+  }
+  if (action === "user.logout") {
+    return <Badge variant="secondary">Đăng xuất</Badge>;
+  }
+
   switch (action) {
     case "create":
       return (
@@ -130,6 +144,32 @@ function getActionBadge(action: string) {
     default:
       return <Badge variant="outline">{action}</Badge>;
   }
+}
+
+function metadataValue(log: ActivityEntry, key: string): string {
+  const metadata = log.metadata as Record<string, unknown> | undefined;
+  const val = metadata?.[key];
+  return typeof val === "string" ? val : "";
+}
+
+function extractPlatform(log: ActivityEntry): string {
+  const fromMetadata = metadataValue(log, "platform").toLowerCase();
+  if (fromMetadata) return fromMetadata;
+
+  const ua = (log.user_agent || "").toLowerCase();
+  if (ua.includes("android")) return "android";
+  if (ua.includes("iphone") || ua.includes("ipad") || ua.includes("ios")) return "ios";
+  return "web";
+}
+
+function extractDevice(log: ActivityEntry): string {
+  const deviceName = metadataValue(log, "device_name");
+  if (deviceName) return deviceName;
+
+  const appVersion = metadataValue(log, "app_version");
+  if (appVersion) return `App ${appVersion}`;
+
+  return "-";
 }
 
 // ============================================
@@ -298,6 +338,9 @@ export default function LogsPage() {
                   <TableHead className="w-[200px]">Người dùng</TableHead>
                   <TableHead className="w-[120px]">Hành động</TableHead>
                   <TableHead className="w-[120px]">Module</TableHead>
+                  <TableHead className="w-[140px]">Nền tảng</TableHead>
+                  <TableHead className="w-[180px]">Thiết bị/App</TableHead>
+                  <TableHead className="w-[140px]">IP</TableHead>
                   <TableHead>Mô tả</TableHead>
                   <TableHead className="w-[100px]">Trạng thái</TableHead>
                 </TableRow>
@@ -305,7 +348,7 @@ export default function LogsPage() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center">
+                    <TableCell colSpan={9} className="h-32 text-center">
                       <div className="flex items-center justify-center">
                         <div className="border-primary h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" />
                         <span className="text-muted-foreground ml-2">Đang tải...</span>
@@ -314,7 +357,7 @@ export default function LogsPage() {
                   </TableRow>
                 ) : logs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center">
+                    <TableCell colSpan={9} className="h-32 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <Activity className="text-muted-foreground/50 h-8 w-8" />
                         <p className="text-muted-foreground">Không có dữ liệu</p>
@@ -337,6 +380,17 @@ export default function LogsPage() {
                         <Badge variant="outline" className="capitalize">
                           {log.module}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="uppercase">
+                          {extractPlatform(log)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-[180px] truncate text-sm">
+                        {extractDevice(log)}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {log.ip_address || "-"}
                       </TableCell>
                       <TableCell className="text-muted-foreground max-w-[300px] truncate text-sm">
                         {log.description}
@@ -393,6 +447,14 @@ export default function LogsPage() {
                 <div>
                   <p className="text-muted-foreground font-medium">Trạng thái</p>
                   {getStatusBadge(selectedLog.status)}
+                </div>
+                <div>
+                  <p className="text-muted-foreground font-medium">Nền tảng</p>
+                  <p className="uppercase">{extractPlatform(selectedLog)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground font-medium">Thiết bị/App</p>
+                  <p>{extractDevice(selectedLog)}</p>
                 </div>
                 {selectedLog.ip_address && (
                   <div>

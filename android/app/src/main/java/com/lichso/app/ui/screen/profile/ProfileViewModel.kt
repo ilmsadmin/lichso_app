@@ -87,10 +87,11 @@ data class ProfileUiState(
     // Bookmarks from Room DB
     val allBookmarks: List<BookmarkEntity> = emptyList(),
 
-    // Dialogs
+    // Dialogs & loading
     val showEditProfileSheet: Boolean = false,
     val showSignOutDialog: Boolean = false,
     val showAddSavedDayDialog: Boolean = false,
+    val isSigningIn: Boolean = false,
 
     // Edit form state
     val editName: String = "",
@@ -184,18 +185,33 @@ class ProfileViewModel @Inject constructor(
             }
         }
 
-        // Collect auth user
+        // Collect auth user — sync name, email, avatar from Google on sign-in
         viewModelScope.launch {
             authRepository.currentUser.collect { user ->
                 _uiState.update { state ->
                     state.copy(
                         authUser = user,
-                        // Sync Firebase display name / email if local is default
                         displayName = if (state.displayName == "Người dùng" && user != null)
                             user.displayName else state.displayName,
                         email = if (state.email.isEmpty() && user != null)
-                            user.email else state.email
+                            user.email else state.email,
                     )
+                }
+                if (user != null) {
+                    val prefs = context.settingsDataStore.data.firstOrNull()
+                    if (prefs?.get(ProfileKeys.DISPLAY_NAME) == null || prefs[ProfileKeys.DISPLAY_NAME] == "Người dùng") {
+                        context.settingsDataStore.edit { it[ProfileKeys.DISPLAY_NAME] = user.displayName }
+                    }
+                    if (prefs?.get(ProfileKeys.EMAIL).isNullOrEmpty()) {
+                        context.settingsDataStore.edit { it[ProfileKeys.EMAIL] = user.email }
+                    }
+                    // Download Google avatar to local storage if no avatar is set yet
+                    if (!user.photoUrl.isNullOrEmpty()) {
+                        val savedPath = prefs?.get(ProfileKeys.AVATAR_PATH) ?: ""
+                        if (savedPath.isEmpty()) {
+                            downloadAndSaveGoogleAvatar(user.photoUrl)
+                        }
+                    }
                 }
             }
         }
@@ -597,18 +613,67 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    // ═══ Sign out ═══
+    private fun downloadAndSaveGoogleAvatar(photoUrl: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val avatarDir = File(context.filesDir, "avatars")
+                if (!avatarDir.exists()) avatarDir.mkdirs()
+
+                val ts = System.currentTimeMillis()
+                val destFile = File(avatarDir, "profile_avatar_$ts.jpg")
+
+                avatarDir.listFiles()?.filter {
+                    it.name.startsWith("profile_avatar") && it != destFile
+                }?.forEach { it.delete() }
+
+                // Nâng độ phân giải ảnh Google lên 400px nếu URL có tham số kích thước
+                val highResUrl = if (photoUrl.contains("=s")) {
+                    photoUrl.replaceAfter("=s", "400-c")
+                } else photoUrl
+
+                java.net.URL(highResUrl).openStream().use { input ->
+                    destFile.outputStream().use { output -> input.copyTo(output) }
+                }
+
+                dataStore.edit { prefs ->
+                    prefs[ProfileKeys.AVATAR_PATH] = destFile.absolutePath
+                }
+            } catch (_: Exception) {
+                // Avatar Google là tính năng phụ — lỗi không hiện thông báo
+            }
+        }
+    }
+
+    // ═══ Sign in / Sign out ═══
+
+    fun signInWithGoogle(activityContext: android.content.Context) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSigningIn = true) }
+            authRepository.signInWithGoogle(activityContext).fold(
+                onSuccess = { _uiState.update { it.copy(isSigningIn = false, toastMessage = "Đăng nhập thành công") } },
+                onFailure = { e ->
+                    if (e !is androidx.credentials.exceptions.GetCredentialCancellationException) {
+                        _uiState.update { it.copy(isSigningIn = false, toastMessage = "Đăng nhập thất bại: ${e.message}") }
+                    } else {
+                        _uiState.update { it.copy(isSigningIn = false) }
+                    }
+                }
+            )
+        }
+    }
 
     fun showSignOutDialog() = _uiState.update { it.copy(showSignOutDialog = true) }
     fun hideSignOutDialog() = _uiState.update { it.copy(showSignOutDialog = false) }
 
     fun signOut() {
-        authRepository.signOut()
-        _uiState.update {
-            it.copy(
-                showSignOutDialog = false,
-                toastMessage = "Đã đăng xuất"
-            )
+        viewModelScope.launch {
+            authRepository.signOutAndClearTokens()
+            _uiState.update {
+                it.copy(
+                    showSignOutDialog = false,
+                    toastMessage = "Đã đăng xuất"
+                )
+            }
         }
     }
 

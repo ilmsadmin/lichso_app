@@ -129,8 +129,14 @@ func ensureMigrationsTable(db *sql.DB) error {
 		);
 	`, migrationsTable)
 
-	_, err := db.Exec(query)
-	return err
+	if _, err := db.Exec(query); err != nil {
+		return err
+	}
+
+	// Safety: add missing columns if the table already existed (e.g. from standard golang-migrate)
+	_, _ = db.Exec(fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS name VARCHAR(255) NOT NULL DEFAULT ''", migrationsTable))
+	_, _ = db.Exec(fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS applied_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()", migrationsTable))
+	return nil
 }
 
 // loadMigrations discovers migration files from the migrations directory

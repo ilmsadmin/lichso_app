@@ -39,9 +39,12 @@ struct HomeScreen: View {
     @Query(filter: #Predicate<NotificationEntity> { !$0.isRead })
     private var unreadNotifications: [NotificationEntity]
     @State private var showNotifications = false
+    @State private var showProfile = false
     @State private var showGoodDays = false
     @State private var showHistory = false
     @State private var showWeather = false
+    @AppStorage("displayName")         private var displayName = "Người dùng"
+    @AppStorage("profile_avatar_path") private var avatarPath  = ""
     @State private var flipProgress: CGFloat = 0
     @State private var isDragging = false
     @State private var isAnimatingFlip = false
@@ -89,6 +92,9 @@ struct HomeScreen: View {
                 NotificationsScreen()
             }
         }
+        .fullScreenCover(isPresented: $showProfile) {
+            ProfileScreen()
+        }
         .fullScreenCover(isPresented: $showGoodDays) {
             NavigationStack {
                 GoodDaysScreen()
@@ -117,13 +123,22 @@ struct HomeScreen: View {
                 Spacer()
                 weatherChip
                 Spacer()
-                ZStack(alignment: .topTrailing) {
-                    circleButton(icon: "bell") { showNotifications = true }
-                    if !unreadNotifications.isEmpty {
-                        Circle()
-                            .fill(Color(hex: "FF6B6B"))
-                            .frame(width: 7, height: 7)
-                            .offset(x: -6, y: 6)
+                HStack(spacing: 8) {
+                    ZStack(alignment: .topTrailing) {
+                        circleButton(icon: "bell") { showNotifications = true }
+                        if !unreadNotifications.isEmpty {
+                            Circle()
+                                .fill(Color(hex: "FF6B6B"))
+                                .frame(width: 7, height: 7)
+                                .offset(x: -6, y: 6)
+                        }
+                    }
+                    
+                    Button {
+                        showProfile = true
+                    } label: {
+                        AvatarView(name: displayName, path: avatarPath, size: 40)
+                            .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 1.5))
                     }
                 }
             }

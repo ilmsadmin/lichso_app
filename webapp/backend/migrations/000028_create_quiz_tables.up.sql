@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS quiz_questions (
     option_c    VARCHAR(500) NOT NULL,
     option_d    VARCHAR(500) NOT NULL,
     correct     CHAR(1) NOT NULL CHECK (correct IN ('a','b','c','d')),
+    hint        TEXT,
     explanation TEXT,
     category    VARCHAR(100) NOT NULL DEFAULT 'history_vn',
     difficulty  VARCHAR(20) NOT NULL DEFAULT 'medium',

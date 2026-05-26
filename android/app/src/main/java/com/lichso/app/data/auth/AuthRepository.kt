@@ -11,10 +11,14 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.lichso.app.BuildConfig
 import com.lichso.app.analytics.Analytics
+import com.lichso.app.data.remote.LichSoApi
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,12 +27,17 @@ data class UserInfo(
     val displayName: String,
     val email: String,
     val photoUrl: String?,
-    val uid: String
+    val uid: String,
+    val backendId: String = "",
+    val roles: List<String> = emptyList(),
+    val permissions: List<String> = emptyList(),
 )
 
 @Singleton
 class AuthRepository @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val api: LichSoApi,
+    private val tokenManager: TokenManager,
 ) {
     private val tag = "AuthRepository"
     private val firebaseAuth = FirebaseAuth.getInstance()
@@ -41,16 +50,23 @@ class AuthRepository @Inject constructor(
     val currentUser: StateFlow<UserInfo?> = _currentUser.asStateFlow()
 
     init {
-        // Restore Firebase user on init
+        // Restore session on startup — load stored roles/permissions from DataStore
         firebaseAuth.currentUser?.let { user ->
-            _currentUser.value = UserInfo(
-                displayName = user.displayName ?: "Người dùng",
-                email = user.email ?: "",
-                photoUrl = user.photoUrl?.toString(),
-                uid = user.uid
-            )
-            // Gán user ID cho Analytics nếu đã sign-in trước đó
             Analytics.setUserId(user.uid)
+            CoroutineScope(Dispatchers.IO).launch {
+                val backendId = tokenManager.getUserId() ?: ""
+                val roles = tokenManager.getUserRoles()
+                val permissions = tokenManager.getUserPermissions()
+                _currentUser.value = UserInfo(
+                    displayName = user.displayName ?: "Người dùng",
+                    email = user.email ?: "",
+                    photoUrl = user.photoUrl?.toString(),
+                    uid = user.uid,
+                    backendId = backendId,
+                    roles = roles,
+                    permissions = permissions,
+                )
+            }
         }
     }
 
@@ -111,11 +127,32 @@ class AuthRepository @Inject constructor(
                     val user = authResult.user
 
                     if (user != null) {
+                        // Exchange Google token for backend JWT (required for app session)
+                        val loginResponse = api.loginWithGoogle(idToken).getOrElse { error ->
+                            firebaseAuth.signOut()
+                            tokenManager.clearTokens()
+                            return Result.failure(
+                                IllegalStateException(
+                                    "Đăng nhập máy chủ thất bại: ${error.message ?: "unknown error"}"
+                                )
+                            )
+                        }
+
+                        tokenManager.saveTokens(loginResponse.accessToken, loginResponse.refreshToken)
+                        val backendId = loginResponse.user.id
+                        val roles = loginResponse.user.roles
+                        val permissions = loginResponse.user.permissions
+                        tokenManager.saveUserSession(backendId, roles, permissions)
+                        Log.d(tag, "Backend auth OK — user=${loginResponse.user.email} roles=$roles")
+
                         val userInfo = UserInfo(
                             displayName = user.displayName ?: googleIdTokenCredential.displayName ?: "Người dùng",
                             email = user.email ?: googleIdTokenCredential.id,
                             photoUrl = user.photoUrl?.toString() ?: googleIdTokenCredential.profilePictureUri?.toString(),
-                            uid = user.uid
+                            uid = user.uid,
+                            backendId = backendId,
+                            roles = roles,
+                            permissions = permissions,
                         )
                         _currentUser.value = userInfo
                         Analytics.setUserId(user.uid)
@@ -132,6 +169,26 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    suspend fun getBackendToken(): String? {
+        val access = tokenManager.getAccessToken() ?: return null
+        return access
+    }
+
+    suspend fun refreshBackendTokenIfNeeded(): String? {
+        val access = tokenManager.getAccessToken()
+        if (access != null) {
+            val stillValid = api.getMe(access).isSuccess
+            if (stillValid) return access
+        }
+        val refresh = tokenManager.getRefreshToken() ?: return null
+        return api.refreshBackendToken(refresh).getOrNull()?.also { response ->
+            tokenManager.saveTokens(response.accessToken, response.refreshToken)
+        }?.accessToken ?: run {
+            tokenManager.clearTokens()
+            null
+        }
+    }
+
     fun signOut() {
         firebaseAuth.signOut()
         _currentUser.value = null
@@ -139,5 +196,22 @@ class AuthRepository @Inject constructor(
         Analytics.logEvent("logout")
     }
 
+    suspend fun signOutAndClearTokens() {
+        // Notify backend to revoke tokens and write activity log
+        tokenManager.getAccessToken()?.let { token ->
+            try { api.logout(token) } catch (_: Exception) {}
+        }
+        signOut()
+        tokenManager.clearTokens()
+    }
+
     fun isSignedIn(): Boolean = firebaseAuth.currentUser != null
+
+    fun hasPermission(permission: String): Boolean {
+        val user = _currentUser.value ?: return false
+        if ("super_admin" in user.roles) return true
+        return permission in user.permissions
+    }
+
+    fun getUserRoles(): List<String> = _currentUser.value?.roles ?: emptyList()
 }

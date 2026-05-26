@@ -96,13 +96,12 @@ func SetupV3UserRoutes(
 	streakHandler *handlers.StreakHandler,
 	newsletterHandler *handlers.NewsletterHandler,
 ) {
-	// All user routes require authentication
-	auth := router.Group("", authMiddleware.Authenticate())
+	authMw := authMiddleware.Authenticate()
 
 	// ============================================
 	// User Notes
 	// ============================================
-	notes := auth.Group("/notes")
+	notes := router.Group("/notes", authMw)
 	notes.Get("/", noteHandler.List)
 	notes.Get("/range", noteHandler.GetByDateRange)
 	notes.Get("/date/:date", noteHandler.GetByDate)
@@ -114,7 +113,7 @@ func SetupV3UserRoutes(
 	// ============================================
 	// User Countdowns
 	// ============================================
-	countdowns := auth.Group("/countdowns")
+	countdowns := router.Group("/countdowns", authMw)
 	countdowns.Get("/", countdownHandler.List)
 	countdowns.Get("/active", countdownHandler.GetActive)
 	countdowns.Get("/upcoming", countdownHandler.GetUpcoming)
@@ -126,19 +125,19 @@ func SetupV3UserRoutes(
 	// ============================================
 	// User Streaks & Achievements — Phase 24
 	// ============================================
-	streak := auth.Group("/streak")
+	streak := router.Group("/streak", authMw)
 	streak.Post("/visit", streakHandler.RecordVisit)
 	streak.Get("/", streakHandler.GetStreak)
 
-	achievements := auth.Group("/achievements")
+	achievements := router.Group("/achievements", authMw)
 	achievements.Get("/", streakHandler.GetAchievements)
 
-	auth.Get("/progress", streakHandler.GetProgress)
+	router.Get("/progress", authMw, streakHandler.GetProgress)
 
 	// ============================================
 	// Newsletter (User) — Phase 24
 	// ============================================
-	nl := auth.Group("/newsletter")
+	nl := router.Group("/newsletter", authMw)
 	nl.Post("/subscribe", newsletterHandler.Subscribe)
 	nl.Post("/unsubscribe", newsletterHandler.Unsubscribe)
 	nl.Get("/status", newsletterHandler.GetSubscription)

@@ -152,8 +152,10 @@ class SettingsViewModel @Inject constructor(
     fun hideSignOutDialog() = _uiState.update { it.copy(showSignOutDialog = false) }
 
     fun signOut() {
-        authRepository.signOut()
-        _uiState.update { it.copy(showSignOutDialog = false, toastMessage = "Đã đăng xuất") }
+        viewModelScope.launch {
+            authRepository.signOutAndClearTokens()
+            _uiState.update { it.copy(showSignOutDialog = false, toastMessage = "Đã đăng xuất") }
+        }
     }
 
     // ═══ Settings toggles ═══

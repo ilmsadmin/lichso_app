@@ -33,8 +33,10 @@ import com.lichso.app.data.local.entity.*
         DailyUnlockEntity::class,
         PermanentUnlockEntity::class,
         StreakRecordEntity::class,
+        // v3 Quiz sync queue
+        QuizOfflineSessionEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = true
 )
 abstract class LichSoDatabase : RoomDatabase() {
@@ -56,6 +58,7 @@ abstract class LichSoDatabase : RoomDatabase() {
     abstract fun pointsDao(): PointsDao
     abstract fun unlockDao(): UnlockDao
     abstract fun streakDao(): StreakDao
+    abstract fun quizOfflineSessionDao(): QuizOfflineSessionDao
 
     companion object {
         private const val TAG = "LichSoDatabase"
@@ -235,6 +238,26 @@ abstract class LichSoDatabase : RoomDatabase() {
             Log.d(TAG, "MIGRATION_12_13 complete")
         }
 
+        /**
+         * Migration 13→14: quiz offline sync queue
+         */
+        private val MIGRATION_13_14 = Migration(13, 14) { db ->
+            Log.d(TAG, "Running MIGRATION_13_14: quiz offline sync queue")
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS quiz_offline_sessions (
+                    clientSessionId TEXT NOT NULL PRIMARY KEY,
+                    sessionType TEXT NOT NULL,
+                    category TEXT,
+                    questionIdsJson TEXT NOT NULL,
+                    answersJson TEXT NOT NULL,
+                    startedAtMs INTEGER NOT NULL,
+                    finishedAtMs INTEGER NOT NULL,
+                    createdAtMs INTEGER NOT NULL DEFAULT 0
+                )
+            """.trimIndent())
+            Log.d(TAG, "MIGRATION_13_14 complete")
+        }
+
         private val MIGRATION_11_12 = Migration(11, 12) { db ->
             Log.d(TAG, "Running MIGRATION_11_12: countdown events")
             db.execSQL("""
@@ -260,7 +283,7 @@ abstract class LichSoDatabase : RoomDatabase() {
                     "lichso.db"
                 )
                     // Migrations
-                    .addMigrations(MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                    .addMigrations(MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                     .fallbackToDestructiveMigrationFrom(
                         // Only allow destructive migration from very old versions (pre-release)
                         // that we don't need to support. Current users on v9 are safe.

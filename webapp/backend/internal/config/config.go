@@ -60,7 +60,8 @@ type SMTPConfig struct {
 
 // GoogleConfig holds Google OAuth configuration
 type GoogleConfig struct {
-	ClientID string
+	ClientID        string
+	AndroidClientID string // Firebase web client ID used by Android app
 }
 
 // AppConfig holds application-level configuration
@@ -261,7 +262,8 @@ func LoadConfig(path ...string) (*Config, error) {
 			Path:         viper.GetString("UPLOAD_PATH"),
 		},
 		Google: GoogleConfig{
-			ClientID: viper.GetString("GOOGLE_CLIENT_ID"),
+			ClientID:        viper.GetString("GOOGLE_CLIENT_ID"),
+			AndroidClientID: viper.GetString("GOOGLE_ANDROID_CLIENT_ID"),
 		},
 		SMTP: SMTPConfig{
 			Host:       viper.GetString("SMTP_HOST"),

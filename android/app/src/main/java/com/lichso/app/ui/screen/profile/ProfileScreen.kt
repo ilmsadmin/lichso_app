@@ -177,7 +177,8 @@ fun ProfileScreen(
                             size = 72,
                             borderColor = Color.White.copy(alpha = 0.3f),
                             placeholderTint = Color.White.copy(alpha = 0.8f),
-                            bgColor = Color.White.copy(alpha = 0.15f)
+                            bgColor = Color.White.copy(alpha = 0.15f),
+                            avatarUrl = state.authUser?.photoUrl,
                         )
                     }
 
@@ -257,6 +258,18 @@ fun ProfileScreen(
                             Text("Gia phả", style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White))
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Google account chip in header
+                    HeaderGoogleChip(
+                        authUser = state.authUser,
+                        isSigningIn = state.isSigningIn,
+                        onSignIn = { viewModel.signInWithGoogle(context) },
+                        onSignOut = { viewModel.showSignOutDialog() },
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
                 }
             }
         )
@@ -838,6 +851,87 @@ private fun FormFieldLabel(icon: ImageVector, label: String) {
 // ══════════════════════════════════════════
 // SIGN OUT CONFIRM DIALOG
 // ══════════════════════════════════════════
+// GOOGLE ACCOUNT CHIP — inside header (red bg)
+// ══════════════════════════════════════════
+
+@Composable
+private fun HeaderGoogleChip(
+    authUser: com.lichso.app.data.auth.UserInfo?,
+    isSigningIn: Boolean,
+    onSignIn: () -> Unit,
+    onSignOut: () -> Unit,
+) {
+    if (authUser != null) {
+        // Signed in: avatar + email + sign-out icon
+        Row(
+            modifier = Modifier
+                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(24.dp))
+                .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(24.dp))
+                .clickable { onSignOut() }
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            if (authUser.photoUrl != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                        .data(authUser.photoUrl).crossfade(true).build(),
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp).clip(CircleShape),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                Box(
+                    modifier = Modifier.size(22.dp).clip(CircleShape).background(Color(0xFF4285F4)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        authUser.displayName.firstOrNull()?.uppercase() ?: "G",
+                        style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    )
+                }
+            }
+            Text(
+                authUser.email,
+                style = TextStyle(fontSize = 12.sp, color = Color.White.copy(alpha = 0.9f)),
+                maxLines = 1,
+            )
+            Icon(
+                Icons.AutoMirrored.Filled.Logout,
+                contentDescription = "Đăng xuất",
+                tint = Color.White.copy(alpha = 0.7f),
+                modifier = Modifier.size(13.dp),
+            )
+        }
+    } else {
+        // Not signed in: simple pill button
+        Row(
+            modifier = Modifier
+                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(24.dp))
+                .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(24.dp))
+                .clickable(enabled = !isSigningIn, onClick = onSignIn)
+                .padding(horizontal = 16.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            if (isSigningIn) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(14.dp),
+                    strokeWidth = 2.dp,
+                    color = Color.White,
+                )
+                Text("Đang đăng nhập...", style = TextStyle(fontSize = 13.sp, color = Color.White.copy(alpha = 0.9f)))
+            } else {
+                Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                Text("Đăng nhập với Google", style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color.White))
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════
 
 @Composable
 private fun SignOutConfirmDialog(
@@ -1236,9 +1330,15 @@ private fun AvatarImage(
     size: Int,
     borderColor: Color,
     placeholderTint: Color,
-    bgColor: Color
+    bgColor: Color,
+    avatarUrl: String? = null,
 ) {
-    val hasAvatar = avatarPath.isNotEmpty() && File(avatarPath).exists()
+    val hasLocalAvatar = avatarPath.isNotEmpty() && File(avatarPath).exists()
+    val imageData: Any? = when {
+        hasLocalAvatar -> File(avatarPath)
+        !avatarUrl.isNullOrEmpty() -> avatarUrl
+        else -> null
+    }
 
     Box(
         modifier = Modifier
@@ -1248,12 +1348,12 @@ private fun AvatarImage(
             .background(bgColor),
         contentAlignment = Alignment.Center
     ) {
-        if (hasAvatar) {
+        if (imageData != null) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(File(avatarPath))
-                    .memoryCacheKey(avatarPath)
-                    .diskCacheKey(avatarPath)
+                    .data(imageData)
+                    .memoryCacheKey(imageData.toString())
+                    .diskCacheKey(imageData.toString())
                     .crossfade(true)
                     .build(),
                 contentDescription = "Avatar",

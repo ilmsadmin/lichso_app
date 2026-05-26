@@ -14,13 +14,61 @@
       },
       "oauth_client": [
         {
-          "client_id": "339910552400-3dqk7nm0ba5bv0e8fc55r01dkbr2174p.apps.googleusercontent.com",
+          "client_id": "339910552400-7i2fch8j822rs9ptuj2tldgfqtk5atpm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lichso.app",
+            "certificate_hash": "4b3df9ac08bd1fdb97f3cfed383ddcbd75cb5331"
+          }
+        },
+        {
+          "client_id": "339910552400-e60nv386o80en04utnmpbn7fnjbja4d0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lichso.app",
+            "certificate_hash": "18ca1004214a9f3ad9dd6e856002caf02d6a2e73"
+          }
+        },
+        {
+          "client_id": "339910552400-h1domssn1achavpqqfskvga5j59rdski.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5Y8gtbnoMp1wepOgFlyuWgMlqFtZ5kUU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "339910552400-3dqk7nm0ba5bv0e8fc55r01dkbr2174p.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:339910552400:android:83fd13346c324a5414da55",
+        "android_client_info": {
+          "package_name": "love.usly.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "339910552400-h1domssn1achavpqqfskvga5j59rdski.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
           "current_key": "AIzaSyAiU_0stqI7TvtMD0GbEj0OcI70AeYuXYs"
+        },
+        {
+          "current_key": "AIzaSyC5Y8gtbnoMp1wepOgFlyuWgMlqFtZ5kUU"
         }
       ],
       "services": {

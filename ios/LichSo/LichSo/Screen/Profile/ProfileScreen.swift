@@ -27,6 +27,7 @@ private var OutlineColor: Color { LSTheme.textTertiary }
 private var OutlineVariant: Color { LSTheme.outlineVariant }
 
 struct ProfileScreen: View {
+    @Environment(\.dismiss) private var dismiss
     @State private var showEditProfile = false
     @State private var showSettings = false
     @State private var showSearch = false
@@ -78,7 +79,8 @@ struct ProfileScreen: View {
                         gender: gender,
                         onSettings: { showSettings = true },
                         onEditProfile: { showEditProfile = true },
-                        onFamilyTree: { showFamilyTree = true }
+                        onFamilyTree: { showFamilyTree = true },
+                        onDismiss: { dismiss() }
                     )
 
                     // ═══ CONTENT ═══
@@ -291,6 +293,7 @@ private struct ProfileHeader: View {
     let onSettings: () -> Void
     let onEditProfile: () -> Void
     let onFamilyTree: () -> Void
+    var onDismiss: (() -> Void)? = nil
 
     private var headerBirthInfo: (yearCanChi: String, menh: String)? {
         guard birthYear > 0 else { return nil }
@@ -335,12 +338,14 @@ private struct ProfileHeader: View {
 
                 // Top bar
                 HStack {
-                    Image(systemName: "line.3.horizontal")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.white)
-                        .frame(width: 40, height: 40)
-                        .background(Color.white.opacity(0.15))
-                        .clipShape(Circle())
+                    Button(action: { onDismiss?() }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 40, height: 40)
+                            .background(Color.white.opacity(0.15))
+                            .clipShape(Circle())
+                    }
                     Spacer()
                     Text("Hồ sơ")
                         .font(.system(size: 20, weight: .bold))

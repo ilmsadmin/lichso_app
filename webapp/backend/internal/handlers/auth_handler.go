@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -11,6 +13,21 @@ import (
 	"github.com/zplus/lichso/internal/validators"
 	"go.uber.org/zap"
 )
+
+func buildClientUserAgent(c *fiber.Ctx) string {
+	baseUA := strings.TrimSpace(c.Get("User-Agent"))
+	platform := strings.TrimSpace(c.Get("X-Client-Platform"))
+	appVersion := strings.TrimSpace(c.Get("X-App-Version"))
+	deviceName := strings.TrimSpace(c.Get("X-Device-Name"))
+	osVersion := strings.TrimSpace(c.Get("X-OS-Version"))
+
+	if platform == "" && appVersion == "" && deviceName == "" && osVersion == "" {
+		return baseUA
+	}
+
+	return fmt.Sprintf("%s | client platform=%s;app=%s;device=%s;os=%s",
+		baseUA, platform, appVersion, deviceName, osVersion)
+}
 
 // AuthHandler handles authentication HTTP requests
 type AuthHandler struct {
@@ -42,7 +59,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 
 	// Get client info
 	ipAddress := c.IP()
-	userAgent := c.Get("User-Agent")
+	userAgent := buildClientUserAgent(c)
 
 	// Call service
 	result, err := h.authService.Login(&req, ipAddress, userAgent)
@@ -71,7 +88,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 
 	// Get client info
 	ipAddress := c.IP()
-	userAgent := c.Get("User-Agent")
+	userAgent := buildClientUserAgent(c)
 
 	// Call service
 	result, err := h.authService.Register(&req, ipAddress, userAgent)
@@ -102,7 +119,7 @@ func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 
 	// Get client info
 	ipAddress := c.IP()
-	userAgent := c.Get("User-Agent")
+	userAgent := buildClientUserAgent(c)
 
 	// Call service
 	result, err := h.authService.RefreshToken(&req, ipAddress, userAgent)
@@ -174,7 +191,7 @@ func (h *AuthHandler) ResetPassword(c *fiber.Ctx) error {
 
 	// Get client info
 	ipAddress := c.IP()
-	userAgent := c.Get("User-Agent")
+	userAgent := buildClientUserAgent(c)
 
 	// Call service
 	if err := h.authService.ResetPassword(&req, ipAddress, userAgent); err != nil {
@@ -213,7 +230,7 @@ func (h *AuthHandler) ChangePassword(c *fiber.Ctx) error {
 
 	// Get client info
 	ipAddress := c.IP()
-	userAgent := c.Get("User-Agent")
+	userAgent := buildClientUserAgent(c)
 
 	// Call service
 	if err := h.authService.ChangePassword(userID, &req, ipAddress, userAgent); err != nil {
@@ -241,7 +258,7 @@ func (h *AuthHandler) GoogleLogin(c *fiber.Ctx) error {
 
 	// Get client info
 	ipAddress := c.IP()
-	userAgent := c.Get("User-Agent")
+	userAgent := buildClientUserAgent(c)
 
 	// Call service
 	result, err := h.authService.GoogleLogin(&req, ipAddress, userAgent)

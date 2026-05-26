@@ -107,6 +107,9 @@ ssh -p ${SSH_PORT} ${SSH_USER}@${SERVER} << EOF
   echo "Restarting services with new images..."
   docker compose up -d --force-recreate api web
   
+  echo "Running database migrations..."
+  docker compose exec -T api ./migrate up
+  
   echo ""
   echo "Container status:"
   docker compose ps

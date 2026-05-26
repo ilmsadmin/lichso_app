@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.Rule
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lichso.app.ui.components.AppTopBar
+import com.lichso.app.ui.components.LoginNudgeBanner
 import com.lichso.app.ui.theme.LichSoThemeColors
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -63,45 +65,53 @@ fun QuizHomeScreen(
         viewModel.loadHomeOverview(quizCategories.map { it.id })
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(c.bg)
     ) {
-        AppTopBar(
-            title = "Đố Vui",
-            subtitle = "Thi đấu và tích điểm thưởng",
-            onBackClick = onBackClick,
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // ── Daily Quiz card ──
-            DailyQuizCard(
-                date = today.format(formatter),
-                questionCount = homeState.dailyQuestionCount,
-                onStart = onStartDaily,
+        Column(modifier = Modifier.fillMaxSize()) {
+            AppTopBar(
+                title = "Đố Vui",
+                subtitle = "Thi đấu và tích điểm thưởng",
+                onBackClick = onBackClick,
             )
 
-            // ── Category grid ──
-            SectionHeader(title = "Chọn chủ đề", icon = Icons.Filled.Category)
-            CategoryGrid(
-                categories = quizCategories,
-                counts = homeState.categoryQuestionCounts,
-                onCategoryClick = onStartTopic,
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // ── Daily Quiz card ──
+                DailyQuizCard(
+                    date = today.format(formatter),
+                    questionCount = homeState.dailyQuestionCount,
+                    onStart = onStartDaily,
+                )
 
-            // ── Leaderboard button ──
-            SectionHeader(title = "Bảng xếp hạng", icon = Icons.Filled.Leaderboard)
-            LeaderboardButton(onClick = onLeaderboard)
+                GameplayRulesCard()
 
-            Spacer(modifier = Modifier.height(8.dp))
+                // ── Category grid ──
+                SectionHeader(title = "Chọn chủ đề", icon = Icons.Filled.Category)
+                CategoryGrid(
+                    categories = quizCategories,
+                    counts = homeState.categoryQuestionCounts,
+                    onCategoryClick = onStartTopic,
+                )
+
+                // ── Leaderboard button ──
+                SectionHeader(title = "Bảng xếp hạng", icon = Icons.Filled.Leaderboard)
+                LeaderboardButton(onClick = onLeaderboard)
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
         }
+
+        LoginNudgeBanner(
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
     }
 }
 
@@ -365,6 +375,40 @@ private fun SectionHeader(title: String, icon: ImageVector) {
                 fontWeight = FontWeight.Bold,
                 color = c.textPrimary,
             )
+        )
+    }
+}
+
+@Composable
+private fun GameplayRulesCard() {
+    val c = LichSoThemeColors.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(c.surfaceContainer)
+            .border(1.dp, c.outlineVariant, RoundedCornerShape(14.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.Rule,
+                contentDescription = null,
+                tint = c.primary,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                "Luật chơi nhanh",
+                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = c.textPrimary),
+            )
+        }
+        Text(
+            "Mỗi câu có 30 giây. Đúng được tính điểm leo bảng xếp hạng; điểm ngày dùng để mua trợ giúp khi bí.",
+            style = TextStyle(fontSize = 12.sp, color = c.textSecondary, lineHeight = 18.sp),
         )
     }
 }

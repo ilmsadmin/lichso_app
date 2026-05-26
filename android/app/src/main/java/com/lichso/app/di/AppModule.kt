@@ -16,6 +16,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import android.os.Build
+import com.lichso.app.BuildConfig
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
@@ -26,17 +29,30 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        // Security: cleartext traffic is blocked via network_security_config.xml
-        // Certificate pinning is NOT used here because:
-        //   1. This client is shared between OpenRouter, Open-Meteo, and wttr.in
-        //   2. Cloud services (Cloudflare CDN) rotate certificates frequently
-        //   3. A stale pin would brick the app for ALL users until an update is released
-        //   4. The proper fix is proxying API calls through our own backend
-        .build()
+    fun provideOkHttpClient(): OkHttpClient {
+        val deviceName = listOfNotNull(Build.MANUFACTURER, Build.MODEL)
+            .joinToString(" ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        val userAgent = "LichSo-Android/${BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE}; $deviceName)"
+        val userAgentInterceptor = Interceptor { chain ->
+            chain.proceed(
+                chain.request().newBuilder()
+                    .header("User-Agent", userAgent)
+                    .header("X-Client-Platform", "android")
+                    .header("X-App-Version", BuildConfig.VERSION_NAME)
+                    .header("X-Device-Name", deviceName)
+                    .header("X-OS-Version", Build.VERSION.RELEASE ?: "")
+                    .build()
+            )
+        }
+        return OkHttpClient.Builder()
+            .addInterceptor(userAgentInterceptor)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
 
     @Provides
     @Singleton
@@ -100,6 +116,9 @@ object AppModule {
     fun provideStreakDao(db: LichSoDatabase): StreakDao = db.streakDao()
 
     @Provides
+    fun provideQuizOfflineSessionDao(db: LichSoDatabase): QuizOfflineSessionDao = db.quizOfflineSessionDao()
+
+    @Provides
     @Singleton
     fun providePointsClock(): Clock = SystemClock()
 
@@ -125,7 +144,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideQuizRepository(api: LichSoApi): QuizRepository = QuizRepository(api)
+    fun provideQuizRepository(api: LichSoApi, quizOfflineSessionDao: QuizOfflineSessionDao): QuizRepository =
+        QuizRepository(api, quizOfflineSessionDao)
 
     @Provides
     @Singleton

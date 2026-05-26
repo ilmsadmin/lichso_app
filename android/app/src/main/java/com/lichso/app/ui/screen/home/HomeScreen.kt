@@ -41,6 +41,7 @@ import com.lichso.app.ui.theme.*
 import com.lichso.app.ui.components.AppTopBar
 import com.lichso.app.ui.components.CalendarPatternBackground
 import com.lichso.app.ui.components.HeaderIconButton
+import com.lichso.app.ui.components.LoginNudgeBanner
 import androidx.compose.ui.res.painterResource
 import com.lichso.app.R
 import coil.compose.AsyncImage
@@ -81,11 +82,12 @@ fun HomeScreen(
     var isAnimatingFlip by remember { mutableStateOf(false) }
     val flipCommitThreshold = 0.18f  // 18% rotation = commit
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(c.bg)
     ) {
+    Column(modifier = Modifier.fillMaxSize()) {
         uiState.dayInfo?.let { info ->
             LaunchedEffect(uiState.selectedDate) {
                 if (uiState.selectedDate == LocalDate.now()) {
@@ -270,7 +272,12 @@ fun HomeScreen(
                 }
             }
         }
-    }
+    } // end Column
+
+    LoginNudgeBanner(
+        modifier = Modifier.align(Alignment.BottomCenter),
+    )
+    } // end Box
 
     // ═══ WEATHER DETAIL BOTTOM SHEET ═══
     if (showWeatherSheet) {

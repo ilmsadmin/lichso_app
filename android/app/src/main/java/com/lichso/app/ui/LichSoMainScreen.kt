@@ -71,6 +71,7 @@ fun LichSoMainScreen(
 ) {
     val c = LichSoThemeColors.current
     var currentRoute by remember { mutableStateOf(initialRoute) }
+    var selectedArticleId by remember { mutableStateOf<String?>(null) }
     var prayerDetailShowing by remember { mutableStateOf(false) }
     var taskEditShowing by remember { mutableStateOf(false) }
     var initialPrayerId by remember { mutableStateOf<Int?>(null) }
@@ -184,7 +185,7 @@ fun LichSoMainScreen(
         }
     }
 
-    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays", "profile", "oracle_draw", "oracle_result", "ledger", "daily_store", "zodiac_collection", "date_picker", "streak_freeze", "points_tutorial", "tiet_khi", "widget_manager", "quiz_session", "quiz_result", "leaderboard", "knowledge_feed") || prayerDetailShowing || taskEditShowing
+    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays", "profile", "oracle_draw", "oracle_result", "ledger", "daily_store", "zodiac_collection", "date_picker", "streak_freeze", "points_tutorial", "tiet_khi", "widget_manager", "quiz_session", "quiz_result", "leaderboard", "knowledge_feed", "article_detail") || prayerDetailShowing || taskEditShowing
 
     val toggleDrawer: () -> Unit = {
         scope.launch {
@@ -482,6 +483,7 @@ fun LichSoMainScreen(
                         initialAiMessage = prompt
                         currentRoute = "chat"
                     },
+                    onPlayAgain = { currentRoute = "quiz_session" },
                 )
                 "leaderboard" -> com.lichso.app.feature.quiz.LeaderboardScreen(
                     onBackClick = { currentRoute = "quiz_home" },
@@ -492,12 +494,25 @@ fun LichSoMainScreen(
                         initialAiMessage = prompt
                         currentRoute = "chat"
                     },
+                    onArticleClick = { articleId ->
+                        selectedArticleId = articleId
+                        currentRoute = "article_detail"
+                    }
                 )
+                "article_detail" -> {
+                    selectedArticleId?.let { articleId ->
+                        com.lichso.app.feature.content.ArticleDetailScreen(
+                            articleId = articleId,
+                            onBackClick = { currentRoute = "knowledge_feed" }
+                        )
+                    }
+                }
                 else -> HomeScreen(
                     onSettingsClick = { currentRoute = "settings" },
                     onMenuClick = toggleDrawer,
+                    onProfileClick = { currentRoute = "profile" },
                     onHistoryClick = { currentRoute = "history" },
-                    onNotificationClick = { currentRoute = "notifications" }
+                    onNotificationClick = { currentRoute = "notifications" },
                 )
             }
         }

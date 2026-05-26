@@ -67,6 +67,7 @@ struct SidebarView: View {
 
                 Spacer()
             }
+            .ignoresSafeArea()
             .gesture(
                 DragGesture()
                     .onChanged { value in
@@ -158,7 +159,7 @@ struct SidebarView: View {
 
     private var drawerHeader: some View {
         VStack(spacing: 0) {
-            Spacer().frame(height: 0) // status bar spacing handled by safearea
+            Color.clear.frame(height: safeAreaTop())
 
             HStack(spacing: 16) {
                 // App icon
@@ -326,7 +327,7 @@ struct SidebarView: View {
                     )
             }
 
-            Spacer().frame(height: 16)
+            Spacer().frame(height: safeAreaBottom() > 0 ? safeAreaBottom() : 16)
         }
     }
 
@@ -335,9 +336,8 @@ struct SidebarView: View {
     private var mainItems: [MenuItem] {
         [
             MenuItem(icon: "sun.max", iconFilled: "sun.max.fill", title: "Trang chủ", route: "home"),
-            MenuItem(icon: "calendar", title: "Lịch tháng", route: "calendar"),
-            MenuItem(icon: "checkmark.circle", iconFilled: "checkmark.circle.fill", title: "Ngày tốt / xấu", route: "gooddays"),
             MenuItem(icon: "bookmark", iconFilled: "bookmark.fill", title: "Ngày đã lưu", route: "bookmarks"),
+            MenuItem(icon: "book", iconFilled: "book.fill", title: "Văn Khấn", route: "prayers"),
         ]
     }
 
@@ -345,7 +345,7 @@ struct SidebarView: View {
         [
             MenuItem(icon: "clock.arrow.circlepath", title: "Ngày này năm xưa", route: "history"),
             MenuItem(icon: "person.3", iconFilled: "person.3.fill", title: "Cây gia phả", route: "familytree"),
-            MenuItem(icon: "book", iconFilled: "book.fill", title: "Các bài văn khấn", route: "prayers"),
+            MenuItem(icon: "doc.text", iconFilled: "doc.text.fill", title: "Bài viết khám phá", route: "knowledge_feed"),
         ]
     }
 
@@ -356,6 +356,18 @@ struct SidebarView: View {
     }
 
     // MARK: - Helpers
+
+    private func safeAreaTop() -> CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.windows.first?.safeAreaInsets.top ?? 44
+    }
+
+    private func safeAreaBottom() -> CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.windows.first?.safeAreaInsets.bottom ?? 0
+    }
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"

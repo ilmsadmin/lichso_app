@@ -100,7 +100,7 @@ func main() {
 	// ============================================
 	// Global Middleware
 	// ============================================
-	setupMiddleware(app, cfg, logger)
+	setupMiddleware(app, cfg, logger, redisClient, mongoDB)
 
 	// ============================================
 	// Routes
@@ -174,7 +174,7 @@ func connectDatabases(cfg *config.Config, logger *zap.Logger) (*gorm.DB, *mongo.
 }
 
 // setupMiddleware configures global middleware
-func setupMiddleware(app *fiber.App, cfg *config.Config, logger *zap.Logger) {
+func setupMiddleware(app *fiber.App, cfg *config.Config, logger *zap.Logger, redisClient *redis.Client, mongoDB *mongo.Database) {
 	// Custom recovery middleware
 	app.Use(middleware.Recovery(logger))
 
@@ -186,6 +186,9 @@ func setupMiddleware(app *fiber.App, cfg *config.Config, logger *zap.Logger) {
 
 	// Request logger
 	app.Use(middleware.RequestLogger(logger))
+
+	// Guest mobile daily activity tracker (for DAU analytics)
+	app.Use(middleware.MobileGuestActivityTracker(redisClient, mongoDB, logger))
 
 	// CORS - In production, AllowCredentials enables secure cookie handling
 	app.Use(cors.New(cors.Config{
@@ -415,11 +418,22 @@ func setupRoutes(app *fiber.App, cfg *config.Config, pgDB *gorm.DB, mongoDB *mon
 	newsletterHandler := handlers.NewNewsletterHandler(newsletterService, logger)
 	streakHandler := handlers.NewStreakHandler(streakAchievementService, logger)
 
-	// V5 Quiz (must be registered BEFORE SetupV3UserRoutes which adds a wildcard USE middleware)
+	// V4 AI Infrastructure (shared, must be initialised before quiz)
+	openRouterService := services.NewOpenRouterService(&cfg.AI, logger)
+	openRouterService.SetSettingRepo(settingRepo) // load API key from DB settings at runtime
+
+	// Points unified wallet
+	pointsService := services.NewPointsService(pgDB, logger)
+	pointsHandler := handlers.NewPointsHandler(pgDB, pointsService, validator, logger)
+
+	// V5 Quiz
 	quizRepo := repositories.NewQuizRepository(pgDB)
 	quizService := services.NewQuizService(quizRepo, cacheService, logger)
+	quizService.SetOpenRouterService(openRouterService)
+	quizService.SetPointsService(pointsService)
 	quizHandler := handlers.NewQuizHandler(quizService, validator, logger)
 	routes.SetupQuizRoutes(api, authMiddleware, permMiddleware, quizHandler)
+	routes.SetupPointsRoutes(api, authMiddleware, pointsHandler)
 
 	// V3 Routes
 	routes.SetupV3ContentRoutes(api, articleRelationHandler, dailyContentHandler, horoscopeHandler, goodDayHandler)
@@ -429,8 +443,6 @@ func setupRoutes(app *fiber.App, cfg *config.Config, pgDB *gorm.DB, mongoDB *mon
 	// ============================================
 	// V4 AI Infrastructure (Phase 25-28)
 	// ============================================
-	openRouterService := services.NewOpenRouterService(&cfg.AI, logger)
-	openRouterService.SetSettingRepo(settingRepo) // load API key from DB settings at runtime
 
 	// Repositories
 	aiLogRepo := repositories.NewAILogRepository(pgDB)

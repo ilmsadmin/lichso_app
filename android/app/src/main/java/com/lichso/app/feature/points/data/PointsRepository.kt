@@ -63,6 +63,11 @@ class PointsRepository @Inject constructor(
     suspend fun getPermanentUnlocks(): List<PermanentUnlockEntity> =
         unlockDao.getAllPermanent()
 
+    suspend fun getAllActionLogsOnce(): List<ActionLogEntity> = pointsDao.getAllActionLogsOnce()
+    suspend fun getAllDailyUnlocksOnce(): List<DailyUnlockEntity> = unlockDao.getAllDailyUnlocksOnce()
+    suspend fun clearActionLog() = pointsDao.clearActionLog()
+    suspend fun clearDailyUnlocks() = unlockDao.clearDailyUnlocks()
+
     // ── Mutations (always locked) ─────────────────────────────
 
     /** Rollover lifecycle: reset daily points at 00:00 if needed. Idempotent. */

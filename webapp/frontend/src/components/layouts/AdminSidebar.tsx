@@ -103,7 +103,7 @@ const navItems: NavItem[] = [
   },
   // Mobile App Management
   {
-    label: "Quiz App",
+    label: "Đố vui",
     href: ROUTES.ADMIN_QUIZ,
     icon: BrainCircuit,
     permission: "content.read",

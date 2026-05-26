@@ -75,39 +75,38 @@ fun OracleDrawScreen(
     }
 
     Scaffold(
-        containerColor = c.bg,
+        containerColor = Color(0xFFF3E4C2),
         topBar = {
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        Brush.linearGradient(
-                            if (c.isDark) listOf(Color(0xFF5D1212), Color(0xFF4A1010))
-                            else listOf(c.primary, c.deepRed)
-                        )
-                    )
                     .statusBarsPadding()
-                    .padding(horizontal = 4.dp, vertical = 8.dp),
+                    .padding(horizontal = 10.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = Color.White)
-                    }
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            "Rút quẻ đầu ngày",
-                            style = TextStyle(
-                                color = Color.White,
-                                fontFamily = FontFamily.Serif,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
-                            ),
-                        )
-                        Text(
-                            "Nghi lễ truyền thống · 1 lần/ngày",
-                            style = TextStyle(color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp),
-                        )
-                    }
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.55f)),
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại", tint = Color(0xFF7A2A2A))
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "Rút quẻ đầu ngày",
+                        style = TextStyle(
+                            color = Color(0xFF8D1010),
+                            fontFamily = FontFamily.Serif,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 30.sp,
+                        ),
+                    )
+                    Text(
+                        "Nghi lễ truyền thống · 1 lần/ngày",
+                        style = TextStyle(color = Color(0xFF8D1010).copy(alpha = 0.72f), fontSize = 13.sp),
+                    )
                 }
             }
         },
@@ -116,124 +115,103 @@ fun OracleDrawScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(c.gold.copy(alpha = 0.18f), Color.Transparent),
-                        center = Offset(500f, 200f),
-                        radius = 900f,
-                    )
-                ),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 14.dp, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.weight(0.6f))
-
-            // Jar (ống xăm)
-            Box(
-                modifier = Modifier
-                    .size(240.dp, 300.dp)
-                    .rotate(shake.value),
-                contentAlignment = Alignment.BottomCenter,
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(26.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8EACE)),
             ) {
-                // Sticks
-                val stickData = listOf(
-                    Triple(-60f, 150.dp, -10f),
-                    Triple(-32f, 170.dp, -4f),
-                    Triple(-4f,  180.dp, 0f),
-                    Triple(24f,  175.dp, 4f),
-                    Triple(52f,  160.dp, 9f),
-                    Triple(78f,  140.dp, 14f),
-                )
-                stickData.forEach { (xOff, h, rot) ->
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 18.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
                     Box(
                         modifier = Modifier
-                            .offset(x = xOff.dp, y = (-130).dp)
-                            .rotate(rot)
-                            .width(6.dp)
-                            .height(h)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(
-                                Brush.verticalGradient(
-                                    0f to c.gold,
-                                    0.7f to Color(0xFFC6A300),
-                                    0.7f to Color(0xFF8B0000),
-                                    1f to c.deepRed,
+                            .fillMaxWidth()
+                            .height(320.dp)
+                            .rotate(shake.value),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(286.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.radialGradient(
+                                        colors = listOf(Color(0xFFFAEFCF), Color(0xFFEFD9AF)),
+                                    )
                                 )
-                            )
-                    )
-                }
-                // Pot
-                Box(
-                    modifier = Modifier
-                        .size(200.dp, 150.dp)
-                        .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 100.dp, bottomEnd = 100.dp))
-                        .background(
-                            Brush.linearGradient(
-                                listOf(Color(0xFF8B0000), Color(0xFFB71C1C))
-                            )
                         )
-                )
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            Text(
-                "\"Tâm tĩnh lặng, niệm điều cầu mong,\nlắc nhẹ 3 lần rồi rút một quẻ.\"",
-                style = TextStyle(
-                    fontFamily = FontFamily.Serif,
-                    fontStyle = FontStyle.Italic,
-                    fontSize = 14.sp,
-                    color = c.textSecondary,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 22.sp,
-                ),
-                modifier = Modifier.padding(horizontal = 36.dp),
-            )
-
-            Spacer(Modifier.weight(1f))
-
-            // CTA
-            Button(
-                onClick = {
-                    if (!isShaking && !hasDrawn) {
-                        isShaking = true
-                        vm.award(ActionType.DRAW_KINH_DICH)
-                        hasDrawn = true
-                        onDrawn()
+                        Image(
+                            painter = painterResource(R.drawable.rut_the_cup),
+                            contentDescription = "Ống quẻ",
+                            modifier = Modifier.size(width = 244.dp, height = 276.dp),
+                        )
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .height(54.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = c.primary),
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_scroll),
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text("Rút quẻ", color = Color.White, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.width(10.dp))
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.25f))
-                        .padding(horizontal = 10.dp, vertical = 3.dp)
-                ) {
+
                     Text(
-                        "+15⚡ +5☯️",
-                        style = TextStyle(color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                        "\"Tâm tĩnh, niệm điều cầu mong rồi\nlắc nhẹ 3 lần trước khi rút một quẻ\"",
+                        style = TextStyle(
+                            fontFamily = FontFamily.Serif,
+                            fontStyle = FontStyle.Italic,
+                            fontSize = 16.sp,
+                            color = Color(0xFF8D1010).copy(alpha = 0.76f),
+                            textAlign = TextAlign.Center,
+                            lineHeight = 24.sp,
+                        ),
+                        modifier = Modifier.padding(horizontal = 10.dp),
                     )
+
+                    Spacer(Modifier.height(18.dp))
+
+                    Button(
+                        onClick = {
+                            if (!isShaking && !hasDrawn) {
+                                isShaking = true
+                                vm.award(ActionType.DRAW_KINH_DICH)
+                                hasDrawn = true
+                                onDrawn()
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF921A14)),
+                        shape = RoundedCornerShape(28.dp),
+                    ) {
+                        Text(
+                            "Rút quẻ hôm nay",
+                            color = Color.White,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp,
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(100.dp))
+                                .background(Color(0xFFD9AB45))
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                        ) {
+                            Text(
+                                "+15⚡  +2☯",
+                                style = TextStyle(
+                                    color = Color(0xFF6B1D00),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                ),
+                            )
+                        }
+                    }
                 }
             }
 
             Text(
-                "Quẻ mỗi ngày được chọn bằng thuật toán bí truyền từ ngày âm – dương",
-                style = TextStyle(fontSize = 11.sp, color = c.textTertiary, textAlign = TextAlign.Center),
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+                "Quẻ mỗi ngày được chọn theo chu kỳ âm dương và chỉ mở 1 lần duy nhất trong ngày.",
+                style = TextStyle(fontSize = 12.sp, color = Color(0xFF8D1010).copy(alpha = 0.62f), textAlign = TextAlign.Center),
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
             )
         }
     }
@@ -580,128 +558,114 @@ private fun WelcomePhase(
 ) {
     Column(
         modifier = Modifier
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFF3B0000), c.bg),
-                    endY = 600f,
-                )
-            )
-            .padding(bottom = 20.dp),
+            .background(Color(0xFFF6E8C9))
+            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 4.dp),
+                .padding(start = 6.dp, end = 0.dp, top = 4.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
                     "Rút quẻ đầu ngày",
                     style = TextStyle(
-                        color = Color.White,
+                        color = Color(0xFF8D1010),
                         fontFamily = FontFamily.Serif,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp,
+                        fontSize = 29.sp,
                     ),
                 )
                 Text(
                     "Nghi lễ truyền thống · 1 lần/ngày",
-                    style = TextStyle(color = Color.White.copy(alpha = 0.65f), fontSize = 11.sp),
+                    style = TextStyle(color = Color(0xFF8D1010).copy(alpha = 0.72f), fontSize = 13.sp),
                 )
             }
-            IconButton(onClick = onDismiss) {
-                Icon(Icons.Filled.Close, contentDescription = "Đóng", tint = Color.White.copy(alpha = 0.8f))
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.5f)),
+            ) {
+                Icon(Icons.Filled.Close, contentDescription = "Đóng", tint = Color(0xFF7A2A2A))
             }
         }
 
-        // Ống xăm
+        Spacer(Modifier.height(4.dp))
+
         Box(
             modifier = Modifier
-                .size(160.dp, 200.dp)
+                .fillMaxWidth()
+                .height(280.dp)
                 .rotate(shake.value),
-            contentAlignment = Alignment.BottomCenter,
+            contentAlignment = Alignment.Center,
         ) {
-            listOf(
-                Triple(-44f, 110.dp, -9f),
-                Triple(-22f, 125.dp, -3f),
-                Triple(0f,   132.dp,  0f),
-                Triple(22f,  128.dp,  4f),
-                Triple(44f,  115.dp,  9f),
-            ).forEach { (xOff, h, rot) ->
-                Box(
-                    modifier = Modifier
-                        .offset(x = xOff.dp, y = (-95).dp)
-                        .rotate(rot)
-                        .width(5.dp)
-                        .height(h)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                0f to c.gold,
-                                0.65f to Color(0xFFC6A300),
-                                0.65f to Color(0xFF8B0000),
-                                1f to c.deepRed,
-                            )
-                        )
-                )
-            }
             Box(
                 modifier = Modifier
-                    .size(140.dp, 105.dp)
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = 14.dp, topEnd = 14.dp,
-                            bottomStart = 70.dp, bottomEnd = 70.dp,
+                    .size(258.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(Color(0xFFFAEFCF), Color(0xFFEFD9AF)),
                         )
                     )
-                    .background(Brush.linearGradient(listOf(Color(0xFF8B0000), Color(0xFFB71C1C))))
+            )
+            Image(
+                painter = painterResource(R.drawable.rut_the_cup),
+                contentDescription = "Ống quẻ",
+                modifier = Modifier.size(width = 218.dp, height = 250.dp),
             )
         }
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(8.dp))
 
         Text(
-            "\"Tâm tĩnh lặng, niệm điều cầu mong\nlắc nhẹ 3 lần rồi rút một quẻ.\"",
+            "\"Tâm tĩnh, niệm điều cầu mong rồi\nlắc nhẹ 3 lần trước khi rút một quẻ\"",
             style = TextStyle(
                 fontFamily = FontFamily.Serif,
                 fontStyle = FontStyle.Italic,
-                fontSize = 13.sp,
-                color = Color.White.copy(alpha = 0.75f),
+                fontSize = 16.sp,
+                color = Color(0xFF8D1010).copy(alpha = 0.76f),
                 textAlign = TextAlign.Center,
-                lineHeight = 20.sp,
+                lineHeight = 24.sp,
             ),
-            modifier = Modifier.padding(horizontal = 28.dp),
+            modifier = Modifier.padding(horizontal = 12.dp),
         )
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(18.dp))
 
         Button(
             onClick = { if (!isShaking) onDraw() },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = c.primary),
-            shape = RoundedCornerShape(14.dp),
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF921A14)),
+            shape = RoundedCornerShape(28.dp),
         ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_scroll),
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(16.dp),
+            Text(
+                "Rút quẻ hôm nay",
+                color = Color.White,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 18.sp,
             )
-            Spacer(Modifier.width(8.dp))
-            Text("Rút quẻ hôm nay", color = Color.White, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(12.dp))
             Box(
                 modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.22f))
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                    .clip(RoundedCornerShape(100.dp))
+                    .background(Color(0xFFD9AB45))
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
             ) {
-                Text("+15⚡ +2☯", style = TextStyle(color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold))
+                Text(
+                    "+15⚡  +2☯",
+                    style = TextStyle(
+                        color = Color(0xFF6B1D00),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                    )
+                )
             }
         }
     }

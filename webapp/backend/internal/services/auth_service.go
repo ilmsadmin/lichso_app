@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,6 +16,59 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
+
+func parseClientMetadata(rawUA string) (string, map[string]interface{}) {
+	ua := strings.TrimSpace(rawUA)
+	metadata := map[string]interface{}{}
+
+	parts := strings.SplitN(ua, "| client ", 2)
+	if len(parts) == 2 {
+		ua = strings.TrimSpace(parts[0])
+		tags := strings.Split(parts[1], ";")
+		for _, tag := range tags {
+			kv := strings.SplitN(strings.TrimSpace(tag), "=", 2)
+			if len(kv) != 2 {
+				continue
+			}
+			key := strings.TrimSpace(kv[0])
+			val := strings.TrimSpace(kv[1])
+			if val == "" {
+				continue
+			}
+			switch key {
+			case "platform":
+				metadata["platform"] = strings.ToLower(val)
+			case "app":
+				metadata["app_version"] = val
+			case "device":
+				metadata["device_name"] = val
+			case "os":
+				metadata["os_version"] = val
+			}
+		}
+	}
+
+	uaLower := strings.ToLower(ua)
+	if _, ok := metadata["platform"]; !ok {
+		switch {
+		case strings.Contains(uaLower, "android"):
+			metadata["platform"] = "android"
+		case strings.Contains(uaLower, "iphone"), strings.Contains(uaLower, "ipad"), strings.Contains(uaLower, "ios"):
+			metadata["platform"] = "ios"
+		default:
+			metadata["platform"] = "web"
+		}
+	}
+
+	if strings.Contains(uaLower, "lichso-android/") {
+		metadata["app"] = "lichso-android"
+	}
+	if strings.Contains(uaLower, "lichso-ios/") {
+		metadata["app"] = "lichso-ios"
+	}
+
+	return ua, metadata
+}
 
 // AuthService handles authentication business logic
 type AuthService struct {
@@ -407,10 +461,16 @@ func (s *AuthService) GoogleLogin(req *dto.GoogleLoginRequest, ipAddress, userAg
 		return nil, utils.ErrGoogleNotConfigured
 	}
 
-	// Verify Google ID token
-	googleUser, err := utils.VerifyGoogleIDToken(req.IDToken, s.cfg.Google.ClientID)
+	// Verify Google ID token — accept web client ID and Android Firebase client ID
+	allowedIDs := []string{s.cfg.Google.ClientID}
+	if s.cfg.Google.AndroidClientID != "" {
+		allowedIDs = append(allowedIDs, s.cfg.Google.AndroidClientID)
+	}
+	googleUser, err := utils.VerifyGoogleIDToken(req.IDToken, allowedIDs...)
 	if err != nil {
 		s.logger.Error("Failed to verify Google ID token", zap.Error(err))
+		s.logActivity("", "", models.ActionLoginFailed, models.ModuleAuth,
+			"Google login failed: invalid id token", models.StatusFailure, ipAddress, userAgent)
 		return nil, utils.ErrGoogleTokenInvalid
 	}
 
@@ -576,9 +636,14 @@ func (s *AuthService) UpdateProfile(userID uuid.UUID, req *dto.UpdateProfileRequ
 
 // logActivity logs an activity to MongoDB
 func (s *AuthService) logActivity(userID, email, action, module, description, status, ip, ua string) {
+	cleanUA, metadata := parseClientMetadata(ua)
+
 	log := models.NewActivityLog(userID, email, action, module, description).
 		WithStatus(status).
-		WithIPAndAgent(ip, ua)
+		WithIPAndAgent(ip, cleanUA)
+	if len(metadata) > 0 {
+		log = log.WithMetadata(metadata)
+	}
 
 	collection := s.mongoDB.Collection(models.ActivityLog{}.CollectionName())
 	_, err := collection.InsertOne(context.Background(), log)

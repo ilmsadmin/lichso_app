@@ -20,9 +20,9 @@ type GoogleUserInfo struct {
 }
 
 // VerifyGoogleIDToken verifies a Google ID token using Google's tokeninfo endpoint
-// and returns the user information if valid
-func VerifyGoogleIDToken(idToken, expectedClientID string) (*GoogleUserInfo, error) {
-	// Use Google's tokeninfo endpoint to verify the token
+// and returns the user information if valid.
+// allowedClientIDs accepts tokens from multiple OAuth clients (web + Android Firebase).
+func VerifyGoogleIDToken(idToken string, allowedClientIDs ...string) (*GoogleUserInfo, error) {
 	url := fmt.Sprintf("https://oauth2.googleapis.com/tokeninfo?id_token=%s", idToken)
 
 	client := &http.Client{Timeout: 10 * time.Second}
@@ -41,24 +41,29 @@ func VerifyGoogleIDToken(idToken, expectedClientID string) (*GoogleUserInfo, err
 		return nil, fmt.Errorf("invalid Google ID token: %s", string(body))
 	}
 
-	// Parse the response
 	var tokenInfo struct {
 		GoogleUserInfo
-		Aud string `json:"aud"` // Client ID
-		Iss string `json:"iss"` // Issuer
-		Exp string `json:"exp"` // Expiry
+		Aud string `json:"aud"`
+		Iss string `json:"iss"`
+		Exp string `json:"exp"`
 	}
 
 	if err := json.Unmarshal(body, &tokenInfo); err != nil {
 		return nil, fmt.Errorf("failed to parse Google token info: %w", err)
 	}
 
-	// Verify the audience (client ID) matches
-	if tokenInfo.Aud != expectedClientID {
-		return nil, fmt.Errorf("Google token audience mismatch: expected %s, got %s", expectedClientID, tokenInfo.Aud)
+	// Accept token if aud matches any of the allowed client IDs
+	validAud := false
+	for _, id := range allowedClientIDs {
+		if tokenInfo.Aud == id {
+			validAud = true
+			break
+		}
+	}
+	if !validAud {
+		return nil, fmt.Errorf("Google token audience mismatch: got %s", tokenInfo.Aud)
 	}
 
-	// Verify the issuer
 	if tokenInfo.Iss != "accounts.google.com" && tokenInfo.Iss != "https://accounts.google.com" {
 		return nil, fmt.Errorf("Google token issuer mismatch: %s", tokenInfo.Iss)
 	}
