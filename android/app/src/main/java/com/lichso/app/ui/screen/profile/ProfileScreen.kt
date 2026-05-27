@@ -790,7 +790,7 @@ private fun ProfileHeader(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp, bottom = 16.dp),
+                    .padding(top = 10.dp, bottom = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -809,7 +809,7 @@ private fun ProfileHeader(
             // ── Avatar ──
             Box(
                 modifier = Modifier
-                    .size(92.dp)
+                    .size(84.dp)
                     .border(3.dp, Color.White.copy(alpha = 0.85f), CircleShape)
                     .padding(3.dp)
                     .clip(CircleShape),
@@ -817,7 +817,7 @@ private fun ProfileHeader(
             ) {
                 AvatarImage(
                     avatarPath = state.avatarPath,
-                    size = 86,
+                    size = 78,
                     borderColor   = Color.Transparent,
                     placeholderTint = Color.White.copy(alpha = 0.85f),
                     bgColor       = Color.White.copy(alpha = 0.15f),
@@ -825,7 +825,7 @@ private fun ProfileHeader(
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // ── Name + edit pencil ──
             Row(
@@ -861,7 +861,7 @@ private fun ProfileHeader(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // ── [Gia phả] | [Google chip] ──
             Row(
@@ -877,7 +877,7 @@ private fun ProfileHeader(
                         .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(24.dp))
                         .clip(RoundedCornerShape(24.dp))
                         .clickable { onFamilyTreeClick() }
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -904,16 +904,18 @@ private fun ProfileHeader(
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // ── 3 Stat cards ──
+            // ── 3 Stat cards — bằng chiều cao nhau ──
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Card 1 — Điểm tích lũy
                 ProfileStatCard(
-                    modifier    = Modifier.weight(1f),
+                    modifier    = Modifier.weight(1f).fillMaxHeight(),
                     iconContent = {
                         Icon(
                             Icons.Filled.Bolt,
@@ -930,7 +932,7 @@ private fun ProfileHeader(
 
                 // Card 2 — Danh hiệu
                 ProfileStatCard(
-                    modifier    = Modifier.weight(1f),
+                    modifier    = Modifier.weight(1f).fillMaxHeight(),
                     iconContent = {
                         Icon(
                             Icons.Filled.WorkspacePremium,
@@ -954,14 +956,16 @@ private fun ProfileHeader(
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .fillMaxHeight()                    // ← khớp với 2 card trên
                         .clip(RoundedCornerShape(14.dp))
                         .background(streakBg)
                         .clickable { }
                         .padding(vertical = 10.dp, horizontal = 10.dp)
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier.fillMaxWidth().align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -1021,7 +1025,7 @@ private fun ProfileHeader(
                 }
             }
 
-            Spacer(modifier = Modifier.height(22.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -1069,7 +1073,8 @@ private fun ProfileStatCard(
                 listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.08f))
             ))
             .clickable { onClick() }
-            .padding(vertical = 10.dp, horizontal = 8.dp)
+            .padding(vertical = 10.dp, horizontal = 8.dp),
+        contentAlignment = Alignment.Center
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
