@@ -63,6 +63,7 @@ fun ProfileScreen(
     onMenuClick: () -> Unit = {},
     onTasksClick: () -> Unit = {},
     onBookmarksClick: () -> Unit = {},
+    onLedgerClick: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val c = LichSoThemeColors.current
@@ -260,6 +261,20 @@ fun ProfileScreen(
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
+
+                    // ── Points & Streak row ──
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        com.lichso.app.feature.points.ui.PointsPill(onClick = onLedgerClick)
+                        com.lichso.app.feature.points.ui.StreakBadge()
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     // Google account chip in header
                     HeaderGoogleChip(

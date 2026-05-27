@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lichso.app.data.local.dao.CountdownEventDao
 import com.lichso.app.data.local.dao.NotificationDao
+import com.lichso.app.data.remote.Article
+import com.lichso.app.data.remote.Banner
 import com.lichso.app.data.remote.WeatherRepository
 import com.lichso.app.data.remote.WeatherState
 import com.lichso.app.data.settings.AppSettingsRepository
+import com.lichso.app.feature.content.ContentRepository
 import com.lichso.app.domain.DayInfoProvider
 import com.lichso.app.domain.model.*
 import com.lichso.app.ui.screen.settings.SettingsKeys
@@ -50,7 +53,9 @@ data class HomeUiState(
     val tempUnit: String = "°C",
     val weatherState: WeatherState = WeatherState.Loading,
     val notificationUnreadCount: Int = 0,
-    val avatarPath: String = ""
+    val avatarPath: String = "",
+    val featuredArticle: Article? = null,
+    val banners: List<Banner> = emptyList(),
 )
 
 @HiltViewModel
@@ -58,6 +63,7 @@ class HomeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val dayInfoProvider: DayInfoProvider,
     private val appSettings: AppSettingsRepository,
+    private val contentRepository: ContentRepository,
     private val weatherRepository: WeatherRepository,
     private val notificationDao: NotificationDao,
     private val countdownDao: CountdownEventDao,
@@ -65,6 +71,7 @@ class HomeViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+    private var articlePool: List<Article> = emptyList()
 
     init {
         loadCurrentDate()
@@ -144,6 +151,10 @@ class HomeViewModel @Inject constructor(
         }
         // Tải thời tiết
         loadWeather()
+        // Tải pool bài viết để hiển thị random theo ngày
+        loadFeaturedArticlePool()
+        // Tải banner từ server
+        loadBanners()
     }
 
     private fun loadCurrentDate() {
@@ -178,7 +189,14 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val info = withContext(Dispatchers.Default) { dayInfoProvider.getDayInfo(day, month, year) }
             val events = withContext(Dispatchers.Default) { dayInfoProvider.getUpcomingEvents(day, month, year) }
-            _uiState.update { it.copy(selectedDate = date, dayInfo = info, upcomingEvents = events) }
+            _uiState.update {
+                it.copy(
+                    selectedDate = date,
+                    dayInfo = info,
+                    upcomingEvents = events,
+                    featuredArticle = pickFeaturedArticleForDate(date),
+                )
+            }
         }
     }
 
@@ -246,7 +264,36 @@ class HomeViewModel @Inject constructor(
                 dayInfo = dayInfo,
                 calendarDays = calDays,
                 upcomingEvents = events,
+                featuredArticle = pickFeaturedArticleForDate(selectedDate),
             )
         }
+    }
+
+    private fun loadBanners() {
+        viewModelScope.launch {
+            contentRepository.getBanners()
+                .onSuccess { list ->
+                    val active = list.filter { it.active }.sortedBy { it.sortOrder }
+                    if (active.isNotEmpty()) _uiState.update { it.copy(banners = active) }
+                }
+        }
+    }
+
+    private fun loadFeaturedArticlePool() {
+        viewModelScope.launch {
+            val result = contentRepository.getArticles(page = 1, limit = 60)
+            articlePool = result.getOrDefault(emptyList())
+            if (articlePool.isNotEmpty()) {
+                val date = _uiState.value.selectedDate
+                _uiState.update { it.copy(featuredArticle = pickFeaturedArticleForDate(date)) }
+            }
+        }
+    }
+
+    private fun pickFeaturedArticleForDate(date: LocalDate): Article? {
+        if (articlePool.isEmpty()) return null
+        val seed = (date.year * 10000 + date.monthValue * 100 + date.dayOfMonth).toLong()
+        val idx = kotlin.math.abs(seed.hashCode()) % articlePool.size
+        return articlePool[idx]
     }
 }

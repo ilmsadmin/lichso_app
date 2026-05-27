@@ -72,6 +72,7 @@ fun LichSoMainScreen(
     val c = LichSoThemeColors.current
     var currentRoute by remember { mutableStateOf(initialRoute) }
     var selectedArticleId by remember { mutableStateOf<String?>(null) }
+    var articleDetailBackRoute by remember { mutableStateOf("knowledge_feed") }
     var prayerDetailShowing by remember { mutableStateOf(false) }
     var taskEditShowing by remember { mutableStateOf(false) }
     var initialPrayerId by remember { mutableStateOf<Int?>(null) }
@@ -228,10 +229,18 @@ fun LichSoMainScreen(
                     onProfileClick = { currentRoute = "profile" },
                     onHistoryClick = { currentRoute = "history" },
                     onNotificationClick = { currentRoute = "notifications" },
-                    onPointsPillClick = { currentRoute = "ledger" },
                     onCountdownClick = { currentRoute = "countdown" },
                     onFortuneCardShown = {
                         pointsViewModel.award(ActionType.VIEW_FORTUNE_CARD)
+                    },
+                    onBannerAction = { route ->
+                        when (route) {
+                            "chat" -> {
+                                initialAiMessage = null
+                                currentRoute = "chat"
+                            }
+                            else -> currentRoute = route
+                        }
                     },
                 )
                 "calendar" -> CalendarScreen(
@@ -242,7 +251,12 @@ fun LichSoMainScreen(
                     onAskAiClick = { day, month, year ->
                         initialAiMessage = "Phân tích chi tiết ngày $day/$month/$year"
                         currentRoute = "chat"
-                    }
+                    },
+                    onArticleClick = { articleId ->
+                        selectedArticleId = articleId
+                        articleDetailBackRoute = "calendar"
+                        currentRoute = "article_detail"
+                    },
                 )
                 "gooddays" -> GoodDaysScreen(
                     onBackClick = { currentRoute = "home" }
@@ -259,7 +273,8 @@ fun LichSoMainScreen(
                     onBackClick = { currentRoute = "home" },
                     onMenuClick = toggleDrawer,
                     onTasksClick = { currentRoute = "tasks" },
-                    onBookmarksClick = { currentRoute = "bookmarks" }
+                    onBookmarksClick = { currentRoute = "bookmarks" },
+                    onLedgerClick = { currentRoute = "ledger" },
                 )
                 "tasks" -> TasksScreen3(
                     onBackClick = { currentRoute = "home" },
@@ -496,6 +511,7 @@ fun LichSoMainScreen(
                     },
                     onArticleClick = { articleId ->
                         selectedArticleId = articleId
+                        articleDetailBackRoute = "knowledge_feed"
                         currentRoute = "article_detail"
                     }
                 )
@@ -503,7 +519,7 @@ fun LichSoMainScreen(
                     selectedArticleId?.let { articleId ->
                         com.lichso.app.feature.content.ArticleDetailScreen(
                             articleId = articleId,
-                            onBackClick = { currentRoute = "knowledge_feed" }
+                            onBackClick = { currentRoute = articleDetailBackRoute }
                         )
                     }
                 }
@@ -513,6 +529,12 @@ fun LichSoMainScreen(
                     onProfileClick = { currentRoute = "profile" },
                     onHistoryClick = { currentRoute = "history" },
                     onNotificationClick = { currentRoute = "notifications" },
+                    onBannerAction = { route ->
+                        when (route) {
+                            "chat" -> { initialAiMessage = null; currentRoute = "chat" }
+                            else   -> currentRoute = route
+                        }
+                    },
                 )
             }
         }

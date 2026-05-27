@@ -78,6 +78,19 @@ data class Quote(
     val author: String?,
 )
 
+data class Banner(
+    val id: String,
+    val title: String,
+    val subtitle: String?,
+    @SerializedName("image_url") val imageUrl: String?,
+    @SerializedName("cta_text") val ctaText: String?,
+    @SerializedName("cta_route") val ctaRoute: String?,
+    @SerializedName("bg_color") val bgColor: String?,
+    val type: String?,
+    val active: Boolean = true,
+    @SerializedName("sort_order") val sortOrder: Int = 0,
+)
+
 data class DayContentResponse(val date: String, val data: DayContentData?)
 data class DayContentData(
     val quote: Quote?,
@@ -301,6 +314,10 @@ class LichSoApi @Inject constructor(
     }
 
     // ── Content endpoints ──
+
+    suspend fun getBanners(): Result<List<Banner>> = withContext(Dispatchers.IO) {
+        execute(get("/banners"))
+    }
 
     suspend fun getTodayContent(): Result<DayContentResponse> = withContext(Dispatchers.IO) {
         execute(get("/day-content/today"))
