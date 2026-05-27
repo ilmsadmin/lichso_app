@@ -11,6 +11,7 @@ struct QuizHomeScreen: View {
     @EnvironmentObject private var googleAuth: GoogleAuthService
     @State private var dailyQuestionCount: Int?
     @State private var categoryCounts: [String: Int] = [:]
+    @State private var isLoadingCategoryCounts = true
     
     let categories = [
         iOSQuizCategory(id: "history_vn", label: "Lịch sử VN", icon: "book.fill", colors: [Color(hex: "8B0000"), Color(hex: "D32F2F")]),
@@ -96,6 +97,7 @@ struct QuizHomeScreen: View {
     }
 
     private func loadOverview() async {
+        isLoadingCategoryCounts = true
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         let today = formatter.string(from: Date())
@@ -109,6 +111,7 @@ struct QuizHomeScreen: View {
             counts[category.id] = questions?.count ?? 0
         }
         categoryCounts = counts
+        isLoadingCategoryCounts = false
     }
     
     private var dailyQuizCard: some View {
@@ -211,7 +214,10 @@ struct QuizHomeScreen: View {
         
         return LazyVGrid(columns: columns, spacing: 10) {
             ForEach(categories) { cat in
+                let count = categoryCounts[cat.id] ?? 0
+                let isUnavailable = !isLoadingCategoryCounts && count == 0
                 Button(action: {
+                    guard !isUnavailable else { return }
                     selectedSessionType = "topic"
                     selectedCategory = cat.id
                     showSession = true
@@ -231,7 +237,11 @@ struct QuizHomeScreen: View {
                             .foregroundColor(LSTheme.textPrimary)
                             .lineLimit(1)
                         
-                        Text(categoryCounts[cat.id].map { "\($0) câu" } ?? "Đang tải")
+                        Text(
+                            isLoadingCategoryCounts
+                            ? "Đang tải"
+                            : (isUnavailable ? "Chưa có quiz" : "\(count) câu")
+                        )
                             .font(.system(size: 10))
                             .foregroundColor(LSTheme.textSecondary)
                     }
@@ -245,6 +255,8 @@ struct QuizHomeScreen: View {
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
+                .disabled(isUnavailable)
+                .opacity(isUnavailable ? 0.45 : 1)
             }
         }
     }

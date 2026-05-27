@@ -22,6 +22,11 @@ private var GoodGreen            : Color { LSTheme.goodGreen }
 struct CalendarScreen: View {
     @StateObject private var vm = CalendarViewModel()
     @State private var detailDayInfo: DayInfo?
+    @State private var featuredArticle: Article?
+    @State private var articlePool: [Article] = []
+    @State private var isLoadingFeaturedArticle = false
+    @State private var featuredArticleError: String?
+    @State private var showFeaturedArticleDetail = false
     @State private var showSearch = false
     @State private var showMonthYearPicker = false
     @Environment(\.modelContext) private var modelContext
@@ -75,6 +80,24 @@ struct CalendarScreen: View {
                 }
                 .clipped()
 
+                Group {
+                    if let article = featuredArticle {
+                        RandomArticleCard(article: article) {
+                            showFeaturedArticleDetail = true
+                        }
+                    } else if isLoadingFeaturedArticle {
+                        ProgressView()
+                            .tint(PrimaryRed)
+                            .padding(.vertical, 8)
+                    } else if let featuredArticleError {
+                        Text(featuredArticleError)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(TextSub)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                    }
+                }
+
                 // ═══ SELECTED DAY DETAIL (bottom bar) ═══
                 if let info = vm.state.dayInfo {
                     SelectedDayBar(
@@ -94,6 +117,13 @@ struct CalendarScreen: View {
                 SearchScreen()
             }
         }
+        .sheet(isPresented: $showFeaturedArticleDetail) {
+            if let article = featuredArticle {
+                NavigationStack {
+                    ArticleDetailScreen(articleId: article.id)
+                }
+            }
+        }
         .sheet(isPresented: $showMonthYearPicker) {
             MonthYearPickerSheet(
                 currentYear: vm.state.currentYear,
@@ -104,6 +134,18 @@ struct CalendarScreen: View {
                 }
             )
             .presentationDetents([.medium, .large])
+        }
+        .task {
+            await refreshFeaturedArticle()
+        }
+        .onChange(of: vm.state.selectedDay) { _, _ in
+            Task { await refreshFeaturedArticle() }
+        }
+        .onChange(of: vm.state.selectedMonth) { _, _ in
+            Task { await refreshFeaturedArticle() }
+        }
+        .onChange(of: vm.state.selectedYear) { _, _ in
+            Task { await refreshFeaturedArticle() }
         }
     }
 
@@ -142,10 +184,53 @@ struct CalendarScreen: View {
                 detailDayInfo = vm.state.dayInfo
             }
         )
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     private var bookmarkedDatesSet: Set<String> {
         Set(allBookmarks.map { "\($0.solarYear)-\($0.solarMonth)-\($0.solarDay)" })
+    }
+
+    @MainActor
+    private func refreshFeaturedArticle() async {
+        if articlePool.isEmpty {
+            isLoadingFeaturedArticle = true
+            featuredArticleError = nil
+            do {
+                articlePool = try await QuizService.shared.fetchArticles(page: 1, limit: 60)
+            } catch {
+                featuredArticle = nil
+                featuredArticleError = "Không tải được bài viết gợi ý."
+                isLoadingFeaturedArticle = false
+                return
+            }
+            isLoadingFeaturedArticle = false
+        }
+
+        guard !articlePool.isEmpty else {
+            featuredArticle = nil
+            featuredArticleError = "Chưa có bài viết để hiển thị."
+            return
+        }
+
+        let idx = daySeedIndex(
+            year: vm.state.selectedYear,
+            month: vm.state.selectedMonth,
+            day: vm.state.selectedDay,
+            count: articlePool.count
+        )
+        featuredArticle = articlePool[idx]
+        featuredArticleError = nil
+    }
+
+    private func daySeedIndex(year: Int, month: Int, day: Int, count: Int) -> Int {
+        guard count > 0 else { return 0 }
+        var seed = UInt64(max(0, year * 10000 + month * 100 + day))
+        seed ^= 0x9E3779B97F4A7C15
+        seed = (seed ^ (seed >> 30)) &* 0xBF58476D1CE4E5B9
+        seed = (seed ^ (seed >> 27)) &* 0x94D049BB133111EB
+        seed = seed ^ (seed >> 31)
+        return Int(seed % UInt64(count))
     }
 }
 
@@ -513,6 +598,57 @@ private struct SelectedDayBar: View {
             }
             .buttonStyle(.plain)
         }
+    }
+}
+
+private struct RandomArticleCard: View {
+    let article: Article
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(PrimaryRed)
+                        Text("Bài viết hôm nay")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(PrimaryRed)
+                    }
+
+                    Text(article.title)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(TextMain)
+                        .lineLimit(2)
+
+                    if let excerpt = article.excerpt ?? article.content {
+                        Text(excerpt.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression))
+                            .font(.system(size: 12))
+                            .foregroundColor(TextSub)
+                            .lineLimit(2)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(OutlineVar)
+                    .padding(.top, 4)
+            }
+            .padding(12)
+            .background(SurfaceContainer, in: RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(OutlineVar.opacity(0.35), lineWidth: 1)
+            )
+            .padding(.horizontal, 14)
+            .padding(.top, 6)
+            .padding(.bottom, 8)
+        }
+        .buttonStyle(.plain)
     }
 }
 

@@ -53,6 +53,8 @@ private struct QuizQuestionState {
     var usedAssists: [Int64: Set<QuizAssistType>]
     var dailyPoints: Int
     var assistMessage: String?
+    var practiceMode: Bool
+    var modeNotice: String?
     var reviewMode: Bool
     var reviewCorrectAnswers: [Int64: String]
     var reviewExplanations: [Int64: String]
@@ -76,6 +78,8 @@ private final class QuizPlayViewModel: ObservableObject {
     private var timerTask: Task<Void, Never>?
     private var autoAdvanceTask: Task<Void, Never>?
     private var submittingQuestionIDs = Set<Int64>()
+    private let replayTrackPrefix = "ranked_replay_"
+    private let topicReplayCooldownSeconds: TimeInterval = 24 * 60 * 60
 
     deinit {
         timerTask?.cancel()
@@ -95,6 +99,11 @@ private final class QuizPlayViewModel: ObservableObject {
             do {
                 let (session, loadedQuestions) = try await QuizService.shared.startSession(sessionType: sessionType, category: category)
                 let rawQuestions = sessionType == "daily" ? Array(loadedQuestions.prefix(15)) : loadedQuestions
+                let isAuthenticatedSession = !(session.id.isEmpty)
+                if isAuthenticatedSession && isReplayBlocked(sessionType: sessionType, category: category, questionIDs: rawQuestions.map(\.id)) {
+                    try await loadPracticeReplay(sessionType: sessionType, category: category)
+                    return
+                }
                 let questions = await enrichQuestionsForLocalFallback(rawQuestions, sessionType: sessionType, category: category)
                 guard !questions.isEmpty else {
                     state = .error("Chưa có câu hỏi cho mục này.")
@@ -115,6 +124,8 @@ private final class QuizPlayViewModel: ObservableObject {
                         usedAssists: [:],
                         dailyPoints: points,
                         assistMessage: nil,
+                        practiceMode: false,
+                        modeNotice: nil,
                         reviewMode: false,
                         reviewCorrectAnswers: [:],
                         reviewExplanations: [:]
@@ -152,6 +163,8 @@ private final class QuizPlayViewModel: ObservableObject {
                 usedAssists: [:],
                 dailyPoints: 0,
                 assistMessage: nil,
+                practiceMode: true,
+                modeNotice: "Chế độ ôn lại - không tính bảng xếp hạng.",
                 reviewMode: true,
                 reviewCorrectAnswers: correctAnswers,
                 reviewExplanations: explanations
@@ -334,9 +347,14 @@ private final class QuizPlayViewModel: ObservableObject {
         guard case .question(let current) = state else { return }
 
         if let sessionId = current.sessionId {
+            if current.practiceMode {
+                state = .finished(makeLocalSessionResult(from: current), current.answers, current.questions)
+                return
+            }
             Task {
                 do {
                     let result = try await QuizService.shared.finishSession(sessionId: sessionId)
+                    markReplayCredited(sessionType: sessionType, category: category, questionIDs: current.questions.map(\.id))
                     state = .finished(result, current.answers, current.questions)
                 } catch {
                     state = .finished(makeLocalSessionResult(from: current), current.answers, current.questions)
@@ -566,6 +584,63 @@ private final class QuizPlayViewModel: ObservableObject {
         transform(&current)
         state = .question(current)
     }
+
+    private func loadPracticeReplay(sessionType: String, category: String?) async throws {
+        let (_, loadedQuestions) = try await QuizService.shared.startSession(
+            sessionType: sessionType,
+            category: category,
+            forceGuest: true
+        )
+        let rawQuestions = sessionType == "daily" ? Array(loadedQuestions.prefix(15)) : loadedQuestions
+        let questions = await enrichQuestionsForLocalFallback(rawQuestions, sessionType: sessionType, category: category)
+        let points = (try? await QuizService.shared.fetchPointWallet().balance) ?? 0
+        state = .question(
+            QuizQuestionState(
+                questions: questions,
+                currentIndex: 0,
+                sessionId: nil,
+                answers: Array(repeating: nil, count: questions.count),
+                timeRemaining: quizQuestionTimeSeconds,
+                lastResult: nil,
+                showingResult: false,
+                hiddenOptions: [:],
+                hints: [:],
+                usedAssists: [:],
+                dailyPoints: points,
+                assistMessage: nil,
+                practiceMode: true,
+                modeNotice: "Bạn đang chơi lại cùng bộ câu hỏi. Lượt này chỉ để luyện tập, không tính điểm BXH.",
+                reviewMode: false,
+                reviewCorrectAnswers: [:],
+                reviewExplanations: [:]
+            )
+        )
+        startTimer()
+    }
+
+    private func isReplayBlocked(sessionType: String, category: String?, questionIDs: [Int64]) -> Bool {
+        guard !questionIDs.isEmpty else { return false }
+        let key = replayKey(sessionType: sessionType, category: category, questionIDs: questionIDs)
+        let lastCreditedAt = UserDefaults.standard.double(forKey: key)
+        guard lastCreditedAt > 0 else { return false }
+
+        let lastDate = Date(timeIntervalSince1970: lastCreditedAt)
+        if sessionType == "daily" {
+            return Calendar.current.isDate(lastDate, inSameDayAs: Date())
+        }
+        return Date().timeIntervalSince(lastDate) < topicReplayCooldownSeconds
+    }
+
+    private func markReplayCredited(sessionType: String, category: String?, questionIDs: [Int64]) {
+        guard !questionIDs.isEmpty else { return }
+        let key = replayKey(sessionType: sessionType, category: category, questionIDs: questionIDs)
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: key)
+    }
+
+    private func replayKey(sessionType: String, category: String?, questionIDs: [Int64]) -> String {
+        let normalized = Array(Set(questionIDs)).sorted().map(String.init).joined(separator: "-")
+        return "\(replayTrackPrefix)\(sessionType):\(category ?? ""):\(normalized)"
+    }
 }
 
 struct QuizSessionScreen: View {
@@ -660,6 +735,22 @@ struct QuizSessionScreen: View {
                 ScrollView {
                     VStack(spacing: 10) {
                         progressRow(state)
+                        if let modeNotice = state.modeNotice {
+                            Text(modeNotice)
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(LSTheme.textSecondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(LSTheme.surfaceContainer)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(LSTheme.border, lineWidth: 1)
+                                )
+                        }
                         AssistPanel(state: state) { type in
                             viewModel.useAssist(type)
                         }

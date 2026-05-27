@@ -116,13 +116,13 @@ public class QuizService: ObservableObject {
         }
     }
     
-    public func startSession(sessionType: String, category: String?) async throws -> (QuizSession, [QuizQuestion]) {
+    public func startSession(sessionType: String, category: String?, forceGuest: Bool = false) async throws -> (QuizSession, [QuizQuestion]) {
         // Ensure we don't accidentally fall back to guest mode while refresh is still pending.
         if token == nil || token?.isEmpty == true {
             await GoogleAuthService.shared.refreshTokenIfNeeded()
         }
 
-        let isGuest = token == nil || token?.isEmpty == true
+        let isGuest = forceGuest || token == nil || token?.isEmpty == true
         if isGuest {
             let df = DateFormatter()
             df.dateFormat = "yyyy-MM-dd"
