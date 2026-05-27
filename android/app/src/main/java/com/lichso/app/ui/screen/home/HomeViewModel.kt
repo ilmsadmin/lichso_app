@@ -274,7 +274,10 @@ class HomeViewModel @Inject constructor(
             contentRepository.getBanners()
                 .onSuccess { list ->
                     val active = list.filter { it.active }.sortedBy { it.sortOrder }
-                    if (active.isNotEmpty()) _uiState.update { it.copy(banners = active) }
+                    _uiState.update { it.copy(banners = active) }
+                }
+                .onFailure {
+                    _uiState.update { it.copy(banners = emptyList()) }
                 }
         }
     }

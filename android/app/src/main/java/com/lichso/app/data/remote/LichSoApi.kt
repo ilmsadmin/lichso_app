@@ -87,7 +87,7 @@ data class Banner(
     @SerializedName("cta_route") val ctaRoute: String?,
     @SerializedName("bg_color") val bgColor: String?,
     val type: String?,
-    val active: Boolean = true,
+    @SerializedName("is_active") val active: Boolean = true,
     @SerializedName("sort_order") val sortOrder: Int = 0,
 )
 
