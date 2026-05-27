@@ -26,6 +26,7 @@ import {
   Bot,
   Wand2,
   BrainCircuit,
+  Megaphone,
 } from "lucide-react";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useAuth } from "@/hooks/useAuth";
@@ -108,6 +109,12 @@ const navItems: NavItem[] = [
     icon: BrainCircuit,
     permission: "content.read",
     separator: true,
+  },
+  {
+    label: "Banners",
+    href: ROUTES.ADMIN_BANNERS,
+    icon: Megaphone,
+    permission: "content.read",
   },
   // System Management
   {

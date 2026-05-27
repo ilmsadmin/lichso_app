@@ -427,7 +427,7 @@ private fun ArticleCard(article: Article, onClick: () -> Unit = {}) {
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        article.category!!.name,
+                        article.category?.name.orEmpty(),
                         style = TextStyle(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Medium,

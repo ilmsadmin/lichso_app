@@ -24,6 +24,7 @@ object NotificationHelper {
     const val CHANNEL_REMINDER = "channel_reminder"
     const val CHANNEL_GIO_DAI_CAT = "channel_gio_dai_cat"
     const val CHANNEL_DAILY = "channel_daily_summary"
+    const val CHANNEL_WEATHER = "channel_weather_morning"
     const val CHANNEL_FESTIVAL = "channel_festival_reminder"
     const val CHANNEL_UPDATE = "channel_app_update"
     const val CHANNEL_AI_TUVI = "channel_ai_tuvi"
@@ -84,6 +85,18 @@ object NotificationHelper {
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = "Thông báo tóm tắt ngày mới mỗi sáng"
+                setShowBadge(true)
+            }
+        )
+
+        // Channel thời tiết buổi sáng
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_WEATHER,
+                "Thời tiết buổi sáng",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Cập nhật thời tiết và lời chào buổi sáng lúc 07:00"
                 setShowBadge(true)
             }
         )
@@ -346,6 +359,85 @@ object NotificationHelper {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
         nm.notify(9995, notification)
+    }
+
+    fun sendWeatherMorningNotification(
+        context: Context,
+        cityName: String,
+        weatherIcon: String,
+        subtitle: String,
+        currentTemp: String,
+        advice: String
+    ) {
+        val title = "Chào buổi sáng! $weatherIcon"
+        val lines = listOf(
+            subtitle,
+            "Nhiệt độ hiện tại: $currentTemp",
+            advice
+        )
+        val fullBody = lines.joinToString("\n")
+        saveToDatabase(context, title, fullBody, "weather")
+
+        if (!canPostNotifications(context)) return
+
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("navigate_to", "home")
+        }
+        val pi = PendingIntent.getActivity(
+            context, 9994, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val inboxStyle = NotificationCompat.InboxStyle()
+            .setBigContentTitle("$weatherIcon Chào buổi sáng!")
+            .setSummaryText("Lịch Số — Thời tiết buổi sáng")
+        lines.forEach { inboxStyle.addLine(it) }
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_WEATHER)
+            .setSmallIcon(R.drawable.ic_notif_calendar)
+            .setContentTitle(title)
+            .setContentText("$cityName • $currentTemp")
+            .setStyle(inboxStyle)
+            .setAutoCancel(true)
+            .setContentIntent(pi)
+            .setSubText("Thời tiết")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        nm.notify(9994, notification)
+    }
+
+    fun sendWeatherMorningFallbackNotification(
+        context: Context,
+        cityName: String
+    ) {
+        val title = "Chào buổi sáng!"
+        val body = "Hiện chưa lấy được thời tiết tại $cityName. Vui lòng mở app để cập nhật lại."
+        saveToDatabase(context, title, body, "weather")
+
+        if (!canPostNotifications(context)) return
+
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("navigate_to", "home")
+        }
+        val pi = PendingIntent.getActivity(
+            context, 9993, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = NotificationCompat.Builder(context, CHANNEL_WEATHER)
+            .setSmallIcon(R.drawable.ic_notif_calendar)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setAutoCancel(true)
+            .setContentIntent(pi)
+            .setSubText("Thời tiết")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        nm.notify(9993, notification)
     }
 
     /**

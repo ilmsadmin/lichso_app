@@ -79,7 +79,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.lichso.app.util.SmartRatingManager
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -117,18 +116,17 @@ fun SmartRatingDialog(
     var feedbackText by remember { mutableStateOf("") }
     var selectedStars by remember { mutableIntStateOf(0) }
 
-    // Helpers ghi outcome lên DataStore — dùng GlobalScope để tồn tại qua dispose.
+    val dialogScope = rememberCoroutineScope()
+
+    // Helpers ghi outcome lên DataStore — dùng scope của composition để tránh leak.
     val recordSkippedSafe: () -> Unit = {
-        @OptIn(DelicateCoroutinesApi::class)
-        GlobalScope.launch { SmartRatingManager.recordSkipped(context.applicationContext) }
+        dialogScope.launch { SmartRatingManager.recordSkipped(context.applicationContext) }
     }
     val recordFeedbackSafe: () -> Unit = {
-        @OptIn(DelicateCoroutinesApi::class)
-        GlobalScope.launch { SmartRatingManager.recordFeedbackSent(context.applicationContext) }
+        dialogScope.launch { SmartRatingManager.recordFeedbackSent(context.applicationContext) }
     }
     val recordReviewIntentSafe: () -> Unit = {
-        @OptIn(DelicateCoroutinesApi::class)
-        GlobalScope.launch { SmartRatingManager.recordReviewIntent(context.applicationContext) }
+        dialogScope.launch { SmartRatingManager.recordReviewIntent(context.applicationContext) }
     }
 
     // Ghi nhận đã hiển thị (chỉ tăng quota nếu auto-trigger).

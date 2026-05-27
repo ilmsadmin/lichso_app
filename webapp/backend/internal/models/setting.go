@@ -87,4 +87,7 @@ const (
 	SettingKeyAIRateHoroscopePremium = "ai_rate_horoscope_premium"
 	SettingKeyAIMonthlyBudgetCap     = "ai_monthly_budget_cap"
 	SettingKeyAIEnabled              = "ai_enabled"
+
+	// Banner Settings keys
+	SettingKeyUseServerBanners = "use_server_banners"
 )

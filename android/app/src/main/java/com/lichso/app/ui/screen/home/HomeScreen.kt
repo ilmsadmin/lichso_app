@@ -596,7 +596,7 @@ private fun BannerCard(
                 Text(
                     text = banner.title,
                     style = TextStyle(
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                     ),
@@ -606,7 +606,7 @@ private fun BannerCard(
                     Text(
                         text = banner.subtitle,
                         style = TextStyle(
-                            fontSize = 11.sp,
+                            fontSize = 10.sp,
                             color = Color.White.copy(alpha = 0.8f),
                         ),
                         maxLines = 1,
@@ -629,7 +629,7 @@ private fun BannerCard(
                     Text(
                         banner.ctaText,
                         style = TextStyle(
-                            fontSize = 11.sp,
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF8B2500),
                         )
@@ -715,18 +715,18 @@ private fun WeatherChip(
         when (weatherState) {
             is WeatherState.Loading -> {
                 Icon(Icons.Filled.WbSunny, null, tint = Color(0xFFFFD54F).copy(alpha = 0.5f), modifier = Modifier.size(18.dp))
-                Text("...", style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.6f)))
+                Text("...", style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.6f)))
             }
             is WeatherState.Success -> {
                 val weather = weatherState.weather
                 val displayTemp = if (tempUnit == "°F") (weather.temperature * 9 / 5 + 32).toInt() else weather.temperature.toInt()
-                Text(weather.icon, style = TextStyle(fontSize = 18.sp))
-                Text("${displayTemp}${tempUnit}", style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White))
-                Text(weather.cityName, style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color.White))
+                Text(weather.icon, style = TextStyle(fontSize = 16.sp))
+                Text("${displayTemp}${tempUnit}", style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                Text(weather.cityName, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.White))
             }
             is WeatherState.Error -> {
                 Icon(Icons.Filled.CloudOff, null, tint = Color.White.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
-                Text("Thử lại", style = TextStyle(fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f)))
+                Text("Thử lại", style = TextStyle(fontSize = 12.sp, color = Color.White.copy(alpha = 0.7f)))
             }
         }
     }
@@ -770,12 +770,12 @@ private fun MiniCalendarStrip(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("❖", style = TextStyle(fontSize = 11.sp, color = goldColor))
+            Text("❖", style = TextStyle(fontSize = 10.sp, color = goldColor))
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "${selectedDate.year}",
                 style = TextStyle(
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = primaryRed,
                 )
@@ -783,13 +783,13 @@ private fun MiniCalendarStrip(
             Text(
                 text = "  •  Tháng ${selectedDate.monthValue}",
                 style = TextStyle(
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = primaryRed,
                 )
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("❖", style = TextStyle(fontSize = 11.sp, color = goldColor))
+            Text("❖", style = TextStyle(fontSize = 10.sp, color = goldColor))
         }
 
         // ── Thin gold divider ──
@@ -858,7 +858,7 @@ private fun MiniCalendarStrip(
                     Text(
                         weekDayLabels[i],
                         style = TextStyle(
-                            fontSize = 10.sp,
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.Medium,
                             color = labelColor
                         )
@@ -868,7 +868,7 @@ private fun MiniCalendarStrip(
                     Text(
                         "${date.dayOfMonth}",
                         style = TextStyle(
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = dateColor
                         )
@@ -877,7 +877,7 @@ private fun MiniCalendarStrip(
                     Text(
                         lunarText,
                         style = TextStyle(
-                            fontSize = 8.sp,
+                            fontSize = 7.sp,
                             color = if (isToday) Color.White.copy(alpha = 0.7f) else c.textSecondary
                         )
                     )
@@ -948,9 +948,9 @@ private fun BigDateSection(info: DayInfo) {
             style = TextStyle(
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.Bold,
-                fontSize = 130.sp,
+                fontSize = 118.sp,
                 color = if (c.isDark) Color(0xFFEF9A9A) else Color(0xFF9B1B1B),
-                lineHeight = 130.sp,
+                lineHeight = 118.sp,
                 letterSpacing = (-2).sp
             )
         )
@@ -972,7 +972,7 @@ private fun BigDateSection(info: DayInfo) {
         Text(
             text = info.dayOfWeek.uppercase(),
             style = TextStyle(
-                fontSize = 20.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Medium,
                 color = c.textPrimary,
                 letterSpacing = 2.sp
@@ -1016,11 +1016,11 @@ private fun BigDateSection(info: DayInfo) {
                     val lunarDayLabel = if (info.lunar.day <= 10) "Mùng ${info.lunar.day}" else "${info.lunar.day}"
                     Text(
                         "$lunarDayLabel tháng ${info.lunar.month}",
-                        style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = c.textPrimary)
+                        style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = c.textPrimary)
                     )
                     Text(
                         "Năm ${info.yearCanChi}",
-                        style = TextStyle(fontSize = 12.sp, color = c.textTertiary)
+                        style = TextStyle(fontSize = 11.sp, color = c.textTertiary)
                     )
                 }
 
@@ -1032,7 +1032,7 @@ private fun BigDateSection(info: DayInfo) {
                     Text(
                         "Ngày ${info.dayCanChi}",
                         style = TextStyle(
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = if (c.isDark) Color(0xFFEF9A9A) else Color(0xFFC62828)
                         )
@@ -1063,7 +1063,7 @@ private fun BigDateSection(info: DayInfo) {
             Text(
                 text = if (isGood) "Ngày Hoàng Đạo ✦" else "Ngày Hắc Đạo",
                 style = TextStyle(
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = if (isGood) c.goodGreen else c.badRed
                 )
@@ -1094,18 +1094,18 @@ private fun QuoteSection(selectedDate: LocalDate) {
             text = "“ $quoteText ”",
             style = TextStyle(
                 fontFamily = FontFamily.Serif,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontStyle = FontStyle.Italic,
                 color = if (c.isDark) c.textSecondary else c.textTertiary,
                 textAlign = TextAlign.Center,
-                lineHeight = 21.sp
+                lineHeight = 19.sp
             )
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             "— $quoteAuthor",
             style = TextStyle(
-                fontSize = 11.sp,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Medium,
                 color = if (c.isDark) c.textTertiary else c.outline
             )
@@ -1200,7 +1200,7 @@ private fun SmartHintBanner(text: String) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(Icons.Filled.Lightbulb, null, tint = tint, modifier = Modifier.size(16.dp))
-        Text(text, color = tint, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium))
+        Text(text, color = tint, style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium))
     }
 }
 

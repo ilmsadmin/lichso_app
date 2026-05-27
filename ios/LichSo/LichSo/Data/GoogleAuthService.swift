@@ -184,7 +184,10 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
             isLoading = false
             return
         } catch {
-            errorMessage = "Đăng nhập thất bại: \(error.localizedDescription)"
+            errorMessage = ApiErrorUX.userMessage(
+                from: error,
+                fallback: "Đăng nhập thất bại. Vui lòng thử lại."
+            )
             isLoading = false
         }
     }

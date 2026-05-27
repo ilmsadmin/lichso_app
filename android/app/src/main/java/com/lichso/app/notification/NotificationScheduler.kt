@@ -30,6 +30,7 @@ import java.util.Calendar
  *
  * 4 loại system notification (định kỳ):
  *  - DAILY        : Tóm tắt ngày mới (giờ user cấu hình, mặc định 07:00)
+ *  - WEATHER      : Thời tiết buổi sáng (cố định 07:00)
  *  - GIO_DAI_CAT  : Giờ Hoàng Đạo (cùng giờ với DAILY, chỉ fire khi bật)
  *  - FESTIVAL     : Nhắc ngày lễ ngày mai (20:00)
  *  - AI_TUVI      : Gợi ý AI Tử Vi tối (21:00)
@@ -40,6 +41,7 @@ object NotificationScheduler {
 
     // Alarm types
     const val TYPE_DAILY = "daily"
+    const val TYPE_WEATHER = "weather"
     const val TYPE_GIO_DAI_CAT = "gio_dai_cat"
     const val TYPE_FESTIVAL = "festival"
     const val TYPE_AI_TUVI = "ai_tuvi"
@@ -53,9 +55,10 @@ object NotificationScheduler {
     // PendingIntent request codes — chọn dải cao tránh trùng với reminder.id
     private const val REQ_BASE_SYSTEM = 0x10000000
     private const val REQ_DAILY = REQ_BASE_SYSTEM + 1
-    private const val REQ_GIO_DAI_CAT = REQ_BASE_SYSTEM + 2
-    private const val REQ_FESTIVAL = REQ_BASE_SYSTEM + 3
-    private const val REQ_AI_TUVI = REQ_BASE_SYSTEM + 4
+    private const val REQ_WEATHER = REQ_BASE_SYSTEM + 2
+    private const val REQ_GIO_DAI_CAT = REQ_BASE_SYSTEM + 3
+    private const val REQ_FESTIVAL = REQ_BASE_SYSTEM + 4
+    private const val REQ_AI_TUVI = REQ_BASE_SYSTEM + 5
 
     private const val TAG = "NotifScheduler"
     private const val DAY_MS = 24L * 60L * 60L * 1000L
@@ -79,11 +82,13 @@ object NotificationScheduler {
 
         if (notifyEnabled) {
             scheduleDailyAt(context, hour, minute)
+            scheduleWeatherMorning(context)
             scheduleAiTuVi(context)
             if (gioDaiCatEnabled) scheduleGioDaiCat(context, hour, minute) else cancelGioDaiCat(context)
             if (festivalEnabled) scheduleFestival(context) else cancelFestival(context)
         } else {
             cancelDaily(context)
+            cancelWeatherMorning(context)
             cancelAiTuVi(context)
             cancelGioDaiCat(context)
             cancelFestival(context)
@@ -112,6 +117,13 @@ object NotificationScheduler {
     }
 
     fun cancelDaily(context: Context) = cancelByReq(context, TYPE_DAILY, REQ_DAILY)
+
+    fun scheduleWeatherMorning(context: Context) {
+        // Cố định 07:00 như yêu cầu UX
+        scheduleAt(context, TYPE_WEATHER, 7, 0, REQ_WEATHER)
+    }
+
+    fun cancelWeatherMorning(context: Context) = cancelByReq(context, TYPE_WEATHER, REQ_WEATHER)
 
     fun scheduleGioDaiCat(context: Context, hour: Int, minute: Int) {
         scheduleAt(context, TYPE_GIO_DAI_CAT, hour, minute, REQ_GIO_DAI_CAT)

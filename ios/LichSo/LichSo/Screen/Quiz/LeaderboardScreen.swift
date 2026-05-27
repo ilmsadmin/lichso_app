@@ -119,7 +119,10 @@ struct LeaderboardScreen: View {
                 self.myRank = try? await QuizService.shared.getMyRank(period: selectedPeriod)
                 self.isLoading = false
             } catch {
-                self.errorMsg = error.localizedDescription
+                self.errorMsg = ApiErrorUX.userMessage(
+                    from: error,
+                    fallback: "Không thể tải bảng xếp hạng lúc này. Vui lòng thử lại."
+                )
                 self.isLoading = false
             }
         }

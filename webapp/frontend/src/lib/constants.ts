@@ -68,6 +68,7 @@ export const ROUTES = {
   ADMIN_MEDIA_ANALYTICS: "/admin/media-analytics",
   // Mobile App Management
   ADMIN_QUIZ: "/admin/quiz",
+  ADMIN_BANNERS: "/admin/banners",
   // V4 AI Management
   ADMIN_AI_ARTICLES: "/admin/ai-articles",
   ADMIN_AI_DASHBOARD: "/admin/ai-dashboard",

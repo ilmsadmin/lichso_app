@@ -85,6 +85,47 @@ class NotificationScheduler: ObservableObject {
         }
     }
 
+    /// Lên lịch thông báo thời tiết buổi sáng lúc 07:00.
+    /// Nội dung lấy theo thành phố + đơn vị nhiệt độ trong Settings.
+    func scheduleWeatherMorningNotification(hour: Int = 7, minute: Int = 0) {
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: ["weather_morning"])
+
+        Task { @MainActor in
+            let city = UserDefaults.standard.string(forKey: "setting_location") ?? "Hà Nội"
+            let unit = UserDefaults.standard.string(forKey: "setting_temp_unit") ?? "°C"
+
+            await WeatherService.shared.fetchWeather(for: city, unit: unit)
+            let weather = WeatherService.shared.weather
+
+            let content = UNMutableNotificationContent()
+            if let weather {
+                let tempNow = Int(weather.temperature)
+                let tempMin = Int(weather.dailyForecast.first?.tempMin ?? weather.temperature)
+                let tempMax = Int(weather.dailyForecast.first?.tempMax ?? weather.temperature)
+
+                content.title = "Chào buổi sáng! \(weather.weatherEmoji)"
+                content.body = "\(city) \(tempMin)°–\(tempMax)° • \(weather.conditionText)\nNhiệt độ hiện tại: \(tempNow)\(unit)\nChúc bạn một ngày thuận lợi!"
+            } else {
+                content.title = "Chào buổi sáng!"
+                content.body = "Hiện chưa lấy được thời tiết tại \(city). Mở app để cập nhật chi tiết nhé."
+            }
+            content.sound = .default
+            content.categoryIdentifier = "daily"
+
+            var dateComponents = DateComponents()
+            dateComponents.hour = hour
+            dateComponents.minute = minute
+
+            let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+            let request = UNNotificationRequest(identifier: "weather_morning", content: content, trigger: trigger)
+            notificationCenter.add(request) { error in
+                #if DEBUG
+                if let error { print("Schedule weather morning error: \(error)") }
+                #endif
+            }
+        }
+    }
+
     /// Lên lịch thông báo nhắc lễ buổi tối (tương tự FestivalReminderWorker)
     func scheduleFestivalReminder() {
         notificationCenter.removePendingNotificationRequests(withIdentifiers: ["festival_evening"])
@@ -233,6 +274,7 @@ class NotificationScheduler: ObservableObject {
             guard granted else { return }
 
             scheduleDailyNotification(hour: dailyHour, minute: dailyMinute)
+            scheduleWeatherMorningNotification(hour: 7, minute: 0)
             scheduleGioHoangDaoNotification(hour: max(dailyHour - 1, 5), minute: 30)
             scheduleUpcomingFestivalNotifications()
             scheduleRamMung1Reminders()

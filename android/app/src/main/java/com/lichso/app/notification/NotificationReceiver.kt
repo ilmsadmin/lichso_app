@@ -9,6 +9,7 @@ import com.lichso.app.ui.screen.settings.SettingsKeys
 import com.lichso.app.ui.screen.settings.safeSettingsData
 import com.lichso.app.util.HolidayUtil
 import com.lichso.app.util.LunarCalendarUtil
+import com.lichso.app.widget.WidgetWeatherHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -46,6 +47,7 @@ class NotificationReceiver : BroadcastReceiver() {
                 withTimeoutOrNull(8_000L) {
                     when (type) {
                         NotificationScheduler.TYPE_DAILY -> fireDaily(appContext)
+                        NotificationScheduler.TYPE_WEATHER -> fireWeatherMorning(appContext)
                         NotificationScheduler.TYPE_GIO_DAI_CAT -> fireGioDaiCatGuarded(appContext)
                         NotificationScheduler.TYPE_FESTIVAL -> fireFestivalGuarded(appContext)
                         NotificationScheduler.TYPE_AI_TUVI -> fireAiTuViGuarded(appContext)
@@ -110,6 +112,60 @@ class NotificationReceiver : BroadcastReceiver() {
             context, id.toInt(),
             title ?: "Nhắc nhở",
             body ?: ""
+        )
+    }
+
+    private suspend fun fireWeatherMorning(context: Context) {
+        val prefs = context.safeSettingsData.first()
+        val cityName = prefs[SettingsKeys.LOCATION_NAME] ?: "Hà Nội"
+        val tempUnit = prefs[SettingsKeys.TEMP_UNIT] ?: "°C"
+
+        val weather = WidgetWeatherHelper.fetchAndCacheWeather(context, cityName)
+        if (weather == null) {
+            NotificationHelper.sendWeatherMorningFallbackNotification(
+                context = context,
+                cityName = cityName,
+            )
+            return
+        }
+
+        val currentTempC = weather.temperature
+        val maxTempC = weather.tempMax
+        val minTempC = weather.tempMin
+        val unitLabel: String
+        val currentTemp: Int
+        val maxTemp: Int
+        val minTemp: Int
+        if (tempUnit == "°F") {
+            val cToF: (Double) -> Int = { ((it * 9.0 / 5.0) + 32.0).toInt() }
+            unitLabel = "°F"
+            currentTemp = cToF(currentTempC)
+            maxTemp = cToF(maxTempC)
+            minTemp = cToF(minTempC)
+        } else {
+            unitLabel = "°C"
+            currentTemp = currentTempC.toInt()
+            maxTemp = maxTempC.toInt()
+            minTemp = minTempC.toInt()
+        }
+
+        val tempRangeText = "$minTemp$unitLabel–$maxTemp$unitLabel"
+        val subtitle = "${weather.cityName} $tempRangeText · ${weather.description}"
+        val advice = when {
+            maxTempC >= 34 -> "Nắng khá gắt, nên mang theo nước và che nắng khi ra ngoài."
+            maxTempC >= 30 -> "Trưa có thể nắng nóng, bạn nên mang ô hoặc áo khoác mỏng."
+            minTempC <= 18 -> "Sáng sớm khá mát, nên mặc thêm áo khoác nhẹ."
+            weather.humidity >= 85 -> "Độ ẩm cao, có thể oi nhẹ. Uống đủ nước để giữ sức."
+            else -> "Thời tiết tương đối dễ chịu, chúc bạn một ngày thật nhiều năng lượng."
+        }
+
+        NotificationHelper.sendWeatherMorningNotification(
+            context = context,
+            cityName = weather.cityName,
+            weatherIcon = weather.icon,
+            subtitle = subtitle,
+            currentTemp = "$currentTemp$unitLabel",
+            advice = advice,
         )
     }
 

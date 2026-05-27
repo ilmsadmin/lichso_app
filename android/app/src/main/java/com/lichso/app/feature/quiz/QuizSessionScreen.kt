@@ -211,6 +211,29 @@ private fun QuizSessionContent(
                 )
             }
         }
+        state.modeNotice?.let { notice ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(c.surfaceContainer)
+                    .border(1.dp, c.outlineVariant, RoundedCornerShape(10.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    Icons.Filled.Info,
+                    contentDescription = null,
+                    tint = c.textSecondary,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    notice,
+                    style = TextStyle(fontSize = 12.sp, color = c.textSecondary),
+                )
+            }
+        }
 
         AssistPanel(
             dailyPoints = state.dailyPoints,
@@ -240,8 +263,8 @@ private fun QuizSessionContent(
                 )
             },
             label = "question_transition",
-        ) {
-            QuestionCard(question = currentQ)
+        ) { targetIndex ->
+            QuestionCard(question = state.questions[targetIndex])
         }
 
         // Answer options

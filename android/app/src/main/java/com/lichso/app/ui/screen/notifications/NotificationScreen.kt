@@ -363,6 +363,11 @@ private fun getNotificationTypeInfo(type: String): NotifTypeInfo {
             iconColor = Color(0xFFF57F17),
             bgColor = Color(0xFFFFF8E1)
         )
+        "weather" -> NotifTypeInfo(
+            icon = Icons.Outlined.WbSunny,
+            iconColor = Color(0xFF0277BD),
+            bgColor = Color(0xFFE1F5FE)
+        )
         else -> NotifTypeInfo(
             icon = Icons.Outlined.SystemUpdate,
             iconColor = Color(0xFF616161),
@@ -573,5 +578,6 @@ private fun getNotificationTypeLabel(type: String): String = when (type) {
     "ai" -> "Trợ lý AI"
     "reminder" -> "Nhắc nhở"
     "good_day" -> "Ngày tốt / Giờ hoàng đạo"
+    "weather" -> "Thời tiết buổi sáng"
     else -> "Thông báo hệ thống"
 }

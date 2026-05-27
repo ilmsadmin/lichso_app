@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.lichso.app.data.remote.Article
 import com.lichso.app.domain.model.*
 import com.lichso.app.ui.screen.home.HomeUiState
 import com.lichso.app.ui.screen.home.HomeViewModel
@@ -46,6 +47,7 @@ fun CalendarScreen(
     onMenuClick: () -> Unit = {},
     onEditVisibilityChanged: (Boolean) -> Unit = {},
     onAskAiClick: (day: Int, month: Int, year: Int) -> Unit = { _, _, _ -> },
+    onArticleClick: (String) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val c = LichSoThemeColors.current
@@ -79,6 +81,7 @@ fun CalendarScreen(
             onGoodDaysClick = onGoodDaysClick,
             onSearchClick = onSearchClick,
             onMenuClick = onMenuClick,
+            onArticleClick = onArticleClick,
             onDayClick = { day ->
                 viewModel.selectDay(day.solarDay, day.solarMonth, day.solarYear)
                 dayActionsViewModel.selectDate(day.solarDay, day.solarMonth, day.solarYear)
@@ -234,6 +237,7 @@ private fun CalendarContent(
     onGoodDaysClick: () -> Unit = {},
     onSearchClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
+    onArticleClick: (String) -> Unit = {},
     onDayClick: (CalendarDay) -> Unit
 ) {
     val c = LichSoThemeColors.current
@@ -352,6 +356,15 @@ private fun CalendarContent(
                 }
         )
 
+        uiState.featuredArticle?.let { article ->
+            RandomArticleCard(
+                article = article,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) { onArticleClick(article.id) }
+        }
+
         // ═══ SELECTED DAY DETAIL PANEL (inline, matching HTML) ═══
         uiState.dayInfo?.let { info ->
             SelectedDayDetailPanel(
@@ -395,6 +408,61 @@ private fun CalendarContent(
                 showMonthYearPicker = false
             }
         )
+    }
+}
+
+@Composable
+private fun RandomArticleCard(
+    article: Article,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
+) {
+    val c = LichSoThemeColors.current
+    val summary = remember(article.excerpt, article.content) {
+        val raw = article.excerpt ?: article.content ?: ""
+        raw.replace(Regex("<[^>]+>"), " ").replace(Regex("\\s+"), " ").trim()
+    }
+
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(c.surfaceContainer)
+            .border(1.dp, c.outlineVariant.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+            .clickable { onClick() }
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                Icons.Outlined.AutoStories,
+                contentDescription = null,
+                tint = c.primary,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                "Bài viết hôm nay",
+                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = c.primary)
+            )
+        }
+
+        Text(
+            article.title,
+            style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = c.textPrimary),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        if (summary.isNotEmpty()) {
+            Text(
+                summary,
+                style = TextStyle(fontSize = 12.sp, color = c.textSecondary, lineHeight = 18.sp),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

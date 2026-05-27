@@ -1,5 +1,6 @@
 package com.lichso.app.quicksettings
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
@@ -16,6 +17,7 @@ class LichSoQuickSettingsTileService : TileService() {
         }
     }
 
+    @SuppressLint("StartActivityAndCollapseDeprecated")
     override fun onClick() {
         super.onClick()
 

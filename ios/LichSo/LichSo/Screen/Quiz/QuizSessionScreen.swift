@@ -215,7 +215,10 @@ private final class QuizPlayViewModel: ObservableObject {
 
                     updateQuestionState { state in
                         state.showingResult = false
-                        state.assistMessage = "Lỗi kết nối: \(error.localizedDescription). Vui lòng chọn lại."
+                        state.assistMessage = ApiErrorUX.userMessage(
+                            from: error,
+                            fallback: "Không thể gửi đáp án lúc này. Vui lòng chọn lại."
+                        )
                     }
                     startTimer()
                 }
@@ -263,7 +266,12 @@ private final class QuizPlayViewModel: ObservableObject {
                     )
                     applyAssist(type, question: question, correct: correct, newBalance: wallet.balance)
                 } catch {
-                    setAssistMessage("Lỗi giao dịch điểm: \(error.localizedDescription)")
+                    setAssistMessage(
+                        ApiErrorUX.userMessage(
+                            from: error,
+                            fallback: "Không thể thực hiện giao dịch điểm lúc này. Vui lòng thử lại."
+                        )
+                    )
                 }
             }
         } else {

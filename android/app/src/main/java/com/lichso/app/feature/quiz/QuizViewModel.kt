@@ -12,6 +12,7 @@ import com.lichso.app.data.remote.QuizQuestion
 import com.lichso.app.data.remote.SessionResult
 import com.lichso.app.data.remote.SubmitAnswerResult
 import com.lichso.app.feature.points.data.PointsRepository
+import com.lichso.app.util.ErrorMessageUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -47,6 +48,8 @@ sealed interface QuizState {
         val isMilestonePaused: Boolean = false,
         val reviewMode: Boolean = false,
         val reviewCorrectAnswers: Map<Long, String> = emptyMap(),
+        val practiceMode: Boolean = false,
+        val modeNotice: String? = null,
     ) : QuizState
     data class Finished(
         val result: SessionResult?,
@@ -105,6 +108,8 @@ class QuizViewModel @Inject constructor(
     private var leaderboardJob: Job? = null
 
     private val QUESTION_TIME_SECONDS = 30
+    private val TOPIC_REPLAY_COOLDOWN_HOURS = 24L
+    private val REPLAY_TRACK_PREFIX = "ranked_replay_"
 
     init {
         viewModelScope.launch {
@@ -169,6 +174,8 @@ class QuizViewModel @Inject constructor(
             putString("assistMessage", state.assistMessage)
             putBoolean("isMilestonePaused", state.isMilestonePaused)
             putBoolean("reviewMode", state.reviewMode)
+            putBoolean("practiceMode", state.practiceMode)
+            putString("modeNotice", state.modeNotice)
             putString("sessionType", currentSessionType)
             putString("category", currentSessionCategory)
             putLong("startedAtMs", currentSessionStartedAtMs)
@@ -250,6 +257,8 @@ class QuizViewModel @Inject constructor(
             val assistMessage = sharedPreferences.getString("assistMessage", null)
             val isMilestonePaused = sharedPreferences.getBoolean("isMilestonePaused", false)
             val reviewMode = sharedPreferences.getBoolean("reviewMode", false)
+            val practiceMode = sharedPreferences.getBoolean("practiceMode", false)
+            val modeNotice = sharedPreferences.getString("modeNotice", null)
 
             currentSessionStartedAtMs = startedAtMs
 
@@ -269,6 +278,8 @@ class QuizViewModel @Inject constructor(
                 isMilestonePaused = isMilestonePaused,
                 reviewMode = reviewMode,
                 reviewCorrectAnswers = reviewCorrectAnswers,
+                practiceMode = practiceMode,
+                modeNotice = modeNotice,
             )
         } catch (e: Exception) {
             clearActiveSessionState()
@@ -293,6 +304,8 @@ class QuizViewModel @Inject constructor(
             remove("assistMessage")
             remove("isMilestonePaused")
             remove("reviewMode")
+            remove("practiceMode")
+            remove("modeNotice")
             remove("sessionType")
             remove("category")
             remove("startedAtMs")
@@ -347,6 +360,8 @@ class QuizViewModel @Inject constructor(
                 isMilestonePaused = false,
                 reviewMode = true,
                 reviewCorrectAnswers = reviewCorrectAnswers,
+                practiceMode = true,
+                modeNotice = "Chế độ ôn lại - không tính bảng xếp hạng.",
             )
             _quizState.value = newState
             saveActiveSessionState(newState)
@@ -382,6 +397,11 @@ class QuizViewModel @Inject constructor(
                     }
                     val sessionId = session.id.takeIf { it.isNotBlank() }
                     val limitedQuestions = questions.take(15)
+                    val isAuthenticatedSession = !authToken.isNullOrBlank() && !sessionId.isNullOrBlank()
+                    if (isAuthenticatedSession && isReplayBlocked("daily", null, limitedQuestions.map { it.id })) {
+                        loadPracticeReplaySession("daily", null, dailyPoints)
+                        return@launch
+                    }
                     val newState = QuizState.Question(
                         questions = limitedQuestions,
                         currentIndex = 0,
@@ -398,6 +418,8 @@ class QuizViewModel @Inject constructor(
                         isMilestonePaused = false,
                         reviewMode = false,
                         reviewCorrectAnswers = emptyMap(),
+                        practiceMode = false,
+                        modeNotice = null,
                     )
                     _quizState.value = newState
                     saveActiveSessionState(newState)
@@ -437,6 +459,11 @@ class QuizViewModel @Inject constructor(
                         return@launch
                     }
                     val sessionId = session.id.takeIf { it.isNotBlank() }
+                    val isAuthenticatedSession = !authToken.isNullOrBlank() && !sessionId.isNullOrBlank()
+                    if (isAuthenticatedSession && isReplayBlocked("topic", category, questions.map { it.id })) {
+                        loadPracticeReplaySession("topic", category, dailyPoints)
+                        return@launch
+                    }
                     val newState = QuizState.Question(
                         questions = questions,
                         currentIndex = 0,
@@ -453,6 +480,8 @@ class QuizViewModel @Inject constructor(
                         isMilestonePaused = false,
                         reviewMode = false,
                         reviewCorrectAnswers = emptyMap(),
+                        practiceMode = false,
+                        modeNotice = null,
                     )
                     _quizState.value = newState
                     saveActiveSessionState(newState)
@@ -512,7 +541,10 @@ class QuizViewModel @Inject constructor(
                         val latestState = _quizState.value as? QuizState.Question ?: return@launch
                         _quizState.value = latestState.copy(
                             showingResult = false,
-                            assistMessage = "Lỗi kết nối: ${error.localizedMessage}. Vui lòng chọn lại."
+                            assistMessage = ErrorMessageUtil.friendlyMessage(
+                                error,
+                                "Không thể gửi đáp án lúc này. Vui lòng chọn lại."
+                            )
                         )
                         startTimer()
                     }
@@ -660,7 +692,12 @@ class QuizViewModel @Inject constructor(
                         saveActiveSessionState(updated)
                     },
                     onFailure = { error ->
-                        updateAssistMessage("Lỗi giao dịch điểm: ${error.localizedMessage}")
+                        updateAssistMessage(
+                            ErrorMessageUtil.friendlyMessage(
+                                error,
+                                "Không thể thực hiện giao dịch điểm lúc này. Vui lòng thử lại."
+                            )
+                        )
                     }
                 )
             } else {
@@ -794,9 +831,14 @@ class QuizViewModel @Inject constructor(
         val sessionId = state.sessionId
 
         if (token != null && sessionId != null) {
+            if (state.practiceMode) {
+                _quizState.value = QuizState.Finished(null, state.answers, state.questions)
+                return
+            }
             viewModelScope.launch {
                 repository.finishSession(token, sessionId).fold(
                     onSuccess = { result ->
+                        markReplayCredited(currentSessionType, currentSessionCategory, state.questions.map { it.id })
                         _quizState.value = QuizState.Finished(result, state.answers, state.questions)
                     },
                     onFailure = {
@@ -930,6 +972,69 @@ class QuizViewModel @Inject constructor(
         } catch (e: Exception) {
             null
         }
+    }
+
+    private fun loadPracticeReplaySession(sessionType: String, category: String?, dailyPoints: Int) {
+        viewModelScope.launch {
+            repository.startSession(token = null, sessionType = sessionType, category = category).fold(
+                onSuccess = { (_, questions) ->
+                    if (questions.isEmpty()) {
+                        _quizState.value = QuizState.Error("Không có câu hỏi để ôn tập")
+                        return@fold
+                    }
+                    val limitedQuestions = if (sessionType == "daily") questions.take(15) else questions
+                    val state = QuizState.Question(
+                        questions = limitedQuestions,
+                        currentIndex = 0,
+                        sessionId = null,
+                        answers = List(limitedQuestions.size) { null },
+                        timeRemaining = QUESTION_TIME_SECONDS,
+                        lastResult = null,
+                        showingResult = false,
+                        hiddenOptions = emptyMap(),
+                        hints = emptyMap(),
+                        usedAssists = emptyMap(),
+                        dailyPoints = dailyPoints,
+                        assistMessage = null,
+                        isMilestonePaused = false,
+                        reviewMode = false,
+                        reviewCorrectAnswers = emptyMap(),
+                        practiceMode = true,
+                        modeNotice = "Bạn đang chơi lại cùng bộ câu hỏi. Lượt này chỉ để luyện tập, không tính điểm BXH.",
+                    )
+                    _quizState.value = state
+                    saveActiveSessionState(state)
+                    startTimer()
+                },
+                onFailure = {
+                    _quizState.value = QuizState.Error("Không thể tải phiên luyện tập. Vui lòng thử lại.")
+                },
+            )
+        }
+    }
+
+    private fun isReplayBlocked(sessionType: String, category: String?, questionIds: List<Long>): Boolean {
+        if (questionIds.isEmpty()) return false
+        val key = replayKey(sessionType, category, questionIds)
+        val lastCreditedAt = sharedPreferences.getLong(key, 0L)
+        if (lastCreditedAt <= 0L) return false
+        return if (sessionType == "daily") {
+            Instant.ofEpochMilli(lastCreditedAt).atZone(ZoneId.systemDefault()).toLocalDate() == LocalDate.now()
+        } else {
+            System.currentTimeMillis() - lastCreditedAt < TOPIC_REPLAY_COOLDOWN_HOURS * 60 * 60 * 1000
+        }
+    }
+
+    private fun markReplayCredited(sessionType: String, category: String?, questionIds: List<Long>) {
+        if (questionIds.isEmpty()) return
+        sharedPreferences.edit()
+            .putLong(replayKey(sessionType, category, questionIds), System.currentTimeMillis())
+            .apply()
+    }
+
+    private fun replayKey(sessionType: String, category: String?, questionIds: List<Long>): String {
+        val normalizedIds = questionIds.distinct().sorted().joinToString("-")
+        return "$REPLAY_TRACK_PREFIX$sessionType:${category.orEmpty()}:$normalizedIds"
     }
 
     override fun onCleared() {

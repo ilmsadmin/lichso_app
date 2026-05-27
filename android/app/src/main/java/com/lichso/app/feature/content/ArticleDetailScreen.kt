@@ -54,10 +54,15 @@ fun ArticleDetailScreen(
             ) {
                 CircularProgressIndicator(color = c.red)
             }
-        } else if (uiState.error != null) {
-            ErrorView(message = uiState.error!!, onRetry = { viewModel.loadArticle(articleId) })
+        } else if (!uiState.error.isNullOrBlank()) {
+            ErrorView(message = uiState.error.orEmpty(), onRetry = { viewModel.loadArticle(articleId) })
         } else if (uiState.article != null) {
             ArticleContent(article = uiState.article!!)
+        } else {
+            ErrorView(
+                message = "Không có dữ liệu bài viết. Vui lòng thử lại.",
+                onRetry = { viewModel.loadArticle(articleId) }
+            )
         }
     }
 }
@@ -196,6 +201,17 @@ private fun ArticleHtmlView(html: String, modifier: Modifier = Modifier) {
                 )
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 settings.javaScriptEnabled = false
+                settings.allowFileAccess = false
+                settings.allowContentAccess = false
+                settings.domStorageEnabled = false
+                settings.javaScriptCanOpenWindowsAutomatically = false
+                settings.loadsImagesAutomatically = true
+                settings.builtInZoomControls = false
+                settings.displayZoomControls = false
+                settings.setSupportZoom(false)
+                settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                settings.allowFileAccessFromFileURLs = false
+                settings.allowUniversalAccessFromFileURLs = false
             }
         },
         update = { webView ->

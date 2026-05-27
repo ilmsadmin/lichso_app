@@ -371,11 +371,19 @@ func setupRoutes(app *fiber.App, cfg *config.Config, pgDB *gorm.DB, mongoDB *mon
 	eventHandler := handlers.NewEventHandler(eventService, validator, logger)
 	folkFestivalHandler := handlers.NewFolkFestivalHandler(folkFestivalService, validator, logger)
 
+	// Banner infrastructure
+	bannerRepo := repositories.NewBannerRepository(pgDB)
+	bannerService := services.NewBannerService(bannerRepo, settingRepo, logger)
+	bannerHandler := handlers.NewBannerHandler(bannerService, validator, logger)
+
 	// Public content routes
 	routes.SetupContentRoutes(api, articleHandler, articleCategoryHandler, articleTagHandler, quoteHandler, famousPersonHandler, eventHandler, folkFestivalHandler)
 
 	// Admin content routes
 	routes.SetupAdminContentRoutes(api, authMiddleware, permMiddleware, articleHandler, articleCategoryHandler, articleTagHandler, quoteHandler, famousPersonHandler, eventHandler, folkFestivalHandler)
+
+	// Banner routes (public + admin)
+	routes.SetupBannerRoutes(api, authMiddleware, permMiddleware, bannerHandler)
 
 	// Export routes (public — no auth required)
 	exportService := services.NewExportService(calService, logger)

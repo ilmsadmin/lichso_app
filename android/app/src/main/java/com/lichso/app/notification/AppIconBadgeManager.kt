@@ -1,6 +1,7 @@
 package com.lichso.app.notification
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -34,6 +35,7 @@ object AppIconBadgeManager {
 
     @Volatile private var channelCreated = false
 
+    @SuppressLint("MissingPermission")
     fun applyCount(context: Context, unreadCount: Int) {
         val count = unreadCount.coerceAtLeast(0)
 
