@@ -529,12 +529,46 @@ private fun BannerCard(
     banner: Banner,
     onCtaClick: (String?) -> Unit,
 ) {
-    // Màu gradient theo type
-    val (gradStart, gradEnd) = when (banner.type) {
-        "content" -> Pair(Color(0xFF1565C0), Color(0xFF0D47A1))
-        "quiz"    -> Pair(Color(0xFF2E7D32), Color(0xFF1B5E20))
-        "ai"      -> Pair(Color(0xFF4A148C), Color(0xFF311B92))
-        else      -> Pair(Color(0xFFBF360C), Color(0xFF8D1A00))
+    val parsedColor = remember(banner.bgColor) {
+        val colorStr = banner.bgColor
+        if (colorStr.isNullOrBlank()) null
+        else {
+            val formatted = if (colorStr.startsWith("#")) colorStr else "#$colorStr"
+            try {
+                Color(android.graphics.Color.parseColor(formatted))
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
+    // Màu gradient theo type, hoặc dùng bgColor nếu có
+    val (gradStart, gradEnd) = if (parsedColor != null) {
+        Pair(parsedColor, parsedColor)
+    } else {
+        when (banner.type) {
+            "content" -> Pair(Color(0xFF1565C0), Color(0xFF0D47A1))
+            "quiz"    -> Pair(Color(0xFF2E7D32), Color(0xFF1B5E20))
+            "ai"      -> Pair(Color(0xFF4A148C), Color(0xFF311B92))
+            else      -> Pair(Color(0xFFBF360C), Color(0xFF8D1A00))
+        }
+    }
+
+    // Chuẩn hóa đường dẫn ảnh từ server
+    val normalizedImageUrl = remember(banner.imageUrl) {
+        val img = banner.imageUrl
+        if (img.isNullOrBlank()) null
+        else if (img.startsWith("http://") || img.startsWith("https://")) img
+        else {
+            val cleaned = if (img.startsWith("/")) img.substring(1) else img
+            if (cleaned.startsWith("api/uploads/")) {
+                "https://lichso.vn/$cleaned"
+            } else if (cleaned.startsWith("uploads/")) {
+                "https://lichso.vn/api/$cleaned"
+            } else {
+                "https://lichso.vn/$cleaned"
+            }
+        }
     }
 
     Box(
@@ -552,10 +586,10 @@ private fun BannerCard(
             .clickable { onCtaClick(banner.ctaRoute) }
     ) {
         // Ảnh nền từ server (nếu có)
-        if (!banner.imageUrl.isNullOrEmpty()) {
+        if (!normalizedImageUrl.isNullOrEmpty()) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(banner.imageUrl).crossfade(true).build(),
+                    .data(normalizedImageUrl).crossfade(true).build(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp)),
