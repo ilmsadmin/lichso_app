@@ -50,6 +50,38 @@ public struct SubmitAnswerResult: Codable {
         case pointsEarned = "points_earned"
         case timeMs = "time_ms"
     }
+
+    public init(
+        questionId: Int64,
+        chosen: String,
+        correct: String,
+        isCorrect: Bool,
+        explanation: String?,
+        articleId: Int64?,
+        pointsEarned: Int,
+        timeMs: Int = 0
+    ) {
+        self.questionId = questionId
+        self.chosen = chosen
+        self.correct = correct
+        self.isCorrect = isCorrect
+        self.explanation = explanation
+        self.articleId = articleId
+        self.pointsEarned = pointsEarned
+        self.timeMs = timeMs
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        questionId = try container.decode(Int64.self, forKey: .questionId)
+        chosen = try container.decode(String.self, forKey: .chosen)
+        correct = try container.decode(String.self, forKey: .correct)
+        isCorrect = try container.decode(Bool.self, forKey: .isCorrect)
+        explanation = try container.decodeIfPresent(String.self, forKey: .explanation)
+        articleId = try container.decodeIfPresent(Int64.self, forKey: .articleId)
+        pointsEarned = try container.decodeIfPresent(Int.self, forKey: .pointsEarned) ?? 0
+        timeMs = try container.decodeIfPresent(Int.self, forKey: .timeMs) ?? 0
+    }
 }
 
 public struct SessionResult: Codable {

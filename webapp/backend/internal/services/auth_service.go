@@ -461,10 +461,13 @@ func (s *AuthService) GoogleLogin(req *dto.GoogleLoginRequest, ipAddress, userAg
 		return nil, utils.ErrGoogleNotConfigured
 	}
 
-	// Verify Google ID token — accept web client ID and Android Firebase client ID
+	// Verify Google ID token — accept web client ID, Android Firebase client ID, and iOS native client ID
 	allowedIDs := []string{s.cfg.Google.ClientID}
 	if s.cfg.Google.AndroidClientID != "" {
 		allowedIDs = append(allowedIDs, s.cfg.Google.AndroidClientID)
+	}
+	if s.cfg.Google.IOSClientID != "" {
+		allowedIDs = append(allowedIDs, s.cfg.Google.IOSClientID)
 	}
 	googleUser, err := utils.VerifyGoogleIDToken(req.IDToken, allowedIDs...)
 	if err != nil {

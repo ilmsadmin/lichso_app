@@ -14,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "93A2A26F06B383B342A3EC02"
+               BlueprintIdentifier = "AF61D65EEB1F63ABC47D1DCA"
                BuildableName = "LichSo.app"
                BlueprintName = "LichSo"
                ReferencedContainer = "container:LichSo.xcodeproj">
@@ -43,7 +43,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "93A2A26F06B383B342A3EC02"
+            BlueprintIdentifier = "AF61D65EEB1F63ABC47D1DCA"
             BuildableName = "LichSo.app"
             BlueprintName = "LichSo"
             ReferencedContainer = "container:LichSo.xcodeproj">
@@ -60,7 +60,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "93A2A26F06B383B342A3EC02"
+            BlueprintIdentifier = "AF61D65EEB1F63ABC47D1DCA"
             BuildableName = "LichSo.app"
             BlueprintName = "LichSo"
             ReferencedContainer = "container:LichSo.xcodeproj">

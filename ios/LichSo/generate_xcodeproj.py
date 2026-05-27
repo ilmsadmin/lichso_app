@@ -70,6 +70,9 @@ preview_assets_ref_uid = uid()
 secrets_plist_ref_uid = uid()
 secrets_plist_build_uid = uid()
 
+# Info.plist resource
+info_plist_ref_uid = uid()
+
 # File references and build files for .swift
 file_ref_uids = {}
 build_file_uids = {}
@@ -109,6 +112,8 @@ root_src_group["children"].append(assets_ref_uid)
 root_src_group["children"].append(preview_group_uid)
 # Add Secrets.plist to root group
 root_src_group["children"].append(secrets_plist_ref_uid)
+# Add Info.plist to root group
+root_src_group["children"].append(info_plist_ref_uid)
 
 # ── Generate PBX sections ──
 
@@ -137,6 +142,8 @@ lines_file_ref.append(f'\t\t{preview_assets_ref_uid} /* Preview Assets.xcassets 
 lines_file_ref.append(f'\t\t{secrets_plist_ref_uid} /* Secrets.plist */ = {{isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Secrets.plist; sourceTree = "<group>"; }};')
 lines_build_file.append(f'\t\t{secrets_plist_build_uid} /* Secrets.plist in Resources */ = {{isa = PBXBuildFile; fileRef = {secrets_plist_ref_uid} /* Secrets.plist */; }};')
 lines_build_file.append(f'\t\t{assets_build_uid} /* {ASSETS_CATALOG} in Resources */ = {{isa = PBXBuildFile; fileRef = {assets_ref_uid} /* {ASSETS_CATALOG} */; }};')
+# Info.plist
+lines_file_ref.append(f'\t\t{info_plist_ref_uid} /* Info.plist */ = {{isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; }};')
 # Product
 lines_file_ref.append(f'\t\t{product_ref_uid} /* {PROJECT_NAME}.app */ = {{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = {PROJECT_NAME}.app; sourceTree = BUILT_PRODUCTS_DIR; }};')
 
@@ -581,4 +588,29 @@ with open(os.path.join(preview_dir, "Contents.json"), "w") as f:
     f.write('{\n  "info" : {\n    "author" : "xcode",\n    "version" : 1\n  }\n}\n')
 
 print("✅ Assets.xcassets and Preview Content created")
+
+# ── Post-process: use custom Info.plist instead of generated one ──
+# This is required so CFBundleURLTypes (Google OAuth URL scheme) is included.
+with open(out_path, 'r', encoding='utf-8') as f:
+    pbx = f.read()
+
+old_infoplist = (
+    'GENERATE_INFOPLIST_FILE = YES;\n'
+    '\t\t\t\tINFOPLIST_KEY_CFBundleDisplayName = "Lịch Số";\n'
+    '\t\t\t\tINFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";\n'
+    '\t\t\t\tINFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;\n'
+    '\t\t\t\tINFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;\n'
+    '\t\t\t\tINFOPLIST_KEY_UILaunchScreen_Generation = YES;\n'
+    '\t\t\t\tINFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;\n'
+    '\t\t\t\tINFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";'
+)
+new_infoplist = (
+    'GENERATE_INFOPLIST_FILE = NO;\n'
+    '\t\t\t\tINFOPLIST_FILE = LichSo/Info.plist;'
+)
+pbx = pbx.replace(old_infoplist, new_infoplist)
+
+with open(out_path, 'w', encoding='utf-8') as f:
+    f.write(pbx)
+
 print(f"\n🎉 Open in Xcode: open {proj_dir}")

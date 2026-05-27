@@ -148,8 +148,27 @@ final class EditProfileViewModel: ObservableObject {
             avatarImage = nil
             return
         }
-        if FileManager.default.fileExists(atPath: avatarPath) {
-            avatarImage = UIImage(contentsOfFile: avatarPath)
+        let fm = FileManager.default
+        let resolvedPath: String
+        if avatarPath.contains("/Documents/avatars/") {
+            // It is an absolute path from a previous session, convert to relative/current
+            guard let docsDir = fm.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+            let filename = URL(fileURLWithPath: avatarPath).lastPathComponent
+            let currentURL = docsDir.appendingPathComponent("avatars").appendingPathComponent(filename)
+            resolvedPath = currentURL.path
+            // Save corrected relative key to avoid legacy absolute paths
+            avatarPath = filename
+            UserDefaults.standard.set(filename, forKey: Keys.avatarPath)
+        } else if !avatarPath.contains("/") {
+            // Stored as relative filename
+            guard let docsDir = fm.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+            resolvedPath = docsDir.appendingPathComponent("avatars").appendingPathComponent(avatarPath).path
+        } else {
+            resolvedPath = avatarPath
+        }
+
+        if fm.fileExists(atPath: resolvedPath) {
+            avatarImage = UIImage(contentsOfFile: resolvedPath)
         } else {
             avatarImage = nil
         }
@@ -188,14 +207,15 @@ final class EditProfileViewModel: ObservableObject {
         }
 
         let ts = Int(Date().timeIntervalSince1970 * 1000)
-        let destURL = avatarDir.appendingPathComponent("profile_avatar_\(ts).jpg")
+        let filename = "profile_avatar_\(ts).jpg"
+        let destURL = avatarDir.appendingPathComponent(filename)
 
         guard let jpegData = image.jpegData(compressionQuality: 0.85) else { return }
         try? jpegData.write(to: destURL)
 
-        avatarPath = destURL.path
+        avatarPath = filename
         avatarImage = image
-        UserDefaults.standard.set(avatarPath, forKey: Keys.avatarPath)
+        UserDefaults.standard.set(filename, forKey: Keys.avatarPath)
         toastMessage = "Đã cập nhật ảnh đại diện"
     }
 

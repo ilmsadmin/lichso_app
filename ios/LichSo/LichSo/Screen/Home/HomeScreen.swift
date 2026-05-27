@@ -109,6 +109,9 @@ struct HomeScreen: View {
                 )
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("goToToday"))) { _ in
+            viewModel.goToToday()
+        }
         .task {
             await weatherService.fetchWeather(for: locationSetting, unit: tempUnitSetting)
         }

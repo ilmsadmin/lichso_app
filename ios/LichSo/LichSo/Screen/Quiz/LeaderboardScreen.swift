@@ -15,32 +15,42 @@ struct LeaderboardScreen: View {
                 LSTheme.bg.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Custom App Bar
                     HStack {
                         Button(action: { dismiss() }) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(LSTheme.textPrimary)
+                                .foregroundColor(.white)
+                                .frame(width: 36, height: 36)
+                                .background(Color.white.opacity(0.15))
+                                .clipShape(Circle())
                         }
                         
                         Spacer()
                         
                         Text("Bảng xếp hạng")
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(LSTheme.textPrimary)
+                            .foregroundColor(.white)
                         
                         Spacer()
                         
-                        Spacer().frame(width: 24)
+                        Spacer().frame(width: 36)
                     }
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                    .padding(.top, 12)
+                    .padding(.bottom, 12)
+                    .background(
+                        LinearGradient(
+                            colors: [LSTheme.primary, LSTheme.deepRed],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     
                     // Period tabs
                     HStack(spacing: 8) {
                         tabButton(label: "Tuần này", period: "weekly")
                         tabButton(label: "Tháng này", period: "monthly")
-                        tabButton(label: "Toàn thời gian", period: "all_time")
+                        tabButton(label: "Toàn thời gian", period: "alltime")
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
@@ -125,7 +135,7 @@ struct LeaderboardScreen: View {
                     .foregroundColor(LSTheme.textPrimary)
             }
             Spacer()
-            Text("\(rank.weekScore) điểm")
+            Text("\(score(for: rank)) điểm")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(LSTheme.primary)
         }
@@ -177,7 +187,7 @@ struct LeaderboardScreen: View {
                 Text(entry.displayName)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(LSTheme.textPrimary)
-                Text("\(entry.weekScore) điểm tuần")
+                Text(scoreCaption(for: entry))
                     .font(.system(size: 11))
                     .foregroundColor(LSTheme.textSecondary)
             }
@@ -185,7 +195,7 @@ struct LeaderboardScreen: View {
             Spacer()
             
             // Total score
-            Text("\(entry.totalScore)")
+            Text("\(score(for: entry))")
                 .font(.system(size: 13, weight: .bold))
                 .foregroundColor(rankColor)
                 .padding(.horizontal, 8)
@@ -200,5 +210,29 @@ struct LeaderboardScreen: View {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(LSTheme.outlineVariant.opacity(0.3), lineWidth: 1)
         )
+    }
+
+    private func score(for rank: MyRankResponse) -> Int {
+        switch selectedPeriod {
+        case "monthly": rank.monthScore
+        case "alltime": rank.totalScore
+        default: rank.weekScore
+        }
+    }
+
+    private func score(for entry: LeaderboardEntry) -> Int {
+        switch selectedPeriod {
+        case "monthly": entry.monthScore
+        case "alltime": entry.totalScore
+        default: entry.weekScore
+        }
+    }
+
+    private func scoreCaption(for entry: LeaderboardEntry) -> String {
+        switch selectedPeriod {
+        case "monthly": "\(entry.monthScore) điểm tháng"
+        case "alltime": "\(entry.totalScore) điểm tổng"
+        default: "\(entry.weekScore) điểm tuần"
+        }
     }
 }

@@ -62,6 +62,7 @@ type SMTPConfig struct {
 type GoogleConfig struct {
 	ClientID        string
 	AndroidClientID string // Firebase web client ID used by Android app
+	IOSClientID     string // iOS OAuth client ID used by native iOS app
 }
 
 // AppConfig holds application-level configuration
@@ -264,6 +265,7 @@ func LoadConfig(path ...string) (*Config, error) {
 		Google: GoogleConfig{
 			ClientID:        viper.GetString("GOOGLE_CLIENT_ID"),
 			AndroidClientID: viper.GetString("GOOGLE_ANDROID_CLIENT_ID"),
+			IOSClientID:     viper.GetString("GOOGLE_IOS_CLIENT_ID"),
 		},
 		SMTP: SMTPConfig{
 			Host:       viper.GetString("SMTP_HOST"),
@@ -352,6 +354,8 @@ func setDefaults() {
 	viper.SetDefault("UPLOAD_PATH", "./uploads")
 
 	viper.SetDefault("GOOGLE_CLIENT_ID", "")
+	viper.SetDefault("GOOGLE_ANDROID_CLIENT_ID", "")
+	viper.SetDefault("GOOGLE_IOS_CLIENT_ID", "")
 
 	viper.SetDefault("SMTP_HOST", "localhost")
 	viper.SetDefault("SMTP_PORT", 587)

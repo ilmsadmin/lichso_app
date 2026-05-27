@@ -31,7 +31,7 @@ enum MainTab: Int, CaseIterable {
         case .calendar: return "calendar"
         case .notes: return "note.text"
         case .today: return "sun.min.fill"
-        case .quiz: return "questionmark.circle"
+        case .quiz: return "play.square"
         case .tools: return "square.grid.2x2"
         }
     }
@@ -41,7 +41,7 @@ enum MainTab: Int, CaseIterable {
         case .calendar: return "calendar"
         case .notes: return "note.text"
         case .today: return "sun.min.fill"
-        case .quiz: return "questionmark.circle.fill"
+        case .quiz: return "play.square.fill"
         case .tools: return "square.grid.2x2.fill"
         }
     }
@@ -248,7 +248,10 @@ private struct CenterTabButton: View {
     let onTap: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
+        Button(action: {
+            onTap()
+            NotificationCenter.default.post(name: Notification.Name("goToToday"), object: nil)
+        }) {
             VStack(spacing: 0) {
                 // Raised circle with today's date
                 ZStack {

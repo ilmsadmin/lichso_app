@@ -26,15 +26,14 @@ struct CalendarScreen: View {
     @State private var showMonthYearPicker = false
     @Environment(\.modelContext) private var modelContext
 
-    // ── Swipe state ──
-    @State private var dragOffset: CGFloat = 0
-    @State private var swipeTransitionOffset: CGFloat = 0
-    @State private var gridId = UUID()  // force re-render on month change
+    // ── Paged swipe ──
+    @State private var tabPage = 1
 
     // ── Display settings ──
     @AppStorage("setting_show_lunar")     private var showLunar: Bool = true
     @AppStorage("setting_show_hoang_dao") private var showHoangDao: Bool = true
     @AppStorage("setting_show_festivals") private var showFestivals: Bool = true
+    @AppStorage("setting_week_start")     private var weekStart: String = "Thứ 2"
 
     // Query bookmarks for the current month
     @Query private var allBookmarks: [BookmarkEntity]
@@ -59,72 +58,20 @@ struct CalendarScreen: View {
                     onTitleTap: { showMonthYearPicker = true }
                 )
 
-                // ═══ CALENDAR GRID ═══
-                GeometryReader { geo in
-                    CalendarGrid(
-                        days: vm.state.calendarDays,
-                        selectedDay: vm.state.selectedDay,
-                        selectedMonth: vm.state.selectedMonth,
-                        selectedYear: vm.state.selectedYear,
-                        bookmarkedDates: bookmarkedDatesSet,
-                        showLunar: showLunar,
-                        showHoangDao: showHoangDao,
-                        onDayTap: { day in
-                            vm.selectDay(day.solarDay, month: day.solarMonth, year: day.solarYear)
-                        },
-                        onDayDoubleTap: { day in
-                            vm.selectDay(day.solarDay, month: day.solarMonth, year: day.solarYear)
-                            detailDayInfo = vm.state.dayInfo
-                        }
-                    )
-                    .id(gridId)
-                    .offset(x: dragOffset + swipeTransitionOffset)
-                    .opacity(dragOffset == 0 && swipeTransitionOffset == 0 ? 1 : max(0.3, 1 - abs(dragOffset + swipeTransitionOffset) / 400))
-                    .gesture(
-                        DragGesture(minimumDistance: 20, coordinateSpace: .local)
-                            .onChanged { value in
-                                let h = value.translation.width
-                                let v = value.translation.height
-                                if abs(h) > abs(v) {
-                                    dragOffset = h * 0.4
-                                }
-                            }
-                            .onEnded { value in
-                                let h = value.translation.width
-                                let v = value.translation.height
-                                let velocity = value.predictedEndTranslation.width
-                                let screenW = geo.size.width
-
-                                if abs(h) > abs(v) && (abs(h) > 50 || abs(velocity) > 300) {
-                                    let isNext = h < 0
-
-                                    // Phase 1: Slide current grid out
-                                    withAnimation(.easeIn(duration: 0.15)) {
-                                        swipeTransitionOffset = isNext ? -screenW : screenW
-                                        dragOffset = 0
-                                    }
-
-                                    // Phase 2: Switch data, reposition, slide in
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                                        if isNext {
-                                            vm.nextMonth()
-                                        } else {
-                                            vm.previousMonth()
-                                        }
-                                        gridId = UUID()
-                                        swipeTransitionOffset = isNext ? screenW : -screenW
-
-                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                            swipeTransitionOffset = 0
-                                        }
-                                    }
-                                } else {
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                        dragOffset = 0
-                                    }
-                                }
-                            }
-                    )
+                // ═══ CALENDAR GRID (native paged swipe) ═══
+                TabView(selection: $tabPage) {
+                    calendarGridPage(delta: -1).tag(0)
+                    calendarGridPage(delta:  0).tag(1)
+                    calendarGridPage(delta: +1).tag(2)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .onChange(of: tabPage) { _, new in
+                    guard new != 1 else { return }
+                    if new == 0 { vm.previousMonth() } else { vm.nextMonth() }
+                    // Reset to center instantly so next swipe works in both directions
+                    var t = Transaction(animation: .none)
+                    t.disablesAnimations = true
+                    withTransaction(t) { tabPage = 1 }
                 }
                 .clipped()
 
@@ -158,6 +105,43 @@ struct CalendarScreen: View {
             )
             .presentationDetents([.medium, .large])
         }
+    }
+
+    // Returns (year, month) offset from the current displayed month
+    private func adjacentMonth(delta: Int) -> (year: Int, month: Int) {
+        var m = vm.state.currentMonth + delta
+        var y = vm.state.currentYear
+        while m < 1  { m += 12; y -= 1 }
+        while m > 12 { m -= 12; y += 1 }
+        return (y, m)
+    }
+
+    // Builds a CalendarGrid page for a given month delta (−1, 0, +1)
+    @ViewBuilder
+    private func calendarGridPage(delta: Int) -> some View {
+        let (y, m) = adjacentMonth(delta: delta)
+        let days: [CalendarDay] = delta == 0
+            ? vm.state.calendarDays
+            : DayInfoProvider.shared.getCalendarDays(
+                year: y, month: m,
+                weekStartSunday: weekStart == "Chủ nhật"
+              )
+        CalendarGrid(
+            days: days,
+            selectedDay: vm.state.selectedDay,
+            selectedMonth: vm.state.selectedMonth,
+            selectedYear: vm.state.selectedYear,
+            bookmarkedDates: bookmarkedDatesSet,
+            showLunar: showLunar,
+            showHoangDao: showHoangDao,
+            onDayTap: { day in
+                vm.selectDay(day.solarDay, month: day.solarMonth, year: day.solarYear)
+            },
+            onDayDoubleTap: { day in
+                vm.selectDay(day.solarDay, month: day.solarMonth, year: day.solarYear)
+                detailDayInfo = vm.state.dayInfo
+            }
+        )
     }
 
     private var bookmarkedDatesSet: Set<String> {

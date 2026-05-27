@@ -159,38 +159,70 @@ struct KnowledgeFeedScreen: View {
         .padding(.horizontal, 16)
     }
     
+    private func normalizeImageUrl(_ url: String) -> String? {
+        if url.hasPrefix("http://") || url.hasPrefix("https://") {
+            return url
+        }
+        let cleaned = url.hasPrefix("/") ? String(url.dropFirst()) : url
+        if cleaned.hasPrefix("api/uploads/") {
+            return "https://lichso.vn/" + cleaned
+        } else if cleaned.hasPrefix("uploads/") {
+            return "https://lichso.vn/api/" + cleaned
+        }
+        return "https://lichso.vn/" + cleaned
+    }
+
     private func articleCard(_ article: Article) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                if let category = article.category {
-                    Text(category.name)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(LSTheme.primary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(LSTheme.primary.opacity(0.12))
-                        .cornerRadius(6)
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    if let category = article.category {
+                        Text(category.name)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(LSTheme.primary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(LSTheme.primary.opacity(0.12))
+                            .cornerRadius(6)
+                    }
+                    
+                    Spacer()
+                    
+                    if let readingTime = article.readingTime {
+                        Text("\(readingTime) phút đọc")
+                            .font(.system(size: 11))
+                            .foregroundColor(LSTheme.textTertiary)
+                    }
                 }
                 
-                Spacer()
+                Text(article.title)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(LSTheme.textPrimary)
+                    .lineLimit(2)
                 
-                if let readingTime = article.readingTime {
-                    Text("\(readingTime) phút đọc")
-                        .font(.system(size: 11))
-                        .foregroundColor(LSTheme.textTertiary)
+                if let summary = article.excerpt ?? article.content {
+                    let cleanedSummary = summary.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+                    Text(cleanedSummary)
+                        .font(.system(size: 13))
+                        .foregroundColor(LSTheme.textSecondary)
+                        .lineSpacing(4)
+                        .lineLimit(2)
                 }
             }
             
-            Text(article.title)
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(LSTheme.textPrimary)
-            
-            if let summary = article.excerpt ?? article.content {
-                Text(summary)
-                    .font(.system(size: 13))
-                    .foregroundColor(LSTheme.textSecondary)
-                    .lineSpacing(4)
-                    .lineLimit(3)
+            if let featuredImage = article.featuredImage, let fullUrlStr = normalizeImageUrl(featuredImage), let url = URL(string: fullUrlStr) {
+                CachedAsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 80, height: 80)
+                        .cornerRadius(8)
+                        .clipped()
+                } placeholder: {
+                    Color.gray.opacity(0.1)
+                        .frame(width: 80, height: 80)
+                        .cornerRadius(8)
+                }
             }
         }
         .padding(16)

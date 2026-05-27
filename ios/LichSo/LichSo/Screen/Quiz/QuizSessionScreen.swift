@@ -1,535 +1,1120 @@
 import SwiftUI
 
+private let quizQuestionTimeSeconds = 30
+
+private enum QuizAssistType: String, CaseIterable, Hashable {
+    case fiftyFifty
+    case hint
+    case extraTime
+
+    var cost: Int {
+        switch self {
+        case .fiftyFifty: 12
+        case .hint: 8
+        case .extraTime: 10
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .fiftyFifty: "50/50"
+        case .hint: "Gợi ý"
+        case .extraTime: "+15 giây"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .fiftyFifty: "line.3.horizontal.decrease"
+        case .hint: "lightbulb.fill"
+        case .extraTime: "timer"
+        }
+    }
+
+    var spendSource: String {
+        switch self {
+        case .fiftyFifty: "quiz_assist_fifty_fifty"
+        case .hint: "quiz_assist_hint"
+        case .extraTime: "quiz_assist_extra_time"
+        }
+    }
+}
+
+private struct QuizQuestionState {
+    var questions: [QuizQuestion]
+    var currentIndex: Int
+    var sessionId: String?
+    var answers: [SubmitAnswerResult?]
+    var timeRemaining: Int
+    var lastResult: SubmitAnswerResult?
+    var showingResult: Bool
+    var hiddenOptions: [Int64: Set<String>]
+    var hints: [Int64: String]
+    var usedAssists: [Int64: Set<QuizAssistType>]
+    var dailyPoints: Int
+    var assistMessage: String?
+    var reviewMode: Bool
+    var reviewCorrectAnswers: [Int64: String]
+    var reviewExplanations: [Int64: String]
+}
+
+private enum QuizPlayState {
+    case idle
+    case loading
+    case question(QuizQuestionState)
+    case finished(SessionResult?, [SubmitAnswerResult?], [QuizQuestion])
+    case error(String)
+}
+
+@MainActor
+private final class QuizPlayViewModel: ObservableObject {
+    @Published var state: QuizPlayState = .idle
+
+    private var sessionType = "daily"
+    private var category: String?
+    private var startedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
+    private var timerTask: Task<Void, Never>?
+    private var autoAdvanceTask: Task<Void, Never>?
+    private var submittingQuestionIDs = Set<Int64>()
+
+    deinit {
+        timerTask?.cancel()
+        autoAdvanceTask?.cancel()
+        submittingQuestionIDs.removeAll()
+    }
+
+    func load(sessionType: String, category: String?) {
+        self.sessionType = sessionType
+        self.category = category
+        self.startedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
+        state = .loading
+        timerTask?.cancel()
+        autoAdvanceTask?.cancel()
+
+        Task {
+            do {
+                let (session, loadedQuestions) = try await QuizService.shared.startSession(sessionType: sessionType, category: category)
+                let rawQuestions = sessionType == "daily" ? Array(loadedQuestions.prefix(15)) : loadedQuestions
+                let questions = await enrichQuestionsForLocalFallback(rawQuestions, sessionType: sessionType, category: category)
+                guard !questions.isEmpty else {
+                    state = .error("Chưa có câu hỏi cho mục này.")
+                    return
+                }
+                let points = (try? await QuizService.shared.fetchPointWallet().balance) ?? 0
+                state = .question(
+                    QuizQuestionState(
+                        questions: questions,
+                        currentIndex: 0,
+                        sessionId: session.id.isEmpty ? nil : session.id,
+                        answers: Array(repeating: nil, count: questions.count),
+                        timeRemaining: quizQuestionTimeSeconds,
+                        lastResult: nil,
+                        showingResult: false,
+                        hiddenOptions: [:],
+                        hints: [:],
+                        usedAssists: [:],
+                        dailyPoints: points,
+                        assistMessage: nil,
+                        reviewMode: false,
+                        reviewCorrectAnswers: [:],
+                        reviewExplanations: [:]
+                    )
+                )
+                startTimer()
+            } catch {
+                state = .error("Không thể tải câu hỏi. Vui lòng thử lại.")
+            }
+        }
+    }
+
+    func loadWrongQuestionsSession(
+        questions: [QuizQuestion],
+        correctAnswers: [Int64: String],
+        explanations: [Int64: String]
+    ) {
+        guard !questions.isEmpty else { return }
+        sessionType = "review"
+        category = nil
+        startedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
+        timerTask?.cancel()
+        autoAdvanceTask?.cancel()
+        state = .question(
+            QuizQuestionState(
+                questions: questions,
+                currentIndex: 0,
+                sessionId: nil,
+                answers: Array(repeating: nil, count: questions.count),
+                timeRemaining: quizQuestionTimeSeconds,
+                lastResult: nil,
+                showingResult: false,
+                hiddenOptions: [:],
+                hints: [:],
+                usedAssists: [:],
+                dailyPoints: 0,
+                assistMessage: nil,
+                reviewMode: true,
+                reviewCorrectAnswers: correctAnswers,
+                reviewExplanations: explanations
+            )
+        )
+        startTimer()
+    }
+
+    func submitAnswer(_ chosen: String) {
+        guard case .question(var current) = state,
+              let question = current.questions[safe: current.currentIndex],
+              !current.showingResult,
+              !submittingQuestionIDs.contains(question.id),
+              isQuestionUnanswered(current)
+        else { return }
+
+        timerTask?.cancel()
+        submittingQuestionIDs.insert(question.id)
+        let selected = normalizeChoice(chosen)
+        let timeMs = (quizQuestionTimeSeconds - current.timeRemaining).clamped(to: 0...quizQuestionTimeSeconds) * 1000
+
+        if let sessionId = current.sessionId {
+            current.showingResult = true
+            current.assistMessage = nil
+            state = .question(current)
+
+            Task {
+                do {
+                    let result = try await QuizService.shared.submitAnswer(
+                        sessionId: sessionId,
+                        questionId: question.id,
+                        chosen: selected,
+                        timeMs: timeMs
+                    )
+                    submittingQuestionIDs.remove(question.id)
+                    updateWithAnswer(result)
+                    scheduleAutoAdvance(from: current.currentIndex)
+                } catch {
+                    submittingQuestionIDs.remove(question.id)
+                    if isAlreadyAnsweredError(error) {
+                        updateQuestionState { state in
+                            state.assistMessage = "Câu này đã được máy chủ ghi nhận, chuyển sang câu tiếp theo."
+                            state.showingResult = false
+                        }
+                        nextQuestion()
+                        return
+                    }
+
+                    updateQuestionState { state in
+                        state.showingResult = false
+                        state.assistMessage = "Lỗi kết nối: \(error.localizedDescription). Vui lòng chọn lại."
+                    }
+                    startTimer()
+                }
+            }
+        } else {
+            let result = buildLocalResult(question: question, chosen: selected, timeMs: timeMs, state: current)
+            submittingQuestionIDs.remove(question.id)
+            updateWithAnswer(result)
+            scheduleAutoAdvance(from: current.currentIndex)
+        }
+    }
+
+    func useAssist(_ type: QuizAssistType) {
+        guard case .question(let current) = state,
+              let question = current.questions[safe: current.currentIndex],
+              !current.showingResult
+        else { return }
+
+        if current.usedAssists[question.id, default: []].contains(type) {
+            setAssistMessage("\(type.label) đã dùng cho câu này")
+            return
+        }
+        if type == .hint, question.hint?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
+            setAssistMessage("Câu này chưa có gợi ý từ người soạn")
+            return
+        }
+        let correct = correctOptionKey(question, override: current.reviewCorrectAnswers[question.id])
+        if type == .fiftyFifty, correct.isEmpty, current.sessionId == nil {
+            setAssistMessage("Câu này chưa đủ dữ liệu để dùng trợ giúp")
+            return
+        }
+
+        if current.sessionId != nil, hasBackendToken {
+            Task {
+                do {
+                    let wallet = try await QuizService.shared.spendPoints(
+                        amount: type.cost,
+                        source: type.spendSource,
+                        sourceId: current.sessionId,
+                        idempotencyKey: "quiz_assist_\(type.rawValue)_\(question.id)_\(current.sessionId ?? "guest")",
+                        metadata: [
+                            "session_id": current.sessionId ?? "",
+                            "question_id": question.id
+                        ]
+                    )
+                    applyAssist(type, question: question, correct: correct, newBalance: wallet.balance)
+                } catch {
+                    setAssistMessage("Lỗi giao dịch điểm: \(error.localizedDescription)")
+                }
+            }
+        } else {
+            if current.dailyPoints < type.cost {
+                setAssistMessage("Cần thêm \(type.cost - current.dailyPoints) điểm ngày để dùng \(type.label)")
+                return
+            }
+            applyAssist(type, question: question, correct: correct, newBalance: current.dailyPoints - type.cost)
+        }
+    }
+
+    func nextQuestion() {
+        autoAdvanceTask?.cancel()
+        submittingQuestionIDs.removeAll()
+        guard case .question(var current) = state else { return }
+        let nextIndex = current.currentIndex + 1
+        if nextIndex >= current.questions.count {
+            finishQuiz()
+            return
+        }
+        current.currentIndex = nextIndex
+        current.timeRemaining = quizQuestionTimeSeconds
+        current.lastResult = nil
+        current.showingResult = false
+        current.assistMessage = nil
+        state = .question(current)
+        startTimer()
+    }
+
+    func retry() {
+        load(sessionType: sessionType, category: category)
+    }
+
+    func stop() {
+        timerTask?.cancel()
+        autoAdvanceTask?.cancel()
+        submittingQuestionIDs.removeAll()
+    }
+
+    private var hasBackendToken: Bool {
+        !(UserDefaults.standard.string(forKey: "backend_access_token") ?? "").isEmpty
+    }
+
+    private func startTimer() {
+        timerTask?.cancel()
+        timerTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    self?.tick()
+                }
+            }
+        }
+    }
+
+    private func tick() {
+        guard case .question(var current) = state, !current.showingResult else { return }
+        if current.timeRemaining <= 0 {
+            submitAnswer("")
+            return
+        }
+        current.timeRemaining -= 1
+        state = .question(current)
+    }
+
+    private func updateWithAnswer(_ result: SubmitAnswerResult) {
+        updateQuestionState { current in
+            if current.answers.indices.contains(current.currentIndex) {
+                current.answers[current.currentIndex] = result
+            }
+            current.lastResult = result
+            current.showingResult = true
+            current.assistMessage = nil
+        }
+    }
+
+    private func finishQuiz() {
+        timerTask?.cancel()
+        autoAdvanceTask?.cancel()
+        guard case .question(let current) = state else { return }
+
+        if let sessionId = current.sessionId {
+            Task {
+                do {
+                    let result = try await QuizService.shared.finishSession(sessionId: sessionId)
+                    state = .finished(result, current.answers, current.questions)
+                } catch {
+                    state = .finished(makeLocalSessionResult(from: current), current.answers, current.questions)
+                }
+            }
+        } else {
+            state = .finished(makeLocalSessionResult(from: current), current.answers, current.questions)
+        }
+    }
+
+    private func makeLocalSessionResult(from state: QuizQuestionState) -> SessionResult {
+        let correctCount = state.answers.compactMap { $0 }.filter(\.isCorrect).count
+        let earned = state.answers.compactMap { $0 }.reduce(0) { $0 + $1.pointsEarned }
+        return SessionResult(
+            sessionId: "local-\(startedAtMs)",
+            score: correctCount,
+            scoreV2: correctCount * 10,
+            total: state.questions.count,
+            pointsEarned: earned,
+            bonusPoints: 0,
+            newWeekScore: 0,
+            rank: 0,
+            appPointsEarned: earned,
+            xpEarned: correctCount * 10,
+            sessionTitle: state.reviewMode ? "Ôn lại câu sai" : "Đố vui",
+            unlockedMasteryTitles: [],
+            unlockedBadges: []
+        )
+    }
+
+    private func scheduleAutoAdvance(from index: Int) {
+        autoAdvanceTask?.cancel()
+        autoAdvanceTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 3_500_000_000)
+            await MainActor.run {
+                guard case .question(let latest) = self?.state,
+                      latest.currentIndex == index,
+                      latest.showingResult
+                else { return }
+                self?.nextQuestion()
+            }
+        }
+    }
+
+    private func buildLocalResult(
+        question: QuizQuestion,
+        chosen: String,
+        timeMs: Int,
+        state: QuizQuestionState
+    ) -> SubmitAnswerResult {
+        let correct = correctOptionKey(question, override: state.reviewCorrectAnswers[question.id])
+        let explanation = state.reviewExplanations[question.id] ?? question.explanation
+        let isCorrect = !correct.isEmpty && chosen == correct
+        return SubmitAnswerResult(
+            questionId: question.id,
+            chosen: chosen,
+            correct: correct,
+            isCorrect: isCorrect,
+            explanation: explanation,
+            articleId: question.articleId,
+            pointsEarned: isCorrect ? 1 : 0,
+            timeMs: timeMs
+        )
+    }
+
+    private func fallbackLocalResult(
+        question: QuizQuestion,
+        chosen: String,
+        timeMs: Int,
+        state: QuizQuestionState
+    ) -> SubmitAnswerResult? {
+        let result = buildLocalResult(question: question, chosen: chosen, timeMs: timeMs, state: state)
+        return result.correct.isEmpty ? nil : result
+    }
+
+    private func enrichQuestionsForLocalFallback(
+        _ questions: [QuizQuestion],
+        sessionType: String,
+        category: String?
+    ) async -> [QuizQuestion] {
+        let publicQuestions: [QuizQuestion]?
+        if sessionType == "daily" {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            publicQuestions = try? await QuizService.shared.fetchDailyQuestions(date: formatter.string(from: Date()))
+        } else {
+            publicQuestions = try? await QuizService.shared.fetchQuestions(category: category, limit: max(questions.count, 10))
+        }
+
+        guard let publicQuestions else { return questions }
+        let byId = Dictionary(uniqueKeysWithValues: publicQuestions.map { ($0.id, $0) })
+        let byContent = publicQuestions.reduce(into: [String: QuizQuestion]()) { result, question in
+            result[normalizeQuestionText(question.content)] = question
+        }
+        return questions.map { question in
+            guard let publicQuestion = byId[question.id] ?? byContent[normalizeQuestionText(question.content)] else {
+                return question
+            }
+            return mergeQuestion(question, with: publicQuestion)
+        }
+    }
+
+    private func recoverAndGradeLocally(
+        question: QuizQuestion,
+        chosen: String,
+        timeMs: Int,
+        expectedIndex: Int
+    ) async -> Bool {
+        guard let resolvedQuestion = await resolveQuestionForLocalFallback(question) else {
+            return false
+        }
+        guard case .question(var latest) = state,
+              latest.currentIndex == expectedIndex,
+              latest.questions[safe: expectedIndex]?.id == question.id
+        else { return false }
+
+        latest.questions[expectedIndex] = resolvedQuestion
+        latest.showingResult = false
+        latest.assistMessage = nil
+        state = .question(latest)
+
+        guard let result = fallbackLocalResult(
+            question: resolvedQuestion,
+            chosen: chosen,
+            timeMs: timeMs,
+            state: latest
+        ) else { return false }
+
+        updateWithAnswer(result)
+        scheduleAutoAdvance(from: expectedIndex)
+        return true
+    }
+
+    private func resolveQuestionForLocalFallback(_ question: QuizQuestion) async -> QuizQuestion? {
+        let publicQuestions: [QuizQuestion]?
+        if sessionType == "daily" {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            publicQuestions = try? await QuizService.shared.fetchDailyQuestions(date: formatter.string(from: Date()))
+        } else {
+            publicQuestions = try? await QuizService.shared.fetchQuestions(category: category, limit: 60)
+        }
+
+        guard let publicQuestions else { return nil }
+        let byId = Dictionary(uniqueKeysWithValues: publicQuestions.map { ($0.id, $0) })
+        let byContent = publicQuestions.reduce(into: [String: QuizQuestion]()) { result, item in
+            result[normalizeQuestionText(item.content)] = item
+        }
+        guard let publicQuestion = byId[question.id] ?? byContent[normalizeQuestionText(question.content)] else {
+            return nil
+        }
+        let merged = mergeQuestion(question, with: publicQuestion)
+        return correctOptionKey(merged, override: nil).isEmpty ? nil : merged
+    }
+
+    private func mergeQuestion(_ question: QuizQuestion, with publicQuestion: QuizQuestion) -> QuizQuestion {
+        QuizQuestion(
+            id: question.id,
+            content: question.content,
+            optionA: question.optionA,
+            optionB: question.optionB,
+            optionC: question.optionC,
+            optionD: question.optionD,
+            category: question.category,
+            difficulty: question.difficulty,
+            articleId: question.articleId ?? publicQuestion.articleId,
+            correct: nonEmpty(question.correct) ?? nonEmpty(publicQuestion.correct),
+            correctAnswer: nonEmpty(question.correctAnswer) ?? nonEmpty(publicQuestion.correctAnswer),
+            hint: nonEmpty(question.hint) ?? nonEmpty(publicQuestion.hint),
+            explanation: nonEmpty(question.explanation) ?? nonEmpty(publicQuestion.explanation)
+        )
+    }
+
+    private func normalizeQuestionText(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .lowercased()
+    }
+
+    private func nonEmpty(_ value: String?) -> String? {
+        guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
+            return nil
+        }
+        return value
+    }
+
+    private func applyAssist(_ type: QuizAssistType, question: QuizQuestion, correct: String, newBalance: Int) {
+        updateQuestionState { current in
+            current.usedAssists[question.id, default: []].insert(type)
+            current.dailyPoints = max(0, newBalance)
+            switch type {
+            case .fiftyFifty:
+                current.hiddenOptions[question.id] = buildFiftyFiftyHiddenOptions(question: question, correct: correct)
+                current.assistMessage = "Đã loại 2 đáp án sai"
+            case .hint:
+                current.hints[question.id] = question.hint?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                current.assistMessage = "Đã mở gợi ý"
+            case .extraTime:
+                current.timeRemaining = min(current.timeRemaining + 15, quizQuestionTimeSeconds + 15)
+                current.assistMessage = "Đã cộng thêm 15 giây"
+            }
+        }
+    }
+
+    private func setAssistMessage(_ message: String) {
+        updateQuestionState { $0.assistMessage = message }
+    }
+
+    private func isQuestionUnanswered(_ state: QuizQuestionState) -> Bool {
+        guard state.answers.indices.contains(state.currentIndex) else { return true }
+        return state.answers[state.currentIndex] == nil
+    }
+
+    private func isAlreadyAnsweredError(_ error: Error) -> Bool {
+        error.localizedDescription.localizedCaseInsensitiveContains("already answered")
+    }
+
+    private func friendlyNetworkMessage(_ error: Error) -> String {
+        if error.localizedDescription.localizedCaseInsensitiveContains("network") {
+            return "Kết nối mạng không ổn định. Vui lòng chọn lại."
+        }
+        return "Kết nối điểm số chưa ổn định, app vẫn tiếp tục chấm trên thiết bị."
+    }
+
+    private func updateQuestionState(_ transform: (inout QuizQuestionState) -> Void) {
+        guard case .question(var current) = state else { return }
+        transform(&current)
+        state = .question(current)
+    }
+}
+
 struct QuizSessionScreen: View {
     let sessionType: String
     let category: String?
-    
+    var onClose: (() -> Void)? = nil
+
     @Environment(\.dismiss) private var dismiss
-    
-    @State private var isLoading = true
-    @State private var errorMessage: String? = nil
-    @State private var questions: [QuizQuestion] = []
-    @State private var currentIndex = 0
-    @State private var currentSessionId: String = ""
-    @State private var score = 0
-    @State private var timeRemaining = 30
-    @State private var timer: Timer? = nil
-    
-    @State private var chosenOption: String? = nil
-    @State private var isAnswered = false
-    @State private var lastResult: SubmitAnswerResult? = nil
-    @State private var showResultScreen = false
-    @State private var finalResult: SessionResult? = nil
-    
-    @State private var dailyPoints = 100 // Local points for assist demo
-    @State private var hintOpened = false
-    @State private var fiftyFiftyUsed = false
-    @State private var extraTimeUsed = false
-    @State private var hiddenOptions: Set<String> = []
-    
+    @StateObject private var viewModel = QuizPlayViewModel()
+
     var body: some View {
-        NavigationStack {
-            ZStack {
-                LSTheme.bg.ignoresSafeArea()
-                
-                if isLoading {
-                    VStack {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: LSTheme.primary))
-                        Text("Đang tải câu hỏi...")
-                            .foregroundColor(LSTheme.textSecondary)
-                            .padding(.top, 8)
+        ZStack {
+            LSTheme.bg.ignoresSafeArea()
+            switch viewModel.state {
+            case .idle, .loading:
+                loadingView
+            case .error(let message):
+                errorView(message)
+            case .question(let state):
+                quizContent(state)
+            case .finished(let result, let answers, let questions):
+                QuizResultScreen(
+                    result: result,
+                    answers: answers,
+                    questions: questions,
+                    onReviewWrong: { wrongQuestions, correctAnswers, explanations in
+                        viewModel.loadWrongQuestionsSession(
+                            questions: wrongQuestions,
+                            correctAnswers: correctAnswers,
+                            explanations: explanations
+                        )
+                    },
+                    onClose: {
+                        closeScreen()
+                    },
+                    onPlayAgain: {
+                        viewModel.load(sessionType: sessionType, category: category)
                     }
-                } else if let error = errorMessage {
-                    VStack(spacing: 16) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 48))
-                            .foregroundColor(.orange)
-                        Text(error)
-                            .foregroundColor(LSTheme.textPrimary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
-                        Button("Thử lại") {
-                            loadQuiz()
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 10)
-                        .background(LSTheme.primary)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                    }
-                } else if !questions.isEmpty && currentIndex < questions.count {
-                    let currentQuestion = questions[currentIndex]
-                    
-                    VStack(spacing: 0) {
-                        // Top bar
-                        HStack {
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "xmark")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundColor(LSTheme.textPrimary)
-                            }
-                            
-                            Spacer()
-                            
-                            Text("Đố Vui")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(LSTheme.textPrimary)
-                            
-                            Spacer()
-                            
-                            Spacer().frame(width: 24)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        
-                        ScrollView {
-                            VStack(spacing: 16) {
-                                // Progress & Timer
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text("Câu hỏi \(currentIndex + 1) / \(questions.count)")
-                                            .font(.system(size: 13, weight: .semibold))
-                                            .foregroundColor(LSTheme.textSecondary)
-                                        
-                                        ProgressView(value: Double(currentIndex + 1), total: Double(questions.count))
-                                            .tint(LSTheme.primary)
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    // Timer Circle
-                                    ZStack {
-                                        Circle()
-                                            .stroke(timerColor.opacity(0.2), lineWidth: 3)
-                                            .frame(width: 48, height: 48)
-                                        Circle()
-                                            .trim(from: 0.0, to: CGFloat(timeRemaining) / 30.0)
-                                            .stroke(timerColor, lineWidth: 3)
-                                            .frame(width: 48, height: 48)
-                                            .rotationEffect(Angle(degrees: -90))
-                                        Text("\(timeRemaining)")
-                                            .font(.system(size: 14, weight: .bold))
-                                            .foregroundColor(timerColor)
-                                    }
-                                }
-                                .padding(.horizontal, 16)
-                                
-                                // Assist Panel
-                                assistPanel
-                                
-                                // Question card
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text(currentQuestion.category.uppercased())
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(LSTheme.primary)
-                                    Text(currentQuestion.content)
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundColor(LSTheme.textPrimary)
-                                        .lineSpacing(4)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(18)
-                                .background(LSTheme.surfaceContainer)
-                                .cornerRadius(16)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(LSTheme.outlineVariant.opacity(0.3), lineWidth: 1)
-                                )
-                                .padding(.horizontal, 16)
-                                
-                                if hintOpened, let hint = currentQuestion.hint {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("💡 Gợi ý:")
-                                            .font(.system(size: 12, weight: .bold))
-                                            .foregroundColor(LSTheme.gold)
-                                        Text(hint)
-                                            .font(.system(size: 12))
-                                            .foregroundColor(LSTheme.textSecondary)
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(12)
-                                    .background(LSTheme.surfaceContainerHigh)
-                                    .cornerRadius(12)
-                                    .padding(.horizontal, 16)
-                                }
-                                
-                                // Options
-                                VStack(spacing: 10) {
-                                    optionButton(label: "A", text: currentQuestion.optionA)
-                                    optionButton(label: "B", text: currentQuestion.optionB)
-                                    optionButton(label: "C", text: currentQuestion.optionC)
-                                    optionButton(label: "D", text: currentQuestion.optionD)
-                                }
-                                .padding(.horizontal, 16)
-                                
-                                if isAnswered, let result = lastResult {
-                                    explanationCard(result: result, q: currentQuestion)
-                                        .padding(.horizontal, 16)
-                                }
-                                
-                                if isAnswered {
-                                    Button(action: nextQuestion) {
-                                        HStack {
-                                            Text(currentIndex + 1 >= questions.count ? "Xem kết quả" : "Tiếp theo")
-                                                .font(.system(size: 15, weight: .semibold))
-                                            Image(systemName: "arrow.right")
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 14)
-                                        .background(LSTheme.primary)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(12)
-                                    }
-                                    .padding(.horizontal, 16)
-                                }
-                            }
-                            .padding(.vertical, 8)
-                        }
-                    }
-                }
-            }
-            .onAppear(perform: loadQuiz)
-            .onDisappear(perform: stopTimer)
-            .fullScreenCover(isPresented: $showResultScreen) {
-                QuizResultScreen(result: finalResult, total: questions.count, correct: score) {
-                    dismiss()
-                }
-            }
-        }
-    }
-    
-    private var timerColor: Color {
-        if timeRemaining > 15 { return .green }
-        if timeRemaining > 7 { return .orange }
-        return .red
-    }
-    
-    private func startTimer() {
-        stopTimer()
-        timeRemaining = 30
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            if timeRemaining > 0 {
-                timeRemaining -= 1
-            } else {
-                // Time's up -> auto submit wrong answer
-                stopTimer()
-                submitAnswer(option: "")
-            }
-        }
-    }
-    
-    private func stopTimer() {
-        timer?.invalidate()
-        timer = nil
-    }
-    
-    private func loadQuiz() {
-        isLoading = true
-        errorMessage = nil
-        Task {
-            do {
-                let (session, list) = try await QuizService.shared.startSession(sessionType: sessionType, category: category)
-                self.questions = list
-                self.currentSessionId = session.id
-                self.isLoading = false
-                startTimer()
-            } catch {
-                self.errorMessage = error.localizedDescription
-                self.isLoading = false
-            }
-        }
-    }
-    
-    private func submitAnswer(option: String) {
-        stopTimer()
-        chosenOption = option
-        isAnswered = true
-        
-        let correctOption = (questions[currentIndex].correct ?? "a").uppercased()
-        let isCorrect = option.uppercased() == correctOption
-        if isCorrect {
-            score += 1
-        }
-        
-        // Build mock / temp SubmitAnswerResult
-        let explanation = questions[currentIndex].explanation ?? "Đáp án đúng là \(correctOption)"
-        lastResult = SubmitAnswerResult(
-            questionId: questions[currentIndex].id,
-            chosen: option,
-            correct: correctOption,
-            isCorrect: isCorrect,
-            explanation: explanation,
-            articleId: nil,
-            pointsEarned: isCorrect ? 10 : 0,
-            timeMs: (30 - timeRemaining) * 1000
-        )
-        
-        // Send answer to server if token exists
-        if !currentSessionId.isEmpty {
-            Task {
-                _ = try? await QuizService.shared.submitAnswer(
-                    sessionId: currentSessionId,
-                    questionId: questions[currentIndex].id,
-                    chosen: option,
-                    timeMs: (30 - timeRemaining) * 1000
                 )
             }
         }
+        .task {
+            if case .idle = viewModel.state {
+                viewModel.load(sessionType: sessionType, category: category)
+            }
+        }
+        .onDisappear {
+            viewModel.stop()
+        }
     }
-    
-    private func nextQuestion() {
-        if currentIndex + 1 < questions.count {
-            currentIndex += 1
-            chosenOption = nil
-            isAnswered = false
-            lastResult = nil
-            hintOpened = false
-            hiddenOptions.removeAll()
-            startTimer()
+
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .tint(LSTheme.primary)
+            Text("Đang tải câu hỏi...")
+                .font(.headline)
+                .foregroundStyle(LSTheme.textSecondary)
+        }
+    }
+
+    private func errorView(_ message: String) -> some View {
+        VStack(spacing: 18) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 58, weight: .bold))
+                .foregroundStyle(Color(hex: "F57F17"))
+            Text(message)
+                .font(.headline)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(LSTheme.textPrimary)
+            Button("Thử lại") {
+                viewModel.retry()
+            }
+            .font(.headline)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 28)
+            .padding(.vertical, 14)
+            .background(LSTheme.primary, in: RoundedRectangle(cornerRadius: 16))
+        }
+        .padding(28)
+    }
+
+    private func quizContent(_ state: QuizQuestionState) -> some View {
+        GeometryReader { proxy in
+            let contentWidth = max(0, proxy.size.width - 40)
+            VStack(spacing: 0) {
+                QuizTopHeader(title: state.reviewMode ? "Ôn Lại" : "Đố Vui") {
+                    closeScreen()
+                }
+                .frame(width: proxy.size.width)
+
+                ScrollView {
+                    VStack(spacing: 10) {
+                        progressRow(state)
+                        AssistPanel(state: state) { type in
+                            viewModel.useAssist(type)
+                        }
+                        if let message = state.assistMessage {
+                            Text(message)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(LSTheme.primary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 4)
+                        }
+                        if let question = state.questions[safe: state.currentIndex] {
+                            QuestionCard(question: question)
+                            HintCard(text: state.hints[question.id])
+                            answerList(state: state, question: question)
+                            if let result = state.lastResult, state.showingResult {
+                                ExplanationCard(question: question, result: result, reviewMode: state.reviewMode)
+                                Button {
+                                    viewModel.nextQuestion()
+                                } label: {
+                                    Text(state.currentIndex + 1 >= state.questions.count ? "Xem kết quả" : "Câu tiếp theo")
+                                        .font(.headline)
+                                        .foregroundStyle(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 14)
+                                        .background(LSTheme.primary, in: RoundedRectangle(cornerRadius: 14))
+                                }
+                            }
+                        }
+                    }
+                    .frame(width: contentWidth)
+                    .padding(.vertical, 12)
+                }
+            }
+        }
+    }
+
+    private func progressRow(_ state: QuizQuestionState) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("\(state.currentIndex + 1) / \(state.questions.count)")
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundStyle(LSTheme.textPrimary)
+                ProgressDots(total: state.questions.count, current: state.currentIndex, answers: state.answers)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer()
+            TimerCircle(seconds: state.timeRemaining)
+                .padding(.trailing, 2)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func answerList(state: QuizQuestionState, question: QuizQuestion) -> some View {
+        let options = [
+            ("a", question.optionA),
+            ("b", question.optionB),
+            ("c", question.optionC),
+            ("d", question.optionD)
+        ]
+        let hidden = state.hiddenOptions[question.id, default: []]
+        let revealAnswer = state.reviewMode || state.lastResult?.isCorrect == true
+        let correct = revealAnswer ? normalizeChoice(state.lastResult?.correct) : ""
+
+        return VStack(spacing: 10) {
+            ForEach(options, id: \.0) { key, text in
+                if !hidden.contains(key) {
+                    AnswerOptionButton(
+                        key: key,
+                        text: text,
+                        selected: normalizeChoice(state.lastResult?.chosen) == key,
+                        correct: correct == key,
+                        wrong: state.showingResult && normalizeChoice(state.lastResult?.chosen) == key && state.lastResult?.isCorrect == false,
+                        disabled: state.showingResult
+                    ) {
+                        viewModel.submitAnswer(key)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func closeScreen() {
+        viewModel.stop()
+        if let onClose {
+            onClose()
         } else {
-            // Quiz finished
-            finishQuiz()
+            dismiss()
         }
     }
-    
-    private func finishQuiz() {
-        isLoading = true
-        if !currentSessionId.isEmpty {
-            Task {
-                do {
-                    let res = try await QuizService.shared.finishSession(sessionId: currentSessionId)
-                    self.finalResult = res
-                    self.isLoading = false
-                    self.showResultScreen = true
-                } catch {
-                    self.isLoading = false
-                    self.showResultScreen = true
-                }
+}
+
+private struct QuizTopHeader: View {
+    let title: String
+    let onBack: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Button(action: onBack) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 36, height: 36)
+                    .background(Color.white.opacity(0.15))
+                    .clipShape(Circle())
             }
-        } else {
-            // Guest completion
-            self.finalResult = SessionResult(
-                sessionId: "",
-                score: score,
-                scoreV2: score * 10,
-                total: questions.count,
-                pointsEarned: score * 10,
-                bonusPoints: 0,
-                newWeekScore: score * 10,
-                rank: 0,
-                appPointsEarned: score * 10,
-                xpEarned: score * 10,
-                sessionTitle: "Đố Vui Khách",
-                unlockedMasteryTitles: [],
-                unlockedBadges: []
-            )
-            self.isLoading = false
-            self.showResultScreen = true
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(.white)
+                Text("Trả lời câu hỏi và tích điểm")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white.opacity(0.78))
+            }
+            Spacer()
         }
-    }
-    
-    private var assistPanel: some View {
-        VStack(spacing: 8) {
-            HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
-                        .foregroundColor(LSTheme.gold)
-                    Text("Trợ giúp")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(LSTheme.textPrimary)
-                }
-                Spacer()
-                Text("\(dailyPoints) điểm")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(LSTheme.gold)
-            }
-            
-            HStack(spacing: 8) {
-                // 50:50
-                Button(action: useFiftyFifty) {
-                    VStack {
-                        Image(systemName: "eye.slash.fill")
-                        Text("50 / 50")
-                            .font(.system(size: 10, weight: .semibold))
-                        Text("20đ")
-                            .font(.system(size: 9))
-                            .foregroundColor(LSTheme.textTertiary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(fiftyFiftyUsed ? Color.gray.opacity(0.2) : LSTheme.primary.opacity(0.1))
-                    .foregroundColor(fiftyFiftyUsed ? .gray : LSTheme.primary)
-                    .cornerRadius(10)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(fiftyFiftyUsed ? Color.clear : LSTheme.primary.opacity(0.3)))
-                }
-                .disabled(fiftyFiftyUsed || isAnswered)
-                
-                // Gợi ý
-                Button(action: useHint) {
-                    VStack {
-                        Image(systemName: "lightbulb.fill")
-                        Text("Gợi ý")
-                            .font(.system(size: 10, weight: .semibold))
-                        Text("15đ")
-                            .font(.system(size: 9))
-                            .foregroundColor(LSTheme.textTertiary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(hintOpened ? Color.gray.opacity(0.2) : LSTheme.primary.opacity(0.1))
-                    .foregroundColor(hintOpened ? .gray : LSTheme.primary)
-                    .cornerRadius(10)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(hintOpened ? Color.clear : LSTheme.primary.opacity(0.3)))
-                }
-                .disabled(hintOpened || isAnswered)
-                
-                // Thêm giờ
-                Button(action: useExtraTime) {
-                    VStack {
-                        Image(systemName: "timer")
-                        Text("Thêm giờ")
-                            .font(.system(size: 10, weight: .semibold))
-                        Text("10đ")
-                            .font(.system(size: 9))
-                            .foregroundColor(LSTheme.textTertiary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(extraTimeUsed ? Color.gray.opacity(0.2) : LSTheme.primary.opacity(0.1))
-                    .foregroundColor(extraTimeUsed ? .gray : LSTheme.primary)
-                    .cornerRadius(10)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(extraTimeUsed ? Color.clear : LSTheme.primary.opacity(0.3)))
-                }
-                .disabled(extraTimeUsed || isAnswered)
-            }
-        }
-        .padding(12)
-        .background(LSTheme.surfaceContainer)
-        .cornerRadius(14)
         .padding(.horizontal, 16)
-    }
-    
-    private func useFiftyFifty() {
-        guard dailyPoints >= 20 else { return }
-        dailyPoints -= 20
-        fiftyFiftyUsed = true
-        
-        let correctOption = questions[currentIndex].correctAnswer ?? "A"
-        let wrongOptions = ["A", "B", "C", "D"].filter { $0.uppercased() != correctOption.uppercased() }
-        let shuffledWrong = wrongOptions.shuffled()
-        hiddenOptions.insert(shuffledWrong[0])
-        hiddenOptions.insert(shuffledWrong[1])
-    }
-    
-    private func useHint() {
-        guard dailyPoints >= 15 else { return }
-        dailyPoints -= 15
-        hintOpened = true
-    }
-    
-    private func useExtraTime() {
-        guard dailyPoints >= 10 else { return }
-        dailyPoints -= 10
-        extraTimeUsed = true
-        timeRemaining = min(timeRemaining + 15, 30)
-    }
-    
-    private func optionButton(label: String, text: String) -> some View {
-        let isHidden = hiddenOptions.contains(label)
-        
-        let isSelected = chosenOption == label
-        let correctOption = (questions[currentIndex].correct ?? "a").uppercased()
-        let isCorrect = correctOption == label.uppercased()
-        
-        var bgColor = LSTheme.surfaceContainer
-        var strokeColor = LSTheme.outlineVariant.opacity(0.4)
-        var textColor = LSTheme.textPrimary
-        
-        if isAnswered {
-            if isCorrect {
-                bgColor = Color.green.opacity(0.15)
-                strokeColor = .green
-                textColor = .green
-            } else if isSelected {
-                bgColor = Color.red.opacity(0.15)
-                strokeColor = .red
-                textColor = .red
-            }
-        } else if isSelected {
-            bgColor = LSTheme.primary.opacity(0.15)
-            strokeColor = LSTheme.primary
-        }
-        
-        return Button(action: {
-            if !isAnswered && !isHidden {
-                submitAnswer(option: label)
-            }
-        }) {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(strokeColor.opacity(0.15))
-                        .frame(width: 32, height: 32)
-                    Text(label)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(strokeColor)
-                }
-                
-                Text(isHidden ? "Đã loại bởi 50/50" : text)
-                    .font(.system(size: 14))
-                    .foregroundColor(isHidden ? LSTheme.textTertiary : textColor)
-                    .multilineTextAlignment(.leading)
-                
-                Spacer()
-                
-                if isAnswered {
-                    if isCorrect {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                    } else if isSelected {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.red)
-                    }
-                }
-            }
-            .padding(14)
-            .background(bgColor)
-            .cornerRadius(14)
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(strokeColor, lineWidth: 1.5)
+        .padding(.top, 12)
+        .padding(.bottom, 12)
+        .background(
+            LinearGradient(
+                colors: [LSTheme.primary, LSTheme.deepRed],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
             )
-        }
-        .disabled(isAnswered || isHidden)
-        .opacity(isHidden ? 0.5 : 1.0)
+        )
+        .frame(maxWidth: .infinity)
     }
-    
-    private func explanationCard(result: SubmitAnswerResult, q: QuizQuestion) -> some View {
-        let accentColor = result.isCorrect ? Color.green : Color.red
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Image(systemName: result.isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .foregroundColor(accentColor)
-                Text(result.isCorrect ? "Chính xác! (+10đ)" : "Chưa chính xác (Đáp án: \(result.correct))")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(accentColor)
-            }
-            
-            if let explanation = result.explanation {
-                Text(explanation)
-                    .font(.system(size: 13))
-                    .foregroundColor(LSTheme.textPrimary)
-                    .lineSpacing(4)
+}
+
+private struct ProgressDots: View {
+    let total: Int
+    let current: Int
+    let answers: [SubmitAnswerResult?]
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<total, id: \.self) { index in
+                if index > 0 && index % 5 == 0 {
+                    Rectangle()
+                        .fill(LSTheme.outlineVariant.opacity(0.75))
+                        .frame(width: 2, height: 18)
+                        .padding(.horizontal, 4)
+                }
+                Circle()
+                    .fill(color(for: index))
+                    .frame(width: 8, height: 8)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(accentColor.opacity(0.08))
-        .cornerRadius(14)
+    }
+
+    private func color(for index: Int) -> Color {
+        if index == current { return LSTheme.primary }
+        if let answer = answers[safe: index] ?? nil {
+            return answer.isCorrect ? LSTheme.goodGreen : LSTheme.badRed
+        }
+        return LSTheme.outlineVariant.opacity(0.45)
+    }
+}
+
+private struct TimerCircle: View {
+    let seconds: Int
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(LSTheme.goodGreen.opacity(0.18), lineWidth: 4)
+            Circle()
+                .trim(from: 0, to: CGFloat(max(seconds, 0)) / CGFloat(quizQuestionTimeSeconds + 15))
+                .stroke(timerColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            Text("\(max(0, seconds))")
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundStyle(timerColor)
+        }
+        .frame(width: 48, height: 48)
+    }
+
+    private var timerColor: Color {
+        seconds <= 10 ? LSTheme.badRed : LSTheme.goodGreen
+    }
+}
+
+private struct AssistPanel: View {
+    let state: QuizQuestionState
+    let onTap: (QuizAssistType) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Trợ giúp", systemImage: "sparkles")
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(LSTheme.textPrimary)
+                    .labelStyle(.titleAndIcon)
+                Spacer()
+                Text("\(state.dailyPoints) điểm")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(LSTheme.gold)
+            }
+            HStack(spacing: 6) {
+                ForEach(QuizAssistType.allCases, id: \.self) { type in
+                    Button {
+                        onTap(type)
+                    } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: type.icon)
+                                .font(.system(size: 15, weight: .bold))
+                            Text(type.label)
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                            Text("\(type.cost) điểm")
+                                .font(.system(size: 11))
+                                .foregroundStyle(LSTheme.textSecondary)
+                        }
+                        .foregroundStyle(LSTheme.primary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 60)
+                        .background(LSTheme.primaryContainer.opacity(0.35), in: RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(LSTheme.primary.opacity(0.28), lineWidth: 1)
+                        )
+                    }
+                    .disabled(state.showingResult)
+                    .opacity(state.showingResult ? 0.55 : 1)
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity)
+        .background(LSTheme.surface.opacity(0.9), in: RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(accentColor.opacity(0.3), lineWidth: 1)
+                .stroke(LSTheme.outlineVariant.opacity(0.45), lineWidth: 1)
         )
+    }
+}
+
+private struct QuestionCard: View {
+    let question: QuizQuestion
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text(categoryLabel(question.category))
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(LSTheme.primary)
+                Text("•")
+                    .foregroundStyle(LSTheme.textTertiary)
+                Text(difficultyLabel(question.difficulty))
+                    .font(.system(size: 13))
+                    .foregroundStyle(LSTheme.textTertiary)
+            }
+            Text(question.content)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .lineSpacing(4)
+                .foregroundStyle(LSTheme.textPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(LSTheme.surface.opacity(0.88), in: RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(LSTheme.outlineVariant.opacity(0.45), lineWidth: 1)
+        )
+    }
+}
+
+private struct HintCard: View {
+    let text: String?
+
+    var body: some View {
+        if let text, !text.isEmpty {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundStyle(LSTheme.gold)
+                Text(text)
+                    .font(.subheadline)
+                    .foregroundStyle(LSTheme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(14)
+            .background(LSTheme.goldDim, in: RoundedRectangle(cornerRadius: 14))
+        }
+    }
+}
+
+private struct AnswerOptionButton: View {
+    let key: String
+    let text: String
+    let selected: Bool
+    let correct: Bool
+    let wrong: Bool
+    let disabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Text(key.uppercased())
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(circleForeground)
+                    .frame(width: 34, height: 34)
+                    .background(circleBackground, in: Circle())
+                Text(text)
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(LSTheme.textPrimary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .background(cardBackground, in: RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(borderColor, lineWidth: 1)
+            )
+            .frame(maxWidth: .infinity)
+        }
+        .disabled(disabled)
+    }
+
+    private var cardBackground: Color {
+        if correct { return LSTheme.goodGreen.opacity(0.14) }
+        if wrong { return LSTheme.badRed.opacity(0.12) }
+        if selected { return LSTheme.primaryContainer.opacity(0.36) }
+        return LSTheme.surface.opacity(0.82)
+    }
+
+    private var borderColor: Color {
+        if correct { return LSTheme.goodGreen }
+        if wrong { return LSTheme.badRed }
+        if selected { return LSTheme.primary.opacity(0.5) }
+        return LSTheme.outlineVariant.opacity(0.88)
+    }
+
+    private var circleBackground: Color {
+        if correct { return LSTheme.goodGreen }
+        if wrong { return LSTheme.badRed }
+        if selected { return LSTheme.primary }
+        return LSTheme.surfaceContainerHigh.opacity(0.72)
+    }
+
+    private var circleForeground: Color {
+        correct || wrong || selected ? .white : LSTheme.textTertiary.opacity(0.55)
+    }
+}
+
+private struct ExplanationCard: View {
+    let question: QuizQuestion
+    let result: SubmitAnswerResult
+    let reviewMode: Bool
+
+    var body: some View {
+        let reveal = reviewMode || result.isCorrect
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: result.isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .foregroundStyle(result.isCorrect ? LSTheme.goodGreen : LSTheme.badRed)
+                Text(result.isCorrect ? "Chính xác" : "Chưa đúng")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(result.isCorrect ? LSTheme.goodGreen : LSTheme.badRed)
+            }
+            if reveal {
+                Text("Đáp án đúng: \(displayChoice(result.correct))")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(LSTheme.textPrimary)
+                if let explanation = result.explanation?.trimmingCharacters(in: .whitespacesAndNewlines), !explanation.isEmpty {
+                    Text(explanation)
+                        .font(.system(size: 13))
+                        .lineSpacing(4)
+                        .foregroundStyle(LSTheme.textSecondary)
+                }
+            } else {
+                Text("Đáp án và lời giải sẽ mở ở phần ôn lại câu sai.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(LSTheme.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background((result.isCorrect ? LSTheme.goodGreen : LSTheme.badRed).opacity(0.09), in: RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke((result.isCorrect ? LSTheme.goodGreen : LSTheme.badRed).opacity(0.28), lineWidth: 1)
+        )
+    }
+}
+
+private func normalizeChoice(_ value: String?) -> String {
+    value?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+}
+
+private func correctOptionKey(_ question: QuizQuestion, override: String? = nil) -> String {
+    let normalizedOverride = normalizeChoice(override)
+    if ["a", "b", "c", "d"].contains(normalizedOverride) {
+        return normalizedOverride
+    }
+    let normalizedCorrect = normalizeChoice(question.correct)
+    if ["a", "b", "c", "d"].contains(normalizedCorrect) {
+        return normalizedCorrect
+    }
+    let normalizedCorrectAnswer = normalizeChoice(question.correctAnswer)
+    if ["a", "b", "c", "d"].contains(normalizedCorrectAnswer) {
+        return normalizedCorrectAnswer
+    }
+    let answerText = normalizeChoice(question.correctAnswer ?? question.correct)
+    let options = [question.optionA, question.optionB, question.optionC, question.optionD].map(normalizeChoice)
+    if let index = options.firstIndex(of: answerText) {
+        return ["a", "b", "c", "d"][index]
+    }
+    return ""
+}
+
+private func buildFiftyFiftyHiddenOptions(question: QuizQuestion, correct: String) -> Set<String> {
+    let seed = Int(question.id) + question.content.unicodeScalars.reduce(0) { ($0 * 31 + Int($1.value)) & 0x7fffffff }
+    return Set(["a", "b", "c", "d"]
+        .filter { $0 != correct }
+        .sorted { ((seed + Int($0.unicodeScalars.first?.value ?? 0)) % 97) < ((seed + Int($1.unicodeScalars.first?.value ?? 0)) % 97) }
+        .prefix(2))
+}
+
+private func categoryLabel(_ value: String) -> String {
+    switch value {
+    case "history_vn": "Lịch sử Việt Nam"
+    case "history_world": "Lịch sử thế giới"
+    case "culture": "Văn hóa"
+    case "festival": "Lễ hội"
+    case "figure": "Nhân vật"
+    default: value.replacingOccurrences(of: "_", with: " ").capitalized
+    }
+}
+
+private func difficultyLabel(_ value: String) -> String {
+    switch value {
+    case "easy": "Dễ"
+    case "medium": "Trung bình"
+    case "hard": "Khó"
+    default: value.capitalized
+    }
+}
+
+private func displayChoice(_ value: String) -> String {
+    let key = normalizeChoice(value)
+    return ["a", "b", "c", "d"].contains(key) ? key.uppercased() : value
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
+}
+
+private extension Comparable {
+    func clamped(to limits: ClosedRange<Self>) -> Self {
+        min(max(self, limits.lowerBound), limits.upperBound)
     }
 }

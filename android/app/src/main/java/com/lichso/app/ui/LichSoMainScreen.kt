@@ -489,7 +489,7 @@ fun LichSoMainScreen(
                     onBackClick = { currentRoute = "quiz_home" },
                 )
                 "knowledge_feed" -> com.lichso.app.feature.content.KnowledgeFeedScreen(
-                    onBackClick = { currentRoute = "tools" },
+                    onBackClick = { currentRoute = "home" },
                     onAskAi = { prompt ->
                         initialAiMessage = prompt
                         currentRoute = "chat"
@@ -574,6 +574,7 @@ private fun DrawerMenuContent(
     val exploreItems = listOf(
         DrawerMenuItem("history", "Ngày này năm xưa", Icons.Outlined.HistoryEdu, Icons.Filled.HistoryEdu),
         DrawerMenuItem("familytree", "Cây gia phả", Icons.Outlined.AccountTree, Icons.Filled.AccountTree),
+        DrawerMenuItem("knowledge_feed", "Bài viết khám phá", Icons.Outlined.Article, Icons.Filled.Article),
     )
 
     val bottomItems = listOf(

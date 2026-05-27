@@ -70,6 +70,7 @@ services:
       # Google OAuth
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_ANDROID_CLIENT_ID=${GOOGLE_ANDROID_CLIENT_ID:-}
+      - GOOGLE_IOS_CLIENT_ID=${GOOGLE_IOS_CLIENT_ID:-}
       # SMTP
       - SMTP_ENABLED=${SMTP_ENABLED:-false}
       - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}

@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -92,6 +93,18 @@ private fun ArticleContent(article: Article) {
     val c = LichSoThemeColors.current
     val scrollState = rememberScrollState()
 
+    val normalizedFeaturedImage = remember(article.featuredImage) {
+        val img = article.featuredImage
+        if (img.isNullOrBlank()) null
+        else if (img.startsWith("http://") || img.startsWith("https://")) img
+        else {
+            val cleaned = if (img.startsWith("/")) img.substring(1) else img
+            if (cleaned.startsWith("api/uploads/")) "https://lichso.vn/$cleaned"
+            else if (cleaned.startsWith("uploads/")) "https://lichso.vn/api/$cleaned"
+            else "https://lichso.vn/$cleaned"
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -100,9 +113,9 @@ private fun ArticleContent(article: Article) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // Featured Image
-        if (!article.featuredImage.isNullOrBlank()) {
+        if (!normalizedFeaturedImage.isNullOrBlank()) {
             AsyncImage(
-                model = article.featuredImage,
+                model = normalizedFeaturedImage,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -165,13 +178,89 @@ private fun ArticleContent(article: Article) {
         HorizontalDivider(thickness = 0.5.dp, color = c.outlineVariant.copy(alpha = 0.5f))
 
         // Content body
-        Text(
-            text = article.content ?: article.excerpt ?: "Không có nội dung.",
-            style = TextStyle(
-                fontSize = 15.sp,
-                color = c.textSecondary,
-                lineHeight = 24.sp,
-            ),
-        )
+        val normalizedFeaturedImage = remember(article.featuredImage) {
+            val img = article.featuredImage
+            if (img.isNullOrBlank()) null
+            else if (img.startsWith("http://") || img.startsWith("https://")) img
+            else {
+                val cleaned = if (img.startsWith("/")) img.substring(1) else img
+                if (cleaned.startsWith("api/uploads/")) "https://lichso.vn/$cleaned"
+                else if (cleaned.startsWith("uploads/")) "https://lichso.vn/api/$cleaned"
+                else "https://lichso.vn/$cleaned"
+            }
+        }
+
+        val fullHtml = remember(article.content, article.excerpt, normalizedFeaturedImage, c.isDark) {
+            val rawContent = article.content ?: article.excerpt ?: "Không có nội dung."
+            val fixedContent = rawContent
+                .replace("src=\"/uploads/", "src=\"https://lichso.vn/api/uploads/")
+                .replace("src=\"/api/uploads/", "src=\"https://lichso.vn/api/uploads/")
+            
+            val textColor = if (c.isDark) "#F0E8D0" else "#1C1B1F"
+            val linkColor = if (c.isDark) "#EF5350" else "#B71C1C"
+
+            """
+            <!DOCTYPE html>
+            <html>
+            <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                font-size: 16px;
+                line-height: 1.7;
+                color: $textColor;
+                background-color: transparent;
+                margin: 0;
+                padding: 0;
+            }
+            a {
+                color: $linkColor;
+                text-decoration: none;
+            }
+            img {
+                max-width: 100%;
+                height: auto;
+                border-radius: 8px;
+                margin: 12px 0;
+            }
+            hr {
+                border: 0;
+                border-top: 1px solid ${if (c.isDark) "#5A4F42" else "#D8C2BF"};
+                margin: 20px 0;
+            }
+            p {
+                margin-bottom: 16px;
+            }
+            </style>
+            </head>
+            <body>
+            $fixedContent
+            </body>
+            </html>
+            """.trimIndent()
+        }
+
+        ArticleHtmlView(html = fullHtml, modifier = Modifier.fillMaxWidth().weight(1f))
     }
+}
+
+@Composable
+private fun ArticleHtmlView(html: String, modifier: Modifier = Modifier) {
+    androidx.compose.ui.viewinterop.AndroidView(
+        factory = { context ->
+            android.webkit.WebView(context).apply {
+                layoutParams = android.view.ViewGroup.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                settings.javaScriptEnabled = false
+            }
+        },
+        update = { webView ->
+            webView.loadDataWithBaseURL("https://lichso.vn", html, "text/html", "UTF-8", null)
+        },
+        modifier = modifier
+    )
 }

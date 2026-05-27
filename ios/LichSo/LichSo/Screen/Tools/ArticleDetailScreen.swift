@@ -1,4 +1,5 @@
 import SwiftUI
+import WebKit
 
 struct ArticleDetailScreen: View {
     let articleId: String
@@ -93,80 +94,15 @@ struct ArticleDetailScreen: View {
     }
     
     private func articleContent(_ article: Article) -> some View {
-        ScrollView(.vertical, showsIndicators: true) {
-            VStack(alignment: .leading, spacing: 16) {
-                // Featured Image
-                if let imgUrlStr = article.featuredImage, let imgUrl = URL(string: imgUrlStr) {
-                    AsyncImage(url: imgUrl) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(height: 200)
-                                .clipped()
-                                .cornerRadius(12)
-                        case .failure:
-                            // Fallback silent block
-                            Color.clear.frame(height: 0)
-                        case .empty:
-                            ProgressView()
-                                .frame(height: 200)
-                                .frame(maxWidth: .infinity)
-                                .background(LSTheme.surfaceContainer)
-                                .cornerRadius(12)
-                        @unknown default:
-                            EmptyView()
-                        }
-                    }
-                }
-                
-                // Metadata: Category & Read Time
-                HStack(spacing: 8) {
-                    if let category = article.category {
-                        Text(category.name)
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(LSTheme.primary)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(LSTheme.primary.opacity(0.1))
-                            .cornerRadius(6)
-                    }
-                    
-                    if let readingTime = article.readingTime {
-                        Text("•  \(readingTime) phút đọc")
-                            .font(.system(size: 12))
-                            .foregroundColor(LSTheme.textTertiary)
-                    }
-                    
-                    Spacer()
-                }
-                
-                // Title
-                Text(article.title)
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(LSTheme.textPrimary)
-                    .lineSpacing(4)
-                
-                // Date
-                if let pubAt = article.publishedAt {
-                    Text("Đăng ngày: \(pubAt.prefix(10))")
-                        .font(.system(size: 12))
-                        .foregroundColor(LSTheme.textTertiary)
-                }
-                
-                Divider()
-                    .background(LSTheme.outlineVariant.opacity(0.5))
-                
-                // Content
-                Text(article.content ?? article.excerpt ?? "Không có nội dung bài viết.")
-                    .font(.system(size: 15))
-                    .foregroundColor(LSTheme.textSecondary)
-                    .lineSpacing(8)
-                    .multilineTextAlignment(.leading)
-            }
-            .padding(16)
-        }
+        HTMLWebView(
+            htmlContent: article.content ?? article.excerpt ?? "",
+            featuredImage: article.featuredImage,
+            title: article.title,
+            categoryName: article.category?.name,
+            readingTime: article.readingTime,
+            publishedAt: article.publishedAt
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     private func loadArticle() async {
@@ -180,6 +116,139 @@ struct ArticleDetailScreen: View {
             self.errorMessage = "Không thể tải chi tiết bài viết: \(error.localizedDescription)"
             self.isLoading = false
         }
+    }
+}
+
+// HTML WebView Wrapper for SwiftUI
+struct HTMLWebView: UIViewRepresentable {
+    let htmlContent: String
+    let featuredImage: String?
+    let title: String
+    let categoryName: String?
+    let readingTime: Int?
+    let publishedAt: String?
+
+    func makeUIView(context: Context) -> WKWebView {
+        let webView = WKWebView()
+        webView.backgroundColor = .clear
+        webView.isOpaque = false
+        return webView
+    }
+
+    func updateUIView(_ uiView: WKWebView, context: Context) {
+        let isDark = uiView.traitCollection.userInterfaceStyle == .dark
+        let textColor = isDark ? "#F0E8D0" : "#1C1B1F"
+        let subTextColor = isDark ? "#8A7E62" : "#857371"
+        let primaryColor = isDark ? "#EF5350" : "#B71C1C"
+        
+        var headerHtml = ""
+        if let imgUrlStr = featuredImage, let fullUrl = normalizeImageUrl(imgUrlStr) {
+            headerHtml += "<img class='featured' src='\(fullUrl)' />"
+        }
+        
+        headerHtml += "<h1>\(title)</h1>"
+        
+        headerHtml += "<div class='meta'>"
+        if let cat = categoryName {
+            headerHtml += "<span class='category'>\(cat)</span>"
+        }
+        if let read = readingTime {
+            headerHtml += "<span class='read-time'>• \(read) phút đọc</span>"
+        }
+        if let pub = publishedAt {
+            headerHtml += "<span class='date'>• Đăng ngày: \(pub.prefix(10))</span>"
+        }
+        headerHtml += "</div>"
+        
+        let styledHtml = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.7;
+            color: \(textColor);
+            background-color: transparent;
+            margin: 16px;
+            padding: 0;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: bold;
+            line-height: 1.3;
+            margin-top: 16px;
+            margin-bottom: 12px;
+        }
+        .meta {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            font-size: 13px;
+            color: \(subTextColor);
+            margin-bottom: 20px;
+            gap: 6px;
+        }
+        .category {
+            font-weight: bold;
+            color: \(primaryColor);
+            background-color: \(primaryColor)1E;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        .featured {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+        img:not(.featured) {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 12px 0;
+        }
+        hr {
+            border: 0;
+            border-top: 1px solid \(isDark ? "#5A4F42" : "#D8C2BF");
+            margin: 20px 0;
+        }
+        p {
+            margin-bottom: 16px;
+        }
+        </style>
+        </head>
+        <body>
+        \(headerHtml)
+        <hr>
+        \(htmlContent)
+        </body>
+        </html>
+        """
+        
+        let fixedHtml = fixContentImageUrls(styledHtml)
+        uiView.loadHTMLString(fixedHtml, baseURL: URL(string: "https://lichso.vn"))
+    }
+    
+    private func normalizeImageUrl(_ url: String) -> String? {
+        if url.hasPrefix("http://") || url.hasPrefix("https://") {
+            return url
+        }
+        let cleaned = url.hasPrefix("/") ? String(url.dropFirst()) : url
+        if cleaned.hasPrefix("api/uploads/") {
+            return "https://lichso.vn/" + cleaned
+        } else if cleaned.hasPrefix("uploads/") {
+            return "https://lichso.vn/api/" + cleaned
+        }
+        return "https://lichso.vn/" + cleaned
+    }
+    
+    private func fixContentImageUrls(_ html: String) -> String {
+        return html
+            .replacingOccurrences(of: "src=\"/uploads/", with: "src=\"https://lichso.vn/api/uploads/")
+            .replacingOccurrences(of: "src=\"/api/uploads/", with: "src=\"https://lichso.vn/api/uploads/")
     }
 }
 

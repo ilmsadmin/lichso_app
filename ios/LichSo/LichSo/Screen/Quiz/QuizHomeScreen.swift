@@ -8,14 +8,9 @@ struct iOSQuizCategory: Identifiable {
 }
 
 struct QuizHomeScreen: View {
-    @State private var dailyQuestionCount: Int = 10
-    @State private var categoryCounts: [String: Int] = [
-        "history_vn": 40,
-        "history_world": 35,
-        "culture": 30,
-        "geography": 25,
-        "general": 50
-    ]
+    @EnvironmentObject private var googleAuth: GoogleAuthService
+    @State private var dailyQuestionCount: Int?
+    @State private var categoryCounts: [String: Int] = [:]
     
     let categories = [
         iOSQuizCategory(id: "history_vn", label: "Lịch sử VN", icon: "book.fill", colors: [Color(hex: "8B0000"), Color(hex: "D32F2F")]),
@@ -29,6 +24,7 @@ struct QuizHomeScreen: View {
     @State private var selectedSessionType = "daily"
     @State private var selectedCategory: String? = nil
     @State private var showLeaderboard = false
+    @State private var showLogin = false
     
     var body: some View {
         NavigationStack {
@@ -36,26 +32,37 @@ struct QuizHomeScreen: View {
                 LSTheme.bg.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Custom App Bar
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Đố Vui")
                                 .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(LSTheme.textPrimary)
+                                .foregroundColor(.white)
                             Text("Thi đấu và tích điểm thưởng")
                                 .font(.system(size: 12))
-                                .foregroundColor(LSTheme.textTertiary)
+                                .foregroundColor(.white.opacity(0.78))
                         }
                         
                         Spacer()
                     }
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                    .padding(.top, 12)
+                    .padding(.bottom, 12)
+                    .background(
+                        LinearGradient(
+                            colors: [LSTheme.primary, LSTheme.deepRed],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     
                     ScrollView {
                         VStack(spacing: 16) {
                             // Daily Quiz Card
                             dailyQuizCard
+
+                            if !googleAuth.isSignedIn {
+                                quizLoginNudge
+                            }
                             
                             rulesCard
                             
@@ -79,7 +86,29 @@ struct QuizHomeScreen: View {
             .sheet(isPresented: $showLeaderboard) {
                 LeaderboardScreen()
             }
+            .fullScreenCover(isPresented: $showLogin) {
+                LoginScreen().environmentObject(googleAuth)
+            }
+            .task {
+                await loadOverview()
+            }
         }
+    }
+
+    private func loadOverview() async {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let today = formatter.string(from: Date())
+        async let daily = try? QuizService.shared.fetchDailyQuestions(date: today)
+        let loadedDaily = await daily
+        dailyQuestionCount = loadedDaily?.count
+
+        var counts: [String: Int] = [:]
+        for category in categories {
+            let questions = try? await QuizService.shared.fetchQuestions(category: category.id, limit: 50)
+            counts[category.id] = questions?.count ?? 0
+        }
+        categoryCounts = counts
     }
     
     private var dailyQuizCard: some View {
@@ -98,7 +127,7 @@ struct QuizHomeScreen: View {
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
                     }
-                    Text("\(dailyQuestionCount) câu • Hôm nay")
+                    Text("\(dailyQuestionCount ?? 15) câu • Hôm nay")
                         .font(.system(size: 12))
                         .foregroundColor(.white.opacity(0.8))
                     
@@ -202,7 +231,7 @@ struct QuizHomeScreen: View {
                             .foregroundColor(LSTheme.textPrimary)
                             .lineLimit(1)
                         
-                        Text("\(categoryCounts[cat.id] ?? 0) câu")
+                        Text(categoryCounts[cat.id].map { "\($0) câu" } ?? "Đang tải")
                             .font(.system(size: 10))
                             .foregroundColor(LSTheme.textSecondary)
                     }
@@ -260,5 +289,36 @@ struct QuizHomeScreen: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+    }
+
+    private var quizLoginNudge: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "person.crop.circle.badge.exclamationmark")
+                .font(.system(size: 20))
+                .foregroundColor(LSTheme.primary)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Đăng nhập để lưu điểm")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(LSTheme.textPrimary)
+                Text("Khi chưa đăng nhập, điểm quiz chỉ lưu tạm trên thiết bị.")
+                    .font(.system(size: 11))
+                    .foregroundColor(LSTheme.textSecondary)
+            }
+            Spacer()
+            Button("Đăng nhập") { showLogin = true }
+                .font(.system(size: 12, weight: .bold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(LSTheme.primary)
+                .foregroundColor(.white)
+                .cornerRadius(10)
+        }
+        .padding(12)
+        .background(LSTheme.surfaceContainer)
+        .cornerRadius(14)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(LSTheme.outlineVariant.opacity(0.3), lineWidth: 1)
+        )
     }
 }

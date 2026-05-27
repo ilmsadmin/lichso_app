@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import com.lichso.app.data.remote.*
 import com.lichso.app.ui.components.AppTopBar
 import com.lichso.app.ui.theme.LichSoThemeColors
@@ -348,6 +350,22 @@ private fun PersonCard(person: FamousPerson) {
 @Composable
 private fun ArticleCard(article: Article, onClick: () -> Unit = {}) {
     val c = LichSoThemeColors.current
+    val featuredImage = article.featuredImage
+    val normalizedUrl = remember(featuredImage) {
+        if (featuredImage.isNullOrBlank()) null
+        else if (featuredImage.startsWith("http://") || featuredImage.startsWith("https://")) featuredImage
+        else {
+            val cleaned = if (featuredImage.startsWith("/")) featuredImage.substring(1) else featuredImage
+            if (cleaned.startsWith("api/uploads/")) {
+                "https://lichso.vn/$cleaned"
+            } else if (cleaned.startsWith("uploads/")) {
+                "https://lichso.vn/api/$cleaned"
+            } else {
+                "https://lichso.vn/$cleaned"
+            }
+        }
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -360,19 +378,31 @@ private fun ArticleCard(article: Article, onClick: () -> Unit = {}) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(c.bg3),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                Icons.AutoMirrored.Filled.Article,
+        if (!normalizedUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = normalizedUrl,
                 contentDescription = null,
-                tint = c.textTertiary,
-                modifier = Modifier.size(28.dp),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(c.bg3)
             )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(c.bg3),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.Article,
+                    contentDescription = null,
+                    tint = c.textTertiary,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
         }
         Column(
             modifier = Modifier.weight(1f),

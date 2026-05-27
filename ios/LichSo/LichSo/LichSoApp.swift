@@ -10,6 +10,7 @@ struct LichSoApp: App {
     @AppStorage("setting_reminder_minute") private var reminderMinute = 0
     @AppStorage("setting_theme") private var themePreference: String = "Theo hệ thống"
     @StateObject private var appState = AppState()
+    @StateObject private var googleAuth = GoogleAuthService.shared
 
     /// Map setting string → UIKit interface style
     private var uiStyle: UIUserInterfaceStyle {
@@ -70,10 +71,13 @@ struct LichSoApp: App {
                 } else {
                     MainTabView()
                         .environmentObject(appState)
+                        .environmentObject(googleAuth)
                         .onAppear {
                             setupNotifications()
                             // Track app open as a lightweight happy action
                             SmartRatingManager.shared.recordHappyAction(weight: 1)
+                            // Attempt token refresh on launch
+                            Task { await googleAuth.refreshTokenIfNeeded() }
                         }
                 }
             }

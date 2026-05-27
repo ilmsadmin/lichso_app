@@ -29,7 +29,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideOkHttpClient(@ApplicationContext context: Context): OkHttpClient {
         val deviceName = listOfNotNull(Build.MANUFACTURER, Build.MODEL)
             .joinToString(" ")
             .replace(Regex("\\s+"), " ")
@@ -46,8 +46,26 @@ object AppModule {
                     .build()
             )
         }
+        
+        // Cache configuration: 50MB
+        val cacheSize = 50 * 1024 * 1024L
+        val cache = okhttp3.Cache(context.cacheDir, cacheSize)
+
+        // Interceptor to cache responses even if server has no cache headers (e.g. 7 days for articles)
+        val cacheInterceptor = Interceptor { chain ->
+            val response = chain.proceed(chain.request())
+            val cacheControl = okhttp3.CacheControl.Builder()
+                .maxAge(7, TimeUnit.DAYS)
+                .build()
+            response.newBuilder()
+                .header("Cache-Control", cacheControl.toString())
+                .build()
+        }
+
         return OkHttpClient.Builder()
+            .cache(cache)
             .addInterceptor(userAgentInterceptor)
+            .addNetworkInterceptor(cacheInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)

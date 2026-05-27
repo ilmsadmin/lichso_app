@@ -180,6 +180,7 @@ private struct FormHeader: View {
 
 private struct AvatarEditSection: View {
     @ObservedObject var viewModel: EditProfileViewModel
+    @AppStorage("profile_google_photo_url") private var googlePhotoURL = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -198,21 +199,21 @@ private struct AvatarEditSection: View {
                             .frame(width: 100, height: 100)
                             .clipShape(Circle())
                             .overlay(Circle().stroke(SurfaceContainer, lineWidth: 3))
+                    } else if !googlePhotoURL.isEmpty, let url = URL(string: googlePhotoURL) {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image.resizable().scaledToFill()
+                            default:
+                                avatarInitialsFallback
+                            }
+                        }
+                        .frame(width: 100, height: 100)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(SurfaceContainer, lineWidth: 3))
                     } else {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [PrimaryRed, DeepRed],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                        avatarInitialsFallback
                             .frame(width: 100, height: 100)
-                            .overlay(
-                                Text(viewModel.initials)
-                                    .font(.system(size: 36, weight: .bold, design: .serif))
-                                    .foregroundColor(.white)
-                            )
                             .overlay(Circle().stroke(SurfaceContainer, lineWidth: 3))
                     }
 
@@ -256,6 +257,22 @@ private struct AvatarEditSection: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.bottom, 28)
+    }
+
+    private var avatarInitialsFallback: some View {
+        Circle()
+            .fill(
+                LinearGradient(
+                    colors: [PrimaryRed, DeepRed],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay(
+                Text(viewModel.initials)
+                    .font(.system(size: 36, weight: .bold, design: .serif))
+                    .foregroundColor(.white)
+            )
     }
 }
 

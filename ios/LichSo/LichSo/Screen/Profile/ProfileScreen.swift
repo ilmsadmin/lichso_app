@@ -28,6 +28,7 @@ private var OutlineVariant: Color { LSTheme.outlineVariant }
 
 struct ProfileScreen: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var googleAuth: GoogleAuthService
     @State private var showEditProfile = false
     @State private var showSettings = false
     @State private var showSearch = false
@@ -37,6 +38,8 @@ struct ProfileScreen: View {
     @State private var showPickMember = false
     @State private var showAddBookmark = false
     @State private var showAbout = false
+    @State private var showLogin = false
+    @State private var showSignOutConfirm = false
     @State private var isBackingUp = false
     @State private var isRestoring = false
     @State private var showBackupSuccess = false
@@ -75,11 +78,12 @@ struct ProfileScreen: View {
                     ProfileHeader(
                         displayName: displayName,
                         avatarPath: avatarPath,
-                        birthYear: birthYear,
-                        gender: gender,
+                        isGoogleSignedIn: googleAuth.isSignedIn,
                         onSettings: { showSettings = true },
                         onEditProfile: { showEditProfile = true },
                         onFamilyTree: { showFamilyTree = true },
+                        onGoogleLogin: { showLogin = true },
+                        onGoogleSignOut: { showSignOutConfirm = true },
                         onDismiss: { dismiss() }
                     )
 
@@ -135,6 +139,9 @@ struct ProfileScreen: View {
         .ignoresSafeArea(edges: .top)
         .fullScreenCover(isPresented: $showEditProfile) { EditProfileScreen() }
         .fullScreenCover(isPresented: $showSettings)    { SettingsScreen() }
+        .fullScreenCover(isPresented: $showLogin) {
+            LoginScreen().environmentObject(googleAuth)
+        }
         .sheet(isPresented: $showNotifications) { NavigationStack { NotificationsScreen() } }
         .sheet(isPresented: $showSearch)        { NavigationStack { SearchScreen() } }
         .sheet(isPresented: $showFamilyTree) {
@@ -167,6 +174,12 @@ struct ProfileScreen: View {
             BackupDocumentPicker { url in
                 handleRestoreFile(url: url)
             }
+        }
+        .alert("Đăng xuất?", isPresented: $showSignOutConfirm) {
+            Button("Đăng xuất", role: .destructive) { googleAuth.signOut() }
+            Button("Huỷ", role: .cancel) {}
+        } message: {
+            Text("Bạn sẽ cần đăng nhập lại để đồng bộ dữ liệu và tham gia bảng xếp hạng.")
         }
         .alert("Sao lưu thành công", isPresented: $showBackupSuccess) {
             Button("OK", role: .cancel) {}
@@ -288,43 +301,13 @@ struct ProfileScreen: View {
 private struct ProfileHeader: View {
     let displayName: String
     let avatarPath: String
-    let birthYear: Int
-    let gender: String
+    let isGoogleSignedIn: Bool
     let onSettings: () -> Void
     let onEditProfile: () -> Void
     let onFamilyTree: () -> Void
+    let onGoogleLogin: () -> Void
+    let onGoogleSignOut: () -> Void
     var onDismiss: (() -> Void)? = nil
-
-    private var headerBirthInfo: (yearCanChi: String, menh: String)? {
-        guard birthYear > 0 else { return nil }
-        let canChi = CanChiCalculator.getYearCanChi(lunarYear: birthYear)
-        let napAmList = [
-            "Hải Trung Kim","Hải Trung Kim","Lư Trung Hỏa","Lư Trung Hỏa",
-            "Đại Lâm Mộc","Đại Lâm Mộc","Lộ Bàng Thổ","Lộ Bàng Thổ",
-            "Kiếm Phong Kim","Kiếm Phong Kim","Sơn Đầu Hỏa","Sơn Đầu Hỏa",
-            "Giản Hạ Thủy","Giản Hạ Thủy","Thành Đầu Thổ","Thành Đầu Thổ",
-            "Bạch Lạp Kim","Bạch Lạp Kim","Dương Liễu Mộc","Dương Liễu Mộc",
-            "Tuyền Trung Thủy","Tuyền Trung Thủy","Ốc Thượng Thổ","Ốc Thượng Thổ",
-            "Tích Lịch Hỏa","Tích Lịch Hỏa","Tùng Bách Mộc","Tùng Bách Mộc",
-            "Trường Lưu Thủy","Trường Lưu Thủy","Sa Trung Kim","Sa Trung Kim",
-            "Sơn Hạ Hỏa","Sơn Hạ Hỏa","Bình Địa Mộc","Bình Địa Mộc",
-            "Bích Thượng Thổ","Bích Thượng Thổ","Kim Bạch Kim","Kim Bạch Kim",
-            "Phúc Đăng Hỏa","Phúc Đăng Hỏa","Thiên Hà Thủy","Thiên Hà Thủy",
-            "Đại Dịch Thổ","Đại Dịch Thổ","Thoa Xuyến Kim","Thoa Xuyến Kim",
-            "Tang Đố Mộc","Tang Đố Mộc","Đại Khê Thủy","Đại Khê Thủy",
-            "Sa Trung Thổ","Sa Trung Thổ","Thiên Thượng Hỏa","Thiên Thượng Hỏa",
-            "Thạch Lựu Mộc","Thạch Lựu Mộc","Đại Hải Thủy","Đại Hải Thủy"
-        ]
-        let napIndex = ((birthYear - 4) % 60 + 60) % 60
-        let nguHanh = napIndex < napAmList.count ? napAmList[napIndex] : ""
-        var menh = ""
-        if nguHanh.contains("Kim")       { menh = "Kim" }
-        else if nguHanh.contains("Mộc")  { menh = "Mộc" }
-        else if nguHanh.contains("Thủy") { menh = "Thủy" }
-        else if nguHanh.contains("Hỏa")  { menh = "Hỏa" }
-        else if nguHanh.contains("Thổ")  { menh = "Thổ" }
-        return (canChi, menh)
-    }
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -374,14 +357,6 @@ private struct ProfileHeader: View {
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.white)
 
-                if let info = headerBirthInfo, !info.yearCanChi.isEmpty {
-                    HStack(spacing: 8) {
-                        ProfileMetaChip(icon: "🎂", text: "\(info.yearCanChi) \(birthYear)")
-                        ProfileMetaChip(icon: "⭐", text: "Mệnh \(info.menh)")
-                    }
-                    .padding(.top, 10)
-                }
-
                 Spacer().frame(height: 14)
 
                 HStack(spacing: 10) {
@@ -389,7 +364,48 @@ private struct ProfileHeader: View {
                     ProfileActionButton(icon: "person.3.fill", label: "Gia phả",   action: onFamilyTree)
                 }
 
-                Spacer().frame(height: 24)
+                HStack {
+                    if isGoogleSignedIn {
+                        Button(action: onGoogleSignOut) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text("Đã kết nối Google")
+                                    .font(.system(size: 12, weight: .semibold))
+                                Image(systemName: "rectangle.portrait.and.arrow.right")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.white.opacity(0.22))
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Button(action: onGoogleLogin) {
+                            HStack(spacing: 8) {
+                                GoogleLogoView().frame(width: 14, height: 14)
+                                Text("Đăng nhập Google")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(Color.white.opacity(0.2))
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color.white.opacity(0.35), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 10)
+
+                Spacer().frame(height: 20)
             }
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -399,21 +415,6 @@ private struct ProfileHeader: View {
         UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .first?.windows.first?.safeAreaInsets.top ?? 44
-    }
-}
-
-private struct ProfileMetaChip: View {
-    let icon: String
-    let text: String
-    var body: some View {
-        HStack(spacing: 5) {
-            Text(icon).font(.system(size: 13))
-            Text(text).font(.system(size: 12, weight: .medium)).foregroundColor(.white)
-        }
-        .padding(.horizontal, 12).padding(.vertical, 6)
-        .background(Color.white.opacity(0.2))
-        .clipShape(Capsule())
-        .overlay(Capsule().stroke(Color.white.opacity(0.3), lineWidth: 1))
     }
 }
 
@@ -444,6 +445,7 @@ struct AvatarView: View {
     let name: String
     let path: String
     let size: CGFloat
+    @AppStorage("profile_google_photo_url") private var googlePhotoURL = ""
 
     private var initials: String {
         let parts = name.trimmingCharacters(in: .whitespaces)
@@ -452,23 +454,52 @@ struct AvatarView: View {
         return parts.first ?? "?"
     }
 
+    private var resolvedPath: String? {
+        guard !path.isEmpty else { return nil }
+        let fm = FileManager.default
+        if path.contains("/Documents/avatars/") {
+            // Absolute legacy path, resolve to current Documents container
+            guard let docsDir = fm.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
+            let filename = URL(fileURLWithPath: path).lastPathComponent
+            return docsDir.appendingPathComponent("avatars").appendingPathComponent(filename).path
+        } else if !path.contains("/") {
+            // Relative path/filename
+            guard let docsDir = fm.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
+            return docsDir.appendingPathComponent("avatars").appendingPathComponent(path).path
+        }
+        return path
+    }
+
     var body: some View {
         Group {
-            if !path.isEmpty, FileManager.default.fileExists(atPath: path),
-               let img = UIImage(contentsOfFile: path) {
+            if let realPath = resolvedPath, FileManager.default.fileExists(atPath: realPath),
+               let img = UIImage(contentsOfFile: realPath) {
                 Image(uiImage: img).resizable().scaledToFill()
+            } else if !googlePhotoURL.isEmpty, let url = URL(string: googlePhotoURL) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    default:
+                        initialsFallback
+                    }
+                }
             } else {
-                LinearGradient(colors: [PrimaryRed, DeepRed],
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
-                    .overlay(
-                        Text(initials)
-                            .font(.system(size: size * 0.35, weight: .bold, design: .serif))
-                            .foregroundColor(.white)
-                    )
+                initialsFallback
             }
         }
         .frame(width: size, height: size)
         .clipShape(Circle())
+    }
+
+    private var initialsFallback: some View {
+        LinearGradient(colors: [PrimaryRed, DeepRed],
+                       startPoint: .topLeading, endPoint: .bottomTrailing)
+            .overlay(
+                Text(initials)
+                    .font(.system(size: size * 0.35, weight: .bold, design: .serif))
+                    .foregroundColor(.white)
+            )
     }
 }
 
@@ -1101,4 +1132,163 @@ private struct BackupDocumentPicker: UIViewControllerRepresentable {
             onPick(url)
         }
     }
+}
+
+// ══════════════════════════════════════════
+// GOOGLE ACCOUNT SECTION
+// ══════════════════════════════════════════
+
+private struct ProfileGoogleAccountSection: View {
+    let isSignedIn: Bool
+    let displayName: String
+    let email: String
+    let photoURL: String
+    let onLogin: () -> Void
+    let onSignOut: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Section header
+            HStack(spacing: 6) {
+                Image(systemName: "person.badge.key.fill")
+                    .font(.system(size: 13))
+                    .foregroundColor(PrimaryRed)
+                Text("Tài khoản")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(TextMain)
+            }
+
+            if isSignedIn {
+                // Signed-in card
+                VStack(spacing: 0) {
+                    HStack(spacing: 14) {
+                        // Avatar (remote or initials)
+                        Group {
+                            if !photoURL.isEmpty, let url = URL(string: photoURL) {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .success(let img):
+                                        img.resizable().scaledToFill()
+                                    default:
+                                        initialsView
+                                    }
+                                }
+                            } else {
+                                initialsView
+                            }
+                        }
+                        .frame(width: 44, height: 44)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(OutlineVariant.opacity(0.4), lineWidth: 1))
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(displayName.isEmpty ? "Người dùng" : displayName)
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(TextMain)
+                            if !email.isEmpty {
+                                Text(email)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(TextDim)
+                            }
+                            Label("Đã đăng nhập bằng Google", systemImage: "checkmark.seal.fill")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(Color(red: 0.15, green: 0.55, blue: 0.25))
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 14)
+
+                    Divider().padding(.leading, 74)
+
+                    // Sign out row
+                    Button(action: onSignOut) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .font(.system(size: 16))
+                                .foregroundColor(Color(red: 0.839, green: 0.153, blue: 0.157))
+                                .frame(width: 36, height: 36)
+                                .background(Color(red: 1, green: 0.922, blue: 0.933))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                            Text("Đăng xuất tài khoản")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(Color(red: 0.839, green: 0.153, blue: 0.157))
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(OutlineVariant)
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .background(SurfaceContainer)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(OutlineVariant.opacity(0.5), lineWidth: 1))
+
+            } else {
+                // Not signed in — show prompt card
+                VStack(spacing: 14) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "person.crop.circle.badge.questionmark")
+                            .font(.system(size: 28))
+                            .foregroundColor(TextDim)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Chưa đăng nhập")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(TextMain)
+                            Text("Đăng nhập để đồng bộ dữ liệu và\ntham gia bảng xếp hạng đố vui")
+                                .font(.system(size: 12))
+                                .foregroundColor(TextDim)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer()
+                    }
+
+                    Button(action: onLogin) {
+                        HStack(spacing: 10) {
+                            GoogleLogoView().frame(width: 18, height: 18)
+                            Text("Đăng nhập bằng Google")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.9, green: 0.18, blue: 0.18),
+                                    Color(red: 0.7, green: 0.05, blue: 0.05)
+                                ],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(16)
+                .background(SurfaceContainer)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(OutlineVariant.opacity(0.5), lineWidth: 1))
+            }
+        }
+    }
+
+    private var initialsView: some View {
+        let parts = displayName.trimmingCharacters(in: .whitespaces)
+            .split(separator: " ").compactMap { $0.first.map(String.init) }
+        let initials = parts.count >= 2 ? "\(parts.first!)\(parts.last!)" : (parts.first ?? "?")
+        return LinearGradient(colors: [PrimaryRed, DeepRed],
+                              startPoint: .topLeading, endPoint: .bottomTrailing)
+            .overlay(
+                Text(initials)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
+            )
+            .eraseToAnyView()
+    }
+}
+
+private extension View {
+    func eraseToAnyView() -> AnyView { AnyView(self) }
 }
