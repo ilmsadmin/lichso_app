@@ -113,7 +113,10 @@ struct ArticleDetailScreen: View {
             self.article = fetched
             self.isLoading = false
         } catch {
-            self.errorMessage = "Không thể tải chi tiết bài viết: \(error.localizedDescription)"
+            self.errorMessage = ApiErrorUX.userMessage(
+                from: error,
+                fallback: "Không thể tải chi tiết bài viết lúc này. Vui lòng thử lại."
+            )
             self.isLoading = false
         }
     }

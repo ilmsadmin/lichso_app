@@ -16,6 +16,7 @@ import com.lichso.app.feature.points.domain.ActionType
 import com.lichso.app.feature.points.domain.AwardPointsUseCase
 import com.lichso.app.ui.screen.settings.settingsDataStore
 import com.lichso.app.util.CanChiCalculator
+import com.lichso.app.util.ErrorMessageUtil
 import com.lichso.app.util.LunarCalendarUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -593,7 +594,7 @@ class ProfileViewModel @Inject constructor(
                 }
                 _uiState.update { it.copy(toastMessage = "Đã cập nhật ảnh đại diện") }
             } catch (e: Exception) {
-                _uiState.update { it.copy(toastMessage = "Không thể lưu ảnh: ${e.message}") }
+                _uiState.update { it.copy(toastMessage = "Không thể lưu ảnh: ${ErrorMessageUtil.friendlyMessage(e)}") }
             }
         }
     }
@@ -653,7 +654,7 @@ class ProfileViewModel @Inject constructor(
                 onSuccess = { _uiState.update { it.copy(isSigningIn = false, toastMessage = "Đăng nhập thành công") } },
                 onFailure = { e ->
                     if (e !is androidx.credentials.exceptions.GetCredentialCancellationException) {
-                        _uiState.update { it.copy(isSigningIn = false, toastMessage = "Đăng nhập thất bại: ${e.message}") }
+                        _uiState.update { it.copy(isSigningIn = false, toastMessage = "Đăng nhập thất bại: ${ErrorMessageUtil.friendlyMessage(e)}") }
                     } else {
                         _uiState.update { it.copy(isSigningIn = false) }
                     }
@@ -710,7 +711,7 @@ class ProfileViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isBackingUp = false,
-                        toastMessage = "Lỗi sao lưu: ${e.message}"
+                        toastMessage = "Lỗi sao lưu: ${ErrorMessageUtil.friendlyMessage(e)}"
                     )
                 }
             }
@@ -728,7 +729,7 @@ class ProfileViewModel @Inject constructor(
                 }
                 _uiState.update { it.copy(toastMessage = "✅ Đã sao lưu thành công!") }
             } catch (e: Exception) {
-                _uiState.update { it.copy(toastMessage = "Lỗi ghi file: ${e.message}") }
+                _uiState.update { it.copy(toastMessage = "Lỗi ghi file: ${ErrorMessageUtil.friendlyMessage(e)}") }
             }
         }
     }
@@ -756,7 +757,7 @@ class ProfileViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(toastMessage = "Không thể đọc file: ${e.message}") }
+                _uiState.update { it.copy(toastMessage = "Không thể đọc file: ${ErrorMessageUtil.friendlyMessage(e)}") }
             }
         }
     }
@@ -799,7 +800,7 @@ class ProfileViewModel @Inject constructor(
                     it.copy(
                         isRestoring = false,
                         pendingRestoreUri = null,
-                        toastMessage = "Lỗi phục hồi: ${e.message}"
+                        toastMessage = "Lỗi phục hồi: ${ErrorMessageUtil.friendlyMessage(e)}"
                     )
                 }
             }

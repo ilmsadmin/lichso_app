@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import com.lichso.app.data.settings.AppSettingsRepository
 import com.lichso.app.domain.model.CityCoordinates
+import com.lichso.app.util.ErrorMessageUtil
 import com.lichso.app.domain.model.WeatherInfo
 import com.lichso.app.widget.ClockWidget
 import com.lichso.app.widget.ClockWidget2
@@ -84,7 +85,7 @@ class WeatherRepository @Inject constructor(
                 if (fallback != null) {
                     _weatherState.value = WeatherState.Success(fallback)
                 } else {
-                    _weatherState.value = WeatherState.Error(error.message ?: "Lỗi không xác định")
+                    _weatherState.value = WeatherState.Error(ErrorMessageUtil.friendlyMessage(error, "Không thể tải thông tin thời tiết"))
                 }
             }
         )
@@ -108,7 +109,7 @@ class WeatherRepository @Inject constructor(
                 syncToWidgetCache(weather)
             },
             onFailure = { error ->
-                _weatherState.value = WeatherState.Error(error.message ?: "Lỗi")
+                _weatherState.value = WeatherState.Error(ErrorMessageUtil.friendlyMessage(error, "Không thể tải thông tin thời tiết"))
             }
         )
     }

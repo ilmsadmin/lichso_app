@@ -3,6 +3,7 @@ package com.lichso.app.feature.content
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lichso.app.data.remote.Article
+import com.lichso.app.util.ErrorMessageUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -35,7 +36,7 @@ class ArticleDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            error = exception.message ?: "Không thể tải chi tiết bài viết"
+                            error = ErrorMessageUtil.friendlyMessage(exception, "Không thể tải chi tiết bài viết")
                         )
                     }
                 }

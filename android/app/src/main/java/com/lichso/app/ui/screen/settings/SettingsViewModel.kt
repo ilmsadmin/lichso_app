@@ -10,6 +10,7 @@ import com.lichso.app.data.auth.AuthRepository
 import com.lichso.app.data.auth.UserInfo
 import com.lichso.app.analytics.Analytics
 import com.lichso.app.notification.NotificationScheduler
+import com.lichso.app.util.ErrorMessageUtil
 import com.lichso.app.widget.WidgetWeatherHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -142,7 +143,7 @@ class SettingsViewModel @Inject constructor(
                     _uiState.update { it.copy(isSigningIn = false, toastMessage = "Đăng nhập thành công") }
                 },
                 onFailure = { e ->
-                    _uiState.update { it.copy(isSigningIn = false, signInError = e.message) }
+                    _uiState.update { it.copy(isSigningIn = false, signInError = ErrorMessageUtil.friendlyMessage(e, "Đăng nhập thất bại, vui lòng thử lại")) }
                 }
             )
         }
