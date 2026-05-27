@@ -26,6 +26,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.Canvas
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -144,149 +146,16 @@ fun ProfileScreen(
             .fillMaxSize()
             .background(c.bg)
     ) {
-        // ═══ PROFILE HEADER (Red gradient) ═══
-        AppTopBar(
-            title = "Hồ sơ",
+        // ═══ PROFILE HEADER ═══
+        ProfileHeader(
+            state = state,
             onBackClick = onBackClick,
-            actions = {
-                HeaderIconButton(
-                    icon = Icons.Outlined.Settings,
-                    contentDescription = "Cài đặt",
-                    onClick = onSettingsClick
-                )
-            },
-            bottomContent = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Avatar with rank-colored gradient frame
-                    val pointsVm: com.lichso.app.feature.points.ui.PointsViewModel = hiltViewModel()
-                    val rankBalance by pointsVm.balance.collectAsState()
-                    val frameGradient = rankGradient(rankBalance.rank)
-                    Box(
-                        modifier = Modifier
-                            .size(82.dp)
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(frameGradient)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        AvatarImage(
-                            avatarPath = state.avatarPath,
-                            size = 72,
-                            borderColor = Color.White.copy(alpha = 0.3f),
-                            placeholderTint = Color.White.copy(alpha = 0.8f),
-                            bgColor = Color.White.copy(alpha = 0.15f),
-                            avatarUrl = state.authUser?.photoUrl,
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Rank label chip
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Color.White.copy(alpha = 0.18f))
-                            .padding(horizontal = 10.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            Icons.Filled.WorkspacePremium,
-                            contentDescription = null,
-                            tint = Color(0xFFFFD54F),
-                            modifier = Modifier.size(13.dp),
-                        )
-                        Text(
-                            rankBalance.rank.displayName,
-                            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White),
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        state.displayName,
-                        style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                    )
-
-                    // Meta chips — show only when birth info is available
-                    if (state.birthInfo.yearCanChi.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            MetaChip(icon = Icons.Filled.Cake, text = "${state.birthInfo.yearCanChi} ${state.birthYear}")
-                            MetaChip(icon = Icons.Filled.Stars, text = "Mệnh ${state.birthInfo.menh}")
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Edit profile & Family tree buttons
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
-                                .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
-                                .clip(RoundedCornerShape(20.dp))
-                                .clickable { viewModel.showEditProfile() }
-                                .padding(horizontal = 20.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(Icons.Filled.Edit, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Text("Sửa hồ sơ", style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White))
-                        }
-
-                        Row(
-                            modifier = Modifier
-                                .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
-                                .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
-                                .clip(RoundedCornerShape(20.dp))
-                                .clickable { onFamilyTreeClick() }
-                                .padding(horizontal = 20.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(Icons.Filled.AccountTree, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Text("Gia phả", style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White))
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // ── Points & Streak row ──
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        com.lichso.app.feature.points.ui.PointsPill(onClick = onLedgerClick)
-                        com.lichso.app.feature.points.ui.StreakBadge()
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Google account chip in header
-                    HeaderGoogleChip(
-                        authUser = state.authUser,
-                        isSigningIn = state.isSigningIn,
-                        onSignIn = { viewModel.signInWithGoogle(context) },
-                        onSignOut = { viewModel.showSignOutDialog() },
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-                }
-            }
+            onSettingsClick = onSettingsClick,
+            onFamilyTreeClick = onFamilyTreeClick,
+            onLedgerClick = onLedgerClick,
+            onEditClick = { viewModel.showEditProfile() },
+            onSignIn = { viewModel.signInWithGoogle(context) },
+            onSignOut = { viewModel.showSignOutDialog() },
         )
 
         // ═══ SCROLLABLE CONTENT ═══
@@ -864,6 +733,373 @@ private fun FormFieldLabel(icon: ImageVector, label: String) {
 }
 
 // ══════════════════════════════════════════
+// PROFILE HEADER — new design
+// ══════════════════════════════════════════
+
+@Composable
+private fun ProfileHeader(
+    state: ProfileUiState,
+    onBackClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onFamilyTreeClick: () -> Unit,
+    onLedgerClick: () -> Unit,
+    onEditClick: () -> Unit,
+    onSignIn: () -> Unit,
+    onSignOut: () -> Unit,
+) {
+    val c = LichSoThemeColors.current
+    val pointsVm: com.lichso.app.feature.points.ui.PointsViewModel = hiltViewModel()
+    val balance by pointsVm.balance.collectAsState()
+    val streak  by pointsVm.streak.collectAsState()
+
+    val redGradient = Brush.linearGradient(
+        colors = if (c.isDark)
+            listOf(Color(0xFF5D1212), Color(0xFF8B1A1A), Color(0xFF4A1010))
+        else
+            listOf(Color(0xFFCC2020), Color(0xFFB71C1C), Color(0xFF8B0000)),
+        start = Offset(0f, 0f),
+        end   = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(bottomStart = 36.dp, bottomEnd = 36.dp))
+            .background(redGradient)
+            .statusBarsPadding()
+    ) {
+        // ── Decorative translucent circles ──
+        Canvas(modifier = Modifier.matchParentSize()) {
+            drawCircle(Color.White.copy(alpha = 0.07f), 200.dp.toPx(),
+                Offset(size.width + 20.dp.toPx(), -10.dp.toPx()))
+            drawCircle(Color.White.copy(alpha = 0.05f), 150.dp.toPx(),
+                Offset(size.width, 180.dp.toPx()))
+            drawCircle(Color.White.copy(alpha = 0.09f),  8.dp.toPx(),
+                Offset(44.dp.toPx(), 170.dp.toPx()))
+            drawCircle(Color.White.copy(alpha = 0.06f),  5.dp.toPx(),
+                Offset(72.dp.toPx(), 210.dp.toPx()))
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // ── Top bar: ← | ⚙ ──
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp, bottom = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ProfileCircleBtn(
+                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDesc = "Quay lại",
+                    onClick = onBackClick
+                )
+                ProfileCircleBtn(
+                    icon = Icons.Outlined.Settings,
+                    contentDesc = "Cài đặt",
+                    onClick = onSettingsClick
+                )
+            }
+
+            // ── Avatar ──
+            Box(
+                modifier = Modifier
+                    .size(92.dp)
+                    .border(3.dp, Color.White.copy(alpha = 0.85f), CircleShape)
+                    .padding(3.dp)
+                    .clip(CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                AvatarImage(
+                    avatarPath = state.avatarPath,
+                    size = 86,
+                    borderColor   = Color.Transparent,
+                    placeholderTint = Color.White.copy(alpha = 0.85f),
+                    bgColor       = Color.White.copy(alpha = 0.15f),
+                    avatarUrl     = state.authUser?.photoUrl,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // ── Name + edit pencil ──
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    state.displayName,
+                    style = TextStyle(
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(Color.White.copy(alpha = 0.18f), CircleShape)
+                        .clip(CircleShape)
+                        .clickable { onEditClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.Edit,
+                        contentDescription = "Sửa hồ sơ",
+                        tint = Color.White,
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ── [Gia phả] | [Google chip] ──
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Gia phả button
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(24.dp))
+                        .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(24.dp))
+                        .clip(RoundedCornerShape(24.dp))
+                        .clickable { onFamilyTreeClick() }
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        Icons.Filled.AccountTree,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        "Gia phả",
+                        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                    )
+                }
+
+                // Google account chip
+                HeaderGoogleChip(
+                    modifier = Modifier.weight(1f),
+                    authUser = state.authUser,
+                    isSigningIn = state.isSigningIn,
+                    onSignIn = onSignIn,
+                    onSignOut = onSignOut,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // ── 3 Stat cards ──
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Card 1 — Điểm tích lũy
+                ProfileStatCard(
+                    modifier    = Modifier.weight(1f),
+                    iconContent = {
+                        Icon(
+                            Icons.Filled.Bolt,
+                            contentDescription = null,
+                            tint = Color(0xFFFFCA28),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    value   = formatPoints(balance.permanent),
+                    label   = "Tích lũy",
+                    bgBrush = null,
+                    onClick = onLedgerClick
+                )
+
+                // Card 2 — Danh hiệu
+                ProfileStatCard(
+                    modifier    = Modifier.weight(1f),
+                    iconContent = {
+                        Icon(
+                            Icons.Filled.WorkspacePremium,
+                            contentDescription = null,
+                            tint = Color(0xFFFFD54F),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    value  = balance.rank.displayName,
+                    label  = "Danh hiệu",
+                    bgBrush = null,
+                    onClick = onLedgerClick
+                )
+
+                // Card 3 — Streak (nổi bật màu cam)
+                val streakBg = Brush.linearGradient(
+                    listOf(Color(0xFFE65100), Color(0xFFBF360C)),
+                    start = Offset(0f, 0f),
+                    end   = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(streakBg)
+                        .clickable { }
+                        .padding(vertical = 10.dp, horizontal = 10.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.LocalFireDepartment,
+                                contentDescription = null,
+                                tint = Color(0xFFFFE082),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                "${streak.current}",
+                                style = TextStyle(
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            )
+                        }
+                        Text(
+                            streak.tier.displayName,
+                            style = TextStyle(
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.White.copy(alpha = 0.9f)
+                            )
+                        )
+                    }
+                    // Freeze token badge (top-right)
+                    if (streak.freezeTokens > 0) {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .background(Color.White.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 5.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Icon(
+                                Icons.Filled.Star,
+                                contentDescription = null,
+                                tint = Color(0xFFFFD54F),
+                                modifier = Modifier.size(10.dp)
+                            )
+                            Text(
+                                "${streak.freezeTokens}",
+                                style = TextStyle(
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(22.dp))
+        }
+    }
+}
+
+/** Format điểm: 1234 → "1.2K", 57 → "57" */
+private fun formatPoints(value: Long): String = when {
+    value >= 1_000_000 -> "%.1fM".format(value / 1_000_000.0).trimEnd('0').trimEnd('.')
+    value >= 1_000     -> "%.1fK".format(value / 1_000.0).trimEnd('0').trimEnd('.')
+    else               -> value.toString()
+}
+
+/** Nút tròn nhỏ dùng trong header */
+@Composable
+private fun ProfileCircleBtn(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDesc: String,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .background(Color.White.copy(alpha = 0.18f), CircleShape)
+            .clip(CircleShape)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, contentDescription = contentDesc, tint = Color.White, modifier = Modifier.size(20.dp))
+    }
+}
+
+/** Card thống kê nhỏ trong header (dùng cho Points & Rank) */
+@Composable
+private fun ProfileStatCard(
+    modifier: Modifier = Modifier,
+    iconContent: @Composable () -> Unit,
+    value: String,
+    label: String,
+    bgBrush: Brush?,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(bgBrush ?: Brush.linearGradient(
+                listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.08f))
+            ))
+            .clickable { onClick() }
+            .padding(vertical = 10.dp, horizontal = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            iconContent()
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(
+                value,
+                style = TextStyle(
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                label,
+                style = TextStyle(
+                    fontSize = 10.sp,
+                    color = Color.White.copy(alpha = 0.75f)
+                )
+            )
+        }
+    }
+}
+
+// ══════════════════════════════════════════
 // SIGN OUT CONFIRM DIALOG
 // ══════════════════════════════════════════
 // GOOGLE ACCOUNT CHIP — inside header (red bg)
@@ -871,6 +1107,7 @@ private fun FormFieldLabel(icon: ImageVector, label: String) {
 
 @Composable
 private fun HeaderGoogleChip(
+    modifier: Modifier = Modifier,
     authUser: com.lichso.app.data.auth.UserInfo?,
     isSigningIn: Boolean,
     onSignIn: () -> Unit,
@@ -880,11 +1117,12 @@ private fun HeaderGoogleChip(
         // Signed in: avatar + email + sign-out icon
         Row(
             modifier = Modifier
+                .then(modifier)
                 .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(24.dp))
                 .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(24.dp))
                 .clip(RoundedCornerShape(24.dp))
                 .clickable { onSignOut() }
-                .padding(horizontal = 10.dp, vertical = 6.dp),
+                .padding(horizontal = 10.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(7.dp),
         ) {
@@ -908,9 +1146,11 @@ private fun HeaderGoogleChip(
                 }
             }
             Text(
-                authUser.email,
+                compactEmail(authUser.email),
                 style = TextStyle(fontSize = 12.sp, color = Color.White.copy(alpha = 0.9f)),
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
             )
             Icon(
                 Icons.AutoMirrored.Filled.Logout,
@@ -923,13 +1163,14 @@ private fun HeaderGoogleChip(
         // Not signed in: simple pill button
         Row(
             modifier = Modifier
+                .then(modifier)
                 .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(24.dp))
                 .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(24.dp))
                 .clip(RoundedCornerShape(24.dp))
                 .clickable(enabled = !isSigningIn, onClick = onSignIn)
-                .padding(horizontal = 16.dp, vertical = 7.dp),
+                .padding(horizontal = 10.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            horizontalArrangement = Arrangement.Center,
         ) {
             if (isSigningIn) {
                 CircularProgressIndicator(
@@ -937,13 +1178,31 @@ private fun HeaderGoogleChip(
                     strokeWidth = 2.dp,
                     color = Color.White,
                 )
-                Text("Đang đăng nhập...", style = TextStyle(fontSize = 13.sp, color = Color.White.copy(alpha = 0.9f)))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Đang đăng nhập...", style = TextStyle(fontSize = 12.sp, color = Color.White.copy(alpha = 0.9f)))
             } else {
                 Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                Text("Đăng nhập với Google", style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color.White))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    "Đăng nhập",
+                    style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.White),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }
+}
+
+private fun compactEmail(email: String): String {
+    val parts = email.split("@", limit = 2)
+    if (parts.size != 2) return email
+    val local = parts[0]
+    val domain = parts[1]
+    val domainMain = domain.substringBefore(".")
+    val localShort = if (local.length <= 4) local else local.take(4)
+    val domainShort = if (domainMain.length <= 5) domainMain else domainMain.take(5)
+    return "${localShort}..@${domainShort}..."
 }
 
 // ══════════════════════════════════════════
