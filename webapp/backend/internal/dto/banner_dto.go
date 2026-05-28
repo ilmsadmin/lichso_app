@@ -11,7 +11,10 @@ type CreateBannerRequest struct {
 	Title     string     `json:"title" validate:"required,max=255"`
 	Subtitle  string     `json:"subtitle"`
 	ImageURL  string     `json:"image_url" validate:"omitempty,max=500"`
+	IconURL   string     `json:"icon_url" validate:"omitempty,max=500"`
+	IconKey   string     `json:"icon_key" validate:"omitempty,max=60"`
 	CtaText   string     `json:"cta_text" validate:"omitempty,max=100"`
+	CtaType   string     `json:"cta_type" validate:"omitempty,oneof=route url"`
 	CtaRoute  string     `json:"cta_route" validate:"omitempty,max=255"`
 	BgColor   string     `json:"bg_color" validate:"omitempty,max=20"`
 	Type      string     `json:"type" validate:"omitempty,max=50"`
@@ -26,7 +29,10 @@ type UpdateBannerRequest struct {
 	Title     *string    `json:"title" validate:"omitempty,max=255"`
 	Subtitle  *string    `json:"subtitle"`
 	ImageURL  *string    `json:"image_url" validate:"omitempty,max=500"`
+	IconURL   *string    `json:"icon_url" validate:"omitempty,max=500"`
+	IconKey   *string    `json:"icon_key" validate:"omitempty,max=60"`
 	CtaText   *string    `json:"cta_text" validate:"omitempty,max=100"`
+	CtaType   *string    `json:"cta_type" validate:"omitempty,oneof=route url"`
 	CtaRoute  *string    `json:"cta_route" validate:"omitempty,max=255"`
 	BgColor   *string    `json:"bg_color" validate:"omitempty,max=20"`
 	Type      *string    `json:"type" validate:"omitempty,max=50"`
@@ -42,7 +48,10 @@ type BannerResponse struct {
 	Title     string  `json:"title"`
 	Subtitle  string  `json:"subtitle,omitempty"`
 	ImageURL  string  `json:"image_url,omitempty"`
+	IconURL   string  `json:"icon_url,omitempty"`
+	IconKey   string  `json:"icon_key,omitempty"`
 	CtaText   string  `json:"cta_text,omitempty"`
+	CtaType   string  `json:"cta_type,omitempty"`
 	CtaRoute  string  `json:"cta_route,omitempty"`
 	BgColor   string  `json:"bg_color,omitempty"`
 	Type      string  `json:"type"`

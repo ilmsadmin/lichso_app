@@ -28,10 +28,9 @@ import java.util.Calendar
  *    [rescheduleAll] để dựng lại toàn bộ chuỗi alarm — nếu OEM có drop
  *    alarm nào thì lần fire kế tiếp sẽ tự khôi phục.
  *
- * 4 loại system notification (định kỳ):
- *  - DAILY        : Tóm tắt ngày mới (giờ user cấu hình, mặc định 07:00)
- *  - WEATHER      : Thời tiết buổi sáng (cố định 07:00)
- *  - GIO_DAI_CAT  : Giờ Hoàng Đạo (cùng giờ với DAILY, chỉ fire khi bật)
+ * System notification định kỳ:
+ *  - DAILY        : Chào buổi sáng tổng hợp thời tiết + ngày + giờ hoàng đạo
+ *                   (giờ user cấu hình, mặc định 07:00)
  *  - FESTIVAL     : Nhắc ngày lễ ngày mai (20:00)
  *  - AI_TUVI      : Gợi ý AI Tử Vi tối (21:00)
  *
@@ -75,16 +74,16 @@ object NotificationScheduler {
     suspend fun rescheduleAll(context: Context) {
         val prefs = context.safeSettingsData.first()
         val notifyEnabled = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
-        val gioDaiCatEnabled = prefs[SettingsKeys.GIO_DAI_CAT] ?: false
         val festivalEnabled = prefs[SettingsKeys.FESTIVAL_REMINDER] ?: true
         val hour = prefs[SettingsKeys.REMINDER_HOUR] ?: 7
         val minute = prefs[SettingsKeys.REMINDER_MINUTE] ?: 0
 
         if (notifyEnabled) {
             scheduleDailyAt(context, hour, minute)
-            scheduleWeatherMorning(context)
+            // Morning weather and auspicious-hour content is now merged into DAILY.
+            cancelWeatherMorning(context)
+            cancelGioDaiCat(context)
             scheduleAiTuVi(context)
-            if (gioDaiCatEnabled) scheduleGioDaiCat(context, hour, minute) else cancelGioDaiCat(context)
             if (festivalEnabled) scheduleFestival(context) else cancelFestival(context)
         } else {
             cancelDaily(context)

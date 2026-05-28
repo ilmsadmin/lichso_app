@@ -7,6 +7,7 @@ import javax.inject.Singleton
 @Singleton
 class ContentRepository @Inject constructor(private val api: LichSoApi) {
     suspend fun getBanners(): Result<List<Banner>> = api.getBanners()
+    suspend fun getPopups(): Result<List<Popup>> = api.getPopups()
     suspend fun getTodayContent(): Result<DayContentResponse> = api.getTodayContent()
     suspend fun getEventsByDate(month: Int, day: Int): Result<List<ContentEvent>> = api.getEventsByDate(month, day)
     suspend fun getFamousPeopleByBirthday(month: Int, day: Int): Result<List<FamousPerson>> = api.getFamousPeopleByBirthday(month, day)

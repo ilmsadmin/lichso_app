@@ -59,7 +59,10 @@ private val DEFAULT_BANNERS = listOf(
         title = "Xem ngày tốt hôm nay",
         subtitle = "Gợi ý việc nên làm và giờ đẹp trong ngày",
         imageUrl = null,
+        iconUrl = null,
+        iconKey = "sun",
         ctaText = "Xem ngay",
+        ctaType = "route",
         ctaRoute = "gooddays",
         bgColor = null,
         type = "feature",
@@ -69,7 +72,10 @@ private val DEFAULT_BANNERS = listOf(
         title = "Khám phá kiến thức lịch sử",
         subtitle = "Bài viết hay về văn hóa và truyền thống Việt Nam",
         imageUrl = null,
+        iconUrl = null,
+        iconKey = "article",
         ctaText = "Đọc ngay",
+        ctaType = "route",
         ctaRoute = "knowledge_feed",
         bgColor = null,
         type = "content",
@@ -79,7 +85,10 @@ private val DEFAULT_BANNERS = listOf(
         title = "Đố vui lịch sử",
         subtitle = "Thử thách kiến thức với hàng trăm câu hỏi thú vị",
         imageUrl = null,
+        iconUrl = null,
+        iconKey = "quiz",
         ctaText = "Chơi ngay",
+        ctaType = "route",
         ctaRoute = "quiz_home",
         bgColor = null,
         type = "quiz",
@@ -89,7 +98,10 @@ private val DEFAULT_BANNERS = listOf(
         title = "Tử vi & Phong thuỷ AI",
         subtitle = "Giải đáp mọi thắc mắc về phong thuỷ, vận mệnh",
         imageUrl = null,
+        iconUrl = null,
+        iconKey = "ai",
         ctaText = "Hỏi AI",
+        ctaType = "route",
         ctaRoute = "chat",
         bgColor = null,
         type = "ai",
@@ -524,6 +536,54 @@ private fun BannerCarousel(
 // BANNER CARD
 // ══════════════════════════════════════════
 
+private fun normalizeServerMediaUrl(rawUrl: String?): String? {
+    val value = rawUrl?.trim().orEmpty()
+    if (value.isBlank()) return null
+    if (value.startsWith("http://") || value.startsWith("https://")) return value
+
+    val cleaned = value.removePrefix("/")
+    return when {
+        cleaned.startsWith("api/uploads/") -> "https://lichso.vn/$cleaned"
+        cleaned.startsWith("uploads/") -> "https://lichso.vn/api/$cleaned"
+        else -> "https://lichso.vn/$cleaned"
+    }
+}
+
+private fun bannerPresetIcon(
+    iconKey: String?,
+    bannerType: String?
+): androidx.compose.ui.graphics.vector.ImageVector {
+    return when (iconKey) {
+        "calendar" -> Icons.Filled.CalendarMonth
+        "article" -> Icons.Filled.MenuBook
+        "quiz" -> Icons.Filled.Psychology
+        "ai" -> Icons.Filled.AutoAwesome
+        "gift" -> Icons.Filled.Redeem
+        "star" -> Icons.Filled.Star
+        "sun" -> Icons.Filled.WbSunny
+        "moon" -> Icons.Filled.NightsStay
+        "clock" -> Icons.Filled.Schedule
+        "compass" -> Icons.Filled.Explore
+        "scroll" -> Icons.Filled.Article
+        "bell" -> Icons.Filled.Notifications
+        "trophy" -> Icons.Filled.EmojiEvents
+        "users" -> Icons.Filled.Groups
+        "heart" -> Icons.Filled.Favorite
+        "home" -> Icons.Filled.Home
+        "shop" -> Icons.Filled.ShoppingBag
+        "wallet" -> Icons.Filled.AccountBalanceWallet
+        "map" -> Icons.Filled.Place
+        "shield" -> Icons.Filled.VerifiedUser
+        else -> when (bannerType) {
+            "content" -> Icons.Filled.MenuBook
+            "quiz" -> Icons.Filled.Psychology
+            "ai" -> Icons.Filled.AutoAwesome
+            "promo" -> Icons.Filled.LocalOffer
+            else -> Icons.Filled.Today
+        }
+    }
+}
+
 @Composable
 private fun BannerCard(
     banner: Banner,
@@ -554,22 +614,8 @@ private fun BannerCard(
         }
     }
 
-    // Chuẩn hóa đường dẫn ảnh từ server
-    val normalizedImageUrl = remember(banner.imageUrl) {
-        val img = banner.imageUrl
-        if (img.isNullOrBlank()) null
-        else if (img.startsWith("http://") || img.startsWith("https://")) img
-        else {
-            val cleaned = if (img.startsWith("/")) img.substring(1) else img
-            if (cleaned.startsWith("api/uploads/")) {
-                "https://lichso.vn/$cleaned"
-            } else if (cleaned.startsWith("uploads/")) {
-                "https://lichso.vn/api/$cleaned"
-            } else {
-                "https://lichso.vn/$cleaned"
-            }
-        }
-    }
+    val normalizedImageUrl = remember(banner.imageUrl) { normalizeServerMediaUrl(banner.imageUrl) }
+    val normalizedIconUrl = remember(banner.iconUrl) { normalizeServerMediaUrl(banner.iconUrl) }
 
     Box(
         modifier = Modifier
@@ -593,7 +639,20 @@ private fun BannerCard(
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp)),
-                alpha = 0.3f,
+                alpha = 0.9f,
+            )
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color.Black.copy(alpha = 0.48f),
+                                Color.Black.copy(alpha = 0.28f),
+                                Color.Black.copy(alpha = 0.12f),
+                            )
+                        )
+                    )
             )
         }
 
@@ -614,13 +673,18 @@ private fun BannerCard(
                     .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                val icon = when (banner.type) {
-                    "content" -> Icons.Filled.Article
-                    "quiz"    -> Icons.Filled.Quiz
-                    "ai"      -> Icons.Filled.AutoAwesome
-                    else      -> Icons.Filled.Today
+                val icon = bannerPresetIcon(banner.iconKey, banner.type)
+                if (!normalizedIconUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(normalizedIconUrl).crossfade(true).build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(28.dp),
+                    )
+                } else {
+                    Icon(icon, null, tint = Color.White, modifier = Modifier.size(22.dp))
                 }
-                Icon(icon, null, tint = Color.White, modifier = Modifier.size(22.dp))
             }
 
             Spacer(modifier = Modifier.width(12.dp))

@@ -24,6 +24,7 @@ import androidx.compose.ui.res.painterResource
 import com.lichso.app.R
 import com.lichso.app.domain.model.CityCoordinates
 import com.lichso.app.domain.model.WeatherInfo
+import com.lichso.app.domain.model.DailyForecast
 import com.lichso.app.ui.theme.LichSoThemeColors
 
 /**
@@ -209,6 +210,92 @@ fun WeatherDetailSheet(
                     value = weather.uvIndex?.let { "%.1f".format(it) } ?: "N/A",
                     color = Color(0xFFFFB74D)
                 )
+            }
+
+            if (weather.forecast.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Text(
+                    text = "Dự báo 7 ngày tới",
+                    style = TextStyle(
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = c.textPrimary
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Start
+                )
+                
+                Spacer(modifier = Modifier.height(10.dp))
+                
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(c.surfaceContainer, RoundedCornerShape(16.dp))
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    weather.forecast.forEachIndexed { index, forecastItem ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            // Thứ, Ngày
+                            Text(
+                                text = forecastItem.date,
+                                style = TextStyle(
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = c.textPrimary
+                                ),
+                                modifier = Modifier.width(70.dp)
+                            )
+                            
+                            // Icon + Mô tả thời tiết
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Start
+                            ) {
+                                Text(
+                                    text = forecastItem.icon,
+                                    style = TextStyle(fontSize = 16.sp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = forecastItem.description,
+                                    style = TextStyle(
+                                        fontSize = 12.sp,
+                                        color = c.textSecondary
+                                    )
+                                )
+                            }
+                            
+                            // Min - Max Temp
+                            val maxTempFormatted = formatTemp(forecastItem.tempMax)
+                            val minTempFormatted = formatTemp(forecastItem.tempMin)
+                            Text(
+                                text = "$minTempFormatted / $maxTempFormatted",
+                                style = TextStyle(
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = c.textPrimary
+                                ),
+                                textAlign = TextAlign.End,
+                                modifier = Modifier.width(80.dp)
+                            )
+                        }
+                        if (index < weather.forecast.size - 1) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(0.5.dp)
+                                    .background(c.outlineVariant.copy(alpha = 0.5f))
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))

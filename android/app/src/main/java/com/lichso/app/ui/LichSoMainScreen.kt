@@ -61,6 +61,13 @@ import com.lichso.app.feature.points.ui.RankUpDialog
 import com.lichso.app.feature.points.ui.DailyOracleDialog
 import com.lichso.app.feature.points.domain.ActionType
 import com.lichso.app.feature.points.domain.Clock as PointsClock
+import com.lichso.app.data.remote.Popup
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,6 +92,23 @@ fun LichSoMainScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    fun handleBannerAction(target: String) {
+        val route = target.trim()
+        if (route.isBlank()) return
+        if (route.startsWith("http://") || route.startsWith("https://")) {
+            runCatching {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(route)))
+            }
+            return
+        }
+        when (route) {
+            "chat" -> {
+                initialAiMessage = null
+                currentRoute = "chat"
+            }
+            else -> currentRoute = route
+        }
+    }
 
     // Phase 4 — redeem streak-freeze gift từ deep link (1 lần duy nhất / token)
     LaunchedEffect(giftToken) {
@@ -233,15 +257,7 @@ fun LichSoMainScreen(
                     onFortuneCardShown = {
                         pointsViewModel.award(ActionType.VIEW_FORTUNE_CARD)
                     },
-                    onBannerAction = { route ->
-                        when (route) {
-                            "chat" -> {
-                                initialAiMessage = null
-                                currentRoute = "chat"
-                            }
-                            else -> currentRoute = route
-                        }
-                    },
+                    onBannerAction = { route -> handleBannerAction(route) },
                 )
                 "calendar" -> CalendarScreen(
                     onGoodDaysClick = { currentRoute = "gooddays" },
@@ -529,12 +545,7 @@ fun LichSoMainScreen(
                     onProfileClick = { currentRoute = "profile" },
                     onHistoryClick = { currentRoute = "history" },
                     onNotificationClick = { currentRoute = "notifications" },
-                    onBannerAction = { route ->
-                        when (route) {
-                            "chat" -> { initialAiMessage = null; currentRoute = "chat" }
-                            else   -> currentRoute = route
-                        }
-                    },
+                    onBannerAction = { route -> handleBannerAction(route) },
                 )
             }
         }
@@ -565,6 +576,112 @@ fun LichSoMainScreen(
                 )
                 .padding(horizontal = 12.dp)
         )
+
+        // ── Drag-and-Drop Popups Overlay ──
+        val activePopups by homeViewModel.popups.collectAsState()
+        val dismissedPopupIds = remember { mutableStateListOf<String>() }
+        val currentPopup = activePopups.firstOrNull { it.id !in dismissedPopupIds }
+
+        if (currentPopup != null) {
+            var offsetX by remember(currentPopup.id) { mutableStateOf(0f) }
+            var offsetY by remember(currentPopup.id) { mutableStateOf(0f) }
+            var totalDragDistance by remember(currentPopup.id) { mutableStateOf(0f) }
+
+            Box(
+                modifier = Modifier
+                    .wrapContentSize()
+                    .align(
+                        when (currentPopup.position) {
+                            "top_left" -> Alignment.TopStart
+                            "top_right" -> Alignment.TopEnd
+                            "bottom_left" -> Alignment.BottomStart
+                            "bottom_right" -> Alignment.BottomEnd
+                            "center_left" -> Alignment.CenterStart
+                            "center_right" -> Alignment.CenterEnd
+                            else -> Alignment.Center
+                        }
+                    )
+                    .padding(
+                        when (currentPopup.position) {
+                            "top_left" -> PaddingValues(top = 96.dp, start = 16.dp)
+                            "top_right" -> PaddingValues(top = 96.dp, end = 16.dp)
+                            "bottom_left" -> PaddingValues(bottom = 96.dp, start = 16.dp)
+                            "bottom_right" -> PaddingValues(bottom = 96.dp, end = 16.dp)
+                            "center_left" -> PaddingValues(start = 16.dp)
+                            "center_right" -> PaddingValues(end = 16.dp)
+                            else -> PaddingValues(16.dp)
+                        }
+                    )
+                    .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
+            ) {
+                // Popup Image (draggable and clickable)
+                AsyncImage(
+                    model = normalizeServerMediaUrl(currentPopup.imageUrl),
+                    contentDescription = currentPopup.title,
+                    modifier = Modifier
+                        .widthIn(max = 90.dp)
+                        .heightIn(max = 90.dp)
+                        .pointerInput(currentPopup.id) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val down = awaitFirstDown(requireUnconsumed = false)
+                                    var pointerId = down.id
+                                    var totalDragX = 0f
+                                    var totalDragY = 0f
+                                    var isDrag = false
+
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        val dragEvent = event.changes.firstOrNull { it.id == pointerId }
+                                        if (dragEvent == null) {
+                                            break
+                                        }
+                                        if (!dragEvent.pressed) {
+                                            // Finger released
+                                            if (!isDrag) {
+                                                handleBannerAction(currentPopup.ctaRoute ?: "")
+                                            }
+                                            break
+                                        }
+
+                                        val positionChange = dragEvent.position - dragEvent.previousPosition
+                                        totalDragX += positionChange.x
+                                        totalDragY += positionChange.y
+
+                                        if (!isDrag && (totalDragX * totalDragX + totalDragY * totalDragY > viewConfiguration.touchSlop * viewConfiguration.touchSlop)) {
+                                            isDrag = true
+                                        }
+
+                                        if (isDrag) {
+                                            dragEvent.consume()
+                                            offsetX += positionChange.x
+                                            offsetY += positionChange.y
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                )
+
+                // Close Button - placed inside the popup image layer
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .align(Alignment.TopEnd)
+                        .offset(x = (-8).dp, y = 8.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                        .clickable { dismissedPopupIds.add(currentPopup.id) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Đóng",
+                        tint = Color.White,
+                        modifier = Modifier.size(9.dp)
+                    )
+                }
+            }
+        }
     }
     } // end ModalNavigationDrawer
 }
@@ -1117,5 +1234,18 @@ private fun BottomNavBar(
                 )
             )
         }
+    }
+}
+
+private fun normalizeServerMediaUrl(rawUrl: String?): String? {
+    val value = rawUrl?.trim().orEmpty()
+    if (value.isBlank()) return null
+    if (value.startsWith("http://") || value.startsWith("https://")) return value
+
+    val cleaned = value.removePrefix("/")
+    return when {
+        cleaned.startsWith("api/uploads/") -> "https://lichso.vn/$cleaned"
+        cleaned.startsWith("uploads/") -> "https://lichso.vn/api/$cleaned"
+        else -> "https://lichso.vn/$cleaned"
     }
 }

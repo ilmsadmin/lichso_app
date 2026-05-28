@@ -116,6 +116,12 @@ const navItems: NavItem[] = [
     icon: Megaphone,
     permission: "content.read",
   },
+  {
+    label: "Popups",
+    href: ROUTES.ADMIN_POPUPS,
+    icon: Layers3,
+    permission: "content.read",
+  },
   // System Management
   {
     label: "Users",

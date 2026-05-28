@@ -30,12 +30,18 @@ func (s *BannerService) Create(req *dto.CreateBannerRequest) (*dto.BannerRespons
 		Title:    req.Title,
 		Subtitle: req.Subtitle,
 		ImageURL: req.ImageURL,
+		IconURL:  req.IconURL,
+		IconKey:  req.IconKey,
 		CtaText:  req.CtaText,
+		CtaType:  req.CtaType,
 		CtaRoute: req.CtaRoute,
 		BgColor:  req.BgColor,
 		Type:     req.Type,
 	}
 
+	if banner.CtaType == "" {
+		banner.CtaType = "route"
+	}
 	if banner.Type == "" {
 		banner.Type = "feature"
 	}
@@ -128,8 +134,17 @@ func (s *BannerService) Update(id uuid.UUID, req *dto.UpdateBannerRequest) (*dto
 	if req.ImageURL != nil {
 		banner.ImageURL = *req.ImageURL
 	}
+	if req.IconURL != nil {
+		banner.IconURL = *req.IconURL
+	}
+	if req.IconKey != nil {
+		banner.IconKey = *req.IconKey
+	}
 	if req.CtaText != nil {
 		banner.CtaText = *req.CtaText
+	}
+	if req.CtaType != nil {
+		banner.CtaType = *req.CtaType
 	}
 	if req.CtaRoute != nil {
 		banner.CtaRoute = *req.CtaRoute
@@ -210,7 +225,10 @@ func toBannerResponse(b *models.Banner) *dto.BannerResponse {
 		Title:     b.Title,
 		Subtitle:  b.Subtitle,
 		ImageURL:  b.ImageURL,
+		IconURL:   b.IconURL,
+		IconKey:   b.IconKey,
 		CtaText:   b.CtaText,
+		CtaType:   b.CtaType,
 		CtaRoute:  b.CtaRoute,
 		BgColor:   b.BgColor,
 		Type:      b.Type,

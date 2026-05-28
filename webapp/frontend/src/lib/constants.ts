@@ -69,6 +69,7 @@ export const ROUTES = {
   // Mobile App Management
   ADMIN_QUIZ: "/admin/quiz",
   ADMIN_BANNERS: "/admin/banners",
+  ADMIN_POPUPS: "/admin/popups",
   // V4 AI Management
   ADMIN_AI_ARTICLES: "/admin/ai-articles",
   ADMIN_AI_DASHBOARD: "/admin/ai-dashboard",

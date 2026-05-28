@@ -185,7 +185,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             NotificationScheduler.applySettingsChange(context)
             _uiState.update {
-                it.copy(toastMessage = if (value) "Sẽ nhận thông báo giờ hoàng đạo mỗi ngày" else "Đã tắt thông báo giờ hoàng đạo")
+                it.copy(toastMessage = if (value) "Đã bật đánh dấu ngày tốt/xấu" else "Đã tắt đánh dấu ngày tốt/xấu")
             }
         }
     }

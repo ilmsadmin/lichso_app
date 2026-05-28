@@ -6,6 +6,7 @@ import com.lichso.app.data.local.dao.CountdownEventDao
 import com.lichso.app.data.local.dao.NotificationDao
 import com.lichso.app.data.remote.Article
 import com.lichso.app.data.remote.Banner
+import com.lichso.app.data.remote.Popup
 import com.lichso.app.data.remote.WeatherRepository
 import com.lichso.app.data.remote.WeatherState
 import com.lichso.app.data.settings.AppSettingsRepository
@@ -71,6 +72,10 @@ class HomeViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+    
+    private val _popups = MutableStateFlow<List<Popup>>(emptyList())
+    val popups: StateFlow<List<Popup>> = _popups.asStateFlow()
+
     private var articlePool: List<Article> = emptyList()
 
     init {
@@ -155,6 +160,8 @@ class HomeViewModel @Inject constructor(
         loadFeaturedArticlePool()
         // Tải banner từ server
         loadBanners()
+        // Tải popup từ server
+        loadPopups()
     }
 
     private fun loadCurrentDate() {
@@ -278,6 +285,19 @@ class HomeViewModel @Inject constructor(
                 }
                 .onFailure {
                     _uiState.update { it.copy(banners = emptyList()) }
+                }
+        }
+    }
+
+    private fun loadPopups() {
+        viewModelScope.launch {
+            contentRepository.getPopups()
+                .onSuccess { list ->
+                    val active = list.filter { it.active }
+                    _popups.update { active }
+                }
+                .onFailure {
+                    _popups.update { emptyList() }
                 }
         }
     }

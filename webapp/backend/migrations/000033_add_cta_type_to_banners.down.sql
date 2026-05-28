@@ -1,0 +1,3 @@
+ALTER TABLE banners
+DROP COLUMN IF EXISTS cta_type;
+

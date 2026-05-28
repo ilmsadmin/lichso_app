@@ -83,13 +83,27 @@ data class Banner(
     val title: String,
     val subtitle: String?,
     @SerializedName("image_url") val imageUrl: String?,
+    @SerializedName("icon_url") val iconUrl: String?,
+    @SerializedName("icon_key") val iconKey: String?,
     @SerializedName("cta_text") val ctaText: String?,
+    @SerializedName("cta_type") val ctaType: String?,
     @SerializedName("cta_route") val ctaRoute: String?,
     @SerializedName("bg_color") val bgColor: String?,
     val type: String?,
     @SerializedName("is_active") val active: Boolean = true,
     @SerializedName("sort_order") val sortOrder: Int = 0,
 )
+
+data class Popup(
+    val id: String,
+    val title: String,
+    @SerializedName("image_url") val imageUrl: String,
+    @SerializedName("cta_type") val ctaType: String?,
+    @SerializedName("cta_route") val ctaRoute: String?,
+    @SerializedName("is_active") val active: Boolean = true,
+    val position: String?,
+)
+
 
 data class DayContentResponse(val date: String, val data: DayContentData?)
 data class DayContentData(
@@ -318,6 +332,11 @@ class LichSoApi @Inject constructor(
     suspend fun getBanners(): Result<List<Banner>> = withContext(Dispatchers.IO) {
         execute(get("/banners"))
     }
+
+    suspend fun getPopups(): Result<List<Popup>> = withContext(Dispatchers.IO) {
+        execute(get("/popups"))
+    }
+
 
     suspend fun getTodayContent(): Result<DayContentResponse> = withContext(Dispatchers.IO) {
         execute(get("/day-content/today"))

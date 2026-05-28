@@ -1,6 +1,18 @@
 package com.lichso.app.domain.model
 
 /**
+ * Thông tin dự báo thời tiết hàng ngày
+ */
+data class DailyForecast(
+    val date: String,             // Ngày (định dạng "T5, 28/5" hoặc "YYYY-MM-DD")
+    val weatherCode: Int,         // WMO weather code
+    val tempMax: Double,          // Nhiệt độ cao nhất (°C)
+    val tempMin: Double,          // Nhiệt độ thấp nhất (°C)
+    val description: String,      // Mô tả thời tiết
+    val icon: String              // Emoji icon
+)
+
+/**
  * Thông tin thời tiết hiện tại
  */
 data class WeatherInfo(
@@ -14,7 +26,8 @@ data class WeatherInfo(
     val isDay: Boolean = true,      // Ban ngày hay ban đêm
     val feelsLike: Double? = null,  // Cảm giác nhiệt độ
     val uvIndex: Double? = null,    // Chỉ số UV
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val forecast: List<DailyForecast> = emptyList() // Dự báo thời tiết 1 tuần sắp tới
 ) {
     companion object {
         /**

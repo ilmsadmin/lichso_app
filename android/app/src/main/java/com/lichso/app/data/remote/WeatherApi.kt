@@ -4,6 +4,7 @@ import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.JsonParser
 import com.google.gson.annotations.SerializedName
+import com.lichso.app.domain.model.DailyForecast
 import com.lichso.app.domain.model.LocationInfo
 import com.lichso.app.domain.model.WeatherInfo
 import kotlinx.coroutines.Dispatchers
@@ -14,6 +15,34 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val TAG = "WeatherApi"
+
+private fun formatDailyDate(dateStr: String): String {
+    return try {
+        val parts = dateStr.split("-")
+        if (parts.size == 3) {
+            val year = parts[0].toInt()
+            val month = parts[1].toInt()
+            val day = parts[2].toInt()
+            val calendar = java.util.Calendar.getInstance()
+            calendar.set(year, month - 1, day)
+            val dayOfWeek = when (calendar.get(java.util.Calendar.DAY_OF_WEEK)) {
+                java.util.Calendar.SUNDAY -> "CN"
+                java.util.Calendar.MONDAY -> "T2"
+                java.util.Calendar.TUESDAY -> "T3"
+                java.util.Calendar.WEDNESDAY -> "T4"
+                java.util.Calendar.THURSDAY -> "T5"
+                java.util.Calendar.FRIDAY -> "T6"
+                java.util.Calendar.SATURDAY -> "T7"
+                else -> ""
+            }
+            "$dayOfWeek, $day/$month"
+        } else {
+            dateStr
+        }
+    } catch (_: Exception) {
+        dateStr
+    }
+}
 
 /**
  * API client cho thời tiết.
@@ -65,6 +94,7 @@ class WeatherApi @Inject constructor(
                 append("latitude=$lat")
                 append("&longitude=$lon")
                 append("&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m,uv_index")
+                append("&daily=weather_code,temperature_2m_max,temperature_2m_min")
                 append("&timezone=Asia/Ho_Chi_Minh")
             }
 
@@ -84,6 +114,30 @@ class WeatherApi @Inject constructor(
                 val isDay = (current.isDay ?: 1) == 1
                 val (description, icon) = WeatherInfo.fromWeatherCode(current.weatherCode ?: 0, isDay)
 
+                val forecastList = mutableListOf<DailyForecast>()
+                val daily = weatherResponse.daily
+                if (daily != null && daily.time != null && daily.weatherCode != null && daily.tempMax != null && daily.tempMin != null) {
+                    val size = daily.time.size
+                    for (i in 0 until size) {
+                        val rawDate = daily.time[i]
+                        val code = daily.weatherCode.getOrNull(i) ?: 0
+                        val maxTemp = daily.tempMax.getOrNull(i) ?: 0.0
+                        val minTemp = daily.tempMin.getOrNull(i) ?: 0.0
+                        val (dailyDesc, dailyIcon) = WeatherInfo.fromWeatherCode(code, true)
+                        
+                        forecastList.add(
+                            DailyForecast(
+                                date = formatDailyDate(rawDate),
+                                weatherCode = code,
+                                tempMax = maxTemp,
+                                tempMin = minTemp,
+                                description = dailyDesc,
+                                icon = dailyIcon
+                            )
+                        )
+                    }
+                }
+
                 Result.success(
                     WeatherInfo(
                         temperature = current.temperature ?: 0.0,
@@ -95,7 +149,8 @@ class WeatherApi @Inject constructor(
                         icon = icon,
                         isDay = isDay,
                         feelsLike = current.apparentTemperature,
-                        uvIndex = current.uvIndex
+                        uvIndex = current.uvIndex,
+                        forecast = forecastList
                     )
                 )
             }
@@ -142,6 +197,37 @@ class WeatherApi @Inject constructor(
                 val isDay = isDaytime()
                 val (description, icon) = WeatherInfo.fromWeatherCode(wmoCode, isDay)
 
+                val forecastList = mutableListOf<DailyForecast>()
+                val weatherArray = root.getAsJsonArray("weather")
+                if (weatherArray != null) {
+                    for (i in 0 until weatherArray.size()) {
+                        val dayObj = weatherArray[i].asJsonObject
+                        val rawDate = dayObj.get("date")?.asString ?: ""
+                        val maxTemp = dayObj.get("maxtempC")?.asDouble ?: 0.0
+                        val minTemp = dayObj.get("mintempC")?.asDouble ?: 0.0
+                        
+                        var dayWmoCode = 0
+                        val hourlyArray = dayObj.getAsJsonArray("hourly")
+                        if (hourlyArray != null && hourlyArray.size() > 0) {
+                            val firstHour = hourlyArray[0].asJsonObject
+                            val wwoCode = firstHour.get("weatherCode")?.asInt ?: 0
+                            dayWmoCode = mapWwoToWmo(wwoCode)
+                        }
+                        
+                        val (dailyDesc, dailyIcon) = WeatherInfo.fromWeatherCode(dayWmoCode, true)
+                        forecastList.add(
+                            DailyForecast(
+                                date = formatDailyDate(rawDate),
+                                weatherCode = dayWmoCode,
+                                tempMax = maxTemp,
+                                tempMin = minTemp,
+                                description = dailyDesc,
+                                icon = dailyIcon
+                            )
+                        )
+                    }
+                }
+
                 Result.success(
                     WeatherInfo(
                         temperature = tempC,
@@ -153,7 +239,8 @@ class WeatherApi @Inject constructor(
                         icon = icon,
                         isDay = isDay,
                         feelsLike = feelsLike,
-                        uvIndex = uvIndex
+                        uvIndex = uvIndex,
+                        forecast = forecastList
                     )
                 )
             }
@@ -268,7 +355,8 @@ class WeatherApi @Inject constructor(
 // ── Open-Meteo JSON Response Models ──
 
 data class OpenMeteoResponse(
-    val current: OpenMeteoCurrent?
+    val current: OpenMeteoCurrent?,
+    val daily: OpenMeteoDaily?
 )
 
 data class OpenMeteoCurrent(
@@ -286,4 +374,14 @@ data class OpenMeteoCurrent(
     val windSpeed: Double?,
     @SerializedName("uv_index")
     val uvIndex: Double?
+)
+
+data class OpenMeteoDaily(
+    val time: List<String>?,
+    @SerializedName("weather_code")
+    val weatherCode: List<Int>?,
+    @SerializedName("temperature_2m_max")
+    val tempMax: List<Double>?,
+    @SerializedName("temperature_2m_min")
+    val tempMin: List<Double>?
 )

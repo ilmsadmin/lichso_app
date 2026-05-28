@@ -383,7 +383,7 @@ object NotificationHelper {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            putExtra("navigate_to", "home")
+            putExtra("navigate_to", "notifications")
         }
         val pi = PendingIntent.getActivity(
             context, 9994, intent,
@@ -408,6 +408,106 @@ object NotificationHelper {
         nm.notify(9994, notification)
     }
 
+    fun sendMorningSummaryNotification(
+        context: Context,
+        subtitle: String,
+        lines: List<String>
+    ) {
+        val title = "Chào buổi sáng!"
+        val weatherLine = lines.firstOrNull().orEmpty()
+        val adviceLine = lines.getOrNull(1).orEmpty()
+        val dayRatingLine = lines.firstOrNull { it.startsWith("Can Chi:") }.orEmpty()
+        val goodHoursLine = lines.firstOrNull { it.startsWith("Giờ hoàng đạo:") }.orEmpty()
+        val doLine = lines.firstOrNull { it.startsWith("Nên:") }.orEmpty()
+        val avoidLine = lines.firstOrNull { it.startsWith("Tránh:") }.orEmpty()
+        val teaser = buildMorningTeaser(dayRatingLine, goodHoursLine, doLine, avoidLine)
+        val contentText = teaser.ifBlank { subtitle }
+        val fullBody = lines.joinToString("\n")
+        saveToDatabase(context, title, fullBody, "daily")
+
+        if (!canPostNotifications(context)) return
+
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("navigate_to", "notifications")
+        }
+        val pi = PendingIntent.getActivity(
+            context, 9998, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val expandedText = buildString {
+            if (weatherLine.isNotBlank()) appendLine(weatherLine)
+            if (adviceLine.isNotBlank()) appendLine(adviceLine)
+            if (teaser.isNotBlank()) appendLine(teaser)
+            if (goodHoursLine.isNotBlank()) appendLine(goodHoursLine.replace("Giờ hoàng đạo:", "Giờ đẹp hôm nay:"))
+            if (doLine.isNotBlank()) appendLine(doLine.replace("Nên:", "Nên làm:"))
+            if (avoidLine.isNotBlank()) append(avoidLine.replace("Tránh:", "Nên tránh:"))
+        }.trim()
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_DAILY)
+            .setSmallIcon(R.drawable.ic_notif_calendar)
+            .setContentTitle(title)
+            .setContentText(contentText)
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .setBigContentTitle("Bản tin sáng dành cho bạn")
+                    .bigText(expandedText.ifBlank { fullBody })
+                    .setSummaryText("Chạm để xem chi tiết ngày hôm nay")
+            )
+            .setAutoCancel(true)
+            .setContentIntent(pi)
+            .setSubText("Bản tin sáng")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        nm.notify(9998, notification)
+    }
+
+    private fun buildMorningTeaser(
+        dayRatingLine: String,
+        goodHoursLine: String,
+        doLine: String,
+        avoidLine: String
+    ): String {
+        val rating = dayRatingLine
+            .substringAfter("-", "")
+            .trim()
+            .takeIf { it.isNotBlank() }
+        val goodHourCount = goodHoursLine
+            .substringAfter(":", "")
+            .split(",")
+            .count { it.trim().isNotBlank() }
+        val bestAction = doLine
+            .substringAfter(":", "")
+            .split(",")
+            .firstOrNull()
+            ?.trim()
+            .orEmpty()
+        val avoidAction = avoidLine
+            .substringAfter(":", "")
+            .split(",")
+            .firstOrNull()
+            ?.trim()
+            .orEmpty()
+
+        return buildString {
+            if (!rating.isNullOrBlank()) append("Ngày $rating")
+            if (goodHourCount > 0) {
+                if (isNotBlank()) append(" - ")
+                append("$goodHourCount giờ hoàng đạo")
+            }
+            if (bestAction.isNotBlank()) {
+                if (isNotBlank()) append(". ")
+                append("Hợp: $bestAction")
+            }
+            if (avoidAction.isNotBlank()) {
+                if (isNotBlank()) append("; ")
+                append("tránh: $avoidAction")
+            }
+        }
+    }
+
     fun sendWeatherMorningFallbackNotification(
         context: Context,
         cityName: String
@@ -421,7 +521,7 @@ object NotificationHelper {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            putExtra("navigate_to", "home")
+            putExtra("navigate_to", "notifications")
         }
         val pi = PendingIntent.getActivity(
             context, 9993, intent,

@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
@@ -247,6 +248,9 @@ private fun NotificationCard(
     val c = LichSoThemeColors.current
     val isUnread = !notification.isRead
     val typeInfo = getNotificationTypeInfo(notification.type)
+    val previewText = remember(notification.description, notification.type) {
+        buildNotificationPreview(notification)
+    }
 
     Row(
         modifier = Modifier
@@ -284,21 +288,32 @@ private fun NotificationCard(
 
         // Content
         Column(modifier = Modifier.weight(1f)) {
+            if (isUnread) {
+                Text(
+                    "Mới",
+                    style = TextStyle(
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = c.primary
+                    )
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+            }
             Text(
                 notification.title,
                 style = TextStyle(
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
                     color = c.textPrimary,
                     lineHeight = 18.sp
                 ),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            if (notification.description.isNotBlank()) {
+            if (previewText.isNotBlank()) {
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    notification.description,
+                    previewText,
                     style = TextStyle(
                         fontSize = 12.sp,
                         color = c.textSecondary,
@@ -335,6 +350,53 @@ private data class NotifTypeInfo(
     val iconColor: Color,
     val bgColor: Color
 )
+
+private data class MorningSummary(
+    val weather: String = "",
+    val advice: String = "",
+    val date: String = "",
+    val canChi: String = "",
+    val goodHours: String = "",
+    val shouldDo: String = "",
+    val shouldAvoid: String = "",
+)
+
+private fun parseMorningSummary(description: String): MorningSummary {
+    val lines = description.lines().map { it.trim() }.filter { it.isNotBlank() }
+    return MorningSummary(
+        weather = lines.firstOrNull().orEmpty(),
+        advice = lines.getOrNull(1).orEmpty(),
+        date = lines.firstOrNull { it.startsWith("Ngày:") }?.substringAfter(":")?.trim().orEmpty(),
+        canChi = lines.firstOrNull { it.startsWith("Can Chi:") }?.substringAfter(":")?.trim().orEmpty(),
+        goodHours = lines.firstOrNull { it.startsWith("Giờ hoàng đạo:") }?.substringAfter(":")?.trim().orEmpty(),
+        shouldDo = lines.firstOrNull { it.startsWith("Nên:") }?.substringAfter(":")?.trim().orEmpty(),
+        shouldAvoid = lines.firstOrNull { it.startsWith("Tránh:") }?.substringAfter(":")?.trim().orEmpty(),
+    )
+}
+
+private fun buildNotificationPreview(notification: NotificationEntity): String {
+    if (notification.type != "daily") return notification.description
+    val summary = parseMorningSummary(notification.description)
+    val rating = summary.canChi.substringAfter("-", "").trim()
+    val goodHourCount = summary.goodHours.split(",").count { it.trim().isNotBlank() }
+    val firstDo = summary.shouldDo.split(",").firstOrNull()?.trim().orEmpty()
+
+    return buildString {
+        if (summary.weather.isNotBlank()) append(summary.weather)
+        if (rating.isNotBlank()) {
+            if (isNotBlank()) append(". ")
+            append("Ngày $rating")
+        }
+        if (goodHourCount > 0) {
+            if (isNotBlank()) append(" - ")
+            append("$goodHourCount giờ đẹp")
+        }
+        if (firstDo.isNotBlank()) {
+            if (isNotBlank()) append(". ")
+            append("Hợp: $firstDo")
+        }
+    }.ifBlank { notification.description }
+}
 
 private fun getNotificationTypeInfo(type: String): NotifTypeInfo {
     return when (type) {
@@ -406,6 +468,8 @@ private fun NotificationDetailOverlay(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
+                .heightIn(max = 720.dp)
+                .verticalScroll(rememberScrollState())
                 .background(c.bg, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                 .clickable(
                     indication = null,
@@ -494,30 +558,38 @@ private fun NotificationDetailOverlay(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Title
-            Text(
-                notification.title,
-                style = TextStyle(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = c.textPrimary,
-                    lineHeight = 26.sp
-                ),
-                modifier = Modifier.padding(horizontal = 24.dp)
-            )
-
-            // Description
-            if (notification.description.isNotBlank()) {
-                Spacer(modifier = Modifier.height(10.dp))
+            if (notification.type == "daily") {
+                MorningSummaryDetail(
+                    title = notification.title,
+                    summary = parseMorningSummary(notification.description),
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+            } else {
+                // Title
                 Text(
-                    notification.description,
+                    notification.title,
                     style = TextStyle(
-                        fontSize = 14.sp,
-                        color = c.textSecondary,
-                        lineHeight = 22.sp
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = c.textPrimary,
+                        lineHeight = 26.sp
                     ),
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
+
+                // Description
+                if (notification.description.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        notification.description,
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            color = c.textSecondary,
+                            lineHeight = 22.sp
+                        ),
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -568,6 +640,203 @@ private fun NotificationDetailOverlay(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MorningSummaryDetail(
+    title: String,
+    summary: MorningSummary,
+    modifier: Modifier = Modifier
+) {
+    val c = LichSoThemeColors.current
+    val rating = summary.canChi.substringAfter("-", "").trim()
+    val canChiName = summary.canChi.substringBefore("-").trim()
+
+    Column(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(
+                    Brush.linearGradient(
+                        listOf(Color(0xFFB71C1C), Color(0xFFE65100), Color(0xFFFFB74D))
+                    )
+                )
+                .padding(18.dp)
+        ) {
+            Column {
+                Text(
+                    title,
+                    style = TextStyle(
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                        lineHeight = 28.sp
+                    )
+                )
+                if (summary.weather.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        summary.weather,
+                        style = TextStyle(
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White.copy(alpha = 0.95f),
+                            lineHeight = 21.sp
+                        )
+                    )
+                }
+                if (summary.advice.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        summary.advice,
+                        style = TextStyle(
+                            fontSize = 13.sp,
+                            color = Color.White.copy(alpha = 0.86f),
+                            lineHeight = 19.sp
+                        )
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (summary.date.isNotBlank()) {
+                HighlightChip(
+                    label = "Ngày",
+                    value = summary.date,
+                    color = Color(0xFF8B1A1A),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            if (rating.isNotBlank()) {
+                HighlightChip(
+                    label = "Đánh giá",
+                    value = rating,
+                    color = if (rating.contains("Xấu", ignoreCase = true)) Color(0xFFD84315) else Color(0xFF2E7D32),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        if (canChiName.isNotBlank()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            HighlightChip(
+                label = "Can Chi",
+                value = canChiName,
+                color = Color(0xFF6D4C41),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        if (summary.goodHours.isNotBlank()) {
+            Spacer(modifier = Modifier.height(14.dp))
+            InsightBlock(
+                icon = Icons.Outlined.Schedule,
+                title = "Giờ đẹp để tranh thủ",
+                body = summary.goodHours,
+                tint = Color(0xFFB8860B)
+            )
+        }
+
+        if (summary.shouldDo.isNotBlank()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            InsightBlock(
+                icon = Icons.Outlined.CheckCircle,
+                title = "Nên làm hôm nay",
+                body = summary.shouldDo,
+                tint = Color(0xFF2E7D32)
+            )
+        }
+
+        if (summary.shouldAvoid.isNotBlank()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            InsightBlock(
+                icon = Icons.Outlined.WarningAmber,
+                title = "Nên tránh",
+                body = summary.shouldAvoid,
+                tint = Color(0xFFC62828)
+            )
+        }
+    }
+}
+
+@Composable
+private fun HighlightChip(
+    label: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(color.copy(alpha = 0.1f))
+            .border(1.dp, color.copy(alpha = 0.24f), RoundedCornerShape(16.dp))
+            .padding(12.dp)
+    ) {
+        Text(
+            label,
+            style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Bold, color = color)
+        )
+        Spacer(modifier = Modifier.height(3.dp))
+        Text(
+            value,
+            style = TextStyle(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = LichSoThemeColors.current.textPrimary,
+                lineHeight = 18.sp
+            ),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun InsightBlock(
+    icon: ImageVector,
+    title: String,
+    body: String,
+    tint: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(tint.copy(alpha = 0.08f))
+            .border(1.dp, tint.copy(alpha = 0.18f), RoundedCornerShape(18.dp))
+            .padding(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .background(tint.copy(alpha = 0.14f), RoundedCornerShape(11.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = tint, modifier = Modifier.size(19.dp))
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = tint)
+            )
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(
+                body,
+                style = TextStyle(
+                    fontSize = 13.sp,
+                    color = LichSoThemeColors.current.textSecondary,
+                    lineHeight = 19.sp
+                )
+            )
         }
     }
 }

@@ -54,6 +54,11 @@ class MainActivity : ComponentActivity() {
         )
 
         // Determine if launched from widget with a specific destination
+        val notificationRoute = when (intent?.getStringExtra("navigate_to")) {
+            "ai_chat" -> "chat"
+            "home", "notifications", "chat", "gooddays", "calendar" -> intent?.getStringExtra("navigate_to")
+            else -> null
+        }
         val widgetRoute = when (intent?.action) {
             "OPEN_AI_CHAT" -> "chat"
             "OPEN_CALENDAR_QUICK" -> "calendar"
@@ -130,7 +135,7 @@ class MainActivity : ComponentActivity() {
                     AppScreen.MAIN -> {
                         LichSoMainScreen(
                             modifier = Modifier.fillMaxSize(),
-                            initialRoute = widgetRoute ?: giftToken?.let { "streak_freeze" } ?: "home",
+                            initialRoute = notificationRoute ?: widgetRoute ?: giftToken?.let { "streak_freeze" } ?: "home",
                             giftToken = giftToken,
                         )
                     }

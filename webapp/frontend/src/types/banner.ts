@@ -7,7 +7,10 @@ export interface Banner {
   title: string;
   subtitle?: string;
   image_url?: string;
+  icon_url?: string;
+  icon_key?: string;
   cta_text?: string;
+  cta_type?: "route" | "url";
   cta_route?: string;
   bg_color?: string;
   type: string;
@@ -23,7 +26,10 @@ export interface CreateBannerRequest {
   title: string;
   subtitle?: string;
   image_url?: string;
+  icon_url?: string;
+  icon_key?: string;
   cta_text?: string;
+  cta_type?: "route" | "url";
   cta_route?: string;
   bg_color?: string;
   type?: string;
@@ -37,7 +43,10 @@ export interface UpdateBannerRequest {
   title?: string;
   subtitle?: string;
   image_url?: string;
+  icon_url?: string;
+  icon_key?: string;
   cta_text?: string;
+  cta_type?: "route" | "url";
   cta_route?: string;
   bg_color?: string;
   type?: string;

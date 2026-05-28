@@ -21,7 +21,8 @@ import java.time.LocalDate
  * BroadcastReceiver DUY NHẤT cho mọi alarm trong app.
  *
  * Dispatch theo [NotificationScheduler.EXTRA_TYPE]:
- *  - daily / gio_dai_cat / festival / ai_tuvi : 4 system notification định kỳ
+ *  - daily / festival / ai_tuvi : system notification định kỳ
+ *  - weather / gio_dai_cat : legacy alarm cũ, không gửi riêng nữa
  *  - reminder : per-row ReminderEntity của user
  *
  * Sau khi fire xong → gọi [NotificationScheduler.rescheduleAll] để self-heal:
@@ -46,9 +47,11 @@ class NotificationReceiver : BroadcastReceiver() {
             try {
                 withTimeoutOrNull(8_000L) {
                     when (type) {
-                        NotificationScheduler.TYPE_DAILY -> fireDaily(appContext)
-                        NotificationScheduler.TYPE_WEATHER -> fireWeatherMorning(appContext)
-                        NotificationScheduler.TYPE_GIO_DAI_CAT -> fireGioDaiCatGuarded(appContext)
+                        NotificationScheduler.TYPE_DAILY -> fireMorningSummary(appContext)
+                        NotificationScheduler.TYPE_WEATHER,
+                        NotificationScheduler.TYPE_GIO_DAI_CAT -> {
+                            android.util.Log.i(TAG, "Skipping legacy morning alarm: type=$type")
+                        }
                         NotificationScheduler.TYPE_FESTIVAL -> fireFestivalGuarded(appContext)
                         NotificationScheduler.TYPE_AI_TUVI -> fireAiTuViGuarded(appContext)
                         NotificationScheduler.TYPE_REMINDER -> fireReminder(
@@ -86,13 +89,6 @@ class NotificationReceiver : BroadcastReceiver() {
     // Fire handlers
     // ─────────────────────────────────────────────────────────────────────
 
-    private suspend fun fireGioDaiCatGuarded(context: Context) {
-        val prefs = context.safeSettingsData.first()
-        val notify = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
-        val enabled = prefs[SettingsKeys.GIO_DAI_CAT] ?: false
-        if (notify && enabled) fireGioDaiCat(context)
-    }
-
     private suspend fun fireFestivalGuarded(context: Context) {
         val prefs = context.safeSettingsData.first()
         val notify = prefs[SettingsKeys.NOTIFY_ENABLED] ?: true
@@ -115,19 +111,32 @@ class NotificationReceiver : BroadcastReceiver() {
         )
     }
 
-    private suspend fun fireWeatherMorning(context: Context) {
+    private suspend fun fireMorningSummary(context: Context) {
         val prefs = context.safeSettingsData.first()
         val cityName = prefs[SettingsKeys.LOCATION_NAME] ?: "Hà Nội"
         val tempUnit = prefs[SettingsKeys.TEMP_UNIT] ?: "°C"
+        val today = LocalDate.now()
+        val dayInfo = DayInfoProvider().getDayInfo(today.dayOfMonth, today.monthValue, today.year)
 
+        val weatherLines = buildWeatherLines(context, cityName, tempUnit)
+        val dayLines = buildDayLines(dayInfo, today)
+        val subtitle = weatherLines.firstOrNull()
+            ?: "${dayInfo.dayOfWeek}, ${"%02d".format(today.dayOfMonth)}/${"%02d".format(today.monthValue)}"
+
+        NotificationHelper.sendMorningSummaryNotification(
+            context = context,
+            subtitle = subtitle,
+            lines = weatherLines + dayLines
+        )
+    }
+
+    private suspend fun buildWeatherLines(
+        context: Context,
+        cityName: String,
+        tempUnit: String
+    ): List<String> {
         val weather = WidgetWeatherHelper.fetchAndCacheWeather(context, cityName)
-        if (weather == null) {
-            NotificationHelper.sendWeatherMorningFallbackNotification(
-                context = context,
-                cityName = cityName,
-            )
-            return
-        }
+            ?: return listOf("Thời tiết: chưa lấy được dữ liệu tại $cityName")
 
         val currentTempC = weather.temperature
         val maxTempC = weather.tempMax
@@ -149,88 +158,44 @@ class NotificationReceiver : BroadcastReceiver() {
             minTemp = minTempC.toInt()
         }
 
-        val tempRangeText = "$minTemp$unitLabel–$maxTemp$unitLabel"
-        val subtitle = "${weather.cityName} $tempRangeText · ${weather.description}"
+        val tempRangeText = "$minTemp$unitLabel-$maxTemp$unitLabel"
         val advice = when {
-            maxTempC >= 34 -> "Nắng khá gắt, nên mang theo nước và che nắng khi ra ngoài."
-            maxTempC >= 30 -> "Trưa có thể nắng nóng, bạn nên mang ô hoặc áo khoác mỏng."
+            maxTempC >= 34 -> "Nắng khá gắt, nhớ mang nước và che nắng khi ra ngoài."
+            maxTempC >= 30 -> "Trưa có thể nắng nóng, nên mang ô hoặc áo khoác mỏng."
             minTempC <= 18 -> "Sáng sớm khá mát, nên mặc thêm áo khoác nhẹ."
             weather.humidity >= 85 -> "Độ ẩm cao, có thể oi nhẹ. Uống đủ nước để giữ sức."
-            else -> "Thời tiết tương đối dễ chịu, chúc bạn một ngày thật nhiều năng lượng."
+            else -> "Thời tiết tương đối dễ chịu, chúc bạn một ngày nhiều năng lượng."
         }
 
-        NotificationHelper.sendWeatherMorningNotification(
-            context = context,
-            cityName = weather.cityName,
-            weatherIcon = weather.icon,
-            subtitle = subtitle,
-            currentTemp = "$currentTemp$unitLabel",
-            advice = advice,
+        return listOf(
+            "${weather.cityName}: $currentTemp$unitLabel, $tempRangeText, ${weather.description}",
+            advice
         )
     }
 
-    private fun fireDaily(context: Context) {
-        val today = LocalDate.now()
-        val dayInfo = DayInfoProvider().getDayInfo(today.dayOfMonth, today.monthValue, today.year)
+    private fun buildDayLines(dayInfo: com.lichso.app.domain.model.DayInfo, today: LocalDate): List<String> {
         val dd = "%02d".format(today.dayOfMonth)
         val mm = "%02d".format(today.monthValue)
-        val lunarStr = "${dayInfo.lunar.day}/${dayInfo.lunar.month} Âm lịch"
-        val canChi = dayInfo.dayCanChi
         val kyLabel = when {
             dayInfo.activities.isNguyetKy -> "Ngày Nguyệt kỵ"
             dayInfo.activities.isTamNuong -> "Ngày Tam nương"
             else -> null
         }
+        val lunarStr = "${dayInfo.lunar.day}/${dayInfo.lunar.month} Âm lịch"
         val gioText = dayInfo.gioHoangDao.take(3)
             .joinToString(", ") { "${it.name} (${it.time})" }
-
-        val title = "${dayInfo.dayOfWeek}, $dd/$mm — $lunarStr"
-        val subtitle = buildString {
-            append(canChi)
-            append(" | ${dayInfo.dayRating.label}")
-            if (kyLabel != null) append(" | $kyLabel")
-        }
         val lines = mutableListOf<String>()
-        SmartReminderProvider.contextualHintFor(dayInfo)?.let { hint -> lines.add("💡 $hint") }
-        lines.add("Can Chi: $canChi")
-        lines.add(
-            if (kyLabel != null) "Đánh giá: ${dayInfo.dayRating.label} — $kyLabel"
-            else "Đánh giá: ${dayInfo.dayRating.label}"
-        )
-        lines.add("Giờ tốt: $gioText")
-        lines.add("Trực ngày: ${dayInfo.trucNgay.name} | Sao: ${dayInfo.saoChieu.name}")
-        lines.add("Hướng Thần Tài: ${dayInfo.huong.thanTai}")
+        lines.add("Ngày: ${dayInfo.dayOfWeek} $dd/$mm - $lunarStr")
+        lines.add("Can Chi: ${dayInfo.dayCanChi} - ${dayInfo.dayRating.label}")
+        if (kyLabel != null) lines.add("Lưu ý: $kyLabel")
+        lines.add("Giờ hoàng đạo: $gioText")
         if (dayInfo.activities.nenLam.isNotEmpty()) {
-            lines.add("Nên: ${dayInfo.activities.nenLam.take(3).joinToString(", ")}")
+            lines.add("Nên: ${dayInfo.activities.nenLam.take(2).joinToString(", ")}")
         }
         if (dayInfo.activities.khongNen.isNotEmpty()) {
-            lines.add("Tránh: ${dayInfo.activities.khongNen.take(3).joinToString(", ")}")
+            lines.add("Tránh: ${dayInfo.activities.khongNen.take(2).joinToString(", ")}")
         }
-        dayInfo.solarHoliday?.let { lines.add("Ngày lễ: $it") }
-        dayInfo.lunarHoliday?.let { lines.add("Âm lịch: $it") }
-        NotificationHelper.sendDailyNotification(context, title, subtitle, lines)
-    }
-
-    private fun fireGioDaiCat(context: Context) {
-        val today = LocalDate.now()
-        val dayInfo = DayInfoProvider().getDayInfo(today.dayOfMonth, today.monthValue, today.year)
-        val dd = "%02d".format(today.dayOfMonth)
-        val mm = "%02d".format(today.monthValue)
-        val kyLabel = when {
-            dayInfo.activities.isNguyetKy -> "Ngày Nguyệt kỵ"
-            dayInfo.activities.isTamNuong -> "Ngày Tam nương"
-            else -> null
-        }
-        val title = "Giờ Hoàng Đạo — ${dayInfo.dayOfWeek} $dd/$mm"
-        val topGio = dayInfo.gioHoangDao.take(3)
-            .joinToString(", ") { "${it.name} (${it.time})" }
-        val subtitle = if (kyLabel != null) "$kyLabel | $topGio" else "${dayInfo.dayRating.label} | $topGio"
-        val lines = mutableListOf<String>()
-        lines.add("${dayInfo.dayCanChi} — ${dayInfo.lunar.day}/${dayInfo.lunar.month} Âm lịch")
-        dayInfo.gioHoangDao.forEach { gio -> lines.add("${gio.name}  ${gio.time}") }
-        lines.add("Hướng Thần Tài: ${dayInfo.huong.thanTai}")
-        lines.add("Hướng Hỷ Thần: ${dayInfo.huong.hyThan}")
-        NotificationHelper.sendGioDaiCatNotification(context, title, subtitle, lines)
+        return lines
     }
 
     private fun fireFestival(context: Context) {

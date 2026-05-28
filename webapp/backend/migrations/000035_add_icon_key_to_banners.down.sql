@@ -1,0 +1,2 @@
+ALTER TABLE banners
+DROP COLUMN IF EXISTS icon_key;

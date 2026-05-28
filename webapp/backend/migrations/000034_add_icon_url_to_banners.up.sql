@@ -1,0 +1,3 @@
+ALTER TABLE banners
+ADD COLUMN IF NOT EXISTS icon_url VARCHAR(500);
+

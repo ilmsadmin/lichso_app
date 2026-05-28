@@ -376,6 +376,11 @@ func setupRoutes(app *fiber.App, cfg *config.Config, pgDB *gorm.DB, mongoDB *mon
 	bannerService := services.NewBannerService(bannerRepo, settingRepo, logger)
 	bannerHandler := handlers.NewBannerHandler(bannerService, validator, logger)
 
+	// Popup infrastructure
+	popupRepo := repositories.NewPopupRepository(pgDB)
+	popupService := services.NewPopupService(popupRepo, logger)
+	popupHandler := handlers.NewPopupHandler(popupService, validator, logger)
+
 	// Public content routes
 	routes.SetupContentRoutes(api, articleHandler, articleCategoryHandler, articleTagHandler, quoteHandler, famousPersonHandler, eventHandler, folkFestivalHandler)
 
@@ -384,6 +389,9 @@ func setupRoutes(app *fiber.App, cfg *config.Config, pgDB *gorm.DB, mongoDB *mon
 
 	// Banner routes (public + admin)
 	routes.SetupBannerRoutes(api, authMiddleware, permMiddleware, bannerHandler)
+
+	// Popup routes (public + admin)
+	routes.SetupPopupRoutes(api, authMiddleware, permMiddleware, popupHandler)
 
 	// Export routes (public — no auth required)
 	exportService := services.NewExportService(calService, logger)

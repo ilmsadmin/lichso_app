@@ -1,9 +1,37 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Eye } from "lucide-react";
+import {
+  ArrowLeft,
+  Bell,
+  BookOpen,
+  Brain,
+  CalendarDays,
+  Clock3,
+  Compass,
+  Eye,
+  Gift,
+  Heart,
+  Home,
+  Loader2,
+  MapPin,
+  Moon,
+  ScrollText,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  Star,
+  Sun,
+  Trophy,
+  Upload,
+  Users,
+  Wallet,
+  X,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +53,8 @@ import {
 } from "@/components/ui/card";
 import { useCreateBanner, useUpdateBanner } from "@/hooks/useBanners";
 import { ROUTES } from "@/lib/constants";
+import { getImageUrl } from "@/lib/utils";
+import { uploadFile } from "@/services/mediaService";
 import { BANNER_TYPES } from "@/types/banner";
 import type { Banner, CreateBannerRequest } from "@/types/banner";
 
@@ -43,24 +73,106 @@ const TYPE_COLORS: Record<string, { start: string; end: string }> = {
   custom: { start: "#37474F", end: "#263238" },
 };
 
+const APP_ROUTES = [
+  { value: "home", label: "Trang chủ" },
+  { value: "calendar", label: "Lịch tháng" },
+  { value: "gooddays", label: "Ngày tốt/xấu" },
+  { value: "knowledge_feed", label: "Bài viết khám phá" },
+  { value: "quiz_home", label: "Đố vui" },
+  { value: "chat", label: "AI Tử Vi" },
+  { value: "tools", label: "Tiện ích" },
+  { value: "prayers", label: "Văn khấn" },
+  { value: "history", label: "Ngày này năm xưa" },
+  { value: "profile", label: "Hồ sơ" },
+  { value: "bookmarks", label: "Ngày đã lưu" },
+  { value: "tasks", label: "Ghi chú" },
+  { value: "countdown", label: "Đếm ngày" },
+  { value: "familytree", label: "Cây gia phả" },
+  { value: "oracle_draw", label: "Rút thẻ" },
+  { value: "daily_store", label: "Cửa hàng ngày" },
+  { value: "ledger", label: "Lịch sử điểm" },
+  { value: "zodiac_collection", label: "Bộ sưu tập con giáp" },
+  { value: "date_picker", label: "Chọn ngày đẹp" },
+  { value: "tiet_khi", label: "Tiết khí" },
+  { value: "date_math", label: "Tính ngày" },
+  { value: "birth_planner", label: "Kế hoạch sinh" },
+  { value: "cycle_tracker", label: "Theo dõi chu kỳ" },
+  { value: "world_clock", label: "Giờ thế giới" },
+  { value: "widget_manager", label: "Quản lý widget" },
+  { value: "leaderboard", label: "Bảng xếp hạng" },
+] as const;
+
+const BANNER_ICON_PRESETS: Array<{ key: string; label: string; Icon: LucideIcon }> = [
+  { key: "calendar", label: "Lịch ngày", Icon: CalendarDays },
+  { key: "article", label: "Bài viết", Icon: BookOpen },
+  { key: "quiz", label: "Đố vui", Icon: Brain },
+  { key: "ai", label: "AI", Icon: Sparkles },
+  { key: "gift", label: "Quà tặng", Icon: Gift },
+  { key: "star", label: "Nổi bật", Icon: Star },
+  { key: "sun", label: "Ngày tốt", Icon: Sun },
+  { key: "moon", label: "Âm lịch", Icon: Moon },
+  { key: "clock", label: "Giờ đẹp", Icon: Clock3 },
+  { key: "compass", label: "Phong thuỷ", Icon: Compass },
+  { key: "scroll", label: "Văn khấn", Icon: ScrollText },
+  { key: "bell", label: "Nhắc nhở", Icon: Bell },
+  { key: "trophy", label: "Xếp hạng", Icon: Trophy },
+  { key: "users", label: "Gia đình", Icon: Users },
+  { key: "heart", label: "Sức khỏe", Icon: Heart },
+  { key: "home", label: "Nhà cửa", Icon: Home },
+  { key: "shop", label: "Cửa hàng", Icon: ShoppingBag },
+  { key: "wallet", label: "Điểm thưởng", Icon: Wallet },
+  { key: "map", label: "Vị trí", Icon: MapPin },
+  { key: "shield", label: "Bảo hộ", Icon: ShieldCheck },
+];
+
+function inferCtaType(value?: string): "route" | "url" {
+  return value?.startsWith("http://") || value?.startsWith("https://") ? "url" : "route";
+}
+
 export default function BannerForm({ banner, isEdit }: BannerFormProps) {
   const router = useRouter();
   const createBanner = useCreateBanner();
   const updateBanner = useUpdateBanner(banner?.id ?? "");
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const iconInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUploadingIcon, setIsUploadingIcon] = useState(false);
 
-  const [form, setForm] = useState<CreateBannerRequest>({
-    title: "",
-    subtitle: "",
-    image_url: "",
-    cta_text: "",
-    cta_route: "",
-    bg_color: "",
-    type: "feature",
-    is_active: true,
-    sort_order: 0,
-    start_date: "",
-    end_date: "",
-  });
+  const [form, setForm] = useState<CreateBannerRequest>(() =>
+    banner
+      ? {
+          title: banner.title,
+          subtitle: banner.subtitle ?? "",
+          image_url: banner.image_url ?? "",
+          icon_url: banner.icon_url ?? "",
+          icon_key: banner.icon_key ?? "",
+          cta_text: banner.cta_text ?? "",
+          cta_type: banner.cta_type ?? inferCtaType(banner.cta_route),
+          cta_route: banner.cta_route ?? "",
+          bg_color: banner.bg_color ?? "",
+          type: banner.type,
+          is_active: banner.is_active,
+          sort_order: banner.sort_order,
+          start_date: banner.start_date ? banner.start_date.slice(0, 16) : "",
+          end_date: banner.end_date ? banner.end_date.slice(0, 16) : "",
+        }
+      : {
+          title: "",
+          subtitle: "",
+          image_url: "",
+          icon_url: "",
+          icon_key: "",
+          cta_text: "",
+          cta_type: "route",
+          cta_route: "",
+          bg_color: "",
+          type: "feature",
+          is_active: true,
+          sort_order: 0,
+          start_date: "",
+          end_date: "",
+        }
+  );
 
   useEffect(() => {
     if (banner) {
@@ -68,7 +180,10 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
         title: banner.title,
         subtitle: banner.subtitle ?? "",
         image_url: banner.image_url ?? "",
+        icon_url: banner.icon_url ?? "",
+        icon_key: banner.icon_key ?? "",
         cta_text: banner.cta_text ?? "",
+        cta_type: banner.cta_type ?? inferCtaType(banner.cta_route),
         cta_route: banner.cta_route ?? "",
         bg_color: banner.bg_color ?? "",
         type: banner.type,
@@ -80,6 +195,40 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
     }
   }, [banner]);
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    try {
+      const res = await uploadFile(file, "banners");
+      const uploadedUrl = res.data?.url;
+      if (res.success && uploadedUrl) {
+        setForm((current) => ({ ...current, image_url: uploadedUrl }));
+      }
+    } finally {
+      setIsUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+    }
+  };
+
+  const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingIcon(true);
+    try {
+      const res = await uploadFile(file, "banners/icons");
+      const uploadedUrl = res.data?.url;
+      if (res.success && uploadedUrl) {
+        setForm((current) => ({ ...current, icon_url: uploadedUrl, icon_key: "" }));
+      }
+    } finally {
+      setIsUploadingIcon(false);
+      if (iconInputRef.current) iconInputRef.current.value = "";
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -89,12 +238,21 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
       end_date: form.end_date ? new Date(form.end_date).toISOString() : undefined,
     };
 
-    // Clean empty strings
-    if (!payload.subtitle) delete payload.subtitle;
-    if (!payload.image_url) delete payload.image_url;
-    if (!payload.cta_text) delete payload.cta_text;
-    if (!payload.cta_route) delete payload.cta_route;
-    if (!payload.bg_color) delete payload.bg_color;
+    if (payload.cta_type === "url" && payload.cta_route && !/^https?:\/\//.test(payload.cta_route)) {
+      payload.cta_route = `https://${payload.cta_route}`;
+    }
+
+    // Clean empty strings on create. On edit, keep empty strings so fields can be cleared.
+    if (!isEdit && !payload.subtitle) delete payload.subtitle;
+    if (!isEdit && !payload.image_url) delete payload.image_url;
+    if (!isEdit && !payload.icon_url) delete payload.icon_url;
+    if (!isEdit && !payload.icon_key) delete payload.icon_key;
+    if (!isEdit && !payload.cta_text) delete payload.cta_text;
+    if (!payload.cta_route && !isEdit) {
+      delete payload.cta_route;
+      delete payload.cta_type;
+    }
+    if (!isEdit && !payload.bg_color) delete payload.bg_color;
 
     try {
       if (isEdit) {
@@ -110,6 +268,8 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
   };
 
   const typeColors = TYPE_COLORS[form.type || "feature"] || TYPE_COLORS.feature;
+  const selectedIconPreset = BANNER_ICON_PRESETS.find((preset) => preset.key === form.icon_key);
+  const PreviewIcon = selectedIconPreset?.Icon;
 
   return (
     <div className="space-y-6">
@@ -227,28 +387,216 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="cta_route">Route / URL đích</Label>
-                    <Input
-                      id="cta_route"
-                      value={form.cta_route}
-                      onChange={(e) => setForm({ ...form, cta_route: e.target.value })}
-                      placeholder="VD: knowledge_feed hoặc https://..."
-                    />
-                    <p className="text-muted-foreground text-xs">
-                      Nhập route trong app (gooddays, quiz_home, chat, knowledge_feed...) hoặc URL đầy đủ.
-                    </p>
+                    <Label>Loại đích</Label>
+                    <Select
+                      value={form.cta_type ?? "route"}
+                      onValueChange={(value) =>
+                        setForm({ ...form, cta_type: value as "route" | "url", cta_route: "" })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="route">Route trong app</SelectItem>
+                        <SelectItem value="url">URL ngoài</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
-                {/* Image URL */}
                 <div className="space-y-2">
-                  <Label htmlFor="image_url">URL hình ảnh (tùy chọn)</Label>
-                  <Input
-                    id="image_url"
-                    value={form.image_url}
-                    onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-                    placeholder="https://example.com/banner.jpg"
+                  <Label htmlFor="cta_route">
+                    {form.cta_type === "url" ? "URL đích" : "Route trong app"}
+                  </Label>
+                  {form.cta_type === "url" ? (
+                    <Input
+                      id="cta_route"
+                      type="url"
+                      value={form.cta_route}
+                      onChange={(e) => setForm({ ...form, cta_route: e.target.value })}
+                      placeholder="https://lichso.vn/bai-viet/..."
+                    />
+                  ) : (
+                    <Select
+                      value={form.cta_route || undefined}
+                      onValueChange={(value) => setForm({ ...form, cta_route: value })}
+                    >
+                      <SelectTrigger id="cta_route">
+                        <SelectValue placeholder="Chọn màn hình trong app" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {APP_ROUTES.map((route) => (
+                          <SelectItem key={route.value} value={route.value}>
+                            {route.label} ({route.value})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <p className="text-muted-foreground text-xs">
+                    {form.cta_type === "url"
+                      ? "Khi người dùng bấm banner trên Android, URL sẽ mở bằng trình duyệt."
+                      : "Route được chọn sẽ điều hướng trực tiếp trong app Android."}
+                  </p>
+                </div>
+
+                {/* Icon upload */}
+                <div className="space-y-2">
+                  <Label>Icon banner (tùy chọn)</Label>
+                  <div className="rounded-xl border bg-muted/30 p-3 text-xs text-muted-foreground">
+                    <p className="font-medium text-foreground">Chọn icon có sẵn hoặc upload icon riêng</p>
+                    <ul className="mt-2 list-disc space-y-1 pl-4">
+                      <li>Bộ icon có sẵn đã được tối ưu để hiển thị đồng bộ trong app Android.</li>
+                      <li>Kích thước khuyến nghị: 256 x 256 px hoặc 512 x 512 px, tỉ lệ vuông 1:1.</li>
+                      <li>Ưu tiên PNG/WebP nền trong suốt để icon nổi tốt trên mọi màu banner.</li>
+                      <li>Nên dùng biểu tượng đơn giản, ít chi tiết; tránh chữ nhỏ vì icon trên app khá nhỏ.</li>
+                      <li>Chừa khoảng trống an toàn quanh icon khoảng 20% để không bị sát viền.</li>
+                      <li>Icon upload sẽ ưu tiên hơn icon có sẵn. Nếu không chọn gì, app dùng icon mặc định theo loại banner.</li>
+                    </ul>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-5">
+                    {BANNER_ICON_PRESETS.map(({ key, label, Icon }) => {
+                      const isSelected = form.icon_key === key && !form.icon_url;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setForm({ ...form, icon_key: key, icon_url: "" })}
+                          className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border p-3 text-center transition ${
+                            isSelected
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border bg-background hover:border-primary/40 hover:bg-muted/50"
+                          }`}
+                        >
+                          <Icon className="h-6 w-6" />
+                          <span className="text-xs font-medium">{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <input
+                    ref={iconInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleIconUpload}
                   />
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => iconInputRef.current?.click()}
+                      disabled={isUploadingIcon}
+                    >
+                      {isUploadingIcon ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="mr-2 h-4 w-4" />
+                      )}
+                      {isUploadingIcon ? "Đang upload..." : "Upload icon"}
+                    </Button>
+                    {(form.icon_url || form.icon_key) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setForm({ ...form, icon_url: "", icon_key: "" })}
+                      >
+                        <X className="mr-2 h-4 w-4" />
+                        Xóa icon
+                      </Button>
+                    )}
+                  </div>
+                  {selectedIconPreset && PreviewIcon && !form.icon_url && (
+                    <div className="flex items-center gap-3 rounded-xl border p-3">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted text-primary">
+                        <PreviewIcon className="h-8 w-8" />
+                      </div>
+                      <p className="text-muted-foreground text-xs">
+                        Đang dùng icon có sẵn: {selectedIconPreset.label}. App Android sẽ hiển thị icon này trên banner.
+                      </p>
+                    </div>
+                  )}
+                  {form.icon_url && (
+                    <div className="flex items-center gap-3 rounded-xl border p-3">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted">
+                        <Image
+                          src={getImageUrl(form.icon_url)}
+                          alt="Icon preview"
+                          width={48}
+                          height={48}
+                          className="h-12 w-12 object-contain"
+                        />
+                      </div>
+                      <p className="text-muted-foreground text-xs">
+                        Icon sẽ được app Android ưu tiên hiển thị thay cho icon mặc định.
+                      </p>
+                    </div>
+                  )}
+                  <p className="text-muted-foreground text-xs">
+                    Icon sẽ được upload vào thư mục media `banners/icons`.
+                  </p>
+                </div>
+
+                {/* Image upload */}
+                <div className="space-y-2">
+                  <Label>Hình ảnh banner (tùy chọn)</Label>
+                  <div className="rounded-xl border bg-muted/30 p-3 text-xs text-muted-foreground">
+                    <p className="font-medium text-foreground">Gợi ý ảnh banner đẹp trên app</p>
+                    <ul className="mt-2 list-disc space-y-1 pl-4">
+                      <li>Kích thước khuyến nghị: 1200 x 420 px, tỉ lệ khoảng 20:7.</li>
+                      <li>Vùng nội dung quan trọng nên nằm giữa ảnh, tránh sát mép vì app sẽ crop theo màn hình.</li>
+                      <li>Ưu tiên WebP, JPG hoặc PNG; dung lượng nên dưới 1 MB để tải nhanh trên mobile.</li>
+                      <li>Không nên đặt quá nhiều chữ trong ảnh; hãy dùng Tiêu đề, Mô tả và CTA của banner để hiển thị text.</li>
+                      <li>Chọn ảnh có nền đủ tương phản với chữ trắng hoặc phủ màu nền banner để nội dung dễ đọc.</li>
+                    </ul>
+                  </div>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={isUploadingImage}
+                    >
+                      {isUploadingImage ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="mr-2 h-4 w-4" />
+                      )}
+                      {isUploadingImage ? "Đang upload..." : "Upload banner"}
+                    </Button>
+                    {form.image_url && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setForm({ ...form, image_url: "" })}
+                      >
+                        <X className="mr-2 h-4 w-4" />
+                        Xóa ảnh
+                      </Button>
+                    )}
+                  </div>
+                  {form.image_url && (
+                    <div className="overflow-hidden rounded-xl border">
+                      <Image
+                        src={getImageUrl(form.image_url)}
+                        alt="Banner preview"
+                        width={800}
+                        height={320}
+                        className="h-40 w-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <p className="text-muted-foreground text-xs">
+                    Ảnh sẽ được upload vào thư mục media `banners`.
+                  </p>
                 </div>
 
                 {/* Sort & Active */}
@@ -351,32 +699,56 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
                 >
                   {/* Mini preview banner */}
                   <div
-                    className="flex items-center gap-3 rounded-xl p-3"
+                    className="relative flex items-center gap-3 overflow-hidden rounded-xl p-3"
                     style={{
                       background: `linear-gradient(135deg, ${form.bg_color || typeColors.start}, ${typeColors.end})`,
                       minHeight: "60px",
                     }}
                   >
+                    {form.image_url && (
+                      <Image
+                        src={getImageUrl(form.image_url)}
+                        alt=""
+                        fill
+                        sizes="280px"
+                        className="object-cover opacity-80"
+                      />
+                    )}
+                    {form.image_url && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/25 to-black/10" />
+                    )}
                     {/* Icon placeholder */}
                     <div
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                       style={{ backgroundColor: "rgba(255,255,255,0.15)" }}
                     >
-                      <span className="text-xs text-white">
-                        {form.type === "content"
-                          ? "📄"
-                          : form.type === "quiz"
-                            ? "🧠"
-                            : form.type === "ai"
-                              ? "✨"
-                              : form.type === "promo"
-                                ? "🎁"
-                                : "📅"}
-                      </span>
+                      {form.icon_url ? (
+                        <Image
+                          src={getImageUrl(form.icon_url)}
+                          alt=""
+                          width={28}
+                          height={28}
+                          className="h-7 w-7 object-contain"
+                        />
+                      ) : PreviewIcon ? (
+                        <PreviewIcon className="h-6 w-6 text-white" />
+                      ) : (
+                        <span className="text-[10px] font-bold uppercase text-white">
+                          {form.type === "content"
+                            ? "BV"
+                            : form.type === "quiz"
+                              ? "QZ"
+                              : form.type === "ai"
+                                ? "AI"
+                                : form.type === "promo"
+                                  ? "KM"
+                                  : "LS"}
+                        </span>
+                      )}
                     </div>
 
                     {/* Text */}
-                    <div className="min-w-0 flex-1">
+                    <div className="relative min-w-0 flex-1">
                       <p className="truncate text-xs font-bold text-white">
                         {form.title || "Tiêu đề banner"}
                       </p>
@@ -389,7 +761,7 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
 
                     {/* CTA button */}
                     {form.cta_text && (
-                      <div className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1">
+                      <div className="relative shrink-0 rounded-full bg-amber-100 px-2.5 py-1">
                         <span className="whitespace-nowrap text-[9px] font-semibold text-amber-900">
                           {form.cta_text} ›
                         </span>
@@ -415,7 +787,9 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Route:</span>
+                  <span className="text-muted-foreground">
+                    {form.cta_type === "url" ? "URL:" : "Route:"}
+                  </span>
                   <span className="font-mono text-xs">{form.cta_route || "—"}</span>
                 </div>
                 <div className="flex justify-between">
