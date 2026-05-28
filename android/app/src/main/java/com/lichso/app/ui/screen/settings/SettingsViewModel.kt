@@ -143,7 +143,16 @@ class SettingsViewModel @Inject constructor(
                     _uiState.update { it.copy(isSigningIn = false, toastMessage = "Đăng nhập thành công") }
                 },
                 onFailure = { e ->
-                    _uiState.update { it.copy(isSigningIn = false, signInError = ErrorMessageUtil.friendlyMessage(e, "Đăng nhập thất bại, vui lòng thử lại")) }
+                    if (e is androidx.credentials.exceptions.GetCredentialCancellationException) {
+                        _uiState.update { it.copy(isSigningIn = false) }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                isSigningIn = false,
+                                signInError = ErrorMessageUtil.friendlyMessage(e, "Đăng nhập thất bại, vui lòng thử lại"),
+                            )
+                        }
+                    }
                 }
             )
         }

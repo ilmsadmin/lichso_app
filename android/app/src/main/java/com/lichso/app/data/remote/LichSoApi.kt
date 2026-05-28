@@ -22,6 +22,11 @@ data class ApiResponse<T>(
     val data: T?,
 )
 
+class LichSoApiException(
+    val statusCode: Int,
+    override val message: String,
+) : Exception(message)
+
 // ── Content data classes ──
 
 data class ContentEvent(
@@ -291,20 +296,35 @@ class LichSoApi @Inject constructor(
 
     private inline fun <reified T> execute(request: Request): Result<T> {
         return try {
-            val response = client.newCall(request).execute()
-            val body = response.body?.string()
-            if (!response.isSuccessful || body.isNullOrBlank()) {
-                return Result.failure(Exception("HTTP ${response.code}"))
+            client.newCall(request).execute().use { response ->
+                val body = response.body?.string()
+                if (!response.isSuccessful) {
+                    val message = parseErrorMessage(body) ?: "HTTP ${response.code}"
+                    return Result.failure(LichSoApiException(response.code, message))
+                }
+                if (body.isNullOrBlank()) {
+                    return Result.failure(LichSoApiException(response.code, "Máy chủ không trả về dữ liệu"))
+                }
+                val type = object : TypeToken<ApiResponse<T>>() {}.type
+                val wrapper: ApiResponse<T> = gson.fromJson(body, type)
+                if (!wrapper.success || wrapper.data == null) {
+                    return Result.failure(LichSoApiException(response.code, wrapper.message ?: "API error"))
+                }
+                Result.success(wrapper.data)
             }
-            val type = object : TypeToken<ApiResponse<T>>() {}.type
-            val wrapper: ApiResponse<T> = gson.fromJson(body, type)
-            if (!wrapper.success || wrapper.data == null) {
-                return Result.failure(Exception(wrapper.message ?: "API error"))
-            }
-            Result.success(wrapper.data)
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private fun parseErrorMessage(body: String?): String? {
+        if (body.isNullOrBlank()) return null
+        return runCatching {
+            val json = com.google.gson.JsonParser.parseString(body).asJsonObject
+            json.get("message")?.asString
+                ?: json.getAsJsonObject("error")?.get("detail")?.asString
+                ?: json.getAsJsonObject("error")?.get("message")?.asString
+        }.getOrNull()
     }
 
     // ── Auth endpoints ──

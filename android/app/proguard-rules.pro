@@ -36,6 +36,10 @@
 -keep class * implements com.google.gson.JsonDeserializer
 -dontwarn com.google.gson.**
 
+# API DTOs are parsed by Gson reflection. Release R8 obfuscation changes field
+# names such as success/message/data unless the model classes are kept.
+-keep class com.lichso.app.data.remote.** { *; }
+
 # ── OpenRouter AI API models ──
 -keep class com.lichso.app.data.remote.ChatMessage { *; }
 -keep class com.lichso.app.data.remote.OpenRouterRequest { *; }

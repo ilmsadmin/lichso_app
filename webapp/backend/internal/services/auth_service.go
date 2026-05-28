@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"strings"
 	"time"
@@ -16,6 +18,31 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
+
+type googleIDTokenClaims struct {
+	Aud   string `json:"aud"`
+	Azp   string `json:"azp"`
+	Iss   string `json:"iss"`
+	Sub   string `json:"sub"`
+	Email string `json:"email"`
+	Exp   int64  `json:"exp"`
+}
+
+func inspectGoogleIDToken(idToken string) (*googleIDTokenClaims, error) {
+	parts := strings.Split(idToken, ".")
+	if len(parts) < 2 {
+		return nil, errors.New("invalid JWT format")
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil, err
+	}
+	var claims googleIDTokenClaims
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return nil, err
+	}
+	return &claims, nil
+}
 
 func parseClientMetadata(rawUA string) (string, map[string]interface{}) {
 	ua := strings.TrimSpace(rawUA)
@@ -462,16 +489,39 @@ func (s *AuthService) GoogleLogin(req *dto.GoogleLoginRequest, ipAddress, userAg
 	}
 
 	// Verify Google ID token — accept web client ID, Android Firebase client ID, and iOS native client ID
-	allowedIDs := []string{s.cfg.Google.ClientID}
-	if s.cfg.Google.AndroidClientID != "" {
-		allowedIDs = append(allowedIDs, s.cfg.Google.AndroidClientID)
+	allowedIDs := make([]string, 0, 8)
+	appendClientIDs := func(raw string) {
+		for _, id := range strings.Split(raw, ",") {
+			trimmed := strings.TrimSpace(id)
+			if trimmed != "" {
+				allowedIDs = append(allowedIDs, trimmed)
+			}
+		}
 	}
-	if s.cfg.Google.IOSClientID != "" {
-		allowedIDs = append(allowedIDs, s.cfg.Google.IOSClientID)
+	appendClientIDs(s.cfg.Google.ClientID)
+	appendClientIDs(s.cfg.Google.AndroidClientID)
+	appendClientIDs(s.cfg.Google.IOSClientID)
+
+	if claims, err := inspectGoogleIDToken(req.IDToken); err == nil {
+		s.logger.Info("Google login token received",
+			zap.String("aud", claims.Aud),
+			zap.String("azp", claims.Azp),
+			zap.String("iss", claims.Iss),
+			zap.String("email", claims.Email),
+			zap.String("sub", claims.Sub),
+			zap.Int64("exp", claims.Exp),
+		)
+	} else {
+		s.logger.Warn("Failed to decode Google ID token payload", zap.Error(err))
 	}
+
 	googleUser, err := utils.VerifyGoogleIDToken(req.IDToken, allowedIDs...)
 	if err != nil {
-		s.logger.Error("Failed to verify Google ID token", zap.Error(err))
+		s.logger.Error("Failed to verify Google ID token",
+			zap.Error(err),
+			zap.Int("allowed_client_ids_count", len(allowedIDs)),
+			zap.Strings("allowed_client_ids", allowedIDs),
+		)
 		s.logActivity("", "", models.ActionLoginFailed, models.ModuleAuth,
 			"Google login failed: invalid id token", models.StatusFailure, ipAddress, userAgent)
 		return nil, utils.ErrGoogleTokenInvalid

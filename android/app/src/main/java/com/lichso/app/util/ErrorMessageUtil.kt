@@ -1,5 +1,11 @@
 package com.lichso.app.util
 
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
+import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.auth.FirebaseAuthException
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.lichso.app.data.remote.LichSoApiException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -23,6 +29,35 @@ object ErrorMessageUtil {
         if (throwable == null) return fallback
         val msg = throwable.message ?: ""
         return when {
+            // Google Sign-In / Firebase Auth
+            throwable is NoCredentialException
+                || msg.contains("No credentials available", ignoreCase = true)
+                || msg.contains("Cannot find a matching credential", ignoreCase = true) ->
+                "Không tìm thấy tài khoản Google khả dụng trên thiết bị."
+
+            throwable is FirebaseNetworkException ->
+                "Không thể kết nối tới Google. Vui lòng kiểm tra internet và thử lại."
+
+            throwable is FirebaseAuthInvalidCredentialsException
+                || msg.contains("malformed", ignoreCase = true)
+                || msg.contains("expired", ignoreCase = true)
+                || msg.contains("Invalid Google ID token", ignoreCase = true)
+                || msg.contains("audience mismatch", ignoreCase = true) ->
+                "Cấu hình Google Sign-In chưa khớp giữa ứng dụng và máy chủ."
+
+            msg.contains("GOOGLE_WEB_CLIENT_ID", ignoreCase = true) ->
+                "Cấu hình Google Sign-In trong ứng dụng chưa đầy đủ."
+
+            msg.contains("Google login is not configured", ignoreCase = true) ->
+                "Máy chủ chưa bật đăng nhập Google."
+
+            throwable is GetCredentialException
+                || throwable is FirebaseAuthException ->
+                "Không thể đăng nhập bằng Google. Vui lòng thử lại hoặc dùng tài khoản Google khác."
+
+            throwable is LichSoApiException && throwable.statusCode in 400..499 ->
+                msg.ifBlank { "Không thể xác thực tài khoản Google. Vui lòng thử lại." }
+
             // Không có kết nối mạng / không phân giải được tên miền
             throwable is UnknownHostException
                 || throwable.cause is UnknownHostException
