@@ -265,7 +265,7 @@ export default function GroupsPage() {
         </div>
       )}
 
-      <GroupFormDialog open={formOpen} onClose={() => setFormOpen(false)} group={editGroup} />
+      <GroupFormDialog key={editGroup?.id ?? "new"} open={formOpen} onClose={() => setFormOpen(false)} group={editGroup} />
 
       {managingGroup && (
         <GroupMembersDialog

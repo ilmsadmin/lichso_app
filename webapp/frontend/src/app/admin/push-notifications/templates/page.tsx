@@ -183,6 +183,7 @@ export default function TemplatesPage() {
       )}
 
       <TemplateDialog
+        key={editTemplate?.id ?? "new"}
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         template={editTemplate}
