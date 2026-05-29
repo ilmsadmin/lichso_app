@@ -101,6 +101,7 @@ type DeviceTokenBrief struct {
 	Platform   string    `json:"platform"`
 	AppVersion string    `json:"app_version"`
 	DeviceID   string    `json:"device_id"`
+	DeviceName string    `json:"device_name"`
 	LastSeen   time.Time `json:"last_seen"`
 	CreatedAt  time.Time `json:"created_at"`
 }

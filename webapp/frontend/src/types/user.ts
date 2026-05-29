@@ -33,6 +33,7 @@ export interface DeviceTokenBrief {
   platform: string;
   app_version: string;
   device_id: string;
+  device_name: string;
   last_seen: string;
   created_at: string;
 }

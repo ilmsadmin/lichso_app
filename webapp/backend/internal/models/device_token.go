@@ -21,6 +21,7 @@ type DeviceToken struct {
 	Platform   string         `gorm:"type:varchar(20);not null;default:'android'" json:"platform"`
 	AppVersion string         `gorm:"type:varchar(50);default:''" json:"app_version"`
 	DeviceID   string         `gorm:"type:varchar(255);default:''" json:"device_id"`
+	DeviceName string         `gorm:"type:varchar(255);default:''" json:"device_name"`
 	IsActive   bool           `gorm:"not null;default:true" json:"is_active"`
 	LastSeen   time.Time      `gorm:"type:timestamptz;not null;default:now()" json:"last_seen"`
 	CreatedAt  time.Time      `gorm:"type:timestamptz;not null;default:now()" json:"created_at"`

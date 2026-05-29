@@ -94,6 +94,7 @@ func (s *UserService) GetUserAdminDetail(userID uuid.UUID) (*models.UserAdminDet
 			Platform:   dt.Platform,
 			AppVersion: dt.AppVersion,
 			DeviceID:   dt.DeviceID,
+			DeviceName: dt.DeviceName,
 			LastSeen:   dt.LastSeen,
 			CreatedAt:  dt.CreatedAt,
 		}

@@ -1,6 +1,7 @@
 package com.lichso.app
 
 import android.app.Application
+import android.os.Build
 import android.provider.Settings
 import com.google.firebase.messaging.FirebaseMessaging
 import com.lichso.app.analytics.Analytics
@@ -72,10 +73,12 @@ class LichSoApp : Application() {
                 val deviceId = Settings.Secure.getString(
                     contentResolver, Settings.Secure.ANDROID_ID
                 ) ?: ""
+                val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
                 api.registerDeviceToken(
                     fcmToken = fcmToken,
                     appVersion = com.lichso.app.BuildConfig.VERSION_NAME,
                     deviceId = deviceId,
+                    deviceName = deviceName,
                     authToken = authToken,
                 )
             } catch (e: Exception) {

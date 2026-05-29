@@ -152,10 +152,12 @@ class AuthRepository @Inject constructor(
                             val deviceId = Settings.Secure.getString(
                                 context.contentResolver, Settings.Secure.ANDROID_ID
                             ) ?: ""
+                            val deviceName = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}".trim()
                             api.registerDeviceToken(
                                 fcmToken = fcmToken,
                                 appVersion = BuildConfig.VERSION_NAME,
                                 deviceId = deviceId,
+                                deviceName = deviceName,
                                 authToken = loginResponse.accessToken,
                             )
                             Log.d(tag, "FCM token linked to user account")

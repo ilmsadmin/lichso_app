@@ -24,14 +24,15 @@ func (r *DeviceTokenRepository) Upsert(token *models.DeviceToken) error {
 	// Build raw SQL for the upsert so we can use COALESCE on user_id.
 	sql := `
 		INSERT INTO device_tokens
-			(user_id, token, platform, app_version, device_id, is_active, last_seen, created_at, updated_at)
+			(user_id, token, platform, app_version, device_id, device_name, is_active, last_seen, created_at, updated_at)
 		VALUES
-			(?, ?, ?, ?, ?, ?, NOW(), NOW(), NOW())
+			(?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), NOW())
 		ON CONFLICT (token) DO UPDATE SET
 			user_id     = COALESCE(EXCLUDED.user_id, device_tokens.user_id),
 			platform    = EXCLUDED.platform,
 			app_version = EXCLUDED.app_version,
 			device_id   = EXCLUDED.device_id,
+			device_name = CASE WHEN EXCLUDED.device_name != '' THEN EXCLUDED.device_name ELSE device_tokens.device_name END,
 			is_active   = EXCLUDED.is_active,
 			last_seen   = NOW(),
 			updated_at  = NOW()
@@ -43,7 +44,7 @@ func (r *DeviceTokenRepository) Upsert(token *models.DeviceToken) error {
 	}
 	return r.db.Raw(sql,
 		userID, token.Token, token.Platform,
-		token.AppVersion, token.DeviceID, token.IsActive,
+		token.AppVersion, token.DeviceID, token.DeviceName, token.IsActive,
 	).Scan(token).Error
 }
 

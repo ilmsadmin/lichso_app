@@ -1,5 +1,6 @@
 package com.lichso.app.notification
 
+import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -65,10 +66,12 @@ class LichSoFirebaseMessagingService : FirebaseMessagingService() {
             Settings.Secure.ANDROID_ID
         ) ?: ""
 
+        val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
         val result = api.registerDeviceToken(
             fcmToken = fcmToken,
             appVersion = BuildConfig.VERSION_NAME,
             deviceId = deviceId,
+            deviceName = deviceName,
             authToken = authToken,
         )
 

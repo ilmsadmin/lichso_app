@@ -38,6 +38,7 @@ type registerTokenRequest struct {
 	Platform   string `json:"platform" validate:"required,oneof=android ios web"`
 	AppVersion string `json:"app_version"`
 	DeviceID   string `json:"device_id"`
+	DeviceName string `json:"device_name"`
 }
 
 // RegisterToken handles POST /api/push/register
@@ -53,6 +54,7 @@ func (h *PushNotificationHandler) RegisterToken(c *fiber.Ctx) error {
 		Platform:   req.Platform,
 		AppVersion: req.AppVersion,
 		DeviceID:   req.DeviceID,
+		DeviceName: req.DeviceName,
 		IsActive:   true,
 		LastSeen:   time.Now(),
 	}

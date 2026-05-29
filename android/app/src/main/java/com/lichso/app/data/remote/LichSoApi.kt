@@ -522,6 +522,7 @@ class LichSoApi @Inject constructor(
         fcmToken: String,
         appVersion: String,
         deviceId: String,
+        deviceName: String = "",
         authToken: String? = null,
     ): Result<Unit> = withContext(Dispatchers.IO) {
         executeVoid(post(
@@ -531,6 +532,7 @@ class LichSoApi @Inject constructor(
                 "platform" to "android",
                 "app_version" to appVersion,
                 "device_id" to deviceId,
+                "device_name" to deviceName,
             ),
             authToken,
         ))
