@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"regexp"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -10,6 +11,18 @@ import (
 	"github.com/zplus/lichso/internal/utils"
 	"go.uber.org/zap"
 )
+
+// uaDeviceRe matches the device model in "LichSo-Android/x.y.z (Android N; DEVICE MODEL)"
+var uaDeviceRe = regexp.MustCompile(`\(Android \d+[^;]*;\s*([^)]+)\)`)
+
+// extractDeviceNameFromUA parses the device model from the Android User-Agent.
+func extractDeviceNameFromUA(ua string) string {
+	m := uaDeviceRe.FindStringSubmatch(ua)
+	if len(m) >= 2 {
+		return m[1]
+	}
+	return ""
+}
 
 // PushNotificationHandler handles device token registration and campaign management.
 type PushNotificationHandler struct {
@@ -49,12 +62,19 @@ func (h *PushNotificationHandler) RegisterToken(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body")
 	}
 
+	// Fallback: extract device model from User-Agent if device_name not provided.
+	// Format: "LichSo-Android/2.0.6 (Android 9; OPPO CPH2077)"
+	deviceName := req.DeviceName
+	if deviceName == "" {
+		deviceName = extractDeviceNameFromUA(c.Get("User-Agent"))
+	}
+
 	token := &models.DeviceToken{
 		Token:      req.Token,
 		Platform:   req.Platform,
 		AppVersion: req.AppVersion,
 		DeviceID:   req.DeviceID,
-		DeviceName: req.DeviceName,
+		DeviceName: deviceName,
 		IsActive:   true,
 		LastSeen:   time.Now(),
 	}
@@ -235,4 +255,172 @@ func (h *PushNotificationHandler) AdminGetStats(c *fiber.Ctx) error {
 	return utils.SuccessResponse(c, "Push stats", fiber.Map{
 		"active_devices": count,
 	})
+}
+
+// ── Template endpoints ────────────────────────────────────────────────────
+
+type templateRequest struct {
+	Name        string `json:"name"`
+	Title       string `json:"title"`
+	Body        string `json:"body"`
+	ImageURL    string `json:"image_url"`
+	ClickAction string `json:"click_action"`
+	DataPayload string `json:"data_payload"`
+}
+
+func (h *PushNotificationHandler) AdminListTemplates(c *fiber.Ctx) error {
+	list, err := h.campaignService.ListTemplates()
+	if err != nil {
+		return utils.InternalErrorResponse(c)
+	}
+	return utils.SuccessResponse(c, "Templates", list)
+}
+
+func (h *PushNotificationHandler) AdminCreateTemplate(c *fiber.Ctx) error {
+	var req templateRequest
+	if err := c.BodyParser(&req); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body")
+	}
+	var createdBy *uuid.UUID
+	if uid, err := uuid.Parse(c.Locals("userID").(string)); err == nil {
+		createdBy = &uid
+	}
+	t, err := h.campaignService.CreateTemplate(req.Name, req.Title, req.Body, req.ImageURL, req.ClickAction, req.DataPayload, createdBy)
+	if err != nil {
+		return utils.InternalErrorResponse(c)
+	}
+	return utils.CreatedResponse(c, "Template created", t)
+}
+
+func (h *PushNotificationHandler) AdminUpdateTemplate(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid template ID")
+	}
+	var req templateRequest
+	if err := c.BodyParser(&req); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body")
+	}
+	t, err := h.campaignService.UpdateTemplate(id, req.Name, req.Title, req.Body, req.ImageURL, req.ClickAction, req.DataPayload)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, err.Error())
+	}
+	return utils.SuccessResponse(c, "Template updated", t)
+}
+
+func (h *PushNotificationHandler) AdminDeleteTemplate(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid template ID")
+	}
+	if err := h.campaignService.DeleteTemplate(id); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, err.Error())
+	}
+	return utils.NoContentResponse(c)
+}
+
+// ── User Group endpoints ──────────────────────────────────────────────────
+
+type groupRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+func (h *PushNotificationHandler) AdminListGroups(c *fiber.Ctx) error {
+	list, err := h.campaignService.ListGroups()
+	if err != nil {
+		return utils.InternalErrorResponse(c)
+	}
+	return utils.SuccessResponse(c, "Groups", list)
+}
+
+func (h *PushNotificationHandler) AdminCreateGroup(c *fiber.Ctx) error {
+	var req groupRequest
+	if err := c.BodyParser(&req); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body")
+	}
+	var createdBy *uuid.UUID
+	if uid, err := uuid.Parse(c.Locals("userID").(string)); err == nil {
+		createdBy = &uid
+	}
+	g, err := h.campaignService.CreateGroup(req.Name, req.Description, createdBy)
+	if err != nil {
+		return utils.InternalErrorResponse(c)
+	}
+	return utils.CreatedResponse(c, "Group created", g)
+}
+
+func (h *PushNotificationHandler) AdminUpdateGroup(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid group ID")
+	}
+	var req groupRequest
+	if err := c.BodyParser(&req); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body")
+	}
+	g, err := h.campaignService.UpdateGroup(id, req.Name, req.Description)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, err.Error())
+	}
+	return utils.SuccessResponse(c, "Group updated", g)
+}
+
+func (h *PushNotificationHandler) AdminDeleteGroup(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid group ID")
+	}
+	if err := h.campaignService.DeleteGroup(id); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, err.Error())
+	}
+	return utils.NoContentResponse(c)
+}
+
+func (h *PushNotificationHandler) AdminGetGroupMembers(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid group ID")
+	}
+	members, err := h.campaignService.GetGroupMembers(id)
+	if err != nil {
+		return utils.InternalErrorResponse(c)
+	}
+	return utils.SuccessResponse(c, "Members", members)
+}
+
+func (h *PushNotificationHandler) AdminAddGroupMember(c *fiber.Ctx) error {
+	groupID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid group ID")
+	}
+	var req struct {
+		UserID string `json:"user_id"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body")
+	}
+	userID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid user ID")
+	}
+	if err := h.campaignService.AddGroupMember(groupID, userID); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, err.Error())
+	}
+	return utils.SuccessResponse(c, "Member added", nil)
+}
+
+func (h *PushNotificationHandler) AdminRemoveGroupMember(c *fiber.Ctx) error {
+	groupID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid group ID")
+	}
+	userID, err := uuid.Parse(c.Params("userID"))
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid user ID")
+	}
+	if err := h.campaignService.RemoveGroupMember(groupID, userID); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, err.Error())
+	}
+	return utils.NoContentResponse(c)
 }

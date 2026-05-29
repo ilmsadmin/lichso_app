@@ -458,7 +458,9 @@ func setupRoutes(app *fiber.App, cfg *config.Config, pgDB *gorm.DB, mongoDB *mon
 	}
 	deviceTokenRepo := repositories.NewDeviceTokenRepository(pgDB)
 	pushCampaignRepo := repositories.NewPushCampaignRepository(pgDB)
-	pushCampaignService := services.NewPushCampaignService(pushCampaignRepo, deviceTokenRepo, fcmService, logger)
+	pushTemplateRepo := repositories.NewPushTemplateRepository(pgDB)
+	userGroupRepo := repositories.NewUserGroupRepository(pgDB)
+	pushCampaignService := services.NewPushCampaignService(pushCampaignRepo, deviceTokenRepo, userGroupRepo, pushTemplateRepo, fcmService, logger)
 	pushHandler := handlers.NewPushNotificationHandler(pushCampaignService, logger)
 	pushHandler.SetDeviceTokenRepo(deviceTokenRepo)
 	routes.SetupPushNotificationRoutes(api, authMiddleware, permMiddleware, pushHandler)

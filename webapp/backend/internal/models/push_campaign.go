@@ -16,6 +16,7 @@ const (
 
 	CampaignTargetAll   = "all"
 	CampaignTargetUsers = "users"
+	CampaignTargetGroup = "group"
 )
 
 // PushCampaign represents an admin-managed push notification broadcast.
@@ -30,6 +31,10 @@ type PushCampaign struct {
 	TargetType  string         `gorm:"type:varchar(20);not null;default:'all'" json:"target_type"`
 	// Comma-separated user IDs when target_type = "users"
 	TargetUsers string         `gorm:"type:text;default:''" json:"target_users"`
+	// Group ID when target_type = "group"
+	TargetGroupID *uuid.UUID   `gorm:"type:uuid" json:"target_group_id,omitempty"`
+	// Optional reference to a reusable template
+	TemplateID *uuid.UUID      `gorm:"type:uuid" json:"template_id,omitempty"`
 	Status      string         `gorm:"type:varchar(20);not null;default:'draft'" json:"status"`
 	ScheduledAt *time.Time     `gorm:"type:timestamptz" json:"scheduled_at,omitempty"`
 	SentAt      *time.Time     `gorm:"type:timestamptz" json:"sent_at,omitempty"`

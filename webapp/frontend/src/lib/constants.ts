@@ -75,6 +75,8 @@ export const ROUTES = {
   ADMIN_AI_DASHBOARD: "/admin/ai-dashboard",
   // Push Notifications
   ADMIN_PUSH_NOTIFICATIONS: "/admin/push-notifications",
+  ADMIN_PUSH_TEMPLATES: "/admin/push-notifications/templates",
+  ADMIN_PUSH_GROUPS: "/admin/push-notifications/groups",
   // Public content pages
   ARTICLES: "/bai-viet",
   ARTICLE_CATEGORY: "/bai-viet/danh-muc",

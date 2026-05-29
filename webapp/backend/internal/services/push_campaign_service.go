@@ -18,6 +18,8 @@ const fcmBatchSize = 100 // tokens per batch call
 type PushCampaignService struct {
 	campaignRepo    *repositories.PushCampaignRepository
 	deviceTokenRepo *repositories.DeviceTokenRepository
+	groupRepo       *repositories.UserGroupRepository
+	templateRepo    *repositories.PushTemplateRepository
 	fcm             *FCMService // nil when FCM is disabled
 	logger          *zap.Logger
 }
@@ -25,12 +27,16 @@ type PushCampaignService struct {
 func NewPushCampaignService(
 	campaignRepo *repositories.PushCampaignRepository,
 	deviceTokenRepo *repositories.DeviceTokenRepository,
+	groupRepo *repositories.UserGroupRepository,
+	templateRepo *repositories.PushTemplateRepository,
 	fcm *FCMService,
 	logger *zap.Logger,
 ) *PushCampaignService {
 	return &PushCampaignService{
 		campaignRepo:    campaignRepo,
 		deviceTokenRepo: deviceTokenRepo,
+		groupRepo:       groupRepo,
+		templateRepo:    templateRepo,
 		fcm:             fcm,
 		logger:          logger,
 	}
@@ -39,15 +45,17 @@ func NewPushCampaignService(
 // ── Campaign CRUD ─────────────────────────────────────────────────────────
 
 type CreateCampaignInput struct {
-	Title       string
-	Body        string
-	ImageURL    string
-	ClickAction string
-	DataPayload map[string]string
-	TargetType  string
-	TargetUsers []string // user IDs when target_type = "users"
-	ScheduledAt *time.Time
-	CreatedBy   *uuid.UUID
+	Title         string
+	Body          string
+	ImageURL      string
+	ClickAction   string
+	DataPayload   map[string]string
+	TargetType    string
+	TargetUsers   []string // user IDs when target_type = "users"
+	TargetGroupID *uuid.UUID
+	TemplateID    *uuid.UUID
+	ScheduledAt   *time.Time
+	CreatedBy     *uuid.UUID
 }
 
 func (s *PushCampaignService) Create(input CreateCampaignInput) (*models.PushCampaign, error) {
@@ -68,16 +76,18 @@ func (s *PushCampaignService) Create(input CreateCampaignInput) (*models.PushCam
 	}
 
 	campaign := &models.PushCampaign{
-		Title:       input.Title,
-		Body:        input.Body,
-		ImageURL:    input.ImageURL,
-		ClickAction: input.ClickAction,
-		DataPayload: dataJSON,
-		TargetType:  targetType,
-		TargetUsers: strings.Join(input.TargetUsers, ","),
-		Status:      status,
-		ScheduledAt: input.ScheduledAt,
-		CreatedBy:   input.CreatedBy,
+		Title:         input.Title,
+		Body:          input.Body,
+		ImageURL:      input.ImageURL,
+		ClickAction:   input.ClickAction,
+		DataPayload:   dataJSON,
+		TargetType:    targetType,
+		TargetUsers:   strings.Join(input.TargetUsers, ","),
+		TargetGroupID: input.TargetGroupID,
+		TemplateID:    input.TemplateID,
+		Status:        status,
+		ScheduledAt:   input.ScheduledAt,
+		CreatedBy:     input.CreatedBy,
 	}
 
 	if err := s.campaignRepo.Create(campaign); err != nil {
@@ -101,14 +111,16 @@ func (s *PushCampaignService) List(page, limit int, status string) ([]models.Pus
 }
 
 type UpdateCampaignInput struct {
-	Title       string
-	Body        string
-	ImageURL    string
-	ClickAction string
-	DataPayload map[string]string
-	TargetType  string
-	TargetUsers []string
-	ScheduledAt *time.Time
+	Title         string
+	Body          string
+	ImageURL      string
+	ClickAction   string
+	DataPayload   map[string]string
+	TargetType    string
+	TargetUsers   []string
+	TargetGroupID *uuid.UUID
+	TemplateID    *uuid.UUID
+	ScheduledAt   *time.Time
 }
 
 func (s *PushCampaignService) Update(id uuid.UUID, input UpdateCampaignInput) (*models.PushCampaign, error) {
@@ -137,6 +149,8 @@ func (s *PushCampaignService) Update(id uuid.UUID, input UpdateCampaignInput) (*
 		campaign.TargetType = input.TargetType
 	}
 	campaign.TargetUsers = strings.Join(input.TargetUsers, ",")
+	campaign.TargetGroupID = input.TargetGroupID
+	campaign.TemplateID = input.TemplateID
 	campaign.ScheduledAt = input.ScheduledAt
 
 	if input.ScheduledAt != nil {
@@ -284,6 +298,16 @@ func (s *PushCampaignService) resolveTokens(campaign *models.PushCampaign) ([]st
 		}
 		return s.deviceTokenRepo.GetActiveTokensByUserIDs(userIDs)
 
+	case models.CampaignTargetGroup:
+		if campaign.TargetGroupID == nil {
+			return nil, nil
+		}
+		userIDs, err := s.groupRepo.GetMemberUserIDs(*campaign.TargetGroupID)
+		if err != nil || len(userIDs) == 0 {
+			return nil, err
+		}
+		return s.deviceTokenRepo.GetActiveTokensByUserIDs(userIDs)
+
 	default:
 		return nil, fmt.Errorf("unknown target_type: %s", campaign.TargetType)
 	}
@@ -292,4 +316,107 @@ func (s *PushCampaignService) resolveTokens(campaign *models.PushCampaign) ([]st
 // ActiveDeviceCount returns the number of registered active devices.
 func (s *PushCampaignService) ActiveDeviceCount() (int64, error) {
 	return s.deviceTokenRepo.CountActive()
+}
+
+// ── Template CRUD ─────────────────────────────────────────────────────────
+
+func (s *PushCampaignService) ListTemplates() ([]models.PushTemplate, error) {
+	return s.templateRepo.List()
+}
+
+func (s *PushCampaignService) CreateTemplate(name, title, body, imageURL, clickAction, dataPayload string, createdBy *uuid.UUID) (*models.PushTemplate, error) {
+	if dataPayload == "" {
+		dataPayload = "{}"
+	}
+	t := &models.PushTemplate{
+		Name:        name,
+		Title:       title,
+		Body:        body,
+		ImageURL:    imageURL,
+		ClickAction: clickAction,
+		DataPayload: dataPayload,
+		CreatedBy:   createdBy,
+	}
+	if err := s.templateRepo.Create(t); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
+func (s *PushCampaignService) UpdateTemplate(id uuid.UUID, name, title, body, imageURL, clickAction, dataPayload string) (*models.PushTemplate, error) {
+	t, err := s.templateRepo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if name != "" {
+		t.Name = name
+	}
+	if title != "" {
+		t.Title = title
+	}
+	if body != "" {
+		t.Body = body
+	}
+	t.ImageURL = imageURL
+	t.ClickAction = clickAction
+	if dataPayload != "" {
+		t.DataPayload = dataPayload
+	}
+	if err := s.templateRepo.Update(t); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
+func (s *PushCampaignService) DeleteTemplate(id uuid.UUID) error {
+	return s.templateRepo.Delete(id)
+}
+
+// ── User Group CRUD ───────────────────────────────────────────────────────
+
+func (s *PushCampaignService) ListGroups() ([]models.UserGroup, error) {
+	return s.groupRepo.List()
+}
+
+func (s *PushCampaignService) CreateGroup(name, description string, createdBy *uuid.UUID) (*models.UserGroup, error) {
+	g := &models.UserGroup{
+		Name:        name,
+		Description: description,
+		CreatedBy:   createdBy,
+	}
+	if err := s.groupRepo.Create(g); err != nil {
+		return nil, err
+	}
+	return g, nil
+}
+
+func (s *PushCampaignService) UpdateGroup(id uuid.UUID, name, description string) (*models.UserGroup, error) {
+	g, err := s.groupRepo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if name != "" {
+		g.Name = name
+	}
+	g.Description = description
+	if err := s.groupRepo.Update(g); err != nil {
+		return nil, err
+	}
+	return g, nil
+}
+
+func (s *PushCampaignService) DeleteGroup(id uuid.UUID) error {
+	return s.groupRepo.Delete(id)
+}
+
+func (s *PushCampaignService) GetGroupMembers(groupID uuid.UUID) ([]repositories.GroupMemberDetail, error) {
+	return s.groupRepo.GetMembersWithDetails(groupID)
+}
+
+func (s *PushCampaignService) AddGroupMember(groupID, userID uuid.UUID) error {
+	return s.groupRepo.AddMember(groupID, userID)
+}
+
+func (s *PushCampaignService) RemoveGroupMember(groupID, userID uuid.UUID) error {
+	return s.groupRepo.RemoveMember(groupID, userID)
 }

@@ -1,5 +1,5 @@
 export type CampaignStatus = "draft" | "scheduled" | "sending" | "sent" | "failed";
-export type CampaignTarget = "all" | "users";
+export type CampaignTarget = "all" | "users" | "group";
 
 export interface PushCampaign {
   id: string;
@@ -7,9 +7,11 @@ export interface PushCampaign {
   body: string;
   image_url?: string;
   click_action?: string;
-  data_payload?: string; // JSON string
+  data_payload?: string;
   target_type: CampaignTarget;
-  target_users?: string; // comma-separated user IDs
+  target_users?: string;
+  target_group_id?: string;
+  template_id?: string;
   status: CampaignStatus;
   scheduled_at?: string;
   sent_at?: string;
@@ -20,6 +22,50 @@ export interface PushCampaign {
   updated_at: string;
 }
 
+// ── Templates ──────────────────────────────────────────────────────────────
+
+export interface PushTemplate {
+  id: string;
+  name: string;
+  title: string;
+  body: string;
+  image_url?: string;
+  click_action?: string;
+  data_payload?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateTemplateRequest {
+  name: string;
+  title: string;
+  body: string;
+  image_url?: string;
+  click_action?: string;
+  data_payload?: string;
+}
+
+// ── User Groups ────────────────────────────────────────────────────────────
+
+export interface UserGroup {
+  id: string;
+  name: string;
+  description?: string;
+  member_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GroupMember {
+  user_id: string;
+  full_name: string;
+  email: string;
+  avatar?: string;
+  added_at: string;
+}
+
+// ── Campaigns ──────────────────────────────────────────────────────────────
+
 export interface CreateCampaignRequest {
   title: string;
   body: string;
@@ -28,6 +74,8 @@ export interface CreateCampaignRequest {
   data_payload?: Record<string, string>;
   target_type: CampaignTarget;
   target_users?: string[];
+  target_group_id?: string;
+  template_id?: string;
   scheduled_at?: string;
 }
 

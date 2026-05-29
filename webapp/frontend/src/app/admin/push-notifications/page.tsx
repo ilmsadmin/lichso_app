@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Plus, Send, Trash2, Eye, Smartphone } from "lucide-react";
+import { Plus, Send, Trash2, Eye, Smartphone, Bell, FileText, Users } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -79,6 +79,20 @@ export default function PushNotificationsPage() {
             </Link>
           </Button>
         </PermissionGate>
+      </div>
+
+      {/* Sub-navigation */}
+      <div className="flex gap-2 border-b pb-0">
+        {[
+          { label: "Chiến dịch", href: ROUTES.ADMIN_PUSH_NOTIFICATIONS, icon: <Bell className="w-3.5 h-3.5" /> },
+          { label: "Mẫu", href: ROUTES.ADMIN_PUSH_TEMPLATES, icon: <FileText className="w-3.5 h-3.5" /> },
+          { label: "Nhóm user", href: ROUTES.ADMIN_PUSH_GROUPS, icon: <Users className="w-3.5 h-3.5" /> },
+        ].map((tab) => (
+          <Link key={tab.href} href={tab.href}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm border-b-2 border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors -mb-px">
+            {tab.icon}{tab.label}
+          </Link>
+        ))}
       </div>
 
       {/* Stats card */}
