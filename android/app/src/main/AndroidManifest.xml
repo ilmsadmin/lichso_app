@@ -210,6 +210,15 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- Firebase Cloud Messaging — nhận push notification từ server -->
+        <service
+            android:name=".notification.LichSoFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <service
             android:name=".quicksettings.LichSoQuickSettingsTileService"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"

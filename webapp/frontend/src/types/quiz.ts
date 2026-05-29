@@ -72,6 +72,19 @@ export interface SetDailySetRequest {
   question_ids: number[];
 }
 
+export interface RandomizeDailySetRequest {
+  date: string;
+  count?: number;
+  category?: string;
+  difficulty?: string;
+}
+
+export interface RandomizeDailySetResponse {
+  date: string;
+  count: number;
+  question_ids: number[];
+}
+
 export const QUIZ_CATEGORIES = [
   { value: "history_vn", label: "Lịch sử Việt Nam" },
   { value: "history_world", label: "Lịch sử Thế giới" },

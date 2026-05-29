@@ -28,6 +28,7 @@ object NotificationHelper {
     const val CHANNEL_FESTIVAL = "channel_festival_reminder"
     const val CHANNEL_UPDATE = "channel_app_update"
     const val CHANNEL_AI_TUVI = "channel_ai_tuvi"
+    const val CHANNEL_PUSH = "channel_push_notification"
 
     // Removed group key — grouping without summary notification causes
     // Android to bundle & sometimes hide individual notifications.
@@ -137,6 +138,56 @@ object NotificationHelper {
                 setShowBadge(true)
             }
         )
+
+        // Channel thông báo đẩy từ server (admin push campaigns)
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_PUSH,
+                "Thông báo từ Lịch Số",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Thông báo quan trọng và ưu đãi từ Lịch Số"
+                enableVibration(true)
+                setShowBadge(true)
+            }
+        )
+    }
+
+    /**
+     * Hiển thị push notification từ server (FCM).
+     * Lưu vào DB in-app + hiện system notification.
+     * clickAction: deep link scheme lichso:// hoặc null để mở MainActivity.
+     */
+    fun showPushNotification(context: Context, title: String, body: String, clickAction: String? = null) {
+        saveToDatabase(context, title, body, "push")
+
+        if (!canPostNotifications(context)) return
+
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            if (!clickAction.isNullOrBlank()) {
+                action = Intent.ACTION_VIEW
+                data = android.net.Uri.parse(clickAction)
+            }
+        }
+        val pi = PendingIntent.getActivity(
+            context, System.currentTimeMillis().toInt(), intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_PUSH)
+            .setSmallIcon(R.drawable.ic_notif_calendar)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setAutoCancel(true)
+            .setContentIntent(pi)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+
+        nm.notify(("push_${System.currentTimeMillis()}").hashCode(), notification)
     }
 
     /**

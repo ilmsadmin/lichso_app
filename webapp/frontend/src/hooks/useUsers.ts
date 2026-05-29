@@ -15,6 +15,7 @@ import { toast } from "sonner";
 // ============================================
 
 const USERS_KEY = "users";
+const USER_DETAIL_KEY = "user-detail";
 
 /**
  * Hook for fetching paginated users
@@ -34,6 +35,18 @@ export function useUser(id: string) {
     queryKey: [USERS_KEY, id],
     queryFn: () => userService.getUser(id),
     enabled: !!id,
+  });
+}
+
+/**
+ * Hook for fetching full enriched user detail (admin view)
+ */
+export function useUserDetail(id: string) {
+  return useQuery({
+    queryKey: [USER_DETAIL_KEY, id],
+    queryFn: () => userService.getUserDetail(id),
+    enabled: !!id,
+    staleTime: 30_000,
   });
 }
 

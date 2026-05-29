@@ -2,18 +2,13 @@
 // User Management Types
 // ============================================
 
-/**
- * Role brief info nested in user responses
- */
 export interface UserRoleBrief {
   id: string;
   name: string;
   display_name: string;
 }
 
-/**
- * User data returned from the API (admin view)
- */
+/** Base user — returned in list and simple detail views */
 export interface User {
   id: string;
   email: string;
@@ -22,16 +17,41 @@ export interface User {
   full_name: string;
   avatar: string;
   phone: string;
+  provider: string; // "local" | "google"
   is_active: boolean;
   last_login: string | null;
   created_at: string;
   updated_at: string;
   roles: UserRoleBrief[];
+  // enriched list fields
+  device_count: number;
+  platforms: string;       // e.g. "android,ios"
+  latest_version: string;  // latest app version
 }
 
-/**
- * Create user request payload
- */
+export interface DeviceTokenBrief {
+  platform: string;
+  app_version: string;
+  device_id: string;
+  last_seen: string;
+  created_at: string;
+}
+
+export interface UserStats {
+  bookmark_count: number;
+  note_count: number;
+  device_count: number;
+  streak_days: number;
+  points: number;
+}
+
+/** Full enriched user returned by /admin/users/:id/detail */
+export interface UserDetail extends User {
+  provider_id: string;
+  devices: DeviceTokenBrief[];
+  stats: UserStats;
+}
+
 export interface CreateUserRequest {
   email: string;
   password: string;
@@ -42,9 +62,6 @@ export interface CreateUserRequest {
   role_ids?: string[];
 }
 
-/**
- * Update user request payload
- */
 export interface UpdateUserRequest {
   email?: string;
   first_name?: string;
@@ -55,23 +72,14 @@ export interface UpdateUserRequest {
   password?: string;
 }
 
-/**
- * Toggle user status request
- */
 export interface ToggleUserStatusRequest {
   is_active: boolean;
 }
 
-/**
- * Set user roles request
- */
 export interface SetUserRolesRequest {
   role_ids: string[];
 }
 
-/**
- * User list query parameters
- */
 export interface UserListParams {
   page?: number;
   limit?: number;

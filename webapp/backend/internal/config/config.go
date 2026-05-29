@@ -22,6 +22,15 @@ type Config struct {
 	Google    GoogleConfig
 	SMTP      SMTPConfig
 	AI        AIConfig
+	FCM       FCMConfig
+}
+
+// FCMConfig holds Firebase Cloud Messaging configuration
+type FCMConfig struct {
+	CredentialsFile string // path to service account JSON file
+	CredentialsJSON string // raw JSON content (alternative to file path)
+	ProjectID       string
+	Enabled         bool
 }
 
 // AIConfig holds OpenRouter AI configuration
@@ -277,6 +286,12 @@ func LoadConfig(path ...string) (*Config, error) {
 			Encryption: viper.GetString("SMTP_ENCRYPTION"),
 			Enabled:    viper.GetBool("SMTP_ENABLED"),
 		},
+		FCM: FCMConfig{
+			CredentialsFile: viper.GetString("FCM_CREDENTIALS_FILE"),
+			CredentialsJSON: viper.GetString("FCM_CREDENTIALS_JSON"),
+			ProjectID:       viper.GetString("FCM_PROJECT_ID"),
+			Enabled:         viper.GetBool("FCM_ENABLED"),
+		},
 		AI: AIConfig{
 			OpenRouterAPIKey:          viper.GetString("OPENROUTER_API_KEY"),
 			OpenRouterBaseURL:         viper.GetString("OPENROUTER_BASE_URL"),
@@ -381,6 +396,12 @@ func setDefaults() {
 	viper.SetDefault("AI_RATE_HOROSCOPE_FREE", 3)
 	viper.SetDefault("AI_RATE_HOROSCOPE_PREMIUM", 20)
 	viper.SetDefault("AI_MONTHLY_BUDGET_CAP", 50.0)
+
+	// FCM defaults
+	viper.SetDefault("FCM_ENABLED", false)
+	viper.SetDefault("FCM_CREDENTIALS_FILE", "")
+	viper.SetDefault("FCM_CREDENTIALS_JSON", "")
+	viper.SetDefault("FCM_PROJECT_ID", "")
 }
 
 // splitAndTrim splits a comma-separated string and trims whitespace

@@ -198,6 +198,131 @@ func (r *UserRepository) FindAllPaginated(pq utils.PaginationQuery) ([]models.Us
 	return users, total, err
 }
 
+// adminUserRow is a scan target for the enriched admin list query.
+type adminUserRow struct {
+	models.User
+	DeviceCount   int    `gorm:"column:device_count"`
+	Platforms     string `gorm:"column:platforms"`
+	LatestVersion string `gorm:"column:latest_version"`
+}
+
+// FindAllPaginatedAdmin returns enriched user rows for the admin user table.
+// Each row includes device count, platforms (android/ios), and latest app version.
+func (r *UserRepository) FindAllPaginatedAdmin(pq utils.PaginationQuery) ([]models.UserAdminListItem, int64, error) {
+	var total int64
+
+	// Build base WHERE clause conditions
+	whereClause := "u.deleted_at IS NULL"
+	args := []interface{}{}
+
+	if pq.Search != "" {
+		s := "%" + pq.Search + "%"
+		whereClause += " AND (u.email ILIKE ? OR u.first_name ILIKE ? OR u.last_name ILIKE ? OR u.phone ILIKE ?)"
+		args = append(args, s, s, s, s)
+	}
+	switch pq.Status {
+	case "active":
+		whereClause += " AND u.is_active = true"
+	case "inactive":
+		whereClause += " AND u.is_active = false"
+	}
+	if pq.Role != "" {
+		whereClause += " AND u.id IN (SELECT ur.user_id FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE r.name = ?)"
+		args = append(args, pq.Role)
+	}
+
+	countSQL := "SELECT COUNT(*) FROM users u WHERE " + whereClause
+	if err := r.db.Raw(countSQL, args...).Scan(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	orderClause := fmt.Sprintf("u.%s %s", pq.SortBy, pq.SortOrder)
+	listSQL := fmt.Sprintf(`
+		SELECT u.*,
+			COALESCE(d.device_count, 0)  AS device_count,
+			COALESCE(d.platforms, '')     AS platforms,
+			COALESCE(d.latest_version,'') AS latest_version
+		FROM users u
+		LEFT JOIN (
+			SELECT user_id,
+				COUNT(*)                                    AS device_count,
+				STRING_AGG(DISTINCT platform, ',')          AS platforms,
+				MAX(app_version)                            AS latest_version
+			FROM device_tokens
+			WHERE is_active = true AND deleted_at IS NULL AND user_id IS NOT NULL
+			GROUP BY user_id
+		) d ON d.user_id = u.id
+		WHERE %s
+		ORDER BY %s
+		LIMIT ? OFFSET ?
+	`, whereClause, orderClause)
+
+	queryArgs := append(args, pq.Limit, pq.Offset())
+	var rows []adminUserRow
+	if err := r.db.Raw(listSQL, queryArgs...).Scan(&rows).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if len(rows) == 0 {
+		return []models.UserAdminListItem{}, total, nil
+	}
+
+	// Batch-load roles
+	userIDs := make([]uuid.UUID, len(rows))
+	for i, row := range rows {
+		userIDs[i] = row.User.ID
+	}
+
+	type roleRow struct {
+		UserID      uuid.UUID `gorm:"column:user_id"`
+		RoleID      uuid.UUID `gorm:"column:role_id"`
+		Name        string    `gorm:"column:name"`
+		DisplayName string    `gorm:"column:display_name"`
+	}
+	var roleRows []roleRow
+	r.db.Raw(`
+		SELECT ur.user_id, r.id as role_id, r.name, r.display_name
+		FROM user_roles ur JOIN roles r ON r.id = ur.role_id
+		WHERE ur.user_id IN ?
+	`, userIDs).Scan(&roleRows)
+
+	rolesByUser := make(map[uuid.UUID][]models.RoleBrief)
+	for _, rr := range roleRows {
+		rolesByUser[rr.UserID] = append(rolesByUser[rr.UserID], models.RoleBrief{
+			ID:          rr.RoleID,
+			Name:        rr.Name,
+			DisplayName: rr.DisplayName,
+		})
+	}
+
+	items := make([]models.UserAdminListItem, len(rows))
+	for i, row := range rows {
+		resp := row.User.ToResponse()
+		resp.Roles = rolesByUser[row.User.ID]
+		items[i] = models.UserAdminListItem{
+			UserResponse:  resp,
+			DeviceCount:   row.DeviceCount,
+			Platforms:     row.Platforms,
+			LatestVersion: row.LatestVersion,
+		}
+	}
+	return items, total, nil
+}
+
+// FindUserDetailStats returns aggregated stats for a single user.
+func (r *UserRepository) FindUserDetailStats(userID uuid.UUID) (models.UserStats, error) {
+	var stats models.UserStats
+	r.db.Raw(`
+		SELECT
+			(SELECT COUNT(*) FROM bookmarks  WHERE user_id = ? AND deleted_at IS NULL) AS bookmark_count,
+			(SELECT COUNT(*) FROM user_notes WHERE user_id = ? AND deleted_at IS NULL) AS note_count,
+			(SELECT COUNT(*) FROM device_tokens WHERE user_id = ? AND is_active = true AND deleted_at IS NULL) AS device_count,
+			COALESCE((SELECT current_streak FROM user_streaks WHERE user_id = ? LIMIT 1), 0) AS streak_days,
+			COALESCE((SELECT balance FROM point_wallets WHERE user_id = ? LIMIT 1), 0) AS points
+	`, userID, userID, userID, userID, userID).Scan(&stats)
+	return stats, nil
+}
+
 // FindByIDWithRoles finds a user by ID with roles preloaded (including soft-deleted check)
 func (r *UserRepository) FindByIDWithRoles(id uuid.UUID) (*models.User, error) {
 	var user models.User

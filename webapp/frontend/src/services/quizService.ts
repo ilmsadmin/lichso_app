@@ -8,6 +8,8 @@ import type {
   UpdateQuizQuestionRequest,
   QuizQuestionListParams,
   SetDailySetRequest,
+  RandomizeDailySetRequest,
+  RandomizeDailySetResponse,
   GenerateQuizQuestionsRequest,
   GenerateQuizTopicsRequest,
   GeneratedQuizQuestion,
@@ -59,6 +61,16 @@ export async function getDailySets(): Promise<ApiResponse<QuizDailySet[]>> {
 
 export async function setDailySet(data: SetDailySetRequest): Promise<ApiResponse<unknown>> {
   const response = await api.post<ApiResponse<unknown>>("/admin/quiz/daily-sets", data);
+  return response.data;
+}
+
+export async function randomizeDailySet(
+  data: RandomizeDailySetRequest
+): Promise<ApiResponse<RandomizeDailySetResponse>> {
+  const response = await api.post<ApiResponse<RandomizeDailySetResponse>>(
+    "/admin/quiz/daily-sets/random",
+    data
+  );
   return response.data;
 }
 

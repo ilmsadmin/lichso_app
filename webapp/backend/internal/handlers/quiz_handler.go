@@ -397,6 +397,50 @@ func (h *QuizHandler) AdminSetDailySet(c *fiber.Ctx) error {
 	})
 }
 
+// AdminRandomizeDailySet handles POST /admin/quiz/daily-sets/random
+// Randomly picks `count` (default 20) active questions and saves them as the daily set for `date`.
+func (h *QuizHandler) AdminRandomizeDailySet(c *fiber.Ctx) error {
+	userID, err := getUserID(c)
+	if err != nil {
+		return utils.UnauthorizedResponse(c, "Invalid user")
+	}
+
+	var req struct {
+		Date       string `json:"date"`
+		Count      int    `json:"count"`
+		Category   string `json:"category"`
+		Difficulty string `json:"difficulty"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body")
+	}
+
+	date := time.Now()
+	if req.Date != "" {
+		parsed, err := time.Parse("2006-01-02", req.Date)
+		if err != nil {
+			return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid date format, use YYYY-MM-DD")
+		}
+		date = parsed
+	}
+
+	count := req.Count
+	if count <= 0 {
+		count = 20
+	}
+
+	ids, err := h.service.RandomizeDailySet(userID, date, count, req.Category, req.Difficulty)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, err.Error())
+	}
+
+	return utils.SuccessResponse(c, "Đã tạo bộ câu hỏi ngẫu nhiên cho ngày", fiber.Map{
+		"date":         date.Format("2006-01-02"),
+		"count":        len(ids),
+		"question_ids": ids,
+	})
+}
+
 // AdminGetDailySets handles GET /admin/quiz/daily-sets
 func (h *QuizHandler) AdminGetDailySets(c *fiber.Ctx) error {
 	sets, err := h.service.GetDailySets()

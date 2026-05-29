@@ -19,12 +19,13 @@ import (
 
 // UserService handles user management business logic
 type UserService struct {
-	userRepo     *repositories.UserRepository
-	roleRepo     *repositories.RoleRepository
-	rbacService  *RBACService
-	cacheService *CacheService
-	logger       *zap.Logger
-	mongoDB      *mongo.Database
+	userRepo        *repositories.UserRepository
+	roleRepo        *repositories.RoleRepository
+	deviceTokenRepo *repositories.DeviceTokenRepository
+	rbacService     *RBACService
+	cacheService    *CacheService
+	logger          *zap.Logger
+	mongoDB         *mongo.Database
 }
 
 // NewUserService creates a new UserService
@@ -46,20 +47,19 @@ func NewUserService(
 	}
 }
 
-// ListUsers returns paginated users with search and filter
-func (s *UserService) ListUsers(pq utils.PaginationQuery) ([]models.UserResponse, int64, error) {
-	users, total, err := s.userRepo.FindAllPaginated(pq)
+// SetDeviceTokenRepo wires the device token repository (called after push notification setup).
+func (s *UserService) SetDeviceTokenRepo(repo *repositories.DeviceTokenRepository) {
+	s.deviceTokenRepo = repo
+}
+
+// ListUsers returns paginated enriched user rows for the admin user table.
+func (s *UserService) ListUsers(pq utils.PaginationQuery) ([]models.UserAdminListItem, int64, error) {
+	items, total, err := s.userRepo.FindAllPaginatedAdmin(pq)
 	if err != nil {
-		s.logger.Error("Failed to list users", zap.Error(err))
+		s.logger.Error("Failed to list users (admin)", zap.Error(err))
 		return nil, 0, utils.ErrDatabaseFail
 	}
-
-	responses := make([]models.UserResponse, len(users))
-	for i, user := range users {
-		responses[i] = user.ToResponse()
-	}
-
-	return responses, total, nil
+	return items, total, nil
 }
 
 // GetUser returns a user by ID with roles
@@ -74,6 +74,40 @@ func (s *UserService) GetUser(userID uuid.UUID) (*models.UserResponse, error) {
 
 	resp := user.ToResponse()
 	return &resp, nil
+}
+
+// GetUserAdminDetail returns the fully enriched user detail for admin views.
+func (s *UserService) GetUserAdminDetail(userID uuid.UUID) (*models.UserAdminDetail, error) {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrUserNotFound
+		}
+		return nil, utils.ErrDatabaseFail
+	}
+
+	// Device tokens
+	deviceTokens, _ := s.deviceTokenRepo.GetByUserID(userID)
+	devices := make([]models.DeviceTokenBrief, len(deviceTokens))
+	for i, dt := range deviceTokens {
+		devices[i] = models.DeviceTokenBrief{
+			Platform:   dt.Platform,
+			AppVersion: dt.AppVersion,
+			DeviceID:   dt.DeviceID,
+			LastSeen:   dt.LastSeen,
+			CreatedAt:  dt.CreatedAt,
+		}
+	}
+
+	// Aggregated stats (single SQL round-trip)
+	stats, _ := s.userRepo.FindUserDetailStats(userID)
+
+	return &models.UserAdminDetail{
+		UserResponse: user.ToResponse(),
+		ProviderID:   user.ProviderID,
+		Devices:      devices,
+		Stats:        stats,
+	}, nil
 }
 
 // CreateUser creates a new user with optional role assignment (admin action)

@@ -73,6 +73,8 @@ export const ROUTES = {
   // V4 AI Management
   ADMIN_AI_ARTICLES: "/admin/ai-articles",
   ADMIN_AI_DASHBOARD: "/admin/ai-dashboard",
+  // Push Notifications
+  ADMIN_PUSH_NOTIFICATIONS: "/admin/push-notifications",
   // Public content pages
   ARTICLES: "/bai-viet",
   ARTICLE_CATEGORY: "/bai-viet/danh-muc",

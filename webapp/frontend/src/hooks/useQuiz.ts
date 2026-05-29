@@ -2,11 +2,14 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as quizService from "@/services/quizService";
+import type { ApiResponse } from "@/types/api";
 import type {
   CreateQuizQuestionRequest,
   UpdateQuizQuestionRequest,
   QuizQuestionListParams,
   SetDailySetRequest,
+  RandomizeDailySetRequest,
+  RandomizeDailySetResponse,
   GenerateQuizQuestionsRequest,
   GenerateQuizTopicsRequest,
 } from "@/types/quiz";
@@ -95,6 +98,20 @@ export function useSetDailySet() {
       }
     },
     onError: () => toast.error("Không thể cập nhật bộ câu hỏi ngày"),
+  });
+}
+
+export function useRandomizeDailySet() {
+  const queryClient = useQueryClient();
+  return useMutation<ApiResponse<RandomizeDailySetResponse>, Error, RandomizeDailySetRequest>({
+    mutationFn: (data) => quizService.randomizeDailySet(data),
+    onSuccess: (res) => {
+      if (res.success) {
+        toast.success(`Đã chọn ngẫu nhiên ${res.data?.count ?? 0} câu hỏi`);
+        queryClient.invalidateQueries({ queryKey: [DAILY_SETS_KEY] });
+      }
+    },
+    onError: () => toast.error("Không thể chọn ngẫu nhiên câu hỏi"),
   });
 }
 

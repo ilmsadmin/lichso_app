@@ -97,8 +97,14 @@ services:
       - AI_MONTHLY_BUDGET_CAP=${AI_MONTHLY_BUDGET_CAP:-50.0}
       # Pexels image search
       - PEXELS_API_KEY=${PEXELS_API_KEY:-}
+      # Firebase Cloud Messaging (Push Notifications)
+      - FCM_ENABLED=${FCM_ENABLED:-false}
+      - FCM_PROJECT_ID=${FCM_PROJECT_ID:-}
+      - FCM_CREDENTIALS_FILE=${FCM_CREDENTIALS_FILE:-/app/firebase-service-account.json}
+      - FCM_CREDENTIALS_JSON=${FCM_CREDENTIALS_JSON:-}
     volumes:
       - uploads_data:/app/uploads
+      - /opt/zplus-lichso/firebase-service-account.json:/app/firebase-service-account.json:ro
     depends_on:
       lichso-postgres:
         condition: service_healthy

@@ -2,6 +2,7 @@ import api from "@/lib/api";
 import type { ApiResponse, PaginatedResponse } from "@/types/api";
 import type {
   User,
+  UserDetail,
   CreateUserRequest,
   UpdateUserRequest,
   ToggleUserStatusRequest,
@@ -28,6 +29,14 @@ export async function getUsers(params?: UserListParams): Promise<PaginatedRespon
  */
 export async function getUser(id: string): Promise<ApiResponse<User>> {
   const response = await api.get<ApiResponse<User>>(`/admin/users/${id}`);
+  return response.data;
+}
+
+/**
+ * Get full enriched user detail for admin view
+ */
+export async function getUserDetail(id: string): Promise<ApiResponse<UserDetail>> {
+  const response = await api.get<ApiResponse<UserDetail>>(`/admin/users/${id}/detail`);
   return response.data;
 }
 

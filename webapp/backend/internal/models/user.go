@@ -80,11 +80,46 @@ type UserResponse struct {
 	FullName  string      `json:"full_name"`
 	Avatar    string      `json:"avatar"`
 	Phone     string      `json:"phone"`
+	Provider  string      `json:"provider"`
 	IsActive  bool        `json:"is_active"`
 	LastLogin *time.Time  `json:"last_login"`
 	CreatedAt time.Time   `json:"created_at"`
 	UpdatedAt time.Time   `json:"updated_at"`
 	Roles     []RoleBrief `json:"roles,omitempty"`
+}
+
+// UserAdminListItem is the enriched user row returned in the admin user list.
+type UserAdminListItem struct {
+	UserResponse
+	DeviceCount   int    `json:"device_count"`
+	Platforms     string `json:"platforms"`      // e.g. "android,ios"
+	LatestVersion string `json:"latest_version"` // latest app version across devices
+}
+
+// DeviceTokenBrief is a compact representation of a device token for admin views.
+type DeviceTokenBrief struct {
+	Platform   string    `json:"platform"`
+	AppVersion string    `json:"app_version"`
+	DeviceID   string    `json:"device_id"`
+	LastSeen   time.Time `json:"last_seen"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+// UserStats holds aggregated activity statistics for a user.
+type UserStats struct {
+	BookmarkCount int `json:"bookmark_count"`
+	NoteCount     int `json:"note_count"`
+	DeviceCount   int `json:"device_count"`
+	StreakDays    int `json:"streak_days"`
+	Points        int `json:"points"`
+}
+
+// UserAdminDetail is the full enriched user returned by the admin detail endpoint.
+type UserAdminDetail struct {
+	UserResponse
+	ProviderID string             `json:"provider_id"`
+	Devices    []DeviceTokenBrief `json:"devices"`
+	Stats      UserStats          `json:"stats"`
 }
 
 // RoleBrief is a minimal role representation for nested responses
@@ -104,6 +139,7 @@ func (u *User) ToResponse() UserResponse {
 		FullName:  u.FullName(),
 		Avatar:    u.Avatar,
 		Phone:     u.Phone,
+		Provider:  u.Provider,
 		IsActive:  u.IsActive,
 		LastLogin: u.LastLogin,
 		CreatedAt: u.CreatedAt,

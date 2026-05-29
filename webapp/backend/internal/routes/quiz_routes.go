@@ -45,6 +45,7 @@ func SetupQuizRoutes(
 	adminQuiz.Post("/questions", permMiddleware.RequirePermission("content.create"), quizHandler.AdminCreateQuestion)
 	adminQuiz.Put("/questions/:id", permMiddleware.RequirePermission("content.update"), quizHandler.AdminUpdateQuestion)
 	adminQuiz.Delete("/questions/:id", permMiddleware.RequirePermission("content.delete"), quizHandler.AdminDeleteQuestion)
+	adminQuiz.Post("/daily-sets/random", permMiddleware.RequirePermission("content.create"), quizHandler.AdminRandomizeDailySet)
 	adminQuiz.Post("/daily-sets", permMiddleware.RequirePermission("content.create"), quizHandler.AdminSetDailySet)
 	adminQuiz.Get("/daily-sets", permMiddleware.RequirePermission("content.read"), quizHandler.AdminGetDailySets)
 }

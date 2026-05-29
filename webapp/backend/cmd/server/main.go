@@ -451,6 +451,20 @@ func setupRoutes(app *fiber.App, cfg *config.Config, pgDB *gorm.DB, mongoDB *mon
 	routes.SetupQuizRoutes(api, authMiddleware, permMiddleware, quizHandler)
 	routes.SetupPointsRoutes(api, authMiddleware, pointsHandler)
 
+	// Push Notifications (FCM)
+	fcmService, err := services.NewFCMService(&cfg.FCM, logger)
+	if err != nil {
+		logger.Warn("FCM service init failed — push notifications disabled", zap.Error(err))
+	}
+	deviceTokenRepo := repositories.NewDeviceTokenRepository(pgDB)
+	pushCampaignRepo := repositories.NewPushCampaignRepository(pgDB)
+	pushCampaignService := services.NewPushCampaignService(pushCampaignRepo, deviceTokenRepo, fcmService, logger)
+	pushHandler := handlers.NewPushNotificationHandler(pushCampaignService, logger)
+	pushHandler.SetDeviceTokenRepo(deviceTokenRepo)
+	routes.SetupPushNotificationRoutes(api, authMiddleware, permMiddleware, pushHandler)
+	// Wire device token repo into user service for admin detail endpoint
+	userService.SetDeviceTokenRepo(deviceTokenRepo)
+
 	// V3 Routes
 	routes.SetupV3ContentRoutes(api, articleRelationHandler, dailyContentHandler, horoscopeHandler, goodDayHandler)
 	routes.SetupV3AdminRoutes(api, authMiddleware, permMiddleware, articleRelationHandler, dailyContentHandler, newsletterHandler)

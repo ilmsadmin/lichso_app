@@ -1,20 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useQuizDailySets, useSetDailySet, useQuizQuestions } from "@/hooks/useQuiz";
+import { useQuizDailySets, useSetDailySet, useQuizQuestions, useRandomizeDailySet } from "@/hooks/useQuiz";
 import type { QuizDailySet } from "@/types/quiz";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 
 export function DailySetManager() {
   const { data: setsData, isLoading } = useQuizDailySets();
   const setDailySet = useSetDailySet();
+  const randomizeDailySet = useRandomizeDailySet();
   const { data: questionsData } = useQuizQuestions({ limit: 200 });
 
   const sets = (setsData?.data ?? []).sort(
@@ -50,6 +51,20 @@ export function DailySetManager() {
     setDailySet.mutate({ date: selectedDate, question_ids: questionIds });
   };
 
+  const handleRandomize = () => {
+    if (!selectedDate) return;
+    randomizeDailySet.mutate(
+      { date: selectedDate, count: 20 },
+      {
+        onSuccess: (res) => {
+          if (res.success && res.data?.question_ids) {
+            setQuestionIds(res.data.question_ids);
+          }
+        },
+      }
+    );
+  };
+
   const handleLoadSet = (set: QuizDailySet) => {
     setSelectedDate(set.date.slice(0, 10));
     setQuestionIds(set.question_ids);
@@ -74,6 +89,17 @@ export function DailySetManager() {
                 onChange={(e) => setSelectedDate(e.target.value)}
               />
             </div>
+
+            {/* Randomize */}
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={handleRandomize}
+              disabled={!selectedDate || randomizeDailySet.isPending}
+            >
+              <Shuffle className="h-4 w-4" />
+              {randomizeDailySet.isPending ? "Đang chọn ngẫu nhiên..." : "Chọn ngẫu nhiên 20 câu hỏi"}
+            </Button>
 
             {/* Add question by ID */}
             <div className="space-y-1.5">

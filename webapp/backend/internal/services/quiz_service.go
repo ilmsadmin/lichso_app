@@ -1141,6 +1141,24 @@ func (s *QuizService) GetDailySets() ([]models.QuizDailySet, error) {
 	return s.repo.ListDailySets()
 }
 
+// RandomizeDailySet picks `count` random active questions and saves them as the daily set for `date`.
+func (s *QuizService) RandomizeDailySet(adminID uuid.UUID, date time.Time, count int, category, difficulty string) ([]int64, error) {
+	if count <= 0 {
+		count = 20
+	}
+	ids, err := s.repo.GetRandomActiveQuestionIDs(count, category, difficulty)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch random questions: %w", err)
+	}
+	if len(ids) == 0 {
+		return nil, errors.New("không có câu hỏi nào phù hợp để chọn ngẫu nhiên")
+	}
+	if err := s.SetDailySet(adminID, date, ids); err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
 // updateCategoryMastery updates category answered/correct count, rate, streak, level, and unlocks titles.
 func (s *QuizService) updateCategoryMastery(userID uuid.UUID, category string, isCorrect bool) (*models.QuizCategoryMastery, error) {
 	if category == "" {

@@ -21,6 +21,7 @@ class TokenManager @Inject constructor(
     private val BACKEND_USER_ID = stringPreferencesKey("backend_user_id")
     private val USER_ROLES = stringPreferencesKey("user_roles")           // comma-separated
     private val USER_PERMISSIONS = stringPreferencesKey("user_permissions") // comma-separated
+    private val FCM_TOKEN = stringPreferencesKey("fcm_token")
 
     suspend fun getAccessToken(): String? =
         context.backendTokenDataStore.data.map { it[ACCESS_TOKEN] }.firstOrNull()
@@ -58,5 +59,16 @@ class TokenManager @Inject constructor(
 
     suspend fun clearTokens() {
         context.backendTokenDataStore.edit { it.clear() }
+    }
+
+    suspend fun saveFcmToken(token: String) {
+        context.backendTokenDataStore.edit { prefs -> prefs[FCM_TOKEN] = token }
+    }
+
+    suspend fun getFcmToken(): String? =
+        context.backendTokenDataStore.data.map { it[FCM_TOKEN] }.firstOrNull()
+
+    suspend fun clearFcmToken() {
+        context.backendTokenDataStore.edit { prefs -> prefs.remove(FCM_TOKEN) }
     }
 }

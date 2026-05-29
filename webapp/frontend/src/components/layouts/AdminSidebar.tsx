@@ -27,6 +27,7 @@ import {
   Wand2,
   BrainCircuit,
   Megaphone,
+  Bell,
 } from "lucide-react";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useAuth } from "@/hooks/useAuth";
@@ -120,6 +121,12 @@ const navItems: NavItem[] = [
     label: "Popups",
     href: ROUTES.ADMIN_POPUPS,
     icon: Layers3,
+    permission: "content.read",
+  },
+  {
+    label: "Push Notifications",
+    href: ROUTES.ADMIN_PUSH_NOTIFICATIONS,
+    icon: Bell,
     permission: "content.read",
   },
   // System Management

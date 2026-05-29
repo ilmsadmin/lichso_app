@@ -317,6 +317,22 @@ class LichSoApi @Inject constructor(
         }
     }
 
+    // Variant for endpoints that return success with no data body (e.g. register token).
+    private fun executeVoid(request: Request): Result<Unit> {
+        return try {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    val body = response.body?.string()
+                    val message = parseErrorMessage(body) ?: "HTTP ${response.code}"
+                    return Result.failure(LichSoApiException(response.code, message))
+                }
+                Result.success(Unit)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     private fun parseErrorMessage(body: String?): String? {
         if (body.isNullOrBlank()) return null
         return runCatching {
@@ -498,6 +514,35 @@ class LichSoApi @Inject constructor(
         transactions: List<Map<String, Any?>>,
     ): Result<SyncGuestPointsResponse> = withContext(Dispatchers.IO) {
         execute(postJson("/points/sync-guest", mapOf("transactions" to transactions), token))
+    }
+
+    // ── Push notification endpoints ──
+
+    suspend fun registerDeviceToken(
+        fcmToken: String,
+        appVersion: String,
+        deviceId: String,
+        authToken: String? = null,
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        executeVoid(post(
+            "/push/register",
+            mapOf(
+                "token" to fcmToken,
+                "platform" to "android",
+                "app_version" to appVersion,
+                "device_id" to deviceId,
+            ),
+            authToken,
+        ))
+    }
+
+    suspend fun unregisterDeviceToken(fcmToken: String): Result<Unit> = withContext(Dispatchers.IO) {
+        executeVoid(
+            Request.Builder()
+                .url("$BASE_URL/push/register?token=${fcmToken.encodeUrl()}")
+                .delete()
+                .build()
+        )
     }
 
     // ── Helpers ──

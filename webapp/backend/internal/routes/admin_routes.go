@@ -41,6 +41,7 @@ func SetupAdminRoutes(
 	users := admin.Group("/users")
 	users.Get("/export", permMiddleware.RequirePermission("users.export"), userHandler.Export)
 	users.Get("/", permMiddleware.RequirePermission("users.read"), userHandler.List)
+	users.Get("/:id/detail", permMiddleware.RequirePermission("users.read"), userHandler.GetDetail)
 	users.Get("/:id", permMiddleware.RequirePermission("users.read"), userHandler.Get)
 	users.Post("/", permMiddleware.RequirePermission("users.create"), userHandler.Create)
 	users.Put("/:id", permMiddleware.RequirePermission("users.update"), userHandler.Update)

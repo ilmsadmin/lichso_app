@@ -195,6 +195,20 @@ func (r *QuizRepository) ListDailySets() ([]models.QuizDailySet, error) {
 	return sets, err
 }
 
+// GetRandomActiveQuestionIDs returns n random IDs from active (and optionally published) questions.
+func (r *QuizRepository) GetRandomActiveQuestionIDs(n int, category, difficulty string) ([]int64, error) {
+	query := r.db.Model(&models.QuizQuestion{}).Where("is_active = ?", true)
+	if category != "" {
+		query = query.Where("category = ?", category)
+	}
+	if difficulty != "" {
+		query = query.Where("difficulty = ?", difficulty)
+	}
+	var ids []int64
+	err := query.Order("RANDOM()").Limit(n).Pluck("id", &ids).Error
+	return ids, err
+}
+
 // UpsertDailySet creates or replaces the daily set for the given date.
 func (r *QuizRepository) UpsertDailySet(set *models.QuizDailySet) error {
 	return r.db.Clauses(clause.OnConflict{

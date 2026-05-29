@@ -61,6 +61,25 @@ func (h *UserHandler) Get(c *fiber.Ctx) error {
 	return utils.SuccessResponse(c, "User retrieved successfully", user)
 }
 
+// GetDetail handles GET /api/admin/users/:id/detail — enriched admin view
+func (h *UserHandler) GetDetail(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid user ID")
+	}
+
+	detail, err := h.userService.GetUserAdminDetail(id)
+	if err != nil {
+		if appErr, ok := utils.IsAppError(err); ok {
+			return utils.ErrorResponse(c, appErr.Code, appErr.Message)
+		}
+		h.logger.Error("Failed to get user detail", zap.Error(err))
+		return utils.InternalErrorResponse(c)
+	}
+
+	return utils.SuccessResponse(c, "User detail retrieved", detail)
+}
+
 // Create handles POST /api/admin/users
 func (h *UserHandler) Create(c *fiber.Ctx) error {
 	var req dto.CreateUserRequest
