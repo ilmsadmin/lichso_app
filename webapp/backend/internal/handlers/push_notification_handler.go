@@ -282,8 +282,10 @@ func (h *PushNotificationHandler) AdminCreateTemplate(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body")
 	}
 	var createdBy *uuid.UUID
-	if uid, err := uuid.Parse(c.Locals("userID").(string)); err == nil {
-		createdBy = &uid
+	if userIDStr, ok := c.Locals("userID").(string); ok && userIDStr != "" {
+		if uid, err := uuid.Parse(userIDStr); err == nil {
+			createdBy = &uid
+		}
 	}
 	t, err := h.campaignService.CreateTemplate(req.Name, req.Title, req.Body, req.ImageURL, req.ClickAction, req.DataPayload, createdBy)
 	if err != nil {
@@ -340,8 +342,10 @@ func (h *PushNotificationHandler) AdminCreateGroup(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body")
 	}
 	var createdBy *uuid.UUID
-	if uid, err := uuid.Parse(c.Locals("userID").(string)); err == nil {
-		createdBy = &uid
+	if userIDStr, ok := c.Locals("userID").(string); ok && userIDStr != "" {
+		if uid, err := uuid.Parse(userIDStr); err == nil {
+			createdBy = &uid
+		}
 	}
 	g, err := h.campaignService.CreateGroup(req.Name, req.Description, createdBy)
 	if err != nil {
