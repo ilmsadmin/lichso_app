@@ -1,6 +1,7 @@
 package com.lichso.app.data.auth
 
 import android.content.Context
+import android.provider.Settings
 import android.util.Log
 import androidx.credentials.*
 import androidx.credentials.exceptions.GetCredentialCancellationException
@@ -144,6 +145,21 @@ class AuthRepository @Inject constructor(
                         val permissions = loginResponse.user.permissions
                         tokenManager.saveUserSession(backendId, roles, permissions)
                         Log.d(tag, "Backend auth OK — user=${loginResponse.user.email} roles=$roles")
+
+                        // Re-register FCM token with backend now that we have the auth token,
+                        // so the device is linked to this user account.
+                        tokenManager.getFcmToken()?.let { fcmToken ->
+                            val deviceId = Settings.Secure.getString(
+                                context.contentResolver, Settings.Secure.ANDROID_ID
+                            ) ?: ""
+                            api.registerDeviceToken(
+                                fcmToken = fcmToken,
+                                appVersion = BuildConfig.VERSION_NAME,
+                                deviceId = deviceId,
+                                authToken = loginResponse.accessToken,
+                            )
+                            Log.d(tag, "FCM token linked to user account")
+                        }
 
                         val userInfo = UserInfo(
                             displayName = user.displayName ?: googleIdTokenCredential.displayName ?: "Người dùng",
