@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/zplus/lichso/internal/models"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type DeviceTokenRepository struct {
@@ -18,14 +17,34 @@ func NewDeviceTokenRepository(db *gorm.DB) *DeviceTokenRepository {
 }
 
 // Upsert inserts or updates a device token (upsert by token value).
+// IMPORTANT: user_id uses COALESCE so a NULL incoming value never overwrites
+// an existing linked user — prevents cold-start (unauthenticated) registration
+// from unlinking a token that was already associated with a user account.
 func (r *DeviceTokenRepository) Upsert(token *models.DeviceToken) error {
-	return r.db.Clauses(clause.OnConflict{
-		Columns: []clause.Column{{Name: "token"}},
-		DoUpdates: clause.AssignmentColumns([]string{
-			"user_id", "platform", "app_version", "device_id",
-			"is_active", "last_seen", "updated_at",
-		}),
-	}).Create(token).Error
+	// Build raw SQL for the upsert so we can use COALESCE on user_id.
+	sql := `
+		INSERT INTO device_tokens
+			(user_id, token, platform, app_version, device_id, is_active, last_seen, created_at, updated_at)
+		VALUES
+			(?, ?, ?, ?, ?, ?, NOW(), NOW(), NOW())
+		ON CONFLICT (token) DO UPDATE SET
+			user_id     = COALESCE(EXCLUDED.user_id, device_tokens.user_id),
+			platform    = EXCLUDED.platform,
+			app_version = EXCLUDED.app_version,
+			device_id   = EXCLUDED.device_id,
+			is_active   = EXCLUDED.is_active,
+			last_seen   = NOW(),
+			updated_at  = NOW()
+		RETURNING id, created_at, updated_at, last_seen
+	`
+	var userID interface{}
+	if token.UserID != nil {
+		userID = token.UserID
+	}
+	return r.db.Raw(sql,
+		userID, token.Token, token.Platform,
+		token.AppVersion, token.DeviceID, token.IsActive,
+	).Scan(token).Error
 }
 
 // DeactivateByToken marks a specific token as inactive (logout/unregister).
