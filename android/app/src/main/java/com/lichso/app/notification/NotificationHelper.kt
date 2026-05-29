@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -158,30 +159,58 @@ object NotificationHelper {
      * Lưu vào DB in-app + hiện system notification.
      * clickAction: deep link scheme lichso:// hoặc null để mở MainActivity.
      */
-    fun showPushNotification(context: Context, title: String, body: String, clickAction: String? = null) {
+    fun showPushNotification(
+        context: Context,
+        title: String,
+        body: String,
+        url: String? = null,
+        navigateTo: String? = null,
+        imageBitmap: Bitmap? = null,
+    ) {
         saveToDatabase(context, title, body, "push")
 
         if (!canPostNotifications(context)) return
 
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            if (!clickAction.isNullOrBlank()) {
-                action = Intent.ACTION_VIEW
-                data = android.net.Uri.parse(clickAction)
-            }
+        val pi = when {
+            !url.isNullOrBlank() -> PendingIntent.getActivity(
+                context, System.currentTimeMillis().toInt(),
+                Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            !navigateTo.isNullOrBlank() -> PendingIntent.getActivity(
+                context, System.currentTimeMillis().toInt(),
+                Intent(context, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra("navigate_to", navigateTo)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            else -> PendingIntent.getActivity(
+                context, System.currentTimeMillis().toInt(),
+                Intent(context, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
         }
-        val pi = PendingIntent.getActivity(
-            context, System.currentTimeMillis().toInt(), intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+
+        val style: NotificationCompat.Style = if (imageBitmap != null) {
+            NotificationCompat.BigPictureStyle()
+                .bigPicture(imageBitmap)
+                .setSummaryText(body)
+        } else {
+            NotificationCompat.BigTextStyle().bigText(body)
+        }
 
         val notification = NotificationCompat.Builder(context, CHANNEL_PUSH)
             .setSmallIcon(R.drawable.ic_notif_calendar)
             .setContentTitle(title)
             .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setStyle(style)
             .setAutoCancel(true)
             .setContentIntent(pi)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

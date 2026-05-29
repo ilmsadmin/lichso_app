@@ -121,14 +121,15 @@ func (h *PushNotificationHandler) SetDeviceTokenRepo(repo interface {
 // ── Admin campaign endpoints ──────────────────────────────────────────────
 
 type createCampaignRequest struct {
-	Title       string            `json:"title" validate:"required,min=2,max=255"`
-	Body        string            `json:"body" validate:"required,min=2"`
-	ImageURL    string            `json:"image_url"`
-	ClickAction string            `json:"click_action"`
-	DataPayload map[string]string `json:"data_payload"`
-	TargetType  string            `json:"target_type" validate:"required,oneof=all users"`
-	TargetUsers []string          `json:"target_users"`
-	ScheduledAt *time.Time        `json:"scheduled_at"`
+	Title         string            `json:"title" validate:"required,min=2,max=255"`
+	Body          string            `json:"body" validate:"required,min=2"`
+	ImageURL      string            `json:"image_url"`
+	ClickAction   string            `json:"click_action"`
+	DataPayload   map[string]string `json:"data_payload"`
+	TargetType    string            `json:"target_type" validate:"required,oneof=all users group"`
+	TargetUsers   []string          `json:"target_users"`
+	TargetGroupID *uuid.UUID        `json:"target_group_id"`
+	ScheduledAt   *time.Time        `json:"scheduled_at"`
 }
 
 // AdminListCampaigns handles GET /api/admin/push/campaigns
@@ -174,15 +175,16 @@ func (h *PushNotificationHandler) AdminCreateCampaign(c *fiber.Ctx) error {
 	}
 
 	campaign, err := h.campaignService.Create(services.CreateCampaignInput{
-		Title:       req.Title,
-		Body:        req.Body,
-		ImageURL:    req.ImageURL,
-		ClickAction: req.ClickAction,
-		DataPayload: req.DataPayload,
-		TargetType:  req.TargetType,
-		TargetUsers: req.TargetUsers,
-		ScheduledAt: req.ScheduledAt,
-		CreatedBy:   createdBy,
+		Title:         req.Title,
+		Body:          req.Body,
+		ImageURL:      req.ImageURL,
+		ClickAction:   req.ClickAction,
+		DataPayload:   req.DataPayload,
+		TargetType:    req.TargetType,
+		TargetUsers:   req.TargetUsers,
+		TargetGroupID: req.TargetGroupID,
+		ScheduledAt:   req.ScheduledAt,
+		CreatedBy:     createdBy,
 	})
 	if err != nil {
 		h.logger.Error("Failed to create campaign", zap.Error(err))
@@ -205,14 +207,15 @@ func (h *PushNotificationHandler) AdminUpdateCampaign(c *fiber.Ctx) error {
 	}
 
 	campaign, err := h.campaignService.Update(id, services.UpdateCampaignInput{
-		Title:       req.Title,
-		Body:        req.Body,
-		ImageURL:    req.ImageURL,
-		ClickAction: req.ClickAction,
-		DataPayload: req.DataPayload,
-		TargetType:  req.TargetType,
-		TargetUsers: req.TargetUsers,
-		ScheduledAt: req.ScheduledAt,
+		Title:         req.Title,
+		Body:          req.Body,
+		ImageURL:      req.ImageURL,
+		ClickAction:   req.ClickAction,
+		DataPayload:   req.DataPayload,
+		TargetType:    req.TargetType,
+		TargetUsers:   req.TargetUsers,
+		TargetGroupID: req.TargetGroupID,
+		ScheduledAt:   req.ScheduledAt,
 	})
 	if err != nil {
 		h.logger.Error("Failed to update campaign", zap.Error(err))

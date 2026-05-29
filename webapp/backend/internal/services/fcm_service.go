@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/zplus/lichso/internal/config"
@@ -127,6 +128,34 @@ func (s *FCMService) SendToTokens(tokens []string, title, body, imageURL, clickA
 	sendURL := fmt.Sprintf(fcmSendURL, s.projectID)
 	results := make([]FCMSendResult, 0, len(tokens))
 
+	// Route click_action to the correct data field so the Android app can act on it:
+	//  - HTTP(S) URL   → data["url"]         (MainActivity opens browser)
+	//  - lichso://X    → data["navigate_to"] = X  (MainActivity navigates to screen)
+	//  - bare name     → data["navigate_to"] = clickAction (same)
+	// android.notification.click_action is left blank in all cases — it expects
+	// an intent-action name registered in the manifest, not a URL or route string.
+	androidClickAction := ""
+	if clickAction != "" {
+		if data == nil {
+			data = map[string]string{}
+		}
+		switch {
+		case strings.HasPrefix(clickAction, "http://") || strings.HasPrefix(clickAction, "https://"):
+			if data["url"] == "" {
+				data["url"] = clickAction
+			}
+		case strings.HasPrefix(clickAction, "lichso://"):
+			route := strings.TrimPrefix(clickAction, "lichso://")
+			if data["navigate_to"] == "" {
+				data["navigate_to"] = route
+			}
+		default:
+			if data["navigate_to"] == "" {
+				data["navigate_to"] = clickAction
+			}
+		}
+	}
+
 	for _, token := range tokens {
 		req := fcmSendRequest{
 			Message: fcmMessageBody{
@@ -138,7 +167,7 @@ func (s *FCMService) SendToTokens(tokens []string, title, body, imageURL, clickA
 				},
 				Android: &fcmAndroid{
 					Notification: &fcmAndroidNotif{
-						ClickAction: clickAction,
+						ClickAction: androidClickAction,
 						ChannelID:   "default",
 					},
 				},

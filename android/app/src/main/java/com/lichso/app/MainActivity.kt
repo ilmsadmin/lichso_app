@@ -1,6 +1,8 @@
 package com.lichso.app
 
+import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -53,11 +55,26 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        // Determine if launched from widget with a specific destination
-        val notificationRoute = when (intent?.getStringExtra("navigate_to")) {
-            "ai_chat" -> "chat"
-            "home", "notifications", "chat", "gooddays", "calendar" -> intent?.getStringExtra("navigate_to")
-            else -> null
+        // If launched from a background FCM notification that carries a URL (ad/promo),
+        // open it in the browser. data["url"] is set by the backend for HTTP(S) click_actions.
+        intent?.getStringExtra("url")?.takeIf { it.startsWith("http") }?.let { url ->
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        }
+
+        // All screens navigable from a push notification or external deep link.
+        val validRoutes = setOf(
+            "home", "calendar", "gooddays", "knowledge_feed", "quiz_home", "chat",
+            "tools", "prayers", "history", "profile", "bookmarks", "tasks", "countdown",
+            "familytree", "oracle_draw", "daily_store", "ledger", "zodiac_collection",
+            "date_picker", "tiet_khi", "date_math", "birth_planner", "cycle_tracker",
+            "world_clock", "widget_manager", "leaderboard", "notifications", "search",
+            "settings", "bat_trach", "feng_shui_compass", "lo_ban",
+        )
+
+        // Determine if launched from a push notification or widget with a specific destination
+        val notificationRoute = intent?.getStringExtra("navigate_to")?.let { raw ->
+            val route = if (raw == "ai_chat") "chat" else raw
+            route.takeIf { it in validRoutes }
         }
         val widgetRoute = when (intent?.action) {
             "OPEN_AI_CHAT" -> "chat"

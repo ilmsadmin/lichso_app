@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { ClickActionSelect } from "./ClickActionSelect";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -233,9 +233,8 @@ export function CampaignForm({ campaign }: CampaignFormProps) {
                 <Input value={imageURL} onChange={(e) => setImageURL(e.target.value)} placeholder="https://..." />
               </div>
               <div className="space-y-1.5">
-                <Label>Click action</Label>
-                <Input value={clickAction} onChange={(e) => setClickAction(e.target.value)}
-                  placeholder="lichso://..." />
+                <Label>Hành động khi nhấn</Label>
+                <ClickActionSelect value={clickAction} onChange={setClickAction} />
               </div>
             </div>
           </CardContent>

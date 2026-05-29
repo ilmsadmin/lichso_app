@@ -1,5 +1,7 @@
 package com.lichso.app.notification
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
@@ -13,6 +15,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import java.net.HttpURLConnection
+import java.net.URL
 import javax.inject.Inject
 
 /**
@@ -52,11 +56,15 @@ class LichSoFirebaseMessagingService : FirebaseMessagingService() {
             ?: message.data["body"]
             ?: return
 
-        val clickAction = message.notification?.clickAction
-            ?: message.data["click_action"]
+        val url = message.data["url"]
+        val navigateTo = message.data["navigate_to"]
+        val imageUrl = message.notification?.imageUrl?.toString() ?: message.data["image_url"]
+
+        // Download image synchronously — onMessageReceived runs on a background thread.
+        val imageBitmap: Bitmap? = imageUrl?.let { downloadBitmap(it) }
 
         // Save to in-app notification DB + show system notification
-        NotificationHelper.showPushNotification(applicationContext, title, body, clickAction)
+        NotificationHelper.showPushNotification(applicationContext, title, body, url, navigateTo, imageBitmap)
     }
 
     private suspend fun registerWithBackend(fcmToken: String) {
@@ -80,6 +88,17 @@ class LichSoFirebaseMessagingService : FirebaseMessagingService() {
         } else {
             Log.w(TAG, "Failed to register device token: ${result.exceptionOrNull()?.message}")
         }
+    }
+
+    private fun downloadBitmap(imageUrl: String): Bitmap? {
+        return try {
+            val conn = URL(imageUrl).openConnection() as HttpURLConnection
+            conn.connectTimeout = 5_000
+            conn.readTimeout = 10_000
+            conn.doInput = true
+            conn.connect()
+            BitmapFactory.decodeStream(conn.inputStream)
+        } catch (_: Exception) { null }
     }
 
     companion object {
