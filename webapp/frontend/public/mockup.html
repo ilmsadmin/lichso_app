@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch Số — Lịch Vạn Niên Việt Nam Hiện Đại</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Playfair Display, Be Vietnam Pro, Lora -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <!-- FontAwesome v6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        v2: {
+                            bg: '#F9F5EE',
+                            card: '#FFFFFF',
+                            accent: '#9B2335',
+                            accentHover: '#B82E42',
+                            gold: '#C8A84E',
+                            goldSoft: 'rgba(200, 168, 78, 0.1)',
+                            textPrimary: '#1A0F0A',
+                            textSecondary: '#5C4A3E',
+                            textMuted: '#9B8E82',
+                            border: '#E8DFD2',
+                            borderLight: '#F0EAE0',
+                        }
+                    },
+                    fontFamily: {
+                        display: ['"Playfair Display"', 'Georgia', 'serif'],
+                        body: ['"Be Vietnam Pro"', 'sans-serif'],
+                        serif: ['Lora', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: #F9F5EE;
+            background-image: radial-gradient(ellipse 80% 80% at 50% 50%, rgba(250, 246, 239, 0.6) 0%, rgba(240, 232, 218, 0.6) 100%);
+        }
+        
+        /* Traditional paper texture overlay */
+        .paper-overlay {
+            position: fixed;
+            inset: 0;
+            opacity: 0.04;
+            pointer-events: none;
+            z-index: 999;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* Gold gradient text */
+        .text-gold-gradient {
+            background: linear-gradient(135deg, #DFBA6B 0%, #C8A84E 50%, #9B7E36 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Button gold gradient background */
+        .bg-gold-gradient {
+            background: linear-gradient(135deg, #E6C57A 0%, #C8A84E 50%, #B2923E 100%);
+        }
+        .bg-gold-gradient:hover {
+            background: linear-gradient(135deg, #F3D58C 0%, #D4B65A 50%, #C3A34E 100%);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F9F5EE;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #C8A84E;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9B2335;
+        }
+
+        /* Traditional cloud animation */
+        @keyframes floatCloud {
+            0%, 100% { transform: translateY(0px) translateX(0px); }
+            50% { transform: translateY(-10px) translateX(8px); }
+        }
+        .cloud-float {
+            animation: floatCloud 8s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="text-v2-textPrimary relative min-h-screen overflow-x-hidden antialiased">
+    <div class="paper-overlay"></div>
+
+    <!-- ════════════════ NAV BAR ════════════════ -->
+    <header class="sticky top-0 z-50 w-full border-b border-[#E8DFD2] bg-[#1A0F0A]/95 backdrop-blur-md transition-all">
+        <div class="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 md:px-12">
+            <!-- Logo -->
+            <a href="#" class="flex items-center gap-3">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-v2-accent">
+                    <i class="fa-solid fa-calendar-days text-xl text-v2-bg"></i>
+                </div>
+                <span class="font-display text-2xl font-bold text-white tracking-wide">Lịch Số</span>
+            </a>
+
+            <!-- Nav Links -->
+            <nav class="hidden items-center gap-8 md:flex">
+                <a href="#" class="text-sm font-semibold text-white/90 hover:text-v2-gold transition-colors relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-full after:bg-v2-gold after:scale-x-100 after:transition-transform">Trang chủ</a>
+                <a href="#" class="text-sm font-medium text-white/70 hover:text-v2-gold transition-colors">Lịch ngày</a>
+                <a href="#" class="text-sm font-medium text-white/70 hover:text-v2-gold transition-colors">Lịch tháng</a>
+                <a href="#" class="text-sm font-medium text-white/70 hover:text-v2-gold transition-colors">Quiz</a>
+                <a href="#" class="text-sm font-medium text-white/70 hover:text-v2-gold transition-colors">Tiện ích</a>
+                <a href="#" class="text-sm font-medium text-white/70 hover:text-v2-gold transition-colors">Tải app</a>
+            </nav>
+
+            <!-- CTA Button -->
+            <a href="#lich-ngay" class="bg-gold-gradient text-v2-textPrimary hidden items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold shadow-lg transition-transform hover:scale-105 md:flex">
+                <span>Mở Lịch Ngay</span>
+                <i class="fa-solid fa-arrow-right text-xs"></i>
+            </a>
+        </div>
+    </header>
+
+    <!-- ════════════════ HERO SECTION ════════════════ -->
+    <section class="relative px-6 py-12 md:px-12 lg:py-20">
+        <!-- Floating Cloud Ornaments in Background -->
+        <div class="cloud-float pointer-events-none absolute left-[5%] top-[10%] opacity-20 hidden lg:block">
+            <img src="/assets-new/chatgpt_image_12_09_07_30_thg_5_2026_2_s_a.png" class="max-w-[200px]" alt="Ornament Cloud">
+        </div>
+        <div class="cloud-float pointer-events-none absolute right-[5%] top-[50%] opacity-15 hidden lg:block" style="animation-delay: -3s;">
+            <img src="/assets-new/chatgpt_image_12_09_07_30_thg_5_2026_3_s_a.png" class="max-w-[220px]" alt="Ornament Cloud">
+        </div>
+
+        <div class="mx-auto grid max-w-[1400px] gap-12 lg:grid-cols-[1.1fr_1fr]">
+            <!-- Hero Left -->
+            <div class="flex flex-col justify-center space-y-8">
+                <!-- Badge -->
+                <div class="self-start rounded-full border border-v2-gold/30 bg-v2-goldSoft px-4 py-1.5 text-xs font-bold tracking-widest text-v2-textGold uppercase">
+                    ◆ Chuẩn Lịch Việt
+                </div>
+                
+                <!-- Main Heading -->
+                <div class="space-y-4">
+                    <h1 class="font-display text-4xl font-bold leading-tight text-v2-textPrimary md:text-5xl lg:text-6xl">
+                        Tra cứu lịch Việt <br>
+                        <span class="text-v2-accent font-semibold">mỗi ngày</span>
+                    </h1>
+                    <p class="font-serif text-lg leading-relaxed text-v2-textSecondary max-w-xl">
+                        Tra cứu âm lịch, tiết khí, ngày tốt xấu, giờ hoàng đạo và tìm hiểu các phong tục, văn hóa tâm linh truyền thống Việt Nam chuẩn xác nhất.
+                    </p>
+                </div>
+
+                <!-- Features Columns -->
+                <div class="grid grid-cols-3 gap-4 pt-4 border-t border-v2-border/60">
+                    <div class="flex flex-col items-center text-center p-3 rounded-xl hover:bg-v2-goldSoft/20 transition-all duration-300">
+                        <img src="/assets-new/chatgpt_image_11_55_46_30_thg_5_2026_6_s_a.png" class="w-12 h-12 object-contain mb-3" alt="Chuẩn xác">
+                        <h3 class="text-xs font-bold text-v2-textPrimary">Chuẩn xác</h3>
+                        <p class="text-[10px] text-v2-textMuted mt-1">Dữ liệu tin cậy</p>
+                    </div>
+                    <div class="flex flex-col items-center text-center p-3 rounded-xl hover:bg-v2-goldSoft/20 transition-all duration-300">
+                        <img src="/assets-new/chatgpt_image_11_55_46_30_thg_5_2026_7_s_a.png" class="w-12 h-12 object-contain mb-3" alt="Thân thiện">
+                        <h3 class="text-xs font-bold text-v2-textPrimary">Thân thiện</h3>
+                        <p class="text-[10px] text-v2-textMuted mt-1">Dễ xem, dễ dùng</p>
+                    </div>
+                    <div class="flex flex-col items-center text-center p-3 rounded-xl hover:bg-v2-goldSoft/20 transition-all duration-300">
+                        <img src="/assets-new/chatgpt_image_11_55_47_30_thg_5_2026_8_s_a.png" class="w-12 h-12 object-contain mb-3" alt="Bản sắc">
+                        <h3 class="text-xs font-bold text-v2-textPrimary">Đậm bản sắc</h3>
+                        <p class="text-[10px] text-v2-textMuted mt-1">Văn hóa Việt</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hero Right (Calendar Widget) -->
+            <div id="lich-ngay" class="relative flex items-center justify-center">
+                <!-- Temple Illustration behind the widget -->
+                <div class="absolute -right-16 -top-20 z-0 h-[110%] w-[110%] opacity-90 pointer-events-none">
+                    <img src="/assets-new/chatgpt_image_12_20_25_30_thg_5_2026_s_a.png" class="w-full h-full object-contain" alt="Golden Pagoda Background">
+                </div>
+
+                <!-- Calendar Card -->
+                <div class="relative z-10 w-full max-w-[460px] overflow-hidden rounded-[28px] border-4 border-[#C8A84E] bg-white shadow-2xl transition-all hover:shadow-glow duration-500">
+                    <!-- Top red banner -->
+                    <div class="bg-v2-accent px-6 py-4 text-center border-b-2 border-v2-gold">
+                        <span class="font-display text-sm font-semibold tracking-wider text-white uppercase">Lịch Ngày Hiện Tại</span>
+                    </div>
+
+                    <!-- Main Dates Display -->
+                    <div class="p-6 md:p-8">
+                        <div class="grid grid-cols-2 gap-4 divide-x divide-v2-border text-center">
+                            <!-- Dương Lịch -->
+                            <div class="flex flex-col items-center justify-center py-2">
+                                <span class="text-[10px] font-bold tracking-wider text-v2-textMuted uppercase">DƯƠNG LỊCH</span>
+                                <span class="font-display text-7xl font-bold text-v2-accent my-3">18</span>
+                                <span class="text-sm font-semibold text-v2-textPrimary">Thứ Bảy</span>
+                                <span class="text-[11px] text-v2-textMuted mt-1">18/05/2024 (GMT+7)</span>
+                            </div>
+
+                            <!-- Âm Lịch -->
+                            <div class="flex flex-col items-center justify-center py-2">
+                                <span class="text-[10px] font-bold tracking-wider text-v2-textMuted uppercase">ÂM LỊCH</span>
+                                <div class="relative flex items-center justify-center my-3">
+                                    <span class="font-display text-7xl font-bold text-[#5C4A3E]">11</span>
+                                </div>
+                                <span class="text-sm font-semibold text-[#5C4A3E]">Tháng Tư (T)</span>
+                                <span class="text-[11px] text-v2-textMuted mt-1">Giáp Thìn - Năm Giáp Thìn</span>
+                            </div>
+                        </div>
+
+                        <!-- Can chi details -->
+                        <div class="mt-8 grid grid-cols-3 gap-3 border-t border-b border-v2-border py-4 text-center">
+                            <div class="bg-v2-bg/60 rounded-xl p-2.5">
+                                <p class="text-[9px] font-semibold text-v2-textMuted uppercase">CAN CHI NGÀY</p>
+                                <p class="text-xs font-bold text-v2-textPrimary mt-1">Mậu Thân</p>
+                            </div>
+                            <div class="bg-v2-bg/60 rounded-xl p-2.5">
+                                <p class="text-[9px] font-semibold text-v2-textMuted uppercase">TIẾT KHÍ</p>
+                                <p class="text-xs font-bold text-v2-textPrimary mt-1">Tiểu Mãn</p>
+                            </div>
+                            <div class="bg-v2-bg/60 rounded-xl p-2.5">
+                                <p class="text-[9px] font-semibold text-v2-textMuted uppercase">MỆNH NGÀY</p>
+                                <p class="text-xs font-bold text-v2-textPrimary mt-1">Đại Trạch Thổ</p>
+                            </div>
+                        </div>
+
+                        <!-- Astrological Guidelines -->
+                        <div class="mt-6 space-y-4">
+                            <!-- Giờ hoàng đạo -->
+                            <div>
+                                <h4 class="text-[10px] font-bold tracking-wider text-v2-textMuted uppercase mb-2">◆ Giờ Hoàng Đạo</h4>
+                                <div class="flex flex-wrap gap-1.5">
+                                    <span class="rounded bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-800 border border-emerald-100">Tý (23-01)</span>
+                                    <span class="rounded bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-800 border border-emerald-100">Sửu (01-03)</span>
+                                    <span class="rounded bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-800 border border-emerald-100">Thìn (07-09)</span>
+                                    <span class="rounded bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-800 border border-emerald-100">Tỵ (09-11)</span>
+                                    <span class="rounded bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-800 border border-emerald-100">Mùi (13-15)</span>
+                                    <span class="rounded bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-800 border border-emerald-100">Tuất (19-21)</span>
+                                </div>
+                            </div>
+
+                            <!-- Ngày Tốt / Xấu columns -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-1.5">
+                                    <h4 class="text-[10px] font-bold tracking-wider text-emerald-700 uppercase">✓ NGÀY TỐT</h4>
+                                    <ul class="text-[11px] text-v2-textSecondary space-y-1">
+                                        <li class="flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600 text-[10px]"></i> Hoàng đạo</li>
+                                        <li class="flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600 text-[10px]"></i> Thiên quý</li>
+                                        <li class="flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600 text-[10px]"></i> Kim đường</li>
+                                    </ul>
+                                </div>
+                                <div class="space-y-1.5">
+                                    <h4 class="text-[10px] font-bold tracking-wider text-rose-700 uppercase">✗ NGÀY XẤU</h4>
+                                    <ul class="text-[11px] text-v2-textSecondary space-y-1">
+                                        <li class="flex items-center gap-1.5"><i class="fa-solid fa-circle-xmark text-rose-600 text-[10px]"></i> Hắc đạo</li>
+                                        <li class="flex items-center gap-1.5"><i class="fa-solid fa-circle-xmark text-rose-600 text-[10px]"></i> Thiên hình</li>
+                                        <li class="flex items-center gap-1.5"><i class="fa-solid fa-circle-xmark text-rose-600 text-[10px]"></i> Kiếp sát</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════ DAILY INSIGHTS ROW ════════════════ -->
+    <section class="mx-auto max-w-[1400px] px-6 py-6 md:px-12">
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Card 1: Thời tiết -->
+            <div class="flex flex-col justify-between rounded-2xl border border-v2-border bg-white p-5 shadow-sm hover:border-v2-gold/50 transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold tracking-wider text-v2-textMuted uppercase">THỜI TIẾT HÔM NAY</span>
+                    <i class="fa-solid fa-cloud-sun text-v2-gold text-lg"></i>
+                </div>
+                <div class="my-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-v2-textPrimary">Hà Nội</p>
+                        <p class="text-[11px] text-v2-textMuted mt-0.5">Nhiều mây</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-2xl font-bold text-v2-accent">28°C</p>
+                        <p class="text-[10px] text-v2-textMuted">26° - 32°</p>
+                    </div>
+                </div>
+                <div class="border-t border-v2-border/60 pt-3 text-[11px] text-v2-textSecondary flex justify-between">
+                    <span>Độ ẩm 74%</span>
+                    <span>Gió nhẹ</span>
+                </div>
+            </div>
+
+            <!-- Card 2: Gợi ý hôm nay -->
+            <div class="flex flex-col justify-between rounded-2xl border border-v2-border bg-white p-5 shadow-sm hover:border-v2-gold/50 transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold tracking-wider text-v2-textMuted uppercase">GỢI Ý HÔM NAY</span>
+                    <i class="fa-solid fa-lightbulb text-v2-gold text-lg"></i>
+                </div>
+                <p class="my-4 font-serif text-xs leading-relaxed text-v2-textSecondary">
+                    "Ngày cát lợi, thích hợp cho việc cầu tài lộc, khai trương cửa hàng, ký kết hợp đồng thương mại và xuất hành hướng Tây Nam."
+                </p>
+                <div class="border-t border-v2-border/60 pt-3 text-[11px] text-v2-textMuted">
+                    <span>Cát tinh: Thiên Hỷ, Nguyệt Tài</span>
+                </div>
+            </div>
+
+            <!-- Card 3: Danh ngôn -->
+            <div class="flex flex-col justify-between rounded-2xl border border-v2-border bg-white p-5 shadow-sm hover:border-v2-gold/50 transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold tracking-wider text-v2-textMuted uppercase">CÂU DANH NGÔN</span>
+                    <i class="fa-solid fa-quote-left text-v2-gold text-lg"></i>
+                </div>
+                <p class="my-4 font-serif text-xs italic leading-relaxed text-v2-textSecondary">
+                    "Hiểu quá khứ để trân trọng hiện tại, hiểu hiện tại để kiến tạo một tương lai rạng ngời."
+                </p>
+                <div class="border-t border-v2-border/60 pt-3 text-[11px] text-v2-textMuted text-right">
+                    <span>— Khuyết danh</span>
+                </div>
+            </div>
+
+            <!-- Card 4: Nhắc nhở -->
+            <div class="flex flex-col justify-between rounded-2xl border border-v2-border bg-white p-5 shadow-sm hover:border-v2-gold/50 transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold tracking-wider text-v2-textMuted uppercase">NHẮC NHỞ</span>
+                    <i class="fa-solid fa-bell text-v2-accent text-lg"></i>
+                </div>
+                <div class="my-4">
+                    <p class="text-xs font-bold text-v2-accent">Mai là Ngày Rằm (15/04 ÂL)</p>
+                    <p class="text-[11px] text-v2-textSecondary mt-1 leading-normal">
+                        Chuẩn bị sớ lễ vật dâng hương Phật, cầu gia đạo bình an, làm việc thiện tích đức.
+                    </p>
+                </div>
+                <div class="border-t border-v2-border/60 pt-3 text-[11px] text-v2-textSecondary flex justify-between">
+                    <span>Đại lễ Phật Đản</span>
+                    <a href="#" class="text-v2-accent font-semibold hover:underline">Xem lễ văn</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════ MONTHLY CALENDAR SECTION ════════════════ -->
+    <section class="mx-auto max-w-[1400px] px-6 py-12 md:px-12">
+        <div class="grid gap-8 lg:grid-cols-[1.1fr_1fr]">
+            <!-- Calendar Monthly Grid -->
+            <div class="rounded-2xl border border-v2-border bg-white p-6 shadow-sm">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-6">
+                    <button class="h-9 w-9 flex items-center justify-center rounded-full border border-v2-border hover:bg-v2-bg text-v2-textSecondary transition-colors">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                    <h2 class="font-display text-xl font-bold text-v2-textPrimary">LỊCH THÁNG 5/2024</h2>
+                    <button class="h-9 w-9 flex items-center justify-center rounded-full border border-v2-border hover:bg-v2-bg text-v2-textSecondary transition-colors">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                </div>
+
+                <!-- Calendar Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[500px]">
+                        <thead>
+                            <tr class="border-b border-v2-border/60 text-center">
+                                <th class="py-3 text-xs font-bold text-v2-textSecondary">T2</th>
+                                <th class="py-3 text-xs font-bold text-v2-textSecondary">T3</th>
+                                <th class="py-3 text-xs font-bold text-v2-textSecondary">T4</th>
+                                <th class="py-3 text-xs font-bold text-v2-textSecondary">T5</th>
+                                <th class="py-3 text-xs font-bold text-v2-textSecondary">T6</th>
+                                <th class="py-3 text-xs font-bold text-v2-textSecondary">T7</th>
+                                <th class="py-3 text-xs font-bold text-v2-accent">CN</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Calendar row 1 -->
+                            <tr class="text-center">
+                                <td class="p-3 opacity-30">
+                                    <div class="text-sm font-semibold">29</div>
+                                    <div class="text-[9px] mt-0.5">21/03</div>
+                                </td>
+                                <td class="p-3 opacity-30">
+                                    <div class="text-sm font-semibold">30</div>
+                                    <div class="text-[9px] mt-0.5">22</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">1</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">23</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">2</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">24</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">3</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">25</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">4</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">26</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold text-v2-accent">5</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">27</div>
+                                </td>
+                            </tr>
+                            <!-- Calendar row 2 -->
+                            <tr class="text-center">
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">6</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">28</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">7</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">29</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">8</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">30</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors font-medium">
+                                    <div class="text-sm font-semibold">9</div>
+                                    <div class="text-[9px] text-v2-gold mt-0.5 font-bold">01/04</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">10</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">02</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">11</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">03</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold text-v2-accent">12</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">04</div>
+                                </td>
+                            </tr>
+                            <!-- Calendar row 3 (Contains 18 Today) -->
+                            <tr class="text-center">
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">13</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">05</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">14</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">06</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">15</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">07</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">16</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">08</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">17</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">09</div>
+                                </td>
+                                <!-- Highlight Today (18) -->
+                                <td class="p-3">
+                                    <div class="mx-auto flex h-11 w-11 flex-col items-center justify-center rounded-full bg-v2-accent text-white shadow-md border-2 border-v2-gold relative">
+                                        <div class="text-xs font-bold leading-none">18</div>
+                                        <div class="text-[8px] leading-none mt-0.5 text-v2-gold font-bold">11/04</div>
+                                    </div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold text-v2-accent">19</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">11</div>
+                                </td>
+                            </tr>
+                            <!-- Calendar row 4 -->
+                            <tr class="text-center">
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">20</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">12</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">21</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">13</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">22</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">14</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">23</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">15</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">24</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">16</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">25</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">17</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold text-v2-accent">26</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">18</div>
+                                </td>
+                            </tr>
+                            <!-- Calendar row 5 -->
+                            <tr class="text-center">
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">27</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">19</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">28</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">20</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">29</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">21</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">30</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">22</div>
+                                </td>
+                                <td class="p-3 hover:bg-v2-bg/60 rounded-lg cursor-pointer transition-colors">
+                                    <div class="text-sm font-semibold">31</div>
+                                    <div class="text-[9px] text-v2-textMuted mt-0.5">23</div>
+                                </td>
+                                <td class="p-3 opacity-30">
+                                    <div class="text-sm font-semibold">1</div>
+                                    <div class="text-[9px] mt-0.5">24</div>
+                                </td>
+                                <td class="p-3 opacity-30">
+                                    <div class="text-sm font-semibold text-v2-accent">2</div>
+                                    <div class="text-[9px] mt-0.5">25</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Monthly Overview Card -->
+            <div class="rounded-2xl border border-v2-border bg-white p-6 shadow-sm flex flex-col justify-between">
+                <div>
+                    <h3 class="font-display text-lg font-bold text-v2-textPrimary border-b border-v2-border/60 pb-3 uppercase">TổNg Quan Tháng</h3>
+                    
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-3 gap-3 my-6 text-center">
+                        <div class="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
+                            <span class="text-xs font-semibold text-emerald-800 flex items-center justify-center gap-1"><i class="fa-solid fa-circle-check text-[10px]"></i> Ngày Tốt</span>
+                            <p class="text-xl font-bold text-emerald-950 mt-1">12 ngày</p>
+                        </div>
+                        <div class="rounded-xl bg-rose-50 border border-rose-100 p-3">
+                            <span class="text-xs font-semibold text-rose-800 flex items-center justify-center gap-1"><i class="fa-solid fa-circle-xmark text-[10px]"></i> Ngày Xấu</span>
+                            <p class="text-xl font-bold text-rose-950 mt-1">7 ngày</p>
+                        </div>
+                        <div class="rounded-xl bg-amber-50 border border-amber-100 p-3">
+                            <span class="text-xs font-semibold text-amber-800 flex items-center justify-center gap-1"><i class="fa-solid fa-circle-minus text-[10px]"></i> Trung bình</span>
+                            <p class="text-xl font-bold text-amber-950 mt-1">12 ngày</p>
+                        </div>
+                    </div>
+
+                    <!-- Details lists -->
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="text-[10px] font-bold tracking-wider text-v2-textMuted uppercase mb-2">◆ Tiết Khí Trong Tháng</h4>
+                            <ul class="text-xs text-v2-textSecondary space-y-1.5 pl-3 border-l-2 border-v2-gold/40">
+                                <li class="flex justify-between"><span>Lập Hạ:</span> <span class="font-semibold text-v2-textPrimary">05/05</span></li>
+                                <li class="flex justify-between"><span>Tiểu Mãn:</span> <span class="font-semibold text-v2-textPrimary">20/05</span></li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h4 class="text-[10px] font-bold tracking-wider text-v2-textMuted uppercase mb-2">◆ Lễ & Sự Kiện Nổi Bật</h4>
+                            <ul class="text-xs text-v2-textSecondary space-y-1.5 pl-3 border-l-2 border-v2-accent/40">
+                                <li class="flex justify-between"><span>01/05: Quốc tế Lao động</span> <span class="text-[10px] bg-v2-goldSoft text-v2-textGold font-semibold px-2 py-0.5 rounded-full">Sự kiện chính</span></li>
+                                <li class="flex justify-between"><span>12/05: Ngày của Mẹ</span> <span class="text-[10px] bg-v2-goldSoft text-v2-textGold font-semibold px-2 py-0.5 rounded-full">Gia đình</span></li>
+                                <li class="flex justify-between"><span>19/05: Phật Đản</span> <span class="text-[10px] bg-rose-50 text-v2-accent font-semibold px-2 py-0.5 rounded-full">Đại lễ</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CTA Button -->
+                <a href="#" class="bg-gold-gradient text-v2-textPrimary text-center rounded-full py-3 text-xs font-bold shadow transition-transform hover:scale-102 mt-6 block">
+                    <span>Xem Chi Tiết Tháng</span>
+                    <i class="fa-solid fa-arrow-right text-[10px] ml-1.5"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════ QUIZ BANNER (Red Banner) ════════════════ -->
+    <section class="mx-auto max-w-[1400px] px-6 py-6 md:px-12">
+        <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#5C1520] via-[#851C2A] to-[#5C1520] p-8 text-white shadow-xl md:p-12 border-2 border-v2-gold">
+            <!-- Red Pattern Background (Using asset 4 or 21) -->
+            <div class="pointer-events-none absolute inset-0 z-0 opacity-15">
+                <img src="/assets-new/chatgpt_image_12_09_08_30_thg_5_2026_4_s_a.png" class="w-full h-full object-cover" alt="Background Pattern">
+            </div>
+
+            <div class="relative z-10 grid gap-8 lg:grid-cols-[1fr_1.8fr_1fr] items-center">
+                <!-- Left: Treasure Box Icon (Asset 23 or 24 or similar) -->
+                <div class="flex justify-center lg:justify-start">
+                    <img src="/assets-new/chatgpt_image_12_20_15_30_thg_5_2026_s_a.png" class="w-36 h-36 object-contain" alt="Quiz Illustration">
+                </div>
+
+                <!-- Center: Info -->
+                <div class="text-center lg:text-left space-y-4">
+                    <span class="rounded bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-v2-gold">THỬ TÀI CÙNG LỊCH SỐ</span>
+                    <h2 class="font-display text-3xl font-bold leading-tight md:text-4xl text-v2-gold">
+                        Quiz Lịch Sử & Văn Hóa Việt
+                    </h2>
+                    <p class="text-xs text-white/80 leading-relaxed max-w-xl">
+                        Khám phá lịch sử hào hùng, phong tục cổ truyền, danh nhân đất Việt và những câu chuyện thú vị qua các câu đố ngắn đặc sắc mỗi ngày.
+                    </p>
+                    <div class="flex items-center justify-center lg:justify-start gap-3 mt-4">
+                        <div class="flex -space-x-2">
+                            <span class="inline-block h-6 w-6 rounded-full border border-v2-accent bg-slate-300 text-[10px] flex items-center justify-center font-bold text-slate-800">A</span>
+                            <span class="inline-block h-6 w-6 rounded-full border border-v2-accent bg-slate-400 text-[10px] flex items-center justify-center font-bold text-slate-800">B</span>
+                            <span class="inline-block h-6 w-6 rounded-full border border-v2-accent bg-slate-500 text-[10px] flex items-center justify-center font-bold text-white">C</span>
+                        </div>
+                        <span class="text-[11px] text-white/60 font-semibold"><span class="text-v2-gold font-bold">12,458</span> người đang chơi</span>
+                    </div>
+                </div>
+
+                <!-- Right: Leaderboard & Button -->
+                <div class="bg-black/20 backdrop-blur-sm rounded-2xl p-5 border border-white/10 space-y-4">
+                    <h4 class="text-[10px] font-bold tracking-wider text-v2-gold uppercase border-b border-white/10 pb-2">HÀNG XẾP HẠNG</h4>
+                    <ul class="text-[11px] space-y-2">
+                        <li class="flex items-center justify-between"><span class="flex items-center gap-2"><span class="text-v2-gold font-bold">1.</span> Kim Long</span> <span class="font-bold text-white/95">12,850đ</span></li>
+                        <li class="flex items-center justify-between"><span class="flex items-center gap-2"><span class="text-slate-300 font-bold">2.</span> Ngọc Mai</span> <span class="font-bold text-white/95">9,620đ</span></li>
+                        <li class="flex items-center justify-between"><span class="flex items-center gap-2"><span class="text-amber-600 font-bold">3.</span> Hữu Phúc</span> <span class="font-bold text-white/95">8,430đ</span></li>
+                    </ul>
+                    <a href="#" class="bg-gold-gradient text-v2-textPrimary text-center rounded-full py-2.5 text-xs font-bold shadow w-full block transition-transform hover:scale-102 mt-4">
+                        Bắt đầu thử thách
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════ KHO TIỆN ÍCH SECTION ════════════════ -->
+    <section class="mx-auto max-w-[1400px] px-6 py-12 md:px-12">
+        <div class="text-center space-y-3 mb-10">
+            <span class="text-xs font-bold tracking-widest text-v2-accent uppercase">TIỆN ÍCH TOÀN DIỆN</span>
+            <h2 class="font-display text-3xl font-bold text-v2-textPrimary">KHO TIỆN ÍCH</h2>
+            <div class="h-1 w-20 bg-v2-gold mx-auto rounded"></div>
+        </div>
+
+        <div class="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <!-- Utility Card 1: Xem ngày tốt -->
+            <div class="group rounded-2xl border border-v2-border bg-white p-5 shadow-sm hover:border-v2-gold hover:shadow-md transition-all duration-300 flex items-center gap-4 cursor-pointer">
+                <img src="/assets-new/chatgpt_image_10_36_29_30_thg_5_2026_1_s_a.png" class="w-16 h-16 object-contain group-hover:scale-105 transition-transform" alt="Xem ngày tốt">
+                <div>
+                    <h3 class="text-sm font-bold text-v2-textPrimary">Xem ngày tốt</h3>
+                    <p class="text-[11px] text-v2-textMuted mt-1">Chọn ngày tốt theo việc cần làm</p>
+                </div>
+            </div>
+
+            <!-- Utility Card 2: Văn khấn -->
+            <div class="group rounded-2xl border border-v2-border bg-white p-5 shadow-sm hover:border-v2-gold hover:shadow-md transition-all duration-300 flex items-center gap-4 cursor-pointer">
+                <img src="/assets-new/chatgpt_image_10_36_29_30_thg_5_2026_2_s_a.png" class="w-16 h-16 object-contain group-hover:scale-105 transition-transform" alt="Văn khấn">
+                <div>
+                    <h3 class="text-sm font-bold text-v2-textPrimary">Văn khấn</h3>
+                    <p class="text-[11px] text-v2-textMuted mt-1">Tổng hợp văn khấn đầy đủ, chuẩn tâm linh</p>
+                </div>
+            </div>
+
+            <!-- Utility Card 3: Rút quẻ -->
+            <div class="group rounded-2xl border border-v2-border bg-white p-5 shadow-sm hover:border-v2-gold hover:shadow-md transition-all duration-300 flex items-center gap-4 cursor-pointer">
+                <img src="/assets-new/chatgpt_image_10_36_29_30_thg_5_2026_3_s_a.png" class="w-16 h-16 object-contain group-hover:scale-105 transition-transform" alt="Rút quẻ">
+                <div>
+                    <h3 class="text-sm font-bold text-v2-textPrimary">Rút quẻ</h3>
+                    <p class="text-[11px] text-v2-textMuted mt-1">Kinh dịch - 64 quẻ giải đáp vận mệnh</p>
+                </div>
+            </div>
+
+            <!-- Utility Card 4: Tử vi AI -->
+            <div class="group rounded-2xl border border-v2-border bg-white p-5 shadow-sm hover:border-v2-gold hover:shadow-md transition-all duration-300 flex items-center gap-4 cursor-pointer">
+                <img src="/assets-new/chatgpt_image_10_36_29_30_thg_5_2026_4_s_a.png" class="w-16 h-16 object-contain group-hover:scale-105 transition-transform" alt="Tử vi AI">
+                <div>
+                    <h3 class="text-sm font-bold text-v2-textPrimary">Tử vi AI</h3>
+                    <p class="text-[11px] text-v2-textMuted mt-1">Luận giải tử vi cá nhân bằng AI</p>
+                </div>
+            </div>
+
+            <!-- Utility Card 5: Nhắc ngày lễ -->
+            <div class="group rounded-2xl border border-v2-border bg-white p-5 shadow-sm hover:border-v2-gold hover:shadow-md transition-all duration-300 flex items-center gap-4 cursor-pointer">
+                <img src="/assets-new/chatgpt_image_10_36_29_30_thg_5_2026_5_s_a.png" class="w-16 h-16 object-contain group-hover:scale-105 transition-transform" alt="Nhắc ngày lễ">
+                <div>
+                    <h3 class="text-sm font-bold text-v2-textPrimary">Nhắc ngày lễ</h3>
+                    <p class="text-[11px] text-v2-textMuted mt-1">Ghi nhớ ngày giỗ chạp, lễ sự kiện quan trọng</p>
+                </div>
+            </div>
+
+            <!-- Utility Card 6: Phong tục dân gian -->
+            <div class="group rounded-2xl border border-v2-border bg-white p-5 shadow-sm hover:border-v2-gold hover:shadow-md transition-all duration-300 flex items-center gap-4 cursor-pointer">
+                <img src="/assets-new/chatgpt_image_10_36_29_30_thg_5_2026_6_s_a.png" class="w-16 h-16 object-contain group-hover:scale-105 transition-transform" alt="Phong tục dân gian">
+                <div>
+                    <h3 class="text-sm font-bold text-v2-textPrimary">Phong tục dân gian</h3>
+                    <p class="text-[11px] text-v2-textMuted mt-1">Khám phá phong tục tín ngưỡng xưa và nay</p>
+                </div>
+            </div>
+
+            <!-- Utility Card 7: Đổi ngày âm dương -->
+            <div class="group rounded-2xl border border-v2-border bg-white p-5 shadow-sm hover:border-v2-gold hover:shadow-md transition-all duration-300 flex items-center gap-4 cursor-pointer">
+                <img src="/assets-new/chatgpt_image_10_36_29_30_thg_5_2026_7_s_a.png" class="w-16 h-16 object-contain group-hover:scale-105 transition-transform" alt="Đổi ngày">
+                <div>
+                    <h3 class="text-sm font-bold text-v2-textPrimary">Đổi ngày âm dương</h3>
+                    <p class="text-[11px] text-v2-textMuted mt-1">Chuyển đổi lịch âm dương nhanh chóng</p>
+                </div>
+            </div>
+
+            <!-- Utility Card 8: Sự kiện truyền thống -->
+            <div class="group rounded-2xl border border-v2-border bg-white p-5 shadow-sm hover:border-v2-gold hover:shadow-md transition-all duration-300 flex items-center gap-4 cursor-pointer">
+                <img src="/assets-new/chatgpt_image_10_36_29_30_thg_5_2026_8_s_a.png" class="w-16 h-16 object-contain group-hover:scale-105 transition-transform" alt="Sự kiện">
+                <div>
+                    <h3 class="text-sm font-bold text-v2-textPrimary">Sự kiện truyền thống</h3>
+                    <p class="text-[11px] text-v2-textMuted mt-1">Sự kiện, lễ hội hội làng khắp cả nước</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════ VÌ SAO CHỌN LỊCH SỐ SECTION ════════════════ -->
+    <section class="mx-auto max-w-[1400px] px-6 py-12 md:px-12 bg-v2-goldSoft/10 rounded-[32px] my-12 border border-v2-border/60">
+        <div class="text-center space-y-3 mb-12">
+            <span class="text-xs font-bold tracking-widest text-v2-accent uppercase">TẠI SAO LÀ CHÚNG TÔI?</span>
+            <h2 class="font-display text-3xl font-bold text-v2-textPrimary">VÌ SAO CHỌN LỊCH SỐ?</h2>
+            <div class="h-1 w-20 bg-v2-gold mx-auto rounded"></div>
+        </div>
+
+        <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+            <!-- Benefit 1 -->
+            <div class="flex flex-col items-center text-center space-y-4">
+                <div class="h-28 w-28 flex items-center justify-center bg-white rounded-full border border-v2-border/80 shadow-sm hover:shadow-md transition-shadow">
+                    <img src="/assets-new/chatgpt_image_10_36_29_30_thg_5_2026_9_s_a.png" class="w-20 h-20 object-contain" alt="Chuẩn lịch Việt">
+                </div>
+                <h3 class="font-serif text-lg font-bold text-v2-textPrimary">Chuẩn lịch Việt</h3>
+                <p class="text-xs leading-relaxed text-v2-textSecondary max-w-[220px]">
+                    Dữ liệu lịch vạn niên chính xác, được tư vấn kiểm chứng bởi chuyên gia phong thủy đầu ngành.
+                </p>
+            </div>
+
+            <!-- Benefit 2 -->
+            <div class="flex flex-col items-center text-center space-y-4">
+                <div class="h-28 w-28 flex items-center justify-center bg-white rounded-full border border-v2-border/80 shadow-sm hover:shadow-md transition-shadow">
+                    <img src="/assets-new/chatgpt_image_10_36_29_30_thg_5_2026_10_s_a.png" class="w-20 h-20 object-contain" alt="Giao diện hiện đại">
+                </div>
+                <h3 class="font-serif text-lg font-bold text-v2-textPrimary">Giao diện hiện đại</h3>
+                <p class="text-xs leading-relaxed text-v2-textSecondary max-w-[220px]">
+                    Thiết kế tinh tế giao thoa truyền thống và hiện đại, mang lại trải nghiệm mượt mà dễ dùng nhất.
+                </p>
+            </div>
+
+            <!-- Benefit 3 -->
+            <div class="flex flex-col items-center text-center space-y-4">
+                <div class="h-28 w-28 flex items-center justify-center bg-white rounded-full border border-v2-border/80 shadow-sm hover:shadow-md transition-shadow">
+                    <img src="/assets-new/chatgpt_image_11_55_44_30_thg_5_2026_2_s_a_1_.png" class="w-20 h-20 object-contain" alt="Nội dung phong phú">
+                </div>
+                <h3 class="font-serif text-lg font-bold text-v2-textPrimary">Nội dung phong phú</h3>
+                <p class="text-xs leading-relaxed text-v2-textSecondary max-w-[220px]">
+                    Tích hợp thư viện bài viết, phong tục, danh ngôn cổ đại và kiến thức văn hóa dân tộc khổng lồ.
+                </p>
+            </div>
+
+            <!-- Benefit 4 -->
+            <div class="flex flex-col items-center text-center space-y-4">
+                <div class="h-28 w-28 flex items-center justify-center bg-white rounded-full border border-v2-border/80 shadow-sm hover:shadow-md transition-shadow">
+                    <img src="/assets-new/chatgpt_image_11_55_45_30_thg_5_2026_5_s_a.png" class="w-20 h-20 object-contain" alt="Nhiều tiện ích">
+                </div>
+                <h3 class="font-serif text-lg font-bold text-v2-textPrimary">Nhiều tiện ích</h3>
+                <p class="text-xs leading-relaxed text-v2-textSecondary max-w-[220px]">
+                    Sở hữu vô vàn tính năng bổ trợ như Tử vi AI, Văn khấn, Rút quẻ, đổi ngày âm dương cực kỳ hữu ích.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════ FOOTER ════════════════ -->
+    <footer class="bg-[#1A0F0A] text-white border-t-2 border-v2-gold pt-16 pb-8 px-6 md:px-12">
+        <div class="mx-auto max-w-[1400px] grid gap-12 sm:grid-cols-2 lg:grid-cols-5 border-b border-white/10 pb-12">
+            <!-- Col 1: About -->
+            <div class="space-y-4 lg:col-span-2">
+                <a href="#" class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-v2-accent">
+                        <i class="fa-solid fa-calendar-days text-xl text-v2-bg"></i>
+                    </div>
+                    <span class="font-display text-2xl font-bold tracking-wide text-white">Lịch Số</span>
+                </a>
+                <p class="text-xs text-white/60 leading-relaxed max-w-sm">
+                    Ứng dụng & website tra cứu lịch Việt chuẩn xác, tiện ích và đậm đà bản sắc văn hóa dân tộc. Kết nối truyền thống và tương lai trong kỷ nguyên số.
+                </p>
+                <div class="flex gap-4 pt-2">
+                    <a href="#" class="h-8 w-8 rounded-full bg-white/5 hover:bg-v2-accent flex items-center justify-center text-xs transition-colors"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="#" class="h-8 w-8 rounded-full bg-white/5 hover:bg-v2-accent flex items-center justify-center text-xs transition-colors"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="#" class="h-8 w-8 rounded-full bg-white/5 hover:bg-v2-accent flex items-center justify-center text-xs transition-colors"><i class="fa-brands fa-tiktok"></i></a>
+                </div>
+            </div>
+
+            <!-- Col 2: Products -->
+            <div class="space-y-4">
+                <h4 class="text-xs font-bold text-v2-gold tracking-widest uppercase">SẢN PHẨM</h4>
+                <ul class="text-xs text-white/70 space-y-2">
+                    <li><a href="#" class="hover:text-v2-gold transition-colors">Lịch ngày</a></li>
+                    <li><a href="#" class="hover:text-v2-gold transition-colors">Lịch tháng</a></li>
+                    <li><a href="#" class="hover:text-v2-gold transition-colors">Quiz văn hóa</a></li>
+                    <li><a href="#" class="hover:text-v2-gold transition-colors">Kho tiện ích</a></li>
+                    <li><a href="#" class="hover:text-v2-gold transition-colors">Tải app</a></li>
+                </ul>
+            </div>
+
+            <!-- Col 3: Support -->
+            <div class="space-y-4">
+                <h4 class="text-xs font-bold text-v2-gold tracking-widest uppercase">HỖ TRỢ</h4>
+                <ul class="text-xs text-white/70 space-y-2">
+                    <li><a href="#" class="hover:text-v2-gold transition-colors">Hướng dẫn sử dụng</a></li>
+                    <li><a href="#" class="hover:text-v2-gold transition-colors">Câu hỏi thường gặp</a></li>
+                    <li><a href="#" class="hover:text-v2-gold transition-colors">Liên hệ hỗ trợ</a></li>
+                    <li><a href="#" class="hover:text-v2-gold transition-colors">Góp ý ứng dụng</a></li>
+                </ul>
+            </div>
+
+            <!-- Col 4: App Download & QR -->
+            <div class="space-y-4">
+                <h4 class="text-xs font-bold text-v2-gold tracking-widest uppercase">TẢI APP LỊCH SỐ</h4>
+                <div class="flex flex-col gap-2">
+                    <!-- App Store -->
+                    <a href="#" class="flex items-center gap-2 bg-black border border-white/10 rounded-lg p-2 hover:border-v2-gold/50 transition-colors">
+                        <i class="fa-brands fa-apple text-xl"></i>
+                        <div class="text-left leading-none">
+                            <span class="text-[9px] text-white/50 block">Tải về trên</span>
+                            <span class="text-[11px] font-bold text-white">App Store</span>
+                        </div>
+                    </a>
+                    <!-- Google Play -->
+                    <a href="#" class="flex items-center gap-2 bg-black border border-white/10 rounded-lg p-2 hover:border-v2-gold/50 transition-colors">
+                        <i class="fa-brands fa-google-play text-lg"></i>
+                        <div class="text-left leading-none">
+                            <span class="text-[9px] text-white/50 block">Tải về trên</span>
+                            <span class="text-[11px] font-bold text-white">Google Play</span>
+                        </div>
+                    </a>
+                </div>
+                <!-- Mock QR Code -->
+                <div class="mt-4 flex items-center gap-3">
+                    <!-- QR Box -->
+                    <div class="h-16 w-16 bg-white rounded p-1 flex items-center justify-center">
+                        <div class="h-full w-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 to-black rounded flex items-center justify-center text-[10px] text-white font-bold">QR</div>
+                    </div>
+                    <span class="text-[10px] text-white/50 leading-tight">Quét mã QR để <br>tải app nhanh nhất</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mx-auto max-w-[1400px] pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/40">
+            <span>© 2026 LichSo.vn. Tất cả quyền được bảo lưu.</span>
+            <div class="flex gap-6">
+                <a href="#" class="hover:text-white transition-colors">Điều khoản dịch vụ</a>
+                <a href="#" class="hover:text-white transition-colors">Chính sách bảo mật</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

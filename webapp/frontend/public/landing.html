@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lịch Số — Lịch Âm Dương Thông Minh</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Condensed:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red-deep:   #6B1010;
+  --red:        #8F1C1C;
+  --red-mid:    #B02020;
+  --gold:       #C49A28;
+  --gold-light: #E0C060;
+  --gold-pale:  #F5EBBB;
+  --cream:      #FDF8EE;
+  --paper:      #F8F0DC;
+  --paper-dark: #EDE0C0;
+  --ink:        #180808;
+  --ink-soft:   #3C1A1A;
+  --wall-bg:    #CEC0AE;
+  --wall-mid:   #BCB09C;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--wall-bg);
+  /* Linen-wall noise texture */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='80' height='80' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+  min-height: 100vh;
+  font-family: 'EB Garamond', Georgia, serif;
+  color: var(--ink);
+  overflow-x: hidden;
+}
+
+/* ─────────────────── WALL SCENE ─────────────────── */
+.scene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 16px 96px;
+}
+
+/* ─────────────────── NAIL ─────────────────── */
+.nail {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: -2px;
+  filter: drop-shadow(0 3px 5px rgba(0,0,0,0.45));
+}
+.nail-cap {
+  width: 18px;
+  height: 11px;
+  background: radial-gradient(ellipse at 38% 32%, #DDD0A0, #9A8840 55%, #5A4A20);
+  border-radius: 50% 50% 35% 35%;
+}
+.nail-shank {
+  width: 5px;
+  height: 14px;
+  background: linear-gradient(180deg, #9A8840, #5A4020);
+  border-radius: 0 0 3px 3px;
+}
+
+/* ─────────────────── CALENDAR STACK ─────────────────── */
+.cal-stack {
+  width: 100%;
+  max-width: 1120px;
+  position: relative;
+}
+/* Pages beneath */
+.cal-stack::before {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 5px;
+  right: 5px;
+  height: 100%;
+  background: var(--paper-dark);
+  border-radius: 2px;
+  z-index: -1;
+  box-shadow: 0 8px 20px rgba(40,10,5,0.18);
+}
+.cal-stack::after {
+  content: '';
+  position: absolute;
+  bottom: -13px;
+  left: 10px;
+  right: 10px;
+  height: 100%;
+  background: #E8DABC;
+  border-radius: 2px;
+  z-index: -2;
+  opacity: 0.75;
+}
+
+/* ─────────────────── CALENDAR BODY ─────────────────── */
+.calendar {
+  background: var(--cream);
+  border-radius: 2px;
+  box-shadow:
+    0 2px 0 var(--paper-dark) inset,
+    0 6px 16px rgba(40,10,5,0.12),
+    0 16px 40px rgba(40,10,5,0.18),
+    0 32px 64px rgba(40,10,5,0.12);
+  position: relative;
+  overflow: hidden;
+  animation: rise 0.7s cubic-bezier(.2,.8,.3,1) both;
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(28px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Perforated top edge */
+.calendar::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 16px;
+  background:
+    radial-gradient(circle at 0 8px, var(--wall-bg) 7px, transparent 7px),
+    repeating-linear-gradient(90deg,
+      transparent 0, transparent 22px,
+      var(--wall-bg) 22px, var(--wall-bg) 44px
+    );
+  background-size: 44px 16px;
+  z-index: 10;
+}
+
+/* ─────────────────── HEADER ─────────────────── */
+.cal-head {
+  background: var(--red-deep);
+  padding: 28px 36px 22px;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand { display: flex; flex-direction: column; }
+
+.brand-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.brand-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: var(--gold-light);
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.brand-sub {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.85;
+}
+
+.month-center { text-align: center; }
+.month-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.75;
+}
+.month-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 6rem;
+  font-weight: 900;
+  color: var(--cream);
+  line-height: 0.85;
+  -webkit-text-stroke: 1px var(--gold);
+  text-stroke: 1px var(--gold);
+  display: block;
+}
+.year-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 300;
+  letter-spacing: 0.5em;
+  color: var(--gold);
+  opacity: 0.75;
+}
+
+.head-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.btn-primary {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--red-deep);
+  background: var(--gold-light);
+  border: none;
+  padding: 11px 22px;
+  cursor: pointer;
+  transition: background 0.18s;
+  display: block;
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+}
+.btn-primary:hover { background: var(--cream); }
+.btn-ghost {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--gold);
+  background: transparent;
+  border: 1px solid rgba(201,160,40,0.35);
+  padding: 8px 22px;
+  cursor: pointer;
+  transition: border-color 0.18s, color 0.18s;
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+}
+.btn-ghost:hover { border-color: var(--gold-light); color: var(--gold-light); }
+
+/* Gold rule under header */
+.head-rule {
+  height: 3px;
+  background: linear-gradient(90deg, var(--red-deep), var(--gold) 50%, var(--red-deep));
+  position: relative;
+  z-index: 2;
+}
+
+/* ─────────────────── DAY NAMES ─────────────────── */
+.daynames {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: var(--red);
+  position: relative;
+  z-index: 2;
+}
+.dayname {
+  text-align: center;
+  padding: 9px 4px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold-light);
+  border-right: 1px solid rgba(201,160,40,0.18);
+}
+.dayname:last-child {
+  background: rgba(0,0,0,0.18);
+  border-right: none;
+}
+.dayname:nth-last-child(2) {
+  background: rgba(0,0,0,0.08);
+}
+
+/* ─────────────────── GRID ─────────────────── */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  position: relative;
+  z-index: 2;
+}
+
+.cell {
+  min-height: 230px;
+  padding: 13px 14px 13px;
+  border-right: 1px solid var(--paper-dark);
+  border-bottom: 1px solid var(--paper-dark);
+  position: relative;
+  background: var(--cream);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: background 0.15s;
+}
+.cell:nth-child(7n) { border-right: none; }
+.cell:nth-child(7) ~ .cell:nth-child(7n) { border-right: none; }
+
+.cell.sat { background: linear-gradient(160deg, #FDF2F2 0%, var(--cream) 100%); }
+.cell.sun { background: linear-gradient(160deg, #FBECEC 0%, #FDF5F5 100%); }
+
+/* Ghost date watermark */
+.cell-watermark {
+  position: absolute;
+  bottom: 6px;
+  right: 8px;
+  font-family: 'Playfair Display', serif;
+  font-size: 3.5rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--ink);
+  opacity: 0.05;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+.cell.sun .cell-watermark { color: var(--red-deep); opacity: 0.08; }
+
+/* Date header within cell */
+.cell-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+.cell-date-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.55rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  line-height: 1;
+}
+.cell.sun .cell-date-num { color: var(--red-deep); font-weight: 900; }
+.cell.sat .cell-date-num { color: var(--red); }
+
+.cell-lunar {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.63rem;
+  color: var(--gold);
+  font-style: italic;
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.cell-body {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+/* ─────────────────── BADGES ─────────────────── */
+.badge {
+  display: inline-block;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  line-height: 1.3;
+}
+.badge-gold { background: var(--gold); color: var(--red-deep); }
+.badge-red  { background: var(--red-deep); color: var(--gold-light); }
+
+/* ─────────────────── HERO CELL ─────────────────── */
+.cell.hero {
+  grid-column: span 2;
+  background: linear-gradient(150deg, var(--red-deep) 0%, var(--red) 100%);
+}
+.hero-eyebrow {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.hero-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.55rem;
+  font-weight: 900;
+  color: var(--cream);
+  line-height: 1.18;
+  margin-bottom: 10px;
+}
+.hero-body {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.88rem;
+  color: rgba(253,248,238,0.75);
+  line-height: 1.55;
+  margin-bottom: 12px;
+}
+.badge-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ─────────────────── FEATURE CELLS ─────────────────── */
+.feat-icon { display: block; margin-bottom: 9px; }
+.feat-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--red-deep);
+  margin-bottom: 5px;
+}
+.feat-body {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  line-height: 1.48;
+}
+
+/* ─────────────────── GOLD RULE ─────────────────── */
+.rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  margin: 9px 0;
+}
+
+/* ─────────────────── PHONE MOCKUP ─────────────────── */
+.phone {
+  width: 78px;
+  height: 138px;
+  border: 2px solid rgba(201,160,40,0.45);
+  border-radius: 12px;
+  background: linear-gradient(145deg, #2A0808, #0E0202);
+  position: relative;
+  margin: 0 auto;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+.phone-notch {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 4px;
+  background: rgba(0,0,0,0.6);
+  border-radius: 2px;
+}
+.phone-screen {
+  position: absolute;
+  inset: 6px;
+  background: #0C0202;
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 16px 5px 5px;
+}
+.prow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1.5px;
+  margin-bottom: 1.5px;
+}
+.pd {
+  height: 9px;
+  background: rgba(201,160,40,0.15);
+  border-radius: 1px;
+}
+.pd.on { background: var(--red); }
+.pd.hl { background: rgba(201,160,40,0.5); }
+.phone-bar {
+  height: 10px;
+  background: rgba(201,160,40,0.12);
+  border-radius: 1px;
+  margin-top: 5px;
+}
+.phone-bar + .phone-bar { margin-top: 2px; height: 8px; }
+
+/* ─────────────────── STATS ─────────────────── */
+.stat-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.3rem;
+  font-weight: 900;
+  color: var(--red-deep);
+  line-height: 1;
+}
+.stat-label {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+  font-style: italic;
+  margin-top: 2px;
+}
+.stars { display: flex; gap: 2px; margin: 4px 0 2px; }
+
+/* ─────────────────── REVIEW ─────────────────── */
+.review-quote {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.88rem;
+  font-style: italic;
+  color: var(--ink-soft);
+  line-height: 1.52;
+}
+.review-attr {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  color: var(--gold);
+  margin-top: 6px;
+}
+
+/* ─────────────────── PRICING ─────────────────── */
+.price-big {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--red-deep);
+  line-height: 1;
+}
+.price-note {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.68rem;
+  color: var(--gold);
+  font-style: italic;
+  margin-bottom: 5px;
+}
+.price-list {
+  list-style: none;
+  margin: 5px 0 0;
+}
+.price-list li {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+  padding: 2px 0 2px 12px;
+  position: relative;
+}
+.price-list li::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 5px; height: 1px;
+  background: var(--gold);
+}
+
+/* ─────────────────── CTA CELL ─────────────────── */
+.cell.cta-sun {
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-dl {
+  display: block;
+  width: 100%;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 10px 14px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s;
+  text-decoration: none;
+}
+.btn-dl.gold  { background: var(--gold); color: var(--red-deep); }
+.btn-dl.dark  { background: var(--red-deep); color: var(--gold-light); }
+.btn-dl:hover { filter: brightness(1.08); }
+
+/* ─────────────────── SECTION LABEL ─────────────────── */
+.week-label {
+  padding: 14px 36px;
+  background: var(--paper);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--paper-dark);
+  position: relative;
+  z-index: 2;
+}
+.week-label-text {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--gold);
+  white-space: nowrap;
+}
+.week-label-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold), transparent);
+  opacity: 0.5;
+}
+.week-label-ornament {
+  flex-shrink: 0;
+}
+
+/* ─────────────────── FOOTER ─────────────────── */
+.cal-footer {
+  background: var(--red-deep);
+  padding: 24px 36px 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 28px;
+  position: relative;
+  z-index: 2;
+  border-top: 1px solid rgba(201,160,40,0.25);
+}
+.footer-head {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 10px;
+}
+.footer-link {
+  display: block;
+  font-family: 'EB Garamond', serif;
+  font-size: 0.82rem;
+  color: rgba(253,248,238,0.55);
+  text-decoration: none;
+  padding: 2px 0;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.footer-link:hover { color: var(--gold-light); }
+.footer-copy {
+  grid-column: span 3;
+  border-top: 1px solid rgba(201,160,40,0.18);
+  padding-top: 14px;
+  text-align: center;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: rgba(201,160,40,0.4);
+}
+
+/* ─────────────────── TORN BOTTOM ─────────────────── */
+.cal-tear {
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+  height: 18px;
+  background: var(--cream);
+}
+.cal-tear svg {
+  display: block;
+  width: 100%;
+  height: 18px;
+}
+
+/* ─────────────────── RESPONSIVE ─────────────────── */
+@media (max-width: 900px) {
+  .cal-head { grid-template-columns: 1fr; text-align: center; }
+  .head-nav { align-items: center; }
+  .cell { min-height: 160px; padding: 9px 8px; }
+  .hero-body { display: none; }
+  .hero-title { font-size: 1.1rem; }
+  .feat-body { font-size: 0.75rem; }
+}
+@media (max-width: 600px) {
+  .cell { min-height: 110px; padding: 7px 5px; }
+  .feat-body { display: none; }
+  .feat-title { font-size: 0.7rem; }
+  .stat-num { font-size: 1.6rem; }
+}
+</style>
+</head>
+<body>
+<div class="scene">
+
+  <!-- Nail -->
+  <div class="nail">
+    <div class="nail-cap"></div>
+    <div class="nail-shank"></div>
+  </div>
+
+  <div class="cal-stack">
+  <div class="calendar">
+
+    <!-- ══════════════ HEADER ══════════════ -->
+    <div class="cal-head">
+
+      <!-- Brand -->
+      <div class="brand">
+        <div class="brand-mark">
+          <!-- App logo icon: calendar with lunar crescent -->
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="7" width="34" height="30" rx="1.5" stroke="#C49A28" stroke-width="1.8"/>
+            <rect x="3" y="7" width="34" height="9" fill="#C49A28" fill-opacity="0.22"/>
+            <line x1="12" y1="3" x2="12" y2="9" stroke="#C49A28" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="28" y1="3" x2="28" y2="9" stroke="#C49A28" stroke-width="2.2" stroke-linecap="round"/>
+            <!-- Grid dots -->
+            <rect x="8"  y="20" width="5" height="5" rx="0.5" fill="#C49A28" fill-opacity="0.8"/>
+            <rect x="17" y="20" width="5" height="5" rx="0.5" fill="#C49A28"/>
+            <rect x="26" y="20" width="5" height="5" rx="0.5" fill="#C49A28" fill-opacity="0.45"/>
+            <rect x="8"  y="28" width="5" height="5" rx="0.5" fill="#C49A28" fill-opacity="0.45"/>
+            <rect x="17" y="28" width="5" height="5" rx="0.5" fill="#C49A28" fill-opacity="0.65"/>
+            <!-- Crescent over last cell -->
+            <path d="M30 28 Q35 31 30 36 Q27 33.5 27 32 Q27 29.5 30 28Z" fill="#6B1010" fill-opacity="0.6"/>
+            <path d="M30 28 Q34 31 30 36 Q28 33.5 28 32 Q28 29.5 30 28Z" fill="none" stroke="#C49A28" stroke-width="0.8"/>
+          </svg>
+          <div>
+            <div class="brand-name">Lịch Số</div>
+            <div class="brand-sub">Lịch Âm Dương Thông Minh</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Month display -->
+      <div class="month-center">
+        <div class="month-label">Tháng</div>
+        <span class="month-num">6</span>
+        <div class="year-label">2 0 2 5</div>
+      </div>
+
+      <!-- Nav -->
+      <div class="head-nav">
+        <a href="#" class="btn-primary">Tải Ngay — Miễn Phí</a>
+        <a href="#" class="btn-ghost">Xem Tính Năng</a>
+      </div>
+    </div>
+
+    <div class="head-rule"></div>
+
+    <!-- ══════════════ DAY NAMES ══════════════ -->
+    <div class="daynames">
+      <div class="dayname">Thứ Hai</div>
+      <div class="dayname">Thứ Ba</div>
+      <div class="dayname">Thứ Tư</div>
+      <div class="dayname">Thứ Năm</div>
+      <div class="dayname">Thứ Sáu</div>
+      <div class="dayname">Thứ Bảy</div>
+      <div class="dayname">Chủ Nhật</div>
+    </div>
+
+    <!-- ══════════════ TUẦN 1: HERO ══════════════ -->
+    <div class="cal-grid">
+
+      <!-- MON–TUE: Hero intro (2 cols) -->
+      <div class="cell hero">
+        <div class="cell-top">
+          <div>
+            <div class="cell-date-num" style="color:var(--gold-light)">02</div>
+            <div class="cell-lunar" style="color:rgba(201,160,40,0.55)">Mùng 7 tháng 5 · Ất Tỵ</div>
+          </div>
+          <span class="badge badge-gold">v3.0</span>
+        </div>
+        <div class="cell-body">
+          <div class="hero-eyebrow">Ứng dụng lịch âm dương</div>
+          <div class="hero-title">Tra Ngày.<br>Xem Giờ.<br>Sống Đúng Thời.</div>
+          <div class="hero-body">Lịch âm dương đầy đủ cho người Việt — ngày tốt xấu, giờ hoàng đạo, can chi, tiết khí, và lời nhắc thông minh.</div>
+          <div class="badge-row">
+            <span class="badge badge-gold">iOS</span>
+            <span class="badge badge-gold">Android</span>
+            <span class="badge badge-gold">Web</span>
+          </div>
+        </div>
+        <div class="cell-watermark" style="opacity:0.04; color:var(--gold-light)">2</div>
+      </div>
+
+      <!-- WED: Âm Dương song hành -->
+      <div class="cell">
+        <div class="cell-top">
+          <div>
+            <div class="cell-date-num">03</div>
+            <div class="cell-lunar">Mùng 8/5</div>
+          </div>
+        </div>
+        <div class="cell-body">
+          <!-- Moon-Sun icon -->
+          <svg class="feat-icon" width="38" height="38" viewBox="0 0 38 38" fill="none">
+            <!-- Sun -->
+            <circle cx="19" cy="19" r="9" stroke="#6B1010" stroke-width="1.6"/>
+            <line x1="19" y1="3"  x2="19" y2="7"  stroke="#C49A28" stroke-width="1.6" stroke-linecap="round"/>
+            <line x1="19" y1="31" x2="19" y2="35" stroke="#C49A28" stroke-width="1.2" stroke-linecap="round" opacity=".55"/>
+            <line x1="3"  y1="19" x2="7"  y2="19" stroke="#C49A28" stroke-width="1.2" stroke-linecap="round" opacity=".55"/>
+            <line x1="31" y1="19" x2="35" y2="19" stroke="#C49A28" stroke-width="1.2" stroke-linecap="round" opacity=".55"/>
+            <line x1="7.5"  y1="7.5"  x2="10" y2="10"  stroke="#C49A28" stroke-width="1" stroke-linecap="round" opacity=".4"/>
+            <line x1="28" y1="28" x2="30.5" y2="30.5" stroke="#C49A28" stroke-width="1" stroke-linecap="round" opacity=".4"/>
+            <!-- Moon overlay -->
+            <path d="M23 11 Q30 19 23 27 Q16 23.5 16 19 Q16 14.5 23 11Z" fill="#6B1010" fill-opacity="0.75"/>
+            <path d="M23 11 Q28 19 23 27 Q18 23.5 18 19 Q18 14.5 23 11Z" fill="none" stroke="#C49A28" stroke-width="1.1"/>
+            <circle cx="20" cy="14" r="1" fill="#C49A28" fill-opacity="0.5"/>
+          </svg>
+          <div class="feat-title">Âm Dương Song Hành</div>
+          <div class="feat-body">Ngày dương lịch và âm lịch luôn hiển thị cùng nhau. Can chi năm, tháng, ngày, giờ đầy đủ.</div>
+        </div>
+        <div class="cell-watermark">3</div>
+      </div>
+
+      <!-- THU: Ngày tốt xấu -->
+      <div class="cell">
+        <div class="cell-top">
+          <div>
+            <div class="cell-date-num">04</div>
+            <div class="cell-lunar">Mùng 9/5 · Hoàng đạo</div>
+          </div>
+        </div>
+        <div class="cell-body">
+          <!-- Diamond-seal icon -->
+          <svg class="feat-icon" width="38" height="38" viewBox="0 0 38 38" fill="none">
+            <polygon points="19,3 35,19 19,35 3,19" stroke="#6B1010" stroke-width="1.6"/>
+            <polygon points="19,7 31,19 19,31 7,19" fill="#6B1010" fill-opacity="0.08" stroke="#C49A28" stroke-width="0.7" stroke-opacity="0.4"/>
+            <circle cx="19" cy="19" r="3.5" fill="#C49A28"/>
+            <line x1="19" y1="7"  x2="19" y2="12" stroke="#C49A28" stroke-width="1" opacity=".55"/>
+            <line x1="19" y1="26" x2="19" y2="31" stroke="#C49A28" stroke-width="1" opacity=".55"/>
+            <line x1="7"  y1="19" x2="12" y2="19" stroke="#C49A28" stroke-width="1" opacity=".55"/>
+            <line x1="26" y1="19" x2="31" y2="19" stroke="#C49A28" stroke-width="1" opacity=".55"/>
+          </svg>
+          <div class="feat-title">Ngày Tốt Xấu</div>
+          <div class="feat-body">Hoàng đạo, hắc đạo — biết ngày nào xuất hành, cưới hỏi, động thổ... để hành đúng lúc.</div>
+          <div class="rule"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <span style="font-family:'Barlow Condensed';font-size:.6rem;letter-spacing:.15em;color:var(--gold)">HOÀNG ĐẠO</span>
+            <span style="font-family:'Barlow Condensed';font-size:.6rem;letter-spacing:.15em;color:#888">HẮC ĐẠO</span>
+          </div>
+        </div>
+        <div class="cell-watermark">4</div>
+      </div>
+
+      <!-- FRI: Giờ hoàng đạo -->
+      <div class="cell">
+        <div class="cell-top">
+          <div>
+            <div class="cell-date-num">05</div>
+            <div class="cell-lunar">Mùng 10/5</div>
+          </div>
+        </div>
+        <div class="cell-body">
+          <!-- Clock icon -->
+          <svg class="feat-icon" width="38" height="38" viewBox="0 0 38 38" fill="none">
+            <circle cx="19" cy="19" r="15" stroke="#6B1010" stroke-width="1.6"/>
+            <circle cx="19" cy="19" r="2.2" fill="#C49A28"/>
+            <!-- Hour ticks -->
+            <line x1="19" y1="5"  x2="19" y2="9"  stroke="#6B1010" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="33" y1="19" x2="29" y2="19" stroke="#6B1010" stroke-width="1.4" stroke-linecap="round" opacity=".5"/>
+            <line x1="5"  y1="19" x2="9"  y2="19" stroke="#6B1010" stroke-width="1.4" stroke-linecap="round" opacity=".5"/>
+            <line x1="19" y1="33" x2="19" y2="29" stroke="#6B1010" stroke-width="1.4" stroke-linecap="round" opacity=".5"/>
+            <!-- Diagonal ticks -->
+            <line x1="29" y1="9"  x2="27" y2="11" stroke="#6B1010" stroke-width="1" opacity=".3"/>
+            <line x1="9"  y1="9"  x2="11" y2="11" stroke="#6B1010" stroke-width="1" opacity=".3"/>
+            <line x1="29" y1="29" x2="27" y2="27" stroke="#6B1010" stroke-width="1" opacity=".3"/>
+            <line x1="9"  y1="29" x2="11" y2="27" stroke="#6B1010" stroke-width="1" opacity=".3"/>
+            <!-- Hour hand -->
+            <line x1="19" y1="19" x2="19" y2="10" stroke="#6B1010" stroke-width="1.8" stroke-linecap="round"/>
+            <!-- Minute hand -->
+            <line x1="19" y1="19" x2="25.5" y2="21" stroke="#C49A28" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <div class="feat-title">Giờ Hoàng Đạo</div>
+          <div class="feat-body">12 canh giờ trong ngày — biết giờ nào thuận thế, giờ nào nghịch vận để chọn thời điểm ra quyết định.</div>
+        </div>
+        <div class="cell-watermark">5</div>
+      </div>
+
+      <!-- SAT: Phone mockup -->
+      <div class="cell sat">
+        <div class="cell-top">
+          <div>
+            <div class="cell-date-num">06</div>
+            <div class="cell-lunar">Mùng 11/5</div>
+          </div>
+        </div>
+        <div class="cell-body" style="display:flex;align-items:center;justify-content:center;">
+          <div class="phone">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+              <!-- Mini calendar header -->
+              <div style="background:#6B1010;height:22px;border-radius:3px;display:flex;align-items:center;justify-content:center;margin-bottom:5px;">
+                <span style="color:#C49A28;font-family:'Barlow Condensed';font-size:7px;letter-spacing:.15em;font-weight:700">THÁNG 6 · 2025</span>
+              </div>
+              <div class="prow">
+                <div class="pd"></div><div class="pd"></div><div class="pd"></div>
+                <div class="pd"></div><div class="pd"></div><div class="pd on"></div><div class="pd"></div>
+              </div>
+              <div class="prow">
+                <div class="pd on"></div><div class="pd"></div><div class="pd"></div>
+                <div class="pd hl"></div><div class="pd"></div><div class="pd"></div><div class="pd on"></div>
+              </div>
+              <div class="prow">
+                <div class="pd"></div><div class="pd on"></div><div class="pd"></div>
+                <div class="pd"></div><div class="pd hl"></div><div class="pd"></div><div class="pd"></div>
+              </div>
+              <div class="prow">
+                <div class="pd"></div><div class="pd"></div><div class="pd on"></div>
+                <div class="pd"></div><div class="pd"></div><div class="pd hl"></div><div class="pd on"></div>
+              </div>
+              <div class="phone-bar"></div>
+              <div class="phone-bar"></div>
+            </div>
+          </div>
+        </div>
+        <div class="cell-watermark">6</div>
+      </div>
+
+      <!-- SUN: Download CTA -->
+      <div class="cell sun cta-sun">
+        <div class="cell-top">
+          <div>
+            <div class="cell-date-num">07</div>
+            <div class="cell-lunar" style="color:var(--red)">Mùng 12/5 · Chủ Nhật</div>
+          </div>
+        </div>
+        <div class="cell-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;">
+          <!-- Download arrow icon -->
+          <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+            <rect x="4" y="24" width="26" height="6" rx="1" stroke="#6B1010" stroke-width="1.5"/>
+            <line x1="17" y1="4" x2="17" y2="22" stroke="#6B1010" stroke-width="1.8" stroke-linecap="round"/>
+            <polyline points="11,15 17,22 23,15" stroke="#C49A28" stroke-width="1.8" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <div style="font-family:'Barlow Condensed';font-size:.7rem;font-weight:700;letter-spacing:.18em;color:var(--red-deep);text-transform:uppercase;">Tải Miễn Phí</div>
+          <a href="#" class="btn-dl gold">App Store</a>
+          <a href="#" class="btn-dl dark">Google Play</a>
+        </div>
+        <!-- Seal stamp -->
+        <svg style="position:absolute;bottom:10px;right:10px;opacity:.18;" width="46" height="46" viewBox="0 0 46 46">
+          <polygon points="23,2 28,11 37,8 34,17 43,23 34,29 37,38 28,35 23,44 18,35 9,38 12,29 3,23 12,17 9,8 18,11"
+            fill="none" stroke="#6B1010" stroke-width="1.5"/>
+          <text x="23" y="21" text-anchor="middle" font-family="EB Garamond" font-size="6" fill="#6B1010">MIỄN</text>
+          <text x="23" y="29" text-anchor="middle" font-family="EB Garamond" font-size="6" fill="#6B1010">PHÍ</text>
+        </svg>
+        <div class="cell-watermark">7</div>
+      </div>
+    </div>
+
+    <!-- ══════════════ TUẦN 2: TÍNH NĂNG ══════════════ -->
+    <div class="week-label">
+      <svg class="week-label-ornament" width="14" height="14" viewBox="0 0 14 14">
+        <polygon points="7,1 8.5,5 13,5.5 9.8,8.5 10.8,13 7,10.5 3.2,13 4.2,8.5 1,5.5 5.5,5" fill="none" stroke="#C49A28" stroke-width="1"/>
+      </svg>
+      <span class="week-label-text">Tuần 2 — Khám Phá Tính Năng</span>
+      <div class="week-label-line"></div>
+    </div>
+
+    <div class="cal-grid">
+
+      <!-- MON: Nhắc nhở thông minh -->
+      <div class="cell">
+        <div class="cell-top">
+          <div>
+            <div class="cell-date-num">09</div>
+            <div class="cell-lunar">14/5 Ất Tỵ</div>
+          </div>
+        </div>
+        <div class="cell-body">
+          <!-- Bell icon -->
+          <svg class="feat-icon" width="38" height="38" viewBox="0 0 38 38" fill="none">
+            <path d="M19 7 Q10 7 10 19 L8 28 L30 28 L28 19 Q28 7 19 7Z" stroke="#6B1010" stroke-width="1.6" stroke-linejoin="round"/>
+            <line x1="19" y1="4" x2="19" y2="7" stroke="#6B1010" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M15 28 Q15 33 19 33 Q23 33 23 28" stroke="#C49A28" stroke-width="1.5" fill="none"/>
+            <!-- Notification dot -->
+            <circle cx="27" cy="9" r="5" fill="#6B1010"/>
+            <text x="27" y="12" text-anchor="middle" font-family="Barlow Condensed" font-size="6" fill="#E0C060" font-weight="700">3</text>
+          </svg>
+          <div class="feat-title">Nhắc Nhở Thông Minh</div>
+          <div class="feat-body">Đặt nhắc nhở sự kiện quan trọng. Ứng dụng tự tính ngày tốt gần nhất và gợi ý thời điểm phù hợp.</div>
+        </div>
+        <div class="cell-watermark">9</div>
+      </div>
+
+      <!-- TUE: Can Chi đầy đủ — Rằm -->
+      <div class="cell" style="background:linear-gradient(160deg, #FDFAEE, var(--cream))">
+        <div class="cell-top">
+          <div>
+            <div class="cell-date-num">10</div>
+            <div class="cell-lunar">15/5 · Rằm tháng 5</div>
+          </div>
+          <!-- Full moon mark -->
+          <svg width="18" height="18" viewBox="0 0 18 18">
+            <circle cx="9" cy="9" r="8" stroke="#C49A28" stroke-width="1.2" fill="none"/>
+            <circle cx="9" cy="9" r="5.5" fill="#C49A28" fill-opacity="0.25"/>
+            <circle cx="9" cy="9" r="2.5" fill="#C49A28" fill-opacity="0.5"/>
+          </svg>
+        </div>
+        <div class="cell-body">
+          <!-- Can-Chi icon (circular calligraphy) -->
+          <svg class="feat-icon" width="38" height="38" viewBox="0 0 38 38" fill="none">
+            <circle cx="19" cy="19" r="15" stroke="#6B1010" stroke-width="1.5"/>
+            <path d="M19 4 A15 15 0 0 1 19 34 A7.5 7.5 0 0 0 19 19 A7.5 7.5 0 0 1 19 4Z" fill="#6B1010" fill-opacity="0.12"/>
+            <circle cx="19" cy="11.5" r="2.5" fill="none" stroke="#C49A28" stroke-width="1"/>
+            <circle cx="19" cy="26.5" r="2.5" fill="#C49A28" fill-opacity="0.3" stroke="#6B1010" stroke-width="0.8"/>
+          </svg>
+          <div class="feat-title">Can Chi Bốn Trụ</div>
+          <div class="feat-body">Năm, tháng, ngày, giờ — đủ bộ can chi để tra cứu tứ trụ mệnh lý và phong thủy.</div>
+          <div class="rule"></div>
+          <div style="font-family:'EB Garamond';font-size:.75rem;color:var(--gold);font-style:italic">Giáp Tý · Ất Sửu · Bính Dần...</div>
+        </div>
+        <div class="cell-watermark">10</div>
+      </div>
+
+      <!-- WED: 24 Tiết Khí -->
+      <div class="cell">
+        <div class="cell-top">
+          <div>
+            <div class="cell-date-num">11</div>
+            <div class="cell-lunar">16/5</div>
+          </div>
+        </div>
+        <div class="cell-body">
+          <!-- Leaf-branch icon -->
+          <svg class="feat-icon" width="38" height="38" viewBox="0 0 38 38" fill="none">
+            <path d="M19 34 Q8 23 10 11 Q14 4 24 6 Q35 10 31 24 Q28 34 19 34Z" stroke="#6B1010" stroke-width="1.6"/>
+            <path d="M19 34 Q17 22 15 13" stroke="#C49A28" stroke-width="1" stroke-dasharray="2 2.5" opacity=".7"/>
+            <path d="M19 34 Q23 24 25 15" stroke="#C49A28" stroke-width="1" stroke-dasharray="2 2.5" opacity=".7"/>
+            <circle cx="19" cy="34" r="2" fill="none" stroke="#6B1010" stroke-width="1.2"/>
+            <circle cx="20" cy="12" r="1.2" fill="#C49A28" fill-opacity="0.6"/>
+          </svg>
+          <div class="feat-title">24 Tiết Khí</div>
+          <div class="feat-body">Theo dõi 24 tiết khí trong năm — Lập Xuân, Vũ Thủy, Kinh Trập... thuận thiên thời để hành việc.</div>
+        </div>
+        <div class="cell-watermark">11</div>
+      </div>
+
+      <!-- THU: Stats -->
+      <div class="cell" style="background:var(--paper)">
+        <div class="cell-top">
+          <div>
+            <div class="cell-date-num">12</div>
+            <div class="cell-lunar">17/5</div>
+          </div>
+        </div>
+        <div class="cell-body" style="display:flex;flex-direction:column;gap:10px;">
+          <div>
+            <div class="stat-num">500K+</div>
+            <div class="stat-label">người dùng tin tưởng</div>
+          </div>
+          <div class="rule"></div>
+          <div>
+            <div class="stat-num">4.9</div>
+            <div class="stars">
+              <!-- 5 stars SVG -->
+              <svg width="11" height="11" viewBox="0 0 11 11"><polygon points="5.5,1 6.8,4.2 10.5,4.5 7.8,6.9 8.7,10.5 5.5,8.5 2.3,10.5 3.2,6.9 0.5,4.5 4.2,4.2" fill="#C49A28"/></svg>
+              <svg width="11" height="11" viewBox="0 0 11 11"><polygon points="5.5,1 6.8,4.2 10.5,4.5 7.8,6.9 8.7,10.5 5.5,8.5 2.3,10.5 3.2,6.9 0.5,4.5 4.2,4.2" fill="#C49A28"/></svg>
+              <svg width="11" height="11" viewBox="0 0 11 11"><polygon points="5.5,1 6.8,4.2 10.5,4.5 7.8,6.9 8.7,10.5 5.5,8.5 2.3,10.5 3.2,6.9 0.5,4.5 4.2,4.2" fill="#C49A28"/></svg>
+              <svg width="11" height="11" viewBox="0 0 11 11"><polygon points="5.5,1 6.8,4.2 10.5,4.5 7.8,6.9 8.7,10.5 5.5,8.5 2.3,10.5 3.2,6.9 0.5,4.5 4.2,4.2" fill="#C49A28"/></svg>
+              <svg width="11" height="11" viewBox="0 0 11 11"><polygon points="5.5,1 6.8,4.2 10.5,4.5 7.8,6.9 8.7,10.5 5.5,8.5 2.3,10.5 3.2,6.9 0.5,4.5 4.2,4.2" fill="#C49A28"/></svg>
+            </div>
+            <div class="stat-label">đánh giá trên App Store</div>
+          </div>
+          <div class="rule"></div>
+          <div>
+            <div class="stat-num">50+</div>
+            <div class="stat-label">loại sự kiện được hỗ trợ</div>
+          </div>
+        </div>
+        <div class="cell-watermark">12</div>
+      </div>
+
+      <!-- FRI: User review -->
+      <div class="cell">
+        <div class="cell-top">
+          <div>
+            <div class="cell-date-num">13</div>
+            <div class="cell-lunar">18/5</div>
+          </div>
+        </div>
+        <div class="cell-body">
+          <!-- Quote icon -->
+          <svg width="26" height="22" viewBox="0 0 26 22" fill="none" style="margin-bottom:9px;opacity:.25;">
+            <path d="M2 11 Q2 4 9 4 Q6 8.5 6 11 Q6 15 10 15 L10 20 Q4 20 2 16Z" fill="#6B1010"/>
+            <path d="M15 11 Q15 4 22 4 Q19 8.5 19 11 Q19 15 23 15 L23 20 Q17 20 15 16Z" fill="#6B1010"/>
+          </svg>
+          <div class="review-quote">"Ứng dụng tốt nhất từ trước đến nay. Mỗi sáng mở ra là biết ngay hôm nay làm gì, tránh gì, và giờ nào xuất phát."</div>
+          <div class="review-attr">— Nguyễn T.H., TP.HCM</div>
+          <div class="rule"></div>
+          <div class="review-quote" style="font-size:.8rem">"Không cần lật lịch giấy nữa. Cái app này thay thế hoàn toàn cuốn lịch tường nhà tôi."</div>
+          <div class="review-attr">— Trần M.K., Hà Nội</div>
+        </div>
+        <div class="cell-watermark">13</div>
+      </div>
+
+      <!-- SAT: Pricing -->
+      <div class="cell sat">
+        <div class="cell-top">
+          <div>
+            <div class="cell-date-num">14</div>
+            <div class="cell-lunar">19/5</div>
+          </div>
+          <span class="badge badge-red">Pro</span>
+        </div>
+        <div class="cell-body">
+          <div class="price-big">Miễn Phí</div>
+          <div class="price-note">Cơ bản · Mãi mãi</div>
+          <ul class="price-list">
+            <li>Lịch âm dương đầy đủ</li>
+            <li>Ngày tốt xấu hàng ngày</li>
+            <li>Giờ hoàng đạo 12 canh</li>
+          </ul>
+          <div class="rule"></div>
+          <div class="price-big" style="font-size:1.3rem">29.000đ/tháng</div>
+          <div class="price-note">Pro · Không giới hạn</div>
+          <ul class="price-list">
+            <li>Nhắc nhở không giới hạn</li>
+            <li>Widget màn hình khóa</li>
+            <li>Xem vận mệnh theo tuổi</li>
+          </ul>
+        </div>
+        <div class="cell-watermark">14</div>
+      </div>
+
+      <!-- SUN: Big CTA seal -->
+      <div class="cell sun cta-sun" style="min-height:230px;">
+        <div class="cell-top">
+          <div>
+            <div class="cell-date-num">15</div>
+            <div class="cell-lunar" style="color:var(--red)">20/5 · Chủ Nhật</div>
+          </div>
+        </div>
+        <div class="cell-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;">
+          <!-- Large seal stamp icon -->
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <polygon points="40,4 52,13 65,11 68,24 78,33 73,46 78,59 65,64 58,76 44,73 40,82 36,73 22,76 15,64 2,59 7,46 2,33 12,24 15,11 28,13"
+              fill="#6B1010" fill-opacity="0.07" stroke="#6B1010" stroke-width="1.5"/>
+            <polygon points="40,10 50,18 62,16 65,27 74,35 69,46 74,57 63,62 57,72 45,69 40,76 35,69 23,72 17,62 6,57 11,46 6,35 15,27 18,16 30,18"
+              fill="none" stroke="#C49A28" stroke-width="0.7" stroke-opacity="0.5"/>
+            <text x="40" y="36" text-anchor="middle" font-family="Playfair Display" font-size="11" fill="#6B1010" font-weight="700">BẮT ĐẦU</text>
+            <text x="40" y="50" text-anchor="middle" font-family="Playfair Display" font-size="11" fill="#6B1010" font-weight="700">NGAY HÔM</text>
+            <text x="40" y="62" text-anchor="middle" font-family="Barlow Condensed" font-size="8" fill="#C49A28" letter-spacing="2">NAY</text>
+          </svg>
+          <a href="#" class="btn-dl gold" style="font-size:.78rem;padding:12px 20px;">Dùng Thử Miễn Phí</a>
+        </div>
+        <div class="cell-watermark">15</div>
+      </div>
+
+    </div><!-- /tuần 2 grid -->
+
+    <!-- ══════════════ FOOTER ══════════════ -->
+    <div class="week-label" style="border-top:1px solid var(--paper-dark)">
+      <svg class="week-label-ornament" width="14" height="14" viewBox="0 0 14 14">
+        <rect x="3" y="3" width="8" height="8" stroke="#C49A28" stroke-width="1" fill="none" transform="rotate(45 7 7)"/>
+        <circle cx="7" cy="7" r="1.5" fill="#C49A28"/>
+      </svg>
+      <span class="week-label-text">Liên Hệ &amp; Thông Tin</span>
+      <div class="week-label-line"></div>
+    </div>
+
+    <div class="cal-footer">
+      <div>
+        <div class="footer-head">Lịch Số</div>
+        <a href="#" class="footer-link">Giới thiệu</a>
+        <a href="#" class="footer-link">Tính năng</a>
+        <a href="#" class="footer-link">Blog phong thủy</a>
+        <a href="#" class="footer-link">Tải về</a>
+      </div>
+      <div>
+        <div class="footer-head">Hỗ Trợ</div>
+        <a href="#" class="footer-link">Câu hỏi thường gặp</a>
+        <a href="#" class="footer-link">Chính sách bảo mật</a>
+        <a href="#" class="footer-link">Điều khoản sử dụng</a>
+        <a href="#" class="footer-link">Liên hệ chúng tôi</a>
+      </div>
+      <div>
+        <div class="footer-head">Theo Dõi</div>
+        <a href="#" class="footer-link">Facebook</a>
+        <a href="#" class="footer-link">Zalo</a>
+        <a href="#" class="footer-link">YouTube</a>
+        <a href="#" class="footer-link">TikTok</a>
+      </div>
+      <div class="footer-copy">
+        © 2025 Lịch Số · Ứng Dụng Lịch Âm Dương Thông Minh Cho Người Việt
+      </div>
+    </div>
+
+    <!-- Torn bottom edge -->
+    <div class="cal-tear">
+      <svg viewBox="0 0 1120 18" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,18 L0,10 C20,4 35,14 55,8 C75,2 90,12 110,7 C130,2 145,13 165,8 C185,3 200,14 220,9 C240,4 255,13 275,7 C295,1 310,12 330,8 C350,4 365,14 385,9 C405,4 420,13 440,7 C460,1 475,12 495,8 C515,4 530,14 550,9 C570,4 585,13 605,7 C625,1 640,12 660,8 C680,4 695,14 715,9 C735,4 750,13 770,7 C790,1 805,12 825,8 C845,4 860,14 880,9 C900,4 915,13 935,7 C955,1 970,12 990,8 C1010,4 1025,14 1045,9 C1065,4 1085,13 1120,7 L1120,18 Z"
+          fill="#FDF8EE"/>
+      </svg>
+    </div>
+
+  </div><!-- /calendar -->
+  </div><!-- /cal-stack -->
+
+</div><!-- /scene -->
+</body>
+</html>
