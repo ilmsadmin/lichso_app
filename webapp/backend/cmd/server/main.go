@@ -316,7 +316,12 @@ func setupRoutes(app *fiber.App, cfg *config.Config, pgDB *gorm.DB, mongoDB *mon
 	// Register Routes
 	// ============================================
 	routes.SetupAuthRoutes(api, authHandler, authMiddleware)
-	routes.SetupAdminRoutes(api, authMiddleware, permMiddleware, roleHandler, permissionHandler, userHandler, adminHandler, settingHandler, emailHandler)
+
+	// Screen Background handler (shared between admin + public routes)
+	screenBgRepo := repositories.NewScreenBackgroundRepository(pgDB)
+	screenBgHandler := handlers.NewScreenBackgroundHandler(screenBgRepo, &cfg.Upload, &cfg.App, logger)
+
+	routes.SetupAdminRoutes(api, authMiddleware, permMiddleware, roleHandler, permissionHandler, userHandler, adminHandler, settingHandler, emailHandler, screenBgHandler)
 	routes.SetupNotificationRoutes(api, authMiddleware, notifHandler)
 	routes.SetupMediaRoutes(api, authMiddleware, permMiddleware, mediaHandler, cfg.Upload.Path)
 	routes.SetupMediaV3Routes(api, authMiddleware, permMiddleware, mediaV3Handler)

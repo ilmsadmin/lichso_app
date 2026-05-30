@@ -7,6 +7,7 @@ import com.lichso.app.data.local.dao.NotificationDao
 import com.lichso.app.data.remote.Article
 import com.lichso.app.data.remote.Banner
 import com.lichso.app.data.remote.Popup
+import com.lichso.app.data.remote.ScreenBackgroundRepository
 import com.lichso.app.data.remote.WeatherRepository
 import com.lichso.app.data.remote.WeatherState
 import com.lichso.app.data.settings.AppSettingsRepository
@@ -68,6 +69,7 @@ class HomeViewModel @Inject constructor(
     private val weatherRepository: WeatherRepository,
     private val notificationDao: NotificationDao,
     private val countdownDao: CountdownEventDao,
+    val screenBackgroundRepository: ScreenBackgroundRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -162,6 +164,8 @@ class HomeViewModel @Inject constructor(
         loadBanners()
         // Tải popup từ server
         loadPopups()
+        // Tải ảnh nền màn hình từ server (cache vào DataStore)
+        loadScreenBackgrounds()
     }
 
     private fun loadCurrentDate() {
@@ -299,6 +303,15 @@ class HomeViewModel @Inject constructor(
                 .onFailure {
                     _popups.update { emptyList() }
                 }
+        }
+    }
+
+    private fun loadScreenBackgrounds() {
+        viewModelScope.launch {
+            // First restore from local cache so backgrounds are available immediately
+            screenBackgroundRepository.loadFromCache()
+            // Then fetch fresh data from server (updates cache on success)
+            screenBackgroundRepository.fetchBackgrounds()
         }
     }
 

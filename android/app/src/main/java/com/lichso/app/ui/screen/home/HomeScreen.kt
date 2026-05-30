@@ -118,6 +118,8 @@ fun HomeScreen(
     onCountdownClick: () -> Unit = {},
     onFortuneCardShown: () -> Unit = {},
     onBannerAction: (String) -> Unit = {},
+    hasServerBackground: Boolean = false,
+    headerImageUrl: String? = null,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val c = LichSoThemeColors.current
@@ -141,7 +143,7 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (c.isDark) c.bg else Color(0xFFFAF5F0)) // cream background
+            .background(if (hasServerBackground) Color.Transparent else if (c.isDark) c.bg else Color(0xFFFAF5F0))
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             uiState.dayInfo?.let { info ->
@@ -165,20 +167,21 @@ fun HomeScreen(
                     onWeatherRefresh = { viewModel.refreshWeather() },
                     onWeatherClick = { showWeatherSheet = true },
                     onBannerAction = onBannerAction,
+                    headerImageUrl = headerImageUrl,
                 )
 
                 // ═══ MINI WEEK STRIP (white card, cream bg) ═══
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(if (c.isDark) c.bg else Color(0xFFFAF5F0))
+                        .background(if (hasServerBackground) Color.Transparent else if (c.isDark) c.bg else Color(0xFFFAF5F0))
                         .padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        color = if (c.isDark) Color(0xFF2A1A1A) else Color.White,
-                        shadowElevation = 4.dp,
+                        color = if (hasServerBackground) Color.Transparent else if (c.isDark) Color(0xFF2A1A1A) else Color.White,
+                        shadowElevation = if (hasServerBackground) 0.dp else 4.dp,
                         tonalElevation = 0.dp,
                     ) {
                         MiniCalendarStrip(
@@ -270,7 +273,7 @@ fun HomeScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             // ═══ BIG DATE DISPLAY ═══
-                            BigDateSection(info = info)
+                            BigDateSection(info = info, hasServerBackground = hasServerBackground)
 
                             Spacer(modifier = Modifier.height(6.dp))
 
@@ -354,6 +357,7 @@ private fun RedTopSection(
     onWeatherRefresh: () -> Unit,
     onWeatherClick: () -> Unit,
     onBannerAction: (String) -> Unit,
+    headerImageUrl: String? = null,
 ) {
     val c = LichSoThemeColors.current
     val redGradient = if (c.isDark) {
@@ -373,9 +377,28 @@ private fun RedTopSection(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(redGradient)
+            .then(
+                if (headerImageUrl.isNullOrBlank()) Modifier.background(redGradient)
+                else Modifier
+            )
             .statusBarsPadding()
     ) {
+        // Custom header image replaces the red gradient
+        if (!headerImageUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = headerImageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize(),
+            )
+            // Subtle dark scrim so white icons/text stay readable on any image
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.Black.copy(alpha = 0.35f))
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1031,7 +1054,7 @@ private fun SwipeHint() {
 // ══════════════════════════════════════════
 
 @Composable
-private fun BigDateSection(info: DayInfo) {
+private fun BigDateSection(info: DayInfo, hasServerBackground: Boolean = false) {
     val c = LichSoThemeColors.current
 
     Column(
@@ -1083,8 +1106,8 @@ private fun BigDateSection(info: DayInfo) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            color = if (c.isDark) Color(0xFF2A1A1A) else Color.White,
-            shadowElevation = 2.dp,
+            color = if (hasServerBackground) Color.Transparent else if (c.isDark) Color(0xFF2A1A1A) else Color.White,
+            shadowElevation = if (hasServerBackground) 0.dp else 2.dp,
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),

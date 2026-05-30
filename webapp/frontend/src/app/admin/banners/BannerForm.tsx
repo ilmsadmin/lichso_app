@@ -54,9 +54,10 @@ import {
 import { useCreateBanner, useUpdateBanner } from "@/hooks/useBanners";
 import { ROUTES } from "@/lib/constants";
 import { getImageUrl } from "@/lib/utils";
-import { uploadFile } from "@/services/mediaService";
 import { BANNER_TYPES } from "@/types/banner";
 import type { Banner, CreateBannerRequest } from "@/types/banner";
+import { MediaPickerDialog } from "@/components/shared/MediaPickerDialog";
+import type { MediaFile } from "@/types/media";
 
 interface BannerFormProps {
   banner?: Banner;
@@ -133,10 +134,9 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
   const router = useRouter();
   const createBanner = useCreateBanner();
   const updateBanner = useUpdateBanner(banner?.id ?? "");
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const iconInputRef = useRef<HTMLInputElement>(null);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [isUploadingIcon, setIsUploadingIcon] = useState(false);
+
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
+  const [mediaPickerType, setMediaPickerType] = useState<"image" | "icon" | null>(null);
 
   const [form, setForm] = useState<CreateBannerRequest>(() =>
     banner
@@ -195,38 +195,18 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
     }
   }, [banner]);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingImage(true);
-    try {
-      const res = await uploadFile(file, "banners");
-      const uploadedUrl = res.data?.url;
-      if (res.success && uploadedUrl) {
-        setForm((current) => ({ ...current, image_url: uploadedUrl }));
-      }
-    } finally {
-      setIsUploadingImage(false);
-      if (imageInputRef.current) imageInputRef.current.value = "";
-    }
+  const openMediaPicker = (type: "image" | "icon") => {
+    setMediaPickerType(type);
+    setIsMediaPickerOpen(true);
   };
 
-  const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingIcon(true);
-    try {
-      const res = await uploadFile(file, "banners/icons");
-      const uploadedUrl = res.data?.url;
-      if (res.success && uploadedUrl) {
-        setForm((current) => ({ ...current, icon_url: uploadedUrl, icon_key: "" }));
-      }
-    } finally {
-      setIsUploadingIcon(false);
-      if (iconInputRef.current) iconInputRef.current.value = "";
+  const handleMediaSelect = (file: MediaFile) => {
+    if (mediaPickerType === "image") {
+      setForm((current) => ({ ...current, image_url: file.url }));
+    } else if (mediaPickerType === "icon") {
+      setForm((current) => ({ ...current, icon_url: file.url, icon_key: "" }));
     }
+    setMediaPickerType(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -475,26 +455,14 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
                       );
                     })}
                   </div>
-                  <input
-                    ref={iconInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleIconUpload}
-                  />
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mt-4">
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => iconInputRef.current?.click()}
-                      disabled={isUploadingIcon}
+                      onClick={() => openMediaPicker("icon")}
                     >
-                      {isUploadingIcon ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Upload className="mr-2 h-4 w-4" />
-                      )}
-                      {isUploadingIcon ? "Đang upload..." : "Upload icon"}
+                      <Upload className="mr-2 h-4 w-4" />
+                      Chọn icon từ Media
                     </Button>
                     {(form.icon_url || form.icon_key) && (
                       <Button
@@ -508,7 +476,7 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
                     )}
                   </div>
                   {selectedIconPreset && PreviewIcon && !form.icon_url && (
-                    <div className="flex items-center gap-3 rounded-xl border p-3">
+                    <div className="flex items-center gap-3 rounded-xl border p-3 mt-2">
                       <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted text-primary">
                         <PreviewIcon className="h-8 w-8" />
                       </div>
@@ -518,7 +486,7 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
                     </div>
                   )}
                   {form.icon_url && (
-                    <div className="flex items-center gap-3 rounded-xl border p-3">
+                    <div className="flex items-center gap-3 rounded-xl border p-3 mt-2">
                       <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted">
                         <Image
                           src={getImageUrl(form.icon_url)}
@@ -533,13 +501,10 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
                       </p>
                     </div>
                   )}
-                  <p className="text-muted-foreground text-xs">
-                    Icon sẽ được upload vào thư mục media `banners/icons`.
-                  </p>
                 </div>
 
                 {/* Image upload */}
-                <div className="space-y-2">
+                <div className="space-y-2 mt-6">
                   <Label>Hình ảnh banner (tùy chọn)</Label>
                   <div className="rounded-xl border bg-muted/30 p-3 text-xs text-muted-foreground">
                     <p className="font-medium text-foreground">Gợi ý ảnh banner đẹp trên app</p>
@@ -551,26 +516,14 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
                       <li>Chọn ảnh có nền đủ tương phản với chữ trắng hoặc phủ màu nền banner để nội dung dễ đọc.</li>
                     </ul>
                   </div>
-                  <input
-                    ref={imageInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageUpload}
-                  />
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mt-2">
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => imageInputRef.current?.click()}
-                      disabled={isUploadingImage}
+                      onClick={() => openMediaPicker("image")}
                     >
-                      {isUploadingImage ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Upload className="mr-2 h-4 w-4" />
-                      )}
-                      {isUploadingImage ? "Đang upload..." : "Upload banner"}
+                      <Upload className="mr-2 h-4 w-4" />
+                      Chọn banner từ Media
                     </Button>
                     {form.image_url && (
                       <Button
@@ -584,7 +537,7 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
                     )}
                   </div>
                   {form.image_url && (
-                    <div className="overflow-hidden rounded-xl border">
+                    <div className="overflow-hidden rounded-xl border mt-2">
                       <Image
                         src={getImageUrl(form.image_url)}
                         alt="Banner preview"
@@ -594,9 +547,6 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
                       />
                     </div>
                   )}
-                  <p className="text-muted-foreground text-xs">
-                    Ảnh sẽ được upload vào thư mục media `banners`.
-                  </p>
                 </div>
 
                 {/* Sort & Active */}
@@ -805,6 +755,14 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
           </Card>
         </div>
       </div>
+
+      <MediaPickerDialog
+        open={isMediaPickerOpen}
+        onOpenChange={setIsMediaPickerOpen}
+        onSelect={handleMediaSelect}
+        title={mediaPickerType === "image" ? "Chọn hình ảnh banner" : "Chọn icon banner"}
+        imagesOnly={true}
+      />
     </div>
   );
 }

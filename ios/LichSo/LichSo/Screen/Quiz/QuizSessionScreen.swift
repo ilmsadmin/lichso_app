@@ -133,7 +133,8 @@ private final class QuizPlayViewModel: ObservableObject {
                 )
                 startTimer()
             } catch {
-                state = .error("Không thể tải câu hỏi. Vui lòng thử lại.")
+                print("QuizSession start error: \(error)")
+                state = .error("Không thể tải câu hỏi. Lỗi: \(error.localizedDescription)")
             }
         }
     }

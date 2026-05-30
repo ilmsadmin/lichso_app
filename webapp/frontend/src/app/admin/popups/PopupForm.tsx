@@ -32,9 +32,10 @@ import {
 import { useCreatePopup, useUpdatePopup } from "@/hooks/usePopups";
 import { ROUTES } from "@/lib/constants";
 import { getImageUrl } from "@/lib/utils";
-import { uploadFile } from "@/services/mediaService";
 import { POPUP_POSITIONS } from "@/types/popup";
 import type { Popup, CreatePopupRequest } from "@/types/popup";
+import { MediaPickerDialog } from "@/components/shared/MediaPickerDialog";
+import type { MediaFile } from "@/types/media";
 
 interface PopupFormProps {
   popup?: Popup;
@@ -68,8 +69,8 @@ export default function PopupForm({ popup, isEdit }: PopupFormProps) {
   const router = useRouter();
   const createPopup = useCreatePopup();
   const updatePopup = useUpdatePopup(popup?.id ?? "");
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
 
   const [form, setForm] = useState<CreatePopupRequest>(() =>
     popup
@@ -110,21 +111,8 @@ export default function PopupForm({ popup, isEdit }: PopupFormProps) {
     }
   }, [popup]);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingImage(true);
-    try {
-      const res = await uploadFile(file, "popups");
-      const uploadedUrl = res.data?.url;
-      if (res.success && uploadedUrl) {
-        setForm((current) => ({ ...current, image_url: uploadedUrl }));
-      }
-    } finally {
-      setIsUploadingImage(false);
-      if (imageInputRef.current) imageInputRef.current.value = "";
-    }
+  const handleMediaSelect = (file: MediaFile) => {
+    setForm((current) => ({ ...current, image_url: file.url }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -248,26 +236,14 @@ export default function PopupForm({ popup, isEdit }: PopupFormProps) {
                       <li>Tránh ảnh nền đục (trắng/đen) để ảnh hiển thị nổi bật và hoà hợp với màn hình app.</li>
                     </ul>
                   </div>
-                  <input
-                    ref={imageInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageUpload}
-                  />
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mt-2">
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => imageInputRef.current?.click()}
-                      disabled={isUploadingImage}
+                      onClick={() => setIsMediaPickerOpen(true)}
                     >
-                      {isUploadingImage ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Upload className="mr-2 h-4 w-4" />
-                      )}
-                      {isUploadingImage ? "Đang upload..." : "Upload ảnh popup"}
+                      <Upload className="mr-2 h-4 w-4" />
+                      Chọn ảnh popup từ Media
                     </Button>
                     {form.image_url && (
                       <Button
@@ -500,6 +476,14 @@ export default function PopupForm({ popup, isEdit }: PopupFormProps) {
           </Card>
         </div>
       </div>
+
+      <MediaPickerDialog
+        open={isMediaPickerOpen}
+        onOpenChange={setIsMediaPickerOpen}
+        onSelect={handleMediaSelect}
+        title="Chọn ảnh popup"
+        imagesOnly={true}
+      />
     </div>
   );
 }

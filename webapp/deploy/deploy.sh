@@ -78,15 +78,15 @@ success "Images tagged"
 # Step 3: Transfer images to server via docker save | ssh docker load
 # ============================================
 log "⬆️  Transferring backend image to server..."
-docker save ${REGISTRY}/lichso-backend:${IMAGE_TAG} | gzip | \
-  ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10 \
-  -p ${SSH_PORT} ${SSH_USER}@${SERVER} 'gunzip | docker load'
+docker save ${REGISTRY}/lichso-backend:${IMAGE_TAG} | gzip -1 > backend.tar.gz
+  rsync -avP -e "ssh -p ${SSH_PORT}" backend.tar.gz ${SSH_USER}@${SERVER}:${REMOTE_DIR}/
+  ssh -p ${SSH_PORT} ${SSH_USER}@${SERVER} "cd ${REMOTE_DIR} && docker load -i backend.tar.gz"
 success "Backend image transferred"
 
 log "⬆️  Transferring frontend image to server..."
-docker save ${REGISTRY}/lichso-frontend:${IMAGE_TAG} | gzip | \
-  ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10 \
-  -p ${SSH_PORT} ${SSH_USER}@${SERVER} 'gunzip | docker load'
+docker save ${REGISTRY}/lichso-frontend:${IMAGE_TAG} | gzip -1 > frontend.tar.gz
+  rsync -avP -e "ssh -p ${SSH_PORT}" frontend.tar.gz ${SSH_USER}@${SERVER}:${REMOTE_DIR}/
+  ssh -p ${SSH_PORT} ${SSH_USER}@${SERVER} "cd ${REMOTE_DIR} && docker load -i frontend.tar.gz"
 success "Frontend image transferred"
 
 # ============================================

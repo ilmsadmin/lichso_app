@@ -17,6 +17,7 @@ func SetupAdminRoutes(
 	adminHandler *handlers.AdminHandler,
 	settingHandler *handlers.SettingHandler,
 	emailHandler *handlers.EmailHandler,
+	screenBgHandler *handlers.ScreenBackgroundHandler,
 ) {
 	// All admin routes require authentication
 	admin := router.Group("/admin", authMiddleware.Authenticate())
@@ -97,4 +98,17 @@ func SetupAdminRoutes(
 	email := admin.Group("/email")
 	email.Get("/status", permMiddleware.RequirePermission("settings.read"), emailHandler.GetEmailStatus)
 	email.Post("/test", permMiddleware.RequirePermission("settings.update"), emailHandler.SendTestEmail)
+
+	// ============================================
+	// Screen Background Routes (Admin)
+	// ============================================
+	screenBg := admin.Group("/screen-backgrounds")
+	screenBg.Get("/", permMiddleware.RequirePermission("settings.read"), screenBgHandler.List)
+	screenBg.Post("/:screen_key/upload", permMiddleware.RequirePermission("settings.update"), screenBgHandler.UploadBackground)
+	screenBg.Put("/:screen_key/url", permMiddleware.RequirePermission("settings.update"), screenBgHandler.UpdateBackgroundUrl)
+	screenBg.Delete("/:screen_key", permMiddleware.RequirePermission("settings.delete"), screenBgHandler.DeleteBackground)
+
+	// Public endpoint for screen backgrounds (no auth required)
+	// Registered on the parent router (not admin group) to skip auth middleware
+	router.Get("/screen-backgrounds", screenBgHandler.GetPublic)
 }

@@ -6,6 +6,7 @@ import com.lichso.app.data.local.FamilyTreeRepository
 import com.lichso.app.data.local.LichSoDatabase
 import com.lichso.app.data.local.dao.*
 import com.lichso.app.data.remote.LichSoApi
+import com.lichso.app.data.remote.ScreenBackgroundRepository
 import com.lichso.app.data.settings.AppSettingsRepository
 import com.lichso.app.domain.DayInfoProvider
 import com.lichso.app.feature.points.domain.Clock
@@ -184,4 +185,11 @@ object AppModule {
     @Singleton
     fun provideContentRepository(api: LichSoApi): com.lichso.app.feature.content.ContentRepository =
         com.lichso.app.feature.content.ContentRepository(api)
+
+    @Provides
+    @Singleton
+    fun provideScreenBackgroundRepository(
+        @ApplicationContext context: Context,
+        api: LichSoApi,
+    ): ScreenBackgroundRepository = ScreenBackgroundRepository(context, api)
 }

@@ -119,6 +119,26 @@ public class QuizService: ObservableObject {
         }
     }
     
+    private func loadGuestSession(sessionType: String, category: String?) async throws -> (QuizSession, [QuizQuestion]) {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        let dateStr = df.string(from: Date())
+        let questions: [QuizQuestion]
+        if sessionType == "daily" {
+            questions = try await fetchDailyQuestions(date: dateStr)
+        } else {
+            questions = try await fetchQuestions(category: category)
+        }
+        let session = QuizSession(
+            id: "",
+            sessionType: sessionType,
+            category: category,
+            questionIds: questions.map { $0.id },
+            questions: questions
+        )
+        return (session, questions)
+    }
+
     public func startSession(sessionType: String, category: String?, forceGuest: Bool = false) async throws -> (QuizSession, [QuizQuestion]) {
         // Ensure we don't accidentally fall back to guest mode while refresh is still pending.
         if token == nil || token?.isEmpty == true {
@@ -127,30 +147,23 @@ public class QuizService: ObservableObject {
 
         let isGuest = forceGuest || token == nil || token?.isEmpty == true
         if isGuest {
-            let df = DateFormatter()
-            df.dateFormat = "yyyy-MM-dd"
-            let dateStr = df.string(from: Date())
-            let questions: [QuizQuestion]
-            if sessionType == "daily" {
-                questions = try await fetchDailyQuestions(date: dateStr)
-            } else {
-                questions = try await fetchQuestions(category: category)
-            }
-            let session = QuizSession(
-                id: "",
-                sessionType: sessionType,
-                category: category,
-                questionIds: questions.map { $0.id },
-                questions: questions
-            )
-            return (session, questions)
+            return try await loadGuestSession(sessionType: sessionType, category: category)
         }
         
-        let bodyObj: [String: String?] = ["session_type": sessionType, "category": category]
+        var bodyObj: [String: Any] = ["session_type": sessionType]
+        if let category = category {
+            bodyObj["category"] = category
+        }
         let bodyData = try? JSONSerialization.data(withJSONObject: bodyObj)
         let req = makeRequest(path: "/quiz/sessions", method: "POST", body: bodyData)
-        let response: StartSessionResponse = try await execute(req)
-        return (response.session, response.questions)
+        
+        do {
+            let response: StartSessionResponse = try await execute(req)
+            return (response.session, response.questions)
+        } catch {
+            // Any server error (like 401 Unauthorized) -> fall back to guest mode
+            return try await loadGuestSession(sessionType: sessionType, category: category)
+        }
     }
     
     public func submitAnswer(sessionId: String, questionId: Int64, chosen: String, timeMs: Int) async throws -> SubmitAnswerResult {

@@ -59,6 +59,7 @@
 		7A56AD76C9011E256A0F8001 /* AIChatScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D51B521FB551A9DC878518D0 /* AIChatScreen.swift */; };
 		7BF650F8DEF6C126DA1E4843 /* GioHoangDaoCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DB5BBA404E27F6A8D0414C8 /* GioHoangDaoCalculator.swift */; };
 		809DA9F51AF45C359F3E9C3B /* LichSoTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC06C3F8221F37260A583D08 /* LichSoTheme.swift */; };
+		80C14B1F8566393704901DC6 /* ApiErrorUX.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEFB45173767075CB250DFF5 /* ApiErrorUX.swift */; };
 		89E9FEAA798F7760509E35BC /* QuizSessionScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A38E404907D7AF27AA195E8 /* QuizSessionScreen.swift */; };
 		8C3D0A7F268042C87B6857AD /* CompassScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D4BFCFEDD07D8BF02260723 /* CompassScreen.swift */; };
 		8E17F23F31DE7B4683D276C3 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CE0E5DD474085BBF1615072 /* ChatViewModel.swift */; };
@@ -172,6 +173,7 @@
 		B0549AFFD508D869EA6DCA28 /* FamilySettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilySettingsScreen.swift; sourceTree = "<group>"; };
 		BA4498982E451D4215772D7E /* ToolsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsScreen.swift; sourceTree = "<group>"; };
 		BC8BB1FF7236546A57A18535 /* OpenRouterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenRouterService.swift; sourceTree = "<group>"; };
+		BEFB45173767075CB250DFF5 /* ApiErrorUX.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ApiErrorUX.swift; sourceTree = "<group>"; };
 		BF8177C606D622CB2CAD7B85 /* BirthDatePlannerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BirthDatePlannerScreen.swift; sourceTree = "<group>"; };
 		C14C15C0AF051CF44B16A8B1 /* StreakFreezeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreakFreezeScreen.swift; sourceTree = "<group>"; };
 		C1ABBE6E5AC7CD94D9318805 /* LunarCalendarUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunarCalendarUtil.swift; sourceTree = "<group>"; };
@@ -423,6 +425,7 @@
 				A1741B104CBAD166F843E776 /* SmartRatingManager.swift */,
 				49E7A7D3B2CB22933460A19A /* TietKhiCalculator.swift */,
 				E3DA281BBEF6121999D1BACE /* TrucNgayCalculator.swift */,
+				BEFB45173767075CB250DFF5 /* ApiErrorUX.swift */,
 			);
 			path = Util;
 			sourceTree = "<group>";
@@ -696,6 +699,7 @@
 				68436210BFF6CF11437B68F1 /* SmartRatingManager.swift in Sources */,
 				3CF5245C86A65CCE3A18F2DB /* TietKhiCalculator.swift in Sources */,
 				3DA2EA7077F81B2F12E26359 /* TrucNgayCalculator.swift in Sources */,
+				80C14B1F8566393704901DC6 /* ApiErrorUX.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

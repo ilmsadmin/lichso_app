@@ -68,6 +68,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,6 +88,7 @@ fun LichSoMainScreen(
     var initialSearchTool by remember { mutableStateOf<String?>(null) }
     var quizCategory by remember { mutableStateOf<String?>(null) }
     val homeViewModel: HomeViewModel = hiltViewModel()
+    val screenBgRepo = homeViewModel.screenBackgroundRepository
     val pointsViewModel: PointsViewModel = hiltViewModel()
     val pointsClock: PointsClock = remember { com.lichso.app.feature.points.domain.SystemClock() }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -246,6 +248,21 @@ fun LichSoMainScreen(
                     else Modifier.padding(bottom = bottomBarTotalHeight)
                 )
         ) {
+            // Screen-specific background image (fetched from server, cached by Coil)
+            val screenBgUrl = rememberScreenBackgroundUrl(currentRoute, screenBgRepo)
+            val normalizedBgUrl = normalizeServerMediaUrl(screenBgUrl)
+            if (!normalizedBgUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = normalizedBgUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            // Header image — keyed by "<screen>_header" convention
+            val headerBgUrl = normalizeServerMediaUrl(
+                rememberScreenBackgroundUrl("${currentRoute}_header", screenBgRepo)
+            )
             when (currentRoute) {
                 "home" -> HomeScreen(
                     onSettingsClick = { currentRoute = "settings" },
@@ -258,6 +275,8 @@ fun LichSoMainScreen(
                         pointsViewModel.award(ActionType.VIEW_FORTUNE_CARD)
                     },
                     onBannerAction = { route -> handleBannerAction(route) },
+                    hasServerBackground = !normalizedBgUrl.isNullOrBlank(),
+                    headerImageUrl = headerBgUrl,
                 )
                 "calendar" -> CalendarScreen(
                     onGoodDaysClick = { currentRoute = "gooddays" },
@@ -546,6 +565,8 @@ fun LichSoMainScreen(
                     onHistoryClick = { currentRoute = "history" },
                     onNotificationClick = { currentRoute = "notifications" },
                     onBannerAction = { route -> handleBannerAction(route) },
+                    hasServerBackground = !normalizedBgUrl.isNullOrBlank(),
+                    headerImageUrl = headerBgUrl,
                 )
             }
         }

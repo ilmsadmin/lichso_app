@@ -130,6 +130,12 @@ const navItems: NavItem[] = [
     permission: "content.read",
   },
   {
+    label: "Ảnh nền",
+    href: ROUTES.ADMIN_SCREEN_BACKGROUNDS,
+    icon: Sparkles, // Or Image
+    permission: "settings.read",
+  },
+  {
     label: "Push Notifications",
     href: ROUTES.ADMIN_PUSH_NOTIFICATIONS,
     icon: Bell,

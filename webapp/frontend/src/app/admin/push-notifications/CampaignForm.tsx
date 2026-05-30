@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Bell, X, CheckCircle2, Users, User } from "lucide-react";
+import { Search, Bell, X, CheckCircle2, Users, User, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,10 @@ import { useCreateCampaign, useUpdateCampaign, usePushTemplates, usePushGroups }
 import { useUsers } from "@/hooks/useUsers";
 import type { PushCampaign, CreateCampaignRequest, PushTemplate } from "@/types/push-notification";
 import { ROUTES } from "@/lib/constants";
-import { getInitials } from "@/lib/utils";
+import { getInitials, getImageUrl } from "@/lib/utils";
+import { MediaPickerDialog } from "@/components/shared/MediaPickerDialog";
+import type { MediaFile } from "@/types/media";
+import Image from "next/image";
 
 interface SelectedUser { id: string; name: string; email: string }
 
@@ -136,6 +139,7 @@ export function CampaignForm({ campaign }: CampaignFormProps) {
   const groups = groupsData?.data ?? [];
 
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(
     campaign?.template_id ?? undefined
   );
@@ -229,8 +233,19 @@ export function CampaignForm({ campaign }: CampaignFormProps) {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>URL hình ảnh</Label>
-                <Input value={imageURL} onChange={(e) => setImageURL(e.target.value)} placeholder="https://..." />
+                <Label>Hình ảnh (tùy chọn)</Label>
+                <div className="flex gap-2">
+                  <Input value={imageURL} onChange={(e) => setImageURL(e.target.value)} placeholder="https://..." className="flex-1" />
+                  <Button type="button" variant="outline" onClick={() => setIsMediaPickerOpen(true)}>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Media
+                  </Button>
+                </div>
+                {imageURL && (
+                  <div className="mt-2 rounded-xl overflow-hidden border max-w-[200px] bg-muted/10">
+                    <Image src={getImageUrl(imageURL)} alt="Preview" width={200} height={100} className="object-cover w-full max-h-[100px]" />
+                  </div>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label>Hành động khi nhấn</Label>
@@ -344,6 +359,13 @@ export function CampaignForm({ campaign }: CampaignFormProps) {
         open={templatePickerOpen}
         onClose={() => setTemplatePickerOpen(false)}
         onSelect={handleSelectTemplate}
+      />
+      <MediaPickerDialog
+        open={isMediaPickerOpen}
+        onOpenChange={setIsMediaPickerOpen}
+        onSelect={(file: MediaFile) => setImageURL(file.url)}
+        title="Chọn hình ảnh thông báo"
+        imagesOnly={true}
       />
     </>
   );

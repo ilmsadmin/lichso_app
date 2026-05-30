@@ -5,6 +5,7 @@ import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.CacheControl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -107,6 +108,14 @@ data class Popup(
     @SerializedName("cta_route") val ctaRoute: String?,
     @SerializedName("is_active") val active: Boolean = true,
     val position: String?,
+)
+
+// Screen background set by admin for each app screen
+data class ScreenBackground(
+    @SerializedName("screen_key") val screenKey: String,
+    @SerializedName("screen_name") val screenName: String,
+    @SerializedName("image_url") val imageUrl: String?,
+    @SerializedName("is_active") val isActive: Boolean = true,
 )
 
 
@@ -375,6 +384,15 @@ class LichSoApi @Inject constructor(
 
     suspend fun getPopups(): Result<List<Popup>> = withContext(Dispatchers.IO) {
         execute(get("/popups"))
+    }
+
+    suspend fun getScreenBackgrounds(): Result<List<ScreenBackground>> = withContext(Dispatchers.IO) {
+        // Bypass disk cache: admin changes must be visible on next app launch
+        execute(Request.Builder()
+            .url("$BASE_URL/screen-backgrounds")
+            .cacheControl(CacheControl.FORCE_NETWORK)
+            .build()
+        )
     }
 
 

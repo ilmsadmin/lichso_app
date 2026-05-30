@@ -5,6 +5,7 @@ import type {
   SettingResponse,
   UpdateSettingsGroupRequest,
   GroupedSettings,
+  ScreenBackgroundResponse,
 } from "@/types/settings";
 
 // ============================================
@@ -106,5 +107,59 @@ export async function updateSetting(
  */
 export async function deleteSetting(key: string): Promise<ApiResponse<null>> {
   const response = await api.delete<ApiResponse<null>>(`/admin/settings/${key}`);
+  return response.data;
+}
+
+// ============================================
+// Screen Backgrounds API
+// ============================================
+
+/**
+ * Get all screen backgrounds
+ */
+export async function getScreenBackgrounds(): Promise<ApiResponse<ScreenBackgroundResponse[]>> {
+  const response = await api.get<ApiResponse<ScreenBackgroundResponse[]>>("/admin/screen-backgrounds");
+  return response.data;
+}
+
+/**
+ * Upload a screen background (Legacy file upload)
+ */
+export async function uploadScreenBackground(
+  screenKey: string,
+  file: File
+): Promise<ApiResponse<ScreenBackgroundResponse>> {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const response = await api.post<ApiResponse<ScreenBackgroundResponse>>(
+    `/admin/screen-backgrounds/${screenKey}/upload`,
+    formData,
+    {
+      timeout: 60000,
+    }
+  );
+  return response.data;
+}
+
+/**
+ * Set a screen background from an image URL
+ */
+export async function setScreenBackgroundUrl(
+  screenKey: string,
+  imageUrl: string
+): Promise<ApiResponse<ScreenBackgroundResponse>> {
+  const response = await api.put<ApiResponse<ScreenBackgroundResponse>>(
+    `/admin/screen-backgrounds/${screenKey}/url`,
+    { image_url: imageUrl }
+  );
+  return response.data;
+}
+
+/**
+ * Delete a screen background
+ */
+export async function deleteScreenBackground(screenKey: string): Promise<ApiResponse<null>> {
+  const response = await api.delete<ApiResponse<null>>(`/admin/screen-backgrounds/${screenKey}`);
   return response.data;
 }
