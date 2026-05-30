@@ -91,6 +91,8 @@ data class ProfileUiState(
     // Dialogs & loading
     val showEditProfileSheet: Boolean = false,
     val showSignOutDialog: Boolean = false,
+    val showDeleteAccountDialog: Boolean = false,
+    val isDeletingAccount: Boolean = false,
     val showAddSavedDayDialog: Boolean = false,
     val isSigningIn: Boolean = false,
 
@@ -665,6 +667,22 @@ class ProfileViewModel @Inject constructor(
 
     fun showSignOutDialog() = _uiState.update { it.copy(showSignOutDialog = true) }
     fun hideSignOutDialog() = _uiState.update { it.copy(showSignOutDialog = false) }
+
+    fun showDeleteAccountDialog() = _uiState.update { it.copy(showDeleteAccountDialog = true) }
+    fun hideDeleteAccountDialog() = _uiState.update { it.copy(showDeleteAccountDialog = false) }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDeletingAccount = true, showDeleteAccountDialog = false) }
+            val result = authRepository.deleteAccount()
+            _uiState.update {
+                it.copy(
+                    isDeletingAccount = false,
+                    toastMessage = if (result.isSuccess) "Tài khoản đã được xóa" else "Xóa tài khoản thất bại: ${result.exceptionOrNull()?.message}"
+                )
+            }
+        }
+    }
 
     fun signOut() {
         viewModelScope.launch {

@@ -13,8 +13,6 @@
     <!-- Android 13+: được cấp tự động cho app calendar/reminder, không cần user grant.
          Nếu SCHEDULE_EXACT_ALARM bị user tắt thì cái này vẫn cho phép exact alarm. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Photo picker không cần READ_MEDIA_IMAGES – dùng Android Photo Picker (PickVisualMedia) -->
 
     <!-- Android 11+: cho phép mở email app (Gmail, Outlook...) -->

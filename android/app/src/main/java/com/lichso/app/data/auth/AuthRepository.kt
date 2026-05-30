@@ -223,6 +223,17 @@ class AuthRepository @Inject constructor(
         tokenManager.clearTokens()
     }
 
+    suspend fun deleteAccount(): Result<Unit> {
+        val token = tokenManager.getAccessToken()
+            ?: return Result.failure(IllegalStateException("Chưa đăng nhập"))
+        val result = api.deleteAccount(token)
+        if (result.isSuccess) {
+            signOut()
+            tokenManager.clearTokens()
+        }
+        return result
+    }
+
     fun isSignedIn(): Boolean = firebaseAuth.currentUser != null
 
     fun hasPermission(permission: String): Boolean {

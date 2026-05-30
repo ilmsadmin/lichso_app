@@ -332,6 +332,35 @@ func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
 	return utils.SuccessResponse(c, "Profile updated successfully", result)
 }
 
+// DeleteMe handles DELETE /api/auth/me
+func (h *AuthHandler) DeleteMe(c *fiber.Ctx) error {
+	userIDStr, ok := c.Locals("user_id").(string)
+	if !ok || userIDStr == "" {
+		return utils.UnauthorizedResponse(c, "")
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return utils.UnauthorizedResponse(c, "Invalid user ID")
+	}
+
+	tokenJTI, _ := c.Locals("token_jti").(string)
+	tokenTTL, _ := c.Locals("token_ttl").(int64)
+
+	ipAddress := c.IP()
+	userAgent := buildClientUserAgent(c)
+
+	if err := h.authService.DeleteSelf(userID, tokenJTI, java2GoDuration(tokenTTL), ipAddress, userAgent); err != nil {
+		if appErr, ok := utils.IsAppError(err); ok {
+			return utils.ErrorResponse(c, appErr.Code, appErr.Message)
+		}
+		h.logger.Error("DeleteMe failed", zap.Error(err))
+		return utils.InternalErrorResponse(c)
+	}
+
+	return utils.SuccessResponse(c, "Account deleted successfully", nil)
+}
+
 // java2GoDuration converts seconds (int64) to time.Duration
 func java2GoDuration(seconds int64) time.Duration {
 	return time.Duration(seconds) * time.Second

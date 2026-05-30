@@ -10,11 +10,16 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/zplus/lichso/internal/models"
+	"github.com/zplus/lichso/internal/utils"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
-const mobileGuestActiveAction = "app.mobile_active_guest"
+const (
+	mobileGuestActiveAction = "app.mobile_active_guest"
+	mobileUserActiveAction  = "app.mobile_active_user"
+)
 
 func detectPlatform(userAgent, headerPlatform string) string {
 	platform := strings.ToLower(strings.TrimSpace(headerPlatform))
@@ -62,8 +67,8 @@ func fingerprint(ip, platform, appVersion, deviceName, osVersion, userAgent stri
 	return hex.EncodeToString(sum[:])
 }
 
-// MobileGuestActivityTracker logs one guest mobile active event per device per day.
-func MobileGuestActivityTracker(redisClient *redis.Client, mongoDB *mongo.Database, logger *zap.Logger) fiber.Handler {
+// MobileActivityTracker logs one mobile active event per device/user per day.
+func MobileActivityTracker(redisClient *redis.Client, mongoDB *mongo.Database, pgDB *gorm.DB, jwtSecret string, logger *zap.Logger) fiber.Handler {
 	collection := mongoDB.Collection(models.ActivityLog{}.CollectionName())
 
 	return func(c *fiber.Ctx) error {
@@ -71,11 +76,6 @@ func MobileGuestActivityTracker(redisClient *redis.Client, mongoDB *mongo.Databa
 
 		// Only track API requests.
 		if !strings.HasPrefix(c.Path(), "/api/") {
-			return err
-		}
-
-		// Track only non-authenticated (guest) traffic.
-		if strings.TrimSpace(c.Get("Authorization")) != "" {
 			return err
 		}
 
@@ -88,6 +88,7 @@ func MobileGuestActivityTracker(redisClient *redis.Client, mongoDB *mongo.Databa
 		appVersion := strings.TrimSpace(c.Get("X-App-Version"))
 		deviceName := strings.TrimSpace(c.Get("X-Device-Name"))
 		osVersion := strings.TrimSpace(c.Get("X-OS-Version"))
+		deviceID := strings.TrimSpace(c.Get("X-Device-ID"))
 		ipAddress := strings.TrimSpace(c.IP())
 		if ipAddress == "" {
 			ipAddress = "unknown"
@@ -95,34 +96,117 @@ func MobileGuestActivityTracker(redisClient *redis.Client, mongoDB *mongo.Databa
 
 		day, ttl := dayKeyAndTTL(time.Now())
 		fp := fingerprint(ipAddress, platform, appVersion, deviceName, osVersion, userAgent)
-		redisKey := "mobile:guest:active:" + day + ":" + fp
-
 		ctx := context.Background()
-		locked, lockErr := redisClient.SetNX(ctx, redisKey, "1", ttl).Result()
-		if lockErr != nil {
-			logger.Warn("mobile activity tracker redis error", zap.Error(lockErr))
-			return err
-		}
-		if !locked {
-			return err
+
+		// Extract token from Authorization header if present
+		var token string
+		authHeader := c.Get("Authorization")
+		if authHeader != "" {
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) == 2 && strings.EqualFold(parts[0], "bearer") {
+				token = parts[1]
+			}
 		}
 
-		log := models.NewActivityLog("guest-mobile", "guest@mobile", mobileGuestActiveAction, models.ModuleSystem, "Guest mobile app active").
-			WithStatus(models.StatusSuccess).
-			WithIPAndAgent(ipAddress, userAgent).
-			WithMetadata(map[string]interface{}{
-				"platform":    platform,
-				"app_version": appVersion,
-				"device_name": deviceName,
-				"os_version":  osVersion,
-				"path":        c.Path(),
-				"method":      c.Method(),
-				"day":         day,
-				"fingerprint": fp,
-			})
+		// Fallback to token query param (useful for WS)
+		if token == "" {
+			token = c.Query("token")
+		}
 
-		if _, insertErr := collection.InsertOne(ctx, log); insertErr != nil {
-			logger.Warn("mobile activity tracker mongo insert failed", zap.Error(insertErr))
+		var loggedInUser *utils.JWTClaims
+		if token != "" {
+			if claims, valErr := utils.ValidateToken(token, jwtSecret); valErr == nil && claims.Type == utils.AccessToken {
+				loggedInUser = claims
+			}
+		}
+
+		if loggedInUser != nil {
+			// Logged in user activity
+			userIDStr := loggedInUser.UserID.String()
+			redisKey := "mobile:user:active:" + day + ":" + userIDStr
+
+			locked, lockErr := redisClient.SetNX(ctx, redisKey, "1", ttl).Result()
+			if lockErr != nil {
+				logger.Warn("mobile activity tracker redis error (user)", zap.Error(lockErr))
+				return err
+			}
+			if !locked {
+				return err
+			}
+
+			// Check if new or returning user
+			userType := "Returning user"
+			var dbUser models.User
+			if dbErr := pgDB.Select("created_at").First(&dbUser, "id = ?", loggedInUser.UserID).Error; dbErr == nil {
+				if time.Since(dbUser.CreatedAt) < 24*time.Hour {
+					userType = "New user"
+				}
+			}
+
+			log := models.NewActivityLog(userIDStr, loggedInUser.Email, mobileUserActiveAction, models.ModuleSystem, userType+" mobile app active").
+				WithStatus(models.StatusSuccess).
+				WithIPAndAgent(ipAddress, userAgent).
+				WithMetadata(map[string]interface{}{
+					"platform":    platform,
+					"app_version": appVersion,
+					"device_name": deviceName,
+					"os_version":  osVersion,
+					"device_id":   deviceID,
+					"path":        c.Path(),
+					"method":      c.Method(),
+					"day":         day,
+					"fingerprint": fp,
+					"user_type":   userType,
+				})
+
+			if _, insertErr := collection.InsertOne(ctx, log); insertErr != nil {
+				logger.Warn("mobile activity tracker mongo insert failed (user)", zap.Error(insertErr))
+			}
+		} else {
+			// Guest user activity
+			redisKey := "mobile:guest:active:" + day + ":" + fp
+
+			locked, lockErr := redisClient.SetNX(ctx, redisKey, "1", ttl).Result()
+			if lockErr != nil {
+				logger.Warn("mobile activity tracker redis error (guest)", zap.Error(lockErr))
+				return err
+			}
+			if !locked {
+				return err
+			}
+
+			// Distinguish new or returning guest using a permanent Redis set/key
+			deviceKey := fp
+			if deviceID != "" {
+				deviceKey = deviceID
+			}
+
+			redisSeenKey := "device:seen:" + deviceKey
+			isNewDevice, seenErr := redisClient.SetNX(ctx, redisSeenKey, "1", 0).Result()
+			guestType := "Returning guest"
+			if seenErr == nil && isNewDevice {
+				guestType = "New guest"
+			}
+
+			log := models.NewActivityLog("guest-mobile", "guest@mobile", mobileGuestActiveAction, models.ModuleSystem, guestType+" mobile app active").
+				WithStatus(models.StatusSuccess).
+				WithIPAndAgent(ipAddress, userAgent).
+				WithMetadata(map[string]interface{}{
+					"platform":    platform,
+					"app_version": appVersion,
+					"device_name": deviceName,
+					"os_version":  osVersion,
+					"device_id":   deviceID,
+					"path":        c.Path(),
+					"method":      c.Method(),
+					"day":         day,
+					"fingerprint": fp,
+					"guest_type":  guestType,
+				})
+
+			if _, insertErr := collection.InsertOne(ctx, log); insertErr != nil {
+				logger.Warn("mobile activity tracker mongo insert failed (guest)", zap.Error(insertErr))
+			}
 		}
 
 		return err

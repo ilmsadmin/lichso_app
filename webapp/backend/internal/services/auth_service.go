@@ -687,6 +687,33 @@ func (s *AuthService) UpdateProfile(userID uuid.UUID, req *dto.UpdateProfileRequ
 	}, nil
 }
 
+// DeleteSelf permanently soft-deletes the calling user's own account.
+func (s *AuthService) DeleteSelf(userID uuid.UUID, tokenJTI string, tokenTTL time.Duration, ipAddress, userAgent string) error {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return utils.ErrUserNotFound
+	}
+
+	if user.IsSuperAdmin() {
+		return utils.NewAppError(400, "Super admin account cannot be deleted")
+	}
+
+	if err := s.userRepo.SoftDelete(userID); err != nil {
+		s.logger.Error("Failed to delete user account", zap.Error(err))
+		return utils.ErrDatabaseFail
+	}
+
+	// Blacklist token and revoke sessions
+	_ = s.cacheService.BlacklistToken(tokenJTI, tokenTTL)
+	_ = s.userRepo.RevokeAllUserRefreshTokens(userID)
+	_ = s.cacheService.ClearUserSession(userID)
+
+	s.logActivity(userID.String(), user.Email, models.ActionUserDelete, models.ModuleAuth,
+		"User deleted own account", models.StatusSuccess, ipAddress, userAgent)
+
+	return nil
+}
+
 // logActivity logs an activity to MongoDB
 func (s *AuthService) logActivity(userID, email, action, module, description, status, ip, ua string) {
 	cleanUA, metadata := parseClientMetadata(ua)

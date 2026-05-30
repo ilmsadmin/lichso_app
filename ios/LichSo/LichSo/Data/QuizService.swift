@@ -90,6 +90,9 @@ public class QuizService: ObservableObject {
         request.setValue(appVersion, forHTTPHeaderField: "X-App-Version")
         request.setValue(UIDevice.current.model, forHTTPHeaderField: "X-Device-Name")
         request.setValue(UIDevice.current.systemVersion, forHTTPHeaderField: "X-OS-Version")
+        if let deviceId = UIDevice.current.identifierForVendor?.uuidString {
+            request.setValue(deviceId, forHTTPHeaderField: "X-Device-ID")
+        }
     }
     
     public func fetchDailyQuestions(date: String) async throws -> [QuizQuestion] {

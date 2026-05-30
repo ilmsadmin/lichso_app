@@ -100,7 +100,7 @@ func main() {
 	// ============================================
 	// Global Middleware
 	// ============================================
-	setupMiddleware(app, cfg, logger, redisClient, mongoDB)
+	setupMiddleware(app, cfg, logger, redisClient, mongoDB, pgDB)
 
 	// ============================================
 	// Routes
@@ -174,7 +174,7 @@ func connectDatabases(cfg *config.Config, logger *zap.Logger) (*gorm.DB, *mongo.
 }
 
 // setupMiddleware configures global middleware
-func setupMiddleware(app *fiber.App, cfg *config.Config, logger *zap.Logger, redisClient *redis.Client, mongoDB *mongo.Database) {
+func setupMiddleware(app *fiber.App, cfg *config.Config, logger *zap.Logger, redisClient *redis.Client, mongoDB *mongo.Database, pgDB *gorm.DB) {
 	// Custom recovery middleware
 	app.Use(middleware.Recovery(logger))
 
@@ -187,8 +187,8 @@ func setupMiddleware(app *fiber.App, cfg *config.Config, logger *zap.Logger, red
 	// Request logger
 	app.Use(middleware.RequestLogger(logger))
 
-	// Guest mobile daily activity tracker (for DAU analytics)
-	app.Use(middleware.MobileGuestActivityTracker(redisClient, mongoDB, logger))
+	// Mobile daily active tracker (guest + user)
+	app.Use(middleware.MobileActivityTracker(redisClient, mongoDB, pgDB, cfg.JWT.Secret, logger))
 
 	// CORS - In production, AllowCredentials enables secure cookie handling
 	app.Use(cors.New(cors.Config{

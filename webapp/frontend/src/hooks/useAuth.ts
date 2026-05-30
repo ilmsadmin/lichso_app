@@ -165,6 +165,18 @@ export function useAuth() {
   });
 
   // ============================================
+  // Delete Account Mutation
+  // ============================================
+  const deleteAccountMutation = useMutation({
+    mutationFn: () => authService.deleteAccount(),
+    onSettled: () => {
+      clearAuth();
+      queryClient.clear();
+      router.push(ROUTES.LOGIN);
+    },
+  });
+
+  // ============================================
   // Initialize Auth (check existing session)
   // ============================================
   const initAuth = useCallback(async () => {
@@ -200,6 +212,9 @@ export function useAuth() {
 
     logout: logoutMutation.mutate,
     isLoggingOut: logoutMutation.isPending,
+
+    deleteAccount: deleteAccountMutation.mutateAsync,
+    isDeletingAccount: deleteAccountMutation.isPending,
 
     changePassword: changePasswordMutation.mutate,
     changePasswordAsync: changePasswordMutation.mutateAsync,

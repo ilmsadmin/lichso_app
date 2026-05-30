@@ -23,4 +23,5 @@ func SetupAuthRoutes(router fiber.Router, authHandler *handlers.AuthHandler, aut
 	auth.Get("/me", authMiddleware.Authenticate(), authHandler.GetMe)
 	auth.Put("/me", authMiddleware.Authenticate(), authHandler.UpdateProfile)
 	auth.Put("/change-password", authMiddleware.Authenticate(), authHandler.ChangePassword)
+	auth.Delete("/me", authMiddleware.Authenticate(), authHandler.DeleteMe)
 }

@@ -15,7 +15,19 @@ import {
   StickyNote,
   Timer,
   Bell,
+  Trash2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +40,85 @@ import { getInitials } from "@/lib/utils";
 import { toast } from "sonner";
 import Link from "next/link";
 import { StreakWidget } from "@/components/lichso/StreakWidget";
+
+function DeleteAccountCard({
+  email,
+  isDeletingAccount,
+  onDelete,
+}: {
+  email: string;
+  isDeletingAccount: boolean;
+  onDelete: () => Promise<unknown>;
+}) {
+  const [confirmText, setConfirmText] = useState("");
+  const [open, setOpen] = useState(false);
+  const confirmed = confirmText === "DELETE";
+
+  return (
+    <Card className="border-destructive/50">
+      <CardHeader>
+        <CardTitle className="text-destructive flex items-center gap-2">
+          <Trash2 className="h-5 w-5" />
+          Xóa tài khoản
+        </CardTitle>
+        <CardDescription>
+          Xóa vĩnh viễn tài khoản và toàn bộ dữ liệu. Hành động này không thể hoàn tác.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <AlertDialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setConfirmText(""); }}>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" disabled={isDeletingAccount}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              {isDeletingAccount ? "Đang xóa..." : "Xóa tài khoản của tôi"}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Xác nhận xóa tài khoản</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3">
+                  <p>
+                    Tài khoản <strong>{email}</strong> và toàn bộ dữ liệu liên quan sẽ bị xóa vĩnh viễn.
+                    Hành động này <strong>không thể hoàn tác</strong>.
+                  </p>
+                  <p className="text-sm">
+                    Nhập <strong className="text-destructive font-mono">DELETE</strong> để xác nhận:
+                  </p>
+                  <Input
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder="DELETE"
+                    className="font-mono"
+                    autoComplete="off"
+                  />
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Hủy</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                disabled={!confirmed}
+                onClick={async (e) => {
+                  if (!confirmed) { e.preventDefault(); return; }
+                  try {
+                    await onDelete();
+                    toast.success("Tài khoản đã được xóa");
+                  } catch {
+                    toast.error("Xóa tài khoản thất bại. Vui lòng thử lại.");
+                  }
+                }}
+              >
+                Xóa vĩnh viễn
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardContent>
+    </Card>
+  );
+}
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: "Super Admin",
@@ -44,7 +135,7 @@ const ROLE_COLORS: Record<string, "default" | "secondary" | "destructive" | "out
 };
 
 export default function ProfilePage() {
-  const { user, changePassword, isChangingPassword, hasAdminAccess, updateProfile, isUpdatingProfile } = useAuth();
+  const { user, changePassword, isChangingPassword, hasAdminAccess, updateProfile, isUpdatingProfile, deleteAccount, isDeletingAccount } = useAuth();
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -391,6 +482,13 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Account */}
+      <DeleteAccountCard
+        email={user?.email ?? ""}
+        isDeletingAccount={isDeletingAccount}
+        onDelete={deleteAccount}
+      />
 
       {/* Account Info */}
       <Card>

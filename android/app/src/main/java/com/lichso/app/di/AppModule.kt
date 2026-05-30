@@ -18,6 +18,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import android.os.Build
 import com.lichso.app.BuildConfig
+import com.lichso.app.data.auth.TokenManager
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
@@ -29,22 +30,36 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(@ApplicationContext context: Context): OkHttpClient {
+    fun provideOkHttpClient(
+        @ApplicationContext context: Context,
+        tokenManager: TokenManager
+    ): OkHttpClient {
         val deviceName = listOfNotNull(Build.MANUFACTURER, Build.MODEL)
             .joinToString(" ")
             .replace(Regex("\\s+"), " ")
             .trim()
         val userAgent = "LichSo-Android/${BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE}; $deviceName)"
         val userAgentInterceptor = Interceptor { chain ->
-            chain.proceed(
-                chain.request().newBuilder()
-                    .header("User-Agent", userAgent)
-                    .header("X-Client-Platform", "android")
-                    .header("X-App-Version", BuildConfig.VERSION_NAME)
-                    .header("X-Device-Name", deviceName)
-                    .header("X-OS-Version", Build.VERSION.RELEASE ?: "")
-                    .build()
-            )
+            val builder = chain.request().newBuilder()
+                .header("User-Agent", userAgent)
+                .header("X-Client-Platform", "android")
+                .header("X-App-Version", BuildConfig.VERSION_NAME)
+                .header("X-Device-Name", deviceName)
+                .header("X-OS-Version", Build.VERSION.RELEASE ?: "")
+
+            val deviceId = android.provider.Settings.Secure.getString(
+                context.contentResolver, android.provider.Settings.Secure.ANDROID_ID
+            ) ?: ""
+            if (deviceId.isNotEmpty()) {
+                builder.header("X-Device-ID", deviceId)
+            }
+
+            val token = kotlinx.coroutines.runBlocking { tokenManager.getAccessToken() }
+            if (!token.isNullOrEmpty() && chain.request().header("Authorization") == null) {
+                builder.header("Authorization", "Bearer $token")
+            }
+
+            chain.proceed(builder.build())
         }
         
         // Cache configuration: 50MB

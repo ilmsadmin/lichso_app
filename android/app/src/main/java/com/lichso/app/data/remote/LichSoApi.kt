@@ -363,6 +363,10 @@ class LichSoApi @Inject constructor(
         } catch (_: Exception) { false }
     }
 
+    suspend fun deleteAccount(token: String): Result<Unit> = withContext(Dispatchers.IO) {
+        executeVoid(delete("/auth/me", token))
+    }
+
     // ── Content endpoints ──
 
     suspend fun getBanners(): Result<List<Banner>> = withContext(Dispatchers.IO) {

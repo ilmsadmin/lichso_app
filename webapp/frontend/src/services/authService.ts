@@ -102,3 +102,8 @@ export async function updateProfile(data: {
   const response = await api.put<ApiResponse<GetMeResponse>>("/auth/me", data);
   return response.data;
 }
+
+export async function deleteAccount(): Promise<ApiResponse<null>> {
+  const response = await api.delete<ApiResponse<null>>("/auth/me");
+  return response.data;
+}

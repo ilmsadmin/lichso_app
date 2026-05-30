@@ -110,6 +110,14 @@ fun ProfileScreen(
         )
     }
 
+    // ═══ Delete Account Confirmation Dialog ═══
+    if (state.showDeleteAccountDialog) {
+        DeleteAccountConfirmDialog(
+            onConfirm = { viewModel.deleteAccount() },
+            onDismiss = { viewModel.hideDeleteAccountDialog() }
+        )
+    }
+
     // ═══ Add Bookmark Bottom Sheet ═══
     if (state.showAddSavedDayDialog) {
         AddBookmarkSheet(
@@ -310,6 +318,39 @@ fun ProfileScreen(
                         if (state.isBackingUp) "Đang sao lưu dữ liệu..." else "Đang phục hồi dữ liệu...",
                         style = TextStyle(fontSize = 13.sp, color = Color(0xFF1565C0))
                     )
+                }
+            }
+
+            // ═══ ACCOUNT DELETION (chỉ hiện khi đã đăng nhập) ═══
+            if (state.authUser != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                SectionTitle(icon = Icons.Filled.ManageAccounts, text = "Tài khoản")
+                Spacer(modifier = Modifier.height(10.dp))
+                MenuGroup {
+                    MenuItem(
+                        iconWrapColor = Color(0xFFFFEBEE),
+                        iconColor = Color(0xFFD32F2F),
+                        icon = Icons.Filled.DeleteForever,
+                        title = "Xóa tài khoản",
+                        desc = "Xóa vĩnh viễn tài khoản và toàn bộ dữ liệu",
+                        onClick = { viewModel.showDeleteAccountDialog() }
+                    )
+                }
+                if (state.isDeletingAccount) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFFFFEBEE), RoundedCornerShape(14.dp))
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color(0xFFD32F2F))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("Đang xóa tài khoản...", style = TextStyle(fontSize = 13.sp, color = Color(0xFFD32F2F)))
+                    }
                 }
             }
 
@@ -1227,6 +1268,81 @@ private fun SignOutConfirmDialog(
         iconBgColor = Color(0xFFFFEBEE),
         confirmText = "Đăng xuất",
         confirmColor = Color(0xFFD32F2F),
+    )
+}
+
+@Composable
+private fun DeleteAccountConfirmDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val c = LichSoThemeColors.current
+    var inputText by remember { mutableStateOf("") }
+    val confirmed = inputText == "DELETE"
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = c.surfaceContainer,
+        shape = RoundedCornerShape(20.dp),
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Color(0xFFFFEBEE), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.DeleteForever, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(24.dp))
+            }
+        },
+        title = {
+            Text(
+                "Xóa tài khoản",
+                style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 18.sp, color = c.textPrimary)
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    "Tài khoản và toàn bộ dữ liệu của bạn sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.",
+                    style = TextStyle(fontSize = 14.sp, color = c.textSecondary, lineHeight = 20.sp)
+                )
+                Text(
+                    "Nhập DELETE để xác nhận:",
+                    style = TextStyle(fontSize = 13.sp, color = c.textSecondary)
+                )
+                OutlinedTextField(
+                    value = inputText,
+                    onValueChange = { inputText = it },
+                    placeholder = { Text("DELETE", style = TextStyle(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, color = c.textSecondary.copy(alpha = 0.4f))) },
+                    textStyle = TextStyle(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 15.sp, color = c.textPrimary),
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = if (confirmed) Color(0xFFD32F2F) else c.primary,
+                        unfocusedBorderColor = c.outline,
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                enabled = confirmed,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFD32F2F),
+                    disabledContainerColor = Color(0xFFD32F2F).copy(alpha = 0.4f)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Xóa vĩnh viễn", fontWeight = FontWeight.SemiBold)
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss, shape = RoundedCornerShape(12.dp)) {
+                Text("Hủy", color = c.textSecondary)
+            }
+        }
     )
 }
 
