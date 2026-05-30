@@ -390,3 +390,256 @@ func parseRedisInfo(info string) map[string]string {
 
 	return result
 }
+
+type UserGrowthEntry struct {
+	Date  string `json:"date"`
+	Count int64  `json:"count"`
+}
+
+type ProviderDistribution struct {
+	Provider string `json:"provider"`
+	Count    int64  `json:"count"`
+}
+
+type PlatformDistribution struct {
+	Platform string `json:"platform"`
+	Count    int64  `json:"count"`
+}
+
+type TopDeviceEntry struct {
+	DeviceName string `json:"device_name"`
+	Count      int64  `json:"count"`
+}
+
+type AppVersionEntry struct {
+	AppVersion string `json:"app_version"`
+	Count      int64  `json:"count"`
+}
+
+type TopPointEarnedEntry struct {
+	UserID    string `json:"user_id"`
+	Email     string `json:"email"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Points    int64  `json:"points"`
+}
+
+// GetUserAnalytics handles GET /api/admin/analytics/users
+func (h *AdminHandler) GetUserAnalytics(c *fiber.Ctx) error {
+	ctx := context.Background()
+	now := time.Now()
+	pgDB := h.userRepo.GetDB()
+
+	// 1. growth_30d
+	var growthRaw []struct {
+		Date  time.Time `gorm:"column:date"`
+		Count int64     `gorm:"column:count"`
+	}
+	thirtyDaysAgo := now.AddDate(0, 0, -30)
+	if err := pgDB.Raw(`
+		SELECT DATE(created_at) as date, count(*) as count
+		FROM users
+		WHERE created_at >= ? AND deleted_at IS NULL
+		GROUP BY DATE(created_at)
+		ORDER BY DATE(created_at) ASC
+	`, thirtyDaysAgo).Scan(&growthRaw).Error; err != nil {
+		h.logger.Error("Failed to query user growth analytics", zap.Error(err))
+		return utils.InternalErrorResponse(c)
+	}
+
+	growth30d := make([]UserGrowthEntry, len(growthRaw))
+	for i, r := range growthRaw {
+		growth30d[i] = UserGrowthEntry{
+			Date:  r.Date.Format("2006-01-02"),
+			Count: r.Count,
+		}
+	}
+
+	// 2. active_users_30d
+	activeUsers30d, err := h.activityRepo.GetDailyActiveUsers(ctx, thirtyDaysAgo)
+	if err != nil {
+		h.logger.Error("Failed to query daily active users analytics", zap.Error(err))
+		activeUsers30d = []repositories.DailyActiveUsers{}
+	}
+
+	// 3. providers
+	var providersRaw []struct {
+		Provider string `gorm:"column:provider"`
+		Count    int64  `gorm:"column:count"`
+	}
+	pgDB.Raw(`
+		SELECT provider, count(*) as count
+		FROM users
+		WHERE deleted_at IS NULL
+		GROUP BY provider
+	`).Scan(&providersRaw)
+
+	providers := make([]ProviderDistribution, len(providersRaw))
+	for i, r := range providersRaw {
+		providerName := r.Provider
+		if providerName == "" {
+			providerName = "local"
+		}
+		providers[i] = ProviderDistribution{
+			Provider: providerName,
+			Count:    r.Count,
+		}
+	}
+
+	// 4. platforms
+	var platformsRaw []struct {
+		Platform string `gorm:"column:platform"`
+		Count    int64  `gorm:"column:count"`
+	}
+	pgDB.Raw(`
+		SELECT platform, count(*) as count
+		FROM device_tokens
+		WHERE is_active = true AND deleted_at IS NULL AND platform IS NOT NULL AND platform != ''
+		GROUP BY platform
+	`).Scan(&platformsRaw)
+
+	platforms := make([]PlatformDistribution, len(platformsRaw))
+	for i, r := range platformsRaw {
+		platforms[i] = PlatformDistribution{
+			Platform: strings.ToUpper(r.Platform),
+			Count:    r.Count,
+		}
+	}
+
+	// 5. top_devices
+	var devicesRaw []struct {
+		DeviceName string `gorm:"column:device_name"`
+		Count      int64  `gorm:"column:count"`
+	}
+	pgDB.Raw(`
+		SELECT device_name, count(*) as count
+		FROM device_tokens
+		WHERE is_active = true AND deleted_at IS NULL AND device_name IS NOT NULL AND device_name != ''
+		GROUP BY device_name
+		ORDER BY count DESC
+		LIMIT 10
+	`).Scan(&devicesRaw)
+
+	topDevices := make([]TopDeviceEntry, len(devicesRaw))
+	for i, r := range devicesRaw {
+		topDevices[i] = TopDeviceEntry{
+			DeviceName: r.DeviceName,
+			Count:      r.Count,
+		}
+	}
+
+	// 6. app_versions
+	var versionsRaw []struct {
+		AppVersion string `gorm:"column:app_version"`
+		Count      int64  `gorm:"column:count"`
+	}
+	pgDB.Raw(`
+		SELECT app_version, count(*) as count
+		FROM device_tokens
+		WHERE is_active = true AND deleted_at IS NULL AND app_version IS NOT NULL AND app_version != ''
+		GROUP BY app_version
+		ORDER BY count DESC
+		LIMIT 10
+	`).Scan(&versionsRaw)
+
+	appVersions := make([]AppVersionEntry, len(versionsRaw))
+	for i, r := range versionsRaw {
+		appVersions[i] = AppVersionEntry{
+			AppVersion: r.AppVersion,
+			Count:      r.Count,
+		}
+	}
+
+	// 7. streaks
+	var streakRanges struct {
+		Range0      int64 `gorm:"column:range_0"`
+		Range1_3    int64 `gorm:"column:range_1_3"`
+		Range4_7    int64 `gorm:"column:range_4_7"`
+		Range8_14   int64 `gorm:"column:range_8_14"`
+		Range15Plus int64 `gorm:"column:range_15_plus"`
+	}
+	pgDB.Raw(`
+		SELECT
+			COUNT(CASE WHEN current_streak = 0 THEN 1 END) AS range_0,
+			COUNT(CASE WHEN current_streak BETWEEN 1 AND 3 THEN 1 END) AS range_1_3,
+			COUNT(CASE WHEN current_streak BETWEEN 4 AND 7 THEN 1 END) AS range_4_7,
+			COUNT(CASE WHEN current_streak BETWEEN 8 AND 14 THEN 1 END) AS range_8_14,
+			COUNT(CASE WHEN current_streak >= 15 THEN 1 END) AS range_15_plus
+		FROM user_streaks
+	`).Scan(&streakRanges)
+
+	// 8. points summary & top earners
+	var pointSummary struct {
+		TotalWallets  int64   `gorm:"column:total_wallets"`
+		TotalPoints   int64   `gorm:"column:total_points"`
+		AveragePoints float64 `gorm:"column:average_points"`
+	}
+	pgDB.Raw(`
+		SELECT
+			COUNT(*) AS total_wallets,
+			COALESCE(SUM(balance), 0) AS total_points,
+			COALESCE(AVG(balance), 0) AS average_points
+		FROM point_wallets
+	`).Scan(&pointSummary)
+
+	var earnersRaw []struct {
+		UserID    string `gorm:"column:user_id"`
+		Email     string `gorm:"column:email"`
+		FirstName string `gorm:"column:first_name"`
+		LastName  string `gorm:"column:last_name"`
+		Points    int64  `gorm:"column:points"`
+	}
+	pgDB.Raw(`
+		SELECT w.user_id, u.email, u.first_name, u.last_name, w.balance AS points
+		FROM point_wallets w
+		JOIN users u ON u.id = w.user_id
+		WHERE u.deleted_at IS NULL
+		ORDER BY w.balance DESC
+		LIMIT 10
+	`).Scan(&earnersRaw)
+
+	topEarners := make([]TopPointEarnedEntry, len(earnersRaw))
+	for i, r := range earnersRaw {
+		topEarners[i] = TopPointEarnedEntry{
+			UserID:    r.UserID,
+			Email:     r.Email,
+			FirstName: r.FirstName,
+			LastName:  r.LastName,
+			Points:    r.Points,
+		}
+	}
+
+	// 9. engagement stats
+	var engagement struct {
+		TotalNotes     int64 `gorm:"column:total_notes"`
+		TotalBookmarks int64 `gorm:"column:total_bookmarks"`
+		TotalReminders int64 `gorm:"column:total_reminders"`
+	}
+	pgDB.Raw(`
+		SELECT
+			(SELECT COUNT(*) FROM user_notes WHERE deleted_at IS NULL) AS total_notes,
+			(SELECT COUNT(*) FROM bookmarks WHERE deleted_at IS NULL) AS total_bookmarks,
+			(SELECT COUNT(*) FROM reminders WHERE deleted_at IS NULL) AS total_reminders
+	`).Scan(&engagement)
+
+	return utils.SuccessResponse(c, "User analytics retrieved successfully", fiber.Map{
+		"growth_30d":       growth30d,
+		"active_users_30d": activeUsers30d,
+		"providers":        providers,
+		"platforms":        platforms,
+		"top_devices":      topDevices,
+		"app_versions":     appVersions,
+		"streaks":          streakRanges,
+		"points": fiber.Map{
+			"total_wallets":  pointSummary.TotalWallets,
+			"total_points":   pointSummary.TotalPoints,
+			"average_points": pointSummary.AveragePoints,
+			"top_earners":    topEarners,
+		},
+		"engagement": fiber.Map{
+			"total_notes":     engagement.TotalNotes,
+			"total_bookmarks": engagement.TotalBookmarks,
+			"total_reminders": engagement.TotalReminders,
+		},
+	})
+}

@@ -87,12 +87,8 @@
             text-transform: uppercase;
             margin-bottom: 12px;
         }
-        .toc ol {
-            padding-left: 18px;
-        }
-        .toc li {
-            margin-bottom: 6px;
-        }
+        .toc ol { padding-left: 18px; }
+        .toc li { margin-bottom: 6px; }
         .toc a {
             color: var(--teal);
             text-decoration: none;
@@ -211,6 +207,21 @@
             margin-left: 6px;
             vertical-align: middle;
         }
+        .delete-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,85,85,0.08);
+            border: 1px solid rgba(255,85,85,0.25);
+            border-radius: 8px;
+            padding: 10px 16px;
+            margin-top: 10px;
+            color: var(--red);
+            text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 600;
+        }
+        .delete-link:hover { background: rgba(255,85,85,0.14); }
     </style>
 </head>
 <body>
@@ -235,8 +246,8 @@
 
     <!-- Last updated -->
     <p style="text-align:center; color: var(--text3); font-size: 12px; margin-bottom: 28px;">
-        Cập nhật lần cuối: <strong style="color:var(--text2)">19 tháng 3, 2026</strong>
-        &nbsp;·&nbsp; Phiên bản ứng dụng: <strong style="color:var(--text2)">1.2</strong>
+        Cập nhật lần cuối: <strong style="color:var(--text2)">30 tháng 5, 2026</strong>
+        &nbsp;·&nbsp; Phiên bản ứng dụng: <strong style="color:var(--text2)">2.0.7</strong>
     </p>
 
     <!-- TOC -->
@@ -250,7 +261,7 @@
             <li><a href="#s5">Chia sẻ thông tin với bên thứ ba</a></li>
             <li><a href="#s6">Quyền và tính năng ứng dụng</a></li>
             <li><a href="#s7">Bảo mật dữ liệu</a></li>
-            <li><a href="#s8">Quyền của người dùng</a></li>
+            <li><a href="#s8">Quyền của người dùng &amp; Xóa tài khoản</a></li>
             <li><a href="#s9">Trẻ em</a></li>
             <li><a href="#s10">Thay đổi chính sách</a></li>
             <li><a href="#s11">Liên hệ</a></li>
@@ -262,18 +273,18 @@
         <h2><span class="section-number">1</span>Giới thiệu</h2>
         <p>
             Chào mừng bạn đến với <strong style="color:var(--gold)">Lịch Số — Lịch Vạn Niên</strong> ("ứng dụng", "chúng tôi").
-            Chúng tôi hiểu rằng quyền riêng tư của bạn rất quan trọng và chúng tôi cam kết bảo vệ thông tin cá nhân
+            Chúng tôi hiểu rằng quyền riêng tư của bạn rất quan trọng và cam kết bảo vệ thông tin cá nhân
             của bạn một cách cẩn thận và minh bạch.
         </p>
         <p>
             Chính sách bảo mật này mô tả cách ứng dụng Lịch Số thu thập, sử dụng và bảo vệ thông tin khi bạn
-            sử dụng ứng dụng của chúng tôi trên thiết bị Android.
+            sử dụng ứng dụng trên thiết bị Android hoặc truy cập website <strong>lichso.vn</strong>.
         </p>
         <div class="highlight-box">
             <p>
-                📋 <strong>Tóm tắt:</strong> Lịch Số là ứng dụng hoạt động <strong>chủ yếu offline</strong>.
-                Tất cả dữ liệu cá nhân (task, ghi chú, nhắc nhở) được lưu trữ <strong>hoàn toàn trên thiết bị của bạn</strong>.
-                Chúng tôi không bán hay chia sẻ thông tin cá nhân của bạn với bên thứ ba vì mục đích thương mại.
+                📋 <strong>Tóm tắt:</strong> Dữ liệu cá nhân (ghi chú, nhắc nhở, ngày đã lưu) được lưu <strong>trên thiết bị của bạn</strong>.
+                Nếu bạn đăng nhập tài khoản, một số thông tin (email, token thiết bị) được lưu trên máy chủ để phục vụ tính năng
+                đồng bộ và thông báo đẩy. Chúng tôi không bán thông tin cá nhân của bạn.
             </p>
         </div>
     </div>
@@ -282,42 +293,75 @@
     <div class="section" id="s2">
         <h2><span class="section-number">2</span>Thông tin chúng tôi thu thập</h2>
 
-        <p><strong style="color:var(--text)">2.1 Dữ liệu bạn tự tạo (lưu cục bộ)</strong></p>
+        <p><strong style="color:var(--text)">2.1 Dữ liệu bạn tự tạo (lưu cục bộ trên thiết bị)</strong></p>
         <ul>
-            <li><strong>Task và công việc:</strong> Tiêu đề, mô tả, ngày đến hạn, mức ưu tiên bạn nhập vào</li>
-            <li><strong>Ghi chú:</strong> Nội dung ghi chú bạn tạo</li>
+            <li><strong>Ghi chú theo ngày:</strong> Nội dung ghi chú bạn tạo</li>
             <li><strong>Nhắc nhở:</strong> Tiêu đề, thời gian, loại lặp lại</li>
+            <li><strong>Ngày đã lưu:</strong> Các ngày quan trọng bạn đánh dấu</li>
+            <li><strong>Đếm ngược sự kiện:</strong> Tiêu đề và ngày sự kiện</li>
             <li><strong>Lịch sử chat AI:</strong> Các câu hỏi và câu trả lời trong phiên chat với AI</li>
         </ul>
         <div class="no-collect">
             <span class="icon">🔒</span>
-            <p>Tất cả dữ liệu trên được lưu <strong>trực tiếp trên thiết bị của bạn</strong> thông qua cơ sở dữ liệu cục bộ (Room Database) và không được tải lên máy chủ của chúng tôi.</p>
+            <p>Dữ liệu trên được lưu <strong>trực tiếp trên thiết bị</strong> (Room Database / DataStore) và không được tải lên máy chủ.</p>
         </div>
 
-        <p style="margin-top:16px"><strong style="color:var(--text)">2.2 Dữ liệu gửi đến dịch vụ AI</strong></p>
-        <p>Khi bạn sử dụng tính năng <strong>Lịch Số AI</strong> (trợ lý phong thuỷ), nội dung câu hỏi của bạn
-        được gửi đến dịch vụ AI bên thứ ba (<strong>OpenRouter API</strong>) để xử lý và trả lời.
-        Xem thêm mục <a href="#s5" style="color:var(--teal)">Chia sẻ với bên thứ ba</a>.</p>
+        <p style="margin-top:16px"><strong style="color:var(--text)">2.2 Dữ liệu tài khoản (khi bạn đăng nhập — tuỳ chọn)</strong></p>
+        <p>Nếu bạn chọn đăng nhập bằng <strong>Google</strong>, chúng tôi thu thập và lưu trữ trên máy chủ:</p>
+        <table class="data-table">
+            <tr>
+                <th>Dữ liệu</th>
+                <th>Nguồn</th>
+                <th>Mục đích</th>
+            </tr>
+            <tr>
+                <td>Tên hiển thị</td>
+                <td>Tài khoản Google</td>
+                <td>Hiển thị trong hồ sơ</td>
+            </tr>
+            <tr>
+                <td>Địa chỉ email</td>
+                <td>Tài khoản Google</td>
+                <td>Định danh tài khoản</td>
+            </tr>
+            <tr>
+                <td>Ảnh đại diện</td>
+                <td>Tài khoản Google</td>
+                <td>Hiển thị trong hồ sơ</td>
+            </tr>
+            <tr>
+                <td>ID người dùng (UUID)</td>
+                <td>Máy chủ Lịch Số</td>
+                <td>Quản lý phiên đăng nhập</td>
+            </tr>
+        </table>
+        <p>Việc đăng nhập là <strong>hoàn toàn tuỳ chọn</strong>. Bạn có thể dùng toàn bộ tính năng lịch mà không cần tài khoản.</p>
 
-        <p><strong style="color:var(--text)">2.3 Dữ liệu kỹ thuật (không nhận dạng cá nhân)</strong></p>
+        <p style="margin-top:16px"><strong style="color:var(--text)">2.3 Thông tin thiết bị (khi bật thông báo đẩy)</strong></p>
+        <p>Để gửi thông báo đẩy, chúng tôi thu thập và lưu trữ trên máy chủ:</p>
         <ul>
-            <li>Thông tin lỗi ứng dụng (nếu crash) — thông qua Firebase Crashlytics nếu được bật</li>
-            <li>Phiên bản hệ điều hành Android</li>
+            <li><strong>FCM Token:</strong> Mã định danh thiết bị do Firebase cấp, dùng để gửi thông báo</li>
+            <li><strong>Android ID:</strong> Mã định danh thiết bị ẩn danh (không liên kết với danh tính thực)</li>
+            <li><strong>Tên thiết bị:</strong> Ví dụ "Samsung Galaxy S24" — hiển thị trong trang quản lý thiết bị</li>
+            <li><strong>Phiên bản ứng dụng:</strong> Dùng để kiểm tra tương thích</li>
         </ul>
+        <div class="highlight-box">
+            <p>💡 Thông tin thiết bị chỉ được thu thập nếu bạn cho phép thông báo. Bạn có thể tắt thông báo bất cứ lúc nào trong Cài đặt hệ thống.</p>
+        </div>
 
-        <p><strong style="color:var(--text)">2.4 Dữ liệu KHÔNG thu thập</strong></p>
+        <p style="margin-top:16px"><strong style="color:var(--text)">2.4 Dữ liệu gửi đến dịch vụ AI</strong></p>
+        <p>Khi sử dụng tính năng <strong>Lịch Số AI</strong>, nội dung câu hỏi của bạn được gửi đến
+        dịch vụ AI bên thứ ba để xử lý. Xem thêm mục <a href="#s5" style="color:var(--teal)">Chia sẻ với bên thứ ba</a>.</p>
+
+        <p style="margin-top:16px"><strong style="color:var(--text)">2.5 Dữ liệu KHÔNG thu thập</strong></p>
         <table class="data-table">
             <tr>
                 <th>Loại dữ liệu</th>
                 <th>Trạng thái</th>
             </tr>
             <tr>
-                <td>Tên, số điện thoại, địa chỉ email</td>
-                <td>✅ Không thu thập</td>
-            </tr>
-            <tr>
-                <td>Vị trí địa lý (GPS)</td>
-                <td>✅ Không thu thập</td>
+                <td>Vị trí GPS / tọa độ địa lý</td>
+                <td>✅ Không thu thập — tính năng thời tiết dùng tên thành phố do bạn nhập</td>
             </tr>
             <tr>
                 <td>Danh bạ điện thoại</td>
@@ -328,11 +372,15 @@
                 <td>✅ Không thu thập</td>
             </tr>
             <tr>
-                <td>Cookie, theo dõi quảng cáo</td>
-                <td>✅ Không thu thập</td>
+                <td>Cookie, Advertising ID</td>
+                <td>✅ Không thu thập — AD_ID bị tắt hoàn toàn</td>
             </tr>
             <tr>
                 <td>Thông tin thanh toán</td>
+                <td>✅ Không thu thập</td>
+            </tr>
+            <tr>
+                <td>Số điện thoại</td>
                 <td>✅ Không thu thập</td>
             </tr>
         </table>
@@ -344,32 +392,42 @@
         <p>Thông tin được thu thập chỉ được sử dụng để:</p>
         <ul>
             <li>✦ Cung cấp tính năng lịch vạn niên, xem ngày tốt/xấu, giờ hoàng đạo</li>
-            <li>✦ Quản lý task, ghi chú và nhắc nhở của bạn trên thiết bị</li>
-            <li>✦ Gửi thông báo nhắc nhở đúng thời gian bạn đã đặt</li>
-            <li>✦ Xử lý câu hỏi phong thuỷ thông qua AI (nội dung gửi đến OpenRouter)</li>
+            <li>✦ Quản lý ghi chú, nhắc nhở và ngày đã lưu trên thiết bị của bạn</li>
+            <li>✦ Gửi thông báo nhắc nhở đúng thời gian bạn đặt (local alarm)</li>
+            <li>✦ Gửi thông báo đẩy từ máy chủ (tin tức, sự kiện đặc biệt) — nếu bạn cho phép</li>
+            <li>✦ Xử lý câu hỏi phong thuỷ thông qua AI</li>
+            <li>✦ Duy trì phiên đăng nhập và quản lý tài khoản (nếu bạn đăng nhập)</li>
             <li>✦ Cải thiện hiệu suất và sửa lỗi ứng dụng</li>
         </ul>
         <div class="warning-box">
-            <p>⚠️ Chúng tôi <strong>không sử dụng</strong> thông tin của bạn cho mục đích quảng cáo, marketing, hoặc bán cho bên thứ ba.</p>
+            <p>⚠️ Chúng tôi <strong>không sử dụng</strong> thông tin của bạn cho mục đích quảng cáo cá nhân hoá, marketing bên thứ ba, hoặc bán dữ liệu.</p>
         </div>
     </div>
 
     <!-- SECTION 4 -->
     <div class="section" id="s4">
         <h2><span class="section-number">4</span>Lưu trữ dữ liệu</h2>
-        <p><strong style="color:var(--text)">Dữ liệu cục bộ (Local Storage):</strong></p>
+
+        <p><strong style="color:var(--text)">4.1 Dữ liệu cục bộ (trên thiết bị của bạn):</strong></p>
         <ul>
-            <li>Task, ghi chú, nhắc nhở: Lưu trong cơ sở dữ liệu SQLite (Room) trên thiết bị của bạn</li>
-            <li>Cài đặt ứng dụng: Lưu trong Android DataStore Preferences (cục bộ)</li>
+            <li>Ghi chú, nhắc nhở, ngày đã lưu: Lưu trong SQLite (Room Database)</li>
+            <li>Cài đặt ứng dụng, tên thành phố thời tiết: Lưu trong Android DataStore Preferences</li>
             <li>Lịch sử chat AI: Lưu trong cơ sở dữ liệu cục bộ</li>
         </ul>
-        <p><strong style="color:var(--text)">Thời gian lưu trữ:</strong></p>
+
+        <p><strong style="color:var(--text)">4.2 Dữ liệu máy chủ (chỉ khi có tài khoản / bật thông báo):</strong></p>
+        <ul>
+            <li>Thông tin tài khoản (email, tên, ảnh đại diện): Lưu trên máy chủ tại Việt Nam</li>
+            <li>FCM Token và thông tin thiết bị: Lưu trên máy chủ, tự động xoá khi bạn đăng xuất hoặc xoá tài khoản</li>
+        </ul>
+
+        <p><strong style="color:var(--text)">4.3 Thời gian lưu trữ:</strong></p>
         <ul>
             <li>Dữ liệu cục bộ tồn tại cho đến khi bạn xoá thủ công hoặc gỡ cài đặt ứng dụng</li>
-            <li>Khi gỡ cài đặt, toàn bộ dữ liệu cục bộ bị xoá vĩnh viễn</li>
+            <li>Dữ liệu tài khoản được lưu cho đến khi bạn <strong>xoá tài khoản</strong> — xem mục <a href="#s8" style="color:var(--teal)">Quyền người dùng</a></li>
         </ul>
         <div class="highlight-box">
-            <p>💡 Chúng tôi khuyến nghị bạn sao lưu dữ liệu quan trọng thường xuyên, vì ứng dụng hiện chưa hỗ trợ sao lưu đám mây.</p>
+            <p>💡 Bạn có thể sao lưu và phục hồi dữ liệu cục bộ bằng tính năng <strong>Sao lưu / Phục hồi</strong> trong màn hình Hồ sơ.</p>
         </div>
     </div>
 
@@ -378,27 +436,33 @@
         <h2><span class="section-number">5</span>Chia sẻ thông tin với bên thứ ba</h2>
         <p>Chúng tôi chỉ chia sẻ thông tin trong các trường hợp hạn chế sau:</p>
 
-        <p><strong style="color:var(--text)">5.1 OpenRouter API (Dịch vụ AI)</strong></p>
+        <p><strong style="color:var(--text)">5.1 Firebase Cloud Messaging — FCM (Google)</strong></p>
         <p>
-            Khi bạn sử dụng tính năng chat AI, nội dung tin nhắn của bạn được gửi đến
+            Ứng dụng sử dụng <strong>Firebase Cloud Messaging</strong> để gửi thông báo đẩy.
+            FCM Token của bạn được truyền qua hạ tầng Google để chuyển tiếp thông báo đến thiết bị.
+            Google có chính sách bảo mật riêng tại
+            <a href="https://policies.google.com/privacy" style="color:var(--teal)">policies.google.com/privacy</a>.
+        </p>
+
+        <p><strong style="color:var(--text)">5.2 Google Sign-In (Google Identity)</strong></p>
+        <p>
+            Khi đăng nhập bằng Google, luồng xác thực đi qua <strong>Google Identity Services</strong>.
+            Chúng tôi chỉ nhận tên, email và ảnh đại diện mà bạn đã cho phép chia sẻ.
+        </p>
+
+        <p><strong style="color:var(--text)">5.3 Dịch vụ AI (OpenRouter)</strong></p>
+        <p>
+            Khi sử dụng tính năng chat AI, nội dung tin nhắn được gửi đến
             <strong>OpenRouter</strong> để xử lý bằng mô hình ngôn ngữ lớn (LLM).
-            OpenRouter có chính sách bảo mật riêng tại
+            OpenRouter có chính sách bảo mật tại
             <a href="https://openrouter.ai/privacy" style="color:var(--teal)">openrouter.ai/privacy</a>.
         </p>
         <ul>
             <li>Chỉ nội dung câu hỏi được gửi đi, không gửi thông tin định danh cá nhân</li>
-            <li>Không gửi task, ghi chú, hoặc nhắc nhở của bạn</li>
-            <li>Dữ liệu truyền đi được mã hoá bằng HTTPS/TLS</li>
+            <li>Không gửi ghi chú, nhắc nhở, hoặc dữ liệu tài khoản</li>
         </ul>
 
-        <p><strong style="color:var(--text)">5.2 Firebase (Google)</strong></p>
-        <p>
-            Ứng dụng sử dụng Firebase SDK của Google cho mục đích phân tích lỗi kỹ thuật.
-            Dữ liệu kỹ thuật ẩn danh có thể được gửi đến máy chủ Google theo
-            <a href="https://policies.google.com/privacy" style="color:var(--teal)">Chính sách bảo mật của Google</a>.
-        </p>
-
-        <p><strong style="color:var(--text)">5.3 Trường hợp pháp lý</strong></p>
+        <p><strong style="color:var(--text)">5.4 Trường hợp pháp lý</strong></p>
         <p>
             Chúng tôi có thể tiết lộ thông tin nếu pháp luật yêu cầu hoặc để bảo vệ
             quyền và sự an toàn của người dùng.
@@ -420,11 +484,11 @@
             </tr>
             <tr>
                 <td><code style="color:var(--teal)">POST_NOTIFICATIONS</code></td>
-                <td>Gửi thông báo nhắc nhở và giờ hoàng đạo khi bạn bật tính năng này</td>
+                <td>Gửi thông báo nhắc nhở cục bộ và thông báo đẩy từ máy chủ</td>
             </tr>
             <tr>
                 <td><code style="color:var(--teal)">SCHEDULE_EXACT_ALARM</code><br><code style="color:var(--teal)">USE_EXACT_ALARM</code></td>
-                <td>Đặt lịch nhắc nhở đúng giờ bạn đã chọn</td>
+                <td>Đặt lịch nhắc nhở và giờ hoàng đạo đúng giờ bạn đã chọn</td>
             </tr>
             <tr>
                 <td><code style="color:var(--teal)">RECEIVE_BOOT_COMPLETED</code></td>
@@ -432,14 +496,18 @@
             </tr>
             <tr>
                 <td><code style="color:var(--teal)">INTERNET</code></td>
-                <td>Kết nối với dịch vụ AI (OpenRouter) khi bạn sử dụng tính năng chat</td>
+                <td>Kết nối máy chủ Lịch Số, dịch vụ AI, Firebase Cloud Messaging</td>
             </tr>
             <tr>
                 <td><code style="color:var(--teal)">WAKE_LOCK</code></td>
                 <td>Giữ thiết bị thức để xử lý thông báo đúng giờ</td>
             </tr>
         </table>
-        <p>Bạn có thể thu hồi các quyền này bất cứ lúc nào trong <strong>Cài đặt &gt; Ứng dụng &gt; Lịch Số &gt; Quyền</strong> trên thiết bị Android của bạn.</p>
+        <div class="no-collect">
+            <span class="icon">📍</span>
+            <p>Ứng dụng <strong>không yêu cầu quyền vị trí (GPS)</strong>. Tính năng thời tiết trên widget sử dụng <strong>tên thành phố do bạn nhập</strong>, không dùng GPS.</p>
+        </div>
+        <p>Bạn có thể thu hồi các quyền bất cứ lúc nào trong <strong>Cài đặt &gt; Ứng dụng &gt; Lịch Số &gt; Quyền</strong> trên thiết bị Android.</p>
     </div>
 
     <!-- SECTION 7 -->
@@ -449,8 +517,9 @@
         <ul>
             <li>✦ Dữ liệu cục bộ được bảo vệ bởi hệ thống sandbox của Android</li>
             <li>✦ Mọi kết nối mạng đều sử dụng giao thức HTTPS/TLS</li>
+            <li>✦ Token xác thực có thời hạn ngắn và được làm mới tự động</li>
             <li>✦ Mã nguồn ứng dụng được bảo vệ bằng ProGuard/R8 trong bản release</li>
-            <li>✦ Ứng dụng không yêu cầu quyền root hoặc quyền hệ thống đặc biệt</li>
+            <li>✦ Máy chủ đặt tại Việt Nam, được bảo vệ theo tiêu chuẩn bảo mật ngành</li>
         </ul>
         <div class="warning-box">
             <p>⚠️ Mặc dù chúng tôi nỗ lực bảo vệ dữ liệu của bạn, không có phương thức truyền dữ liệu qua Internet hoặc lưu trữ điện tử nào có thể đảm bảo 100% an toàn tuyệt đối.</p>
@@ -459,28 +528,51 @@
 
     <!-- SECTION 8 -->
     <div class="section" id="s8">
-        <h2><span class="section-number">8</span>Quyền của người dùng</h2>
+        <h2><span class="section-number">8</span>Quyền của người dùng &amp; Xóa tài khoản</h2>
         <p>Bạn có các quyền sau đối với dữ liệu của mình:</p>
         <ul>
             <li>
                 <strong>Quyền truy cập:</strong> Xem toàn bộ dữ liệu cục bộ trực tiếp trong ứng dụng
-                (tab Task, Ghi chú, Nhắc nhở)
             </li>
             <li>
                 <strong>Quyền chỉnh sửa:</strong> Sửa hoặc cập nhật mọi dữ liệu bất kỳ lúc nào
             </li>
             <li>
-                <strong>Quyền xoá:</strong> Xoá từng mục hoặc toàn bộ lịch sử chat trong ứng dụng
+                <strong>Quyền xoá dữ liệu cục bộ:</strong> Xoá từng mục hoặc toàn bộ lịch sử chat trong ứng dụng
             </li>
             <li>
-                <strong>Quyền thu hồi quyền:</strong> Thu hồi quyền thông báo bất kỳ lúc nào
-                trong Cài đặt hệ thống
+                <strong>Quyền thu hồi thông báo:</strong> Tắt thông báo đẩy bất kỳ lúc nào trong Cài đặt hệ thống — FCM Token sẽ bị vô hiệu hoá
             </li>
             <li>
-                <strong>Quyền gỡ cài đặt:</strong> Gỡ cài đặt ứng dụng bất kỳ lúc nào —
-                toàn bộ dữ liệu cục bộ sẽ bị xoá hoàn toàn
+                <strong>Quyền xoá tài khoản:</strong> Xoá vĩnh viễn tài khoản và toàn bộ dữ liệu trên máy chủ (xem bên dưới)
+            </li>
+            <li>
+                <strong>Quyền gỡ cài đặt:</strong> Gỡ cài đặt ứng dụng bất kỳ lúc nào — toàn bộ dữ liệu cục bộ bị xoá hoàn toàn
             </li>
         </ul>
+
+        <p style="margin-top: 16px"><strong style="color:var(--text)">Xoá tài khoản và dữ liệu máy chủ</strong></p>
+        <p>
+            Nếu bạn đã đăng nhập tài khoản, bạn có thể yêu cầu xoá toàn bộ tài khoản và dữ liệu liên quan
+            (thông tin hồ sơ, FCM token, lịch sử thiết bị) theo hai cách:
+        </p>
+        <ul>
+            <li>
+                <strong>Trong ứng dụng Android:</strong> Vào <strong>Hồ sơ → Tài khoản → Xóa tài khoản</strong>,
+                nhập xác nhận và nhấn "Xóa vĩnh viễn"
+            </li>
+            <li>
+                <strong>Qua website:</strong> Đăng nhập tại
+                <a href="https://lichso.vn/profile" style="color:var(--teal)">lichso.vn/profile</a>,
+                cuộn xuống phần "Xóa tài khoản" và làm theo hướng dẫn
+            </li>
+        </ul>
+        <a href="https://lichso.vn/profile" class="delete-link">
+            🗑 Yêu cầu xóa tài khoản tại lichso.vn/profile
+        </a>
+        <div class="warning-box" style="margin-top: 14px">
+            <p>⚠️ Việc xoá tài khoản là <strong>vĩnh viễn và không thể hoàn tác</strong>. Dữ liệu cục bộ trên thiết bị không bị ảnh hưởng — bạn cần xoá thủ công bằng cách gỡ cài đặt ứng dụng.</p>
+        </div>
     </div>
 
     <!-- SECTION 9 -->
@@ -521,6 +613,7 @@
             <p style="margin-bottom:10px"><strong style="color:var(--gold)">Lịch Số — Nhóm phát triển</strong></p>
             <p>📧 Email: <a href="mailto:support@lichso.vn">support@lichso.vn</a></p>
             <p>🌐 Website: <a href="https://lichso.vn">lichso.vn</a></p>
+            <p>🗑 Xóa tài khoản: <a href="https://lichso.vn/profile">lichso.vn/profile</a></p>
             <p style="margin-top:10px; color:var(--text3); font-size:12px">
                 Chúng tôi sẽ cố gắng phản hồi trong vòng 7 ngày làm việc.
             </p>

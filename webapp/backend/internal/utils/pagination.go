@@ -13,8 +13,9 @@ type PaginationQuery struct {
 	Search    string `json:"search"`
 	SortBy    string `json:"sort_by"`
 	SortOrder string `json:"sort_order"`
-	Status    string `json:"status"` // "active", "inactive", "all"
-	Role      string `json:"role"`   // filter by role name
+	Status    string `json:"status"`     // "active", "inactive", "all"
+	Role      string `json:"role"`       // filter by role name
+	HasDevice string `json:"has_device"` // "yes", "no", "" = all
 }
 
 // DefaultPage is the default page number
@@ -68,6 +69,7 @@ func ParsePagination(c *fiber.Ctx) PaginationQuery {
 		SortOrder: sortOrder,
 		Status:    c.Query("status", "all"),
 		Role:      c.Query("role", ""),
+		HasDevice: c.Query("has_device", ""),
 	}
 }
 

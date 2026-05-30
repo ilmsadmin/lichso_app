@@ -53,6 +53,12 @@ const navItems: NavItem[] = [
     href: ROUTES.ADMIN,
     icon: LayoutDashboard,
   },
+  {
+    label: "Analytics",
+    href: "/admin/analytics",
+    icon: BarChart3,
+    permission: "dashboard.read",
+  },
   // Content Management
   {
     label: "Bài viết",

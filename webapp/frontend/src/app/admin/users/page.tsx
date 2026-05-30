@@ -36,6 +36,7 @@ export default function UsersPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("all");
   const [role, setRole] = useState<string>("all");
+  const [hasDevice, setHasDevice] = useState<string>("all");
 
   const { data, isLoading } = useUsers({
     page,
@@ -43,6 +44,7 @@ export default function UsersPage() {
     search: search || undefined,
     status: status !== "all" ? status : undefined,
     role: role !== "all" ? role : undefined,
+    has_device: hasDevice !== "all" ? hasDevice : undefined,
   });
 
   const deleteUser = useDeleteUser();
@@ -80,6 +82,7 @@ export default function UsersPage() {
                   search: search || undefined,
                   status: status !== "all" ? status : undefined,
                   role: role !== "all" ? role : undefined,
+                  has_device: hasDevice !== "all" ? hasDevice : undefined,
                 })
               }
               disabled={exportUsers.isPending}
@@ -139,6 +142,22 @@ export default function UsersPage() {
             <SelectItem value="admin">Admin</SelectItem>
             <SelectItem value="editor">Editor</SelectItem>
             <SelectItem value="viewer">Viewer</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={hasDevice}
+          onValueChange={(v) => {
+            setHasDevice(v);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Thiết bị" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả</SelectItem>
+            <SelectItem value="yes">Có thiết bị đăng ký</SelectItem>
+            <SelectItem value="no">Chưa có thiết bị</SelectItem>
           </SelectContent>
         </Select>
       </div>

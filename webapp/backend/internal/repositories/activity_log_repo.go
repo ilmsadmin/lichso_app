@@ -245,3 +245,67 @@ func (r *ActivityLogRepository) buildFilter(query ActivityLogQuery) bson.M {
 
 	return filter
 }
+
+// DailyActiveUsers represents count of daily unique active users and guests
+type DailyActiveUsers struct {
+	Date   string `bson:"_id" json:"date"`
+	Users  int64  `bson:"users" json:"users"`
+	Guests int64  `bson:"guests" json:"guests"`
+}
+
+// GetDailyActiveUsers calculates count of daily unique users and guest devices using mongo aggregation
+func (r *ActivityLogRepository) GetDailyActiveUsers(ctx context.Context, start time.Time) ([]DailyActiveUsers, error) {
+	pipeline := mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{
+			"created_at": bson.M{"$gte": start},
+		}}},
+		// Group by date and user_id to find unique entities per day
+		{{Key: "$group", Value: bson.M{
+			"_id": bson.M{
+				"date": bson.M{"$dateToString": bson.M{
+					"format":   "%Y-%m-%d",
+					"date":     "$created_at",
+					"timezone": "Asia/Ho_Chi_Minh",
+				}},
+				"user_id": "$user_id",
+			},
+		}}},
+		// Group by date and count guests vs logged in users
+		{{Key: "$group", Value: bson.M{
+			"_id": "$_id.date",
+			"users": bson.M{"$sum": bson.M{
+				"$cond": bson.A{
+					bson.M{"$eq": bson.A{"$_id.user_id", "guest-mobile"}},
+					0,
+					1,
+				},
+			}},
+			"guests": bson.M{"$sum": bson.M{
+				"$cond": bson.A{
+					bson.M{"$eq": bson.A{"$_id.user_id", "guest-mobile"}},
+					1,
+					0,
+				},
+			}},
+		}}},
+		{{Key: "$sort", Value: bson.D{{Key: "_id", Value: 1}}}},
+	}
+
+	cursor, err := r.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var result []DailyActiveUsers
+	if err := cursor.All(ctx, &result); err != nil {
+		return nil, err
+	}
+
+	// If result is empty, return empty slice instead of nil
+	if result == nil {
+		result = []DailyActiveUsers{}
+	}
+
+	return result, nil
+}

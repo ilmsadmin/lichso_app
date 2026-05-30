@@ -22,10 +22,13 @@ func SetupAdminRoutes(
 	admin := router.Group("/admin", authMiddleware.Authenticate())
 
 	// ============================================
-	// Dashboard Routes
+	// Dashboard / Analytics Routes
 	// ============================================
 	dashboard := admin.Group("/dashboard")
 	dashboard.Get("/stats", permMiddleware.RequirePermission("dashboard.read"), adminHandler.GetDashboardStats)
+
+	analytics := admin.Group("/analytics")
+	analytics.Get("/users", permMiddleware.RequirePermission("dashboard.read"), adminHandler.GetUserAnalytics)
 
 	// ============================================
 	// Activity Logs Routes

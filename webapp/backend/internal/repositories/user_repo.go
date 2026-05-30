@@ -20,6 +20,11 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
+// GetDB returns the underlying GORM database instance
+func (r *UserRepository) GetDB() *gorm.DB {
+	return r.db
+}
+
 // FindByID finds a user by ID with roles preloaded
 func (r *UserRepository) FindByID(id uuid.UUID) (*models.User, error) {
 	var user models.User
@@ -182,6 +187,14 @@ func (r *UserRepository) FindAllPaginated(pq utils.PaginationQuery) ([]models.Us
 		query = query.Where("id IN (SELECT user_id FROM user_roles JOIN roles ON roles.id = user_roles.role_id WHERE roles.name = ?)", pq.Role)
 	}
 
+	// Filter by device status
+	switch pq.HasDevice {
+	case "yes":
+		query = query.Where("EXISTS (SELECT 1 FROM device_tokens dt WHERE dt.user_id = users.id AND dt.is_active = true AND dt.deleted_at IS NULL)")
+	case "no":
+		query = query.Where("NOT EXISTS (SELECT 1 FROM device_tokens dt WHERE dt.user_id = users.id AND dt.is_active = true AND dt.deleted_at IS NULL)")
+	}
+
 	// Count total
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -229,6 +242,12 @@ func (r *UserRepository) FindAllPaginatedAdmin(pq utils.PaginationQuery) ([]mode
 	if pq.Role != "" {
 		whereClause += " AND u.id IN (SELECT ur.user_id FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE r.name = ?)"
 		args = append(args, pq.Role)
+	}
+	switch pq.HasDevice {
+	case "yes":
+		whereClause += " AND EXISTS (SELECT 1 FROM device_tokens dt WHERE dt.user_id = u.id AND dt.is_active = true AND dt.deleted_at IS NULL)"
+	case "no":
+		whereClause += " AND NOT EXISTS (SELECT 1 FROM device_tokens dt WHERE dt.user_id = u.id AND dt.is_active = true AND dt.deleted_at IS NULL)"
 	}
 
 	countSQL := "SELECT COUNT(*) FROM users u WHERE " + whereClause

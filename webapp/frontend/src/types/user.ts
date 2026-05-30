@@ -89,4 +89,5 @@ export interface UserListParams {
   sort_order?: "asc" | "desc";
   status?: string;
   role?: string;
+  has_device?: string; // "yes" | "no" | undefined = all
 }

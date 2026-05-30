@@ -23,6 +23,7 @@ import {
   BrainCircuit,
   Megaphone,
   Bell,
+  BarChart3,
 } from "lucide-react";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,6 +46,12 @@ const navItems: NavItem[] = [
     label: "Dashboard",
     href: ROUTES.ADMIN,
     icon: LayoutDashboard,
+  },
+  {
+    label: "Analytics",
+    href: "/admin/analytics",
+    icon: BarChart3,
+    permission: "dashboard.read",
   },
   // Content Management
   {

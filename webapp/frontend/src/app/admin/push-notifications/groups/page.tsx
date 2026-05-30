@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Users, Pencil, Trash2, UserMinus, Search } from "lucide-react";
+import { Plus, Users, Pencil, Trash2, UserMinus, Search, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -26,8 +29,13 @@ import type { UserGroup } from "@/types/push-notification";
 
 function GroupMembersDialog({ group, open, onClose }: { group: UserGroup; open: boolean; onClose: () => void }) {
   const [search, setSearch] = useState("");
+  const [deviceFilter, setDeviceFilter] = useState<string>("all");
   const { data: membersData, isLoading: loadingMembers } = useGroupMembers(open ? group.id : "");
-  const { data: usersData } = useUsers({ search: search || undefined, limit: 8 });
+  const { data: usersData } = useUsers({
+    search: search || undefined,
+    has_device: deviceFilter !== "all" ? deviceFilter : undefined,
+    limit: 8,
+  });
   const addMember = useAddGroupMember();
   const removeMember = useRemoveGroupMember();
 
@@ -50,16 +58,28 @@ function GroupMembersDialog({ group, open, onClose }: { group: UserGroup; open: 
           {/* Add member search */}
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground uppercase tracking-wide">Thêm thành viên</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input
-                className="pl-9 h-9 text-sm"
-                placeholder="Tìm theo tên hoặc nhập UUID..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  className="pl-9 h-9 text-sm"
+                  placeholder="Tìm theo tên hoặc nhập UUID..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <Select value={deviceFilter} onValueChange={setDeviceFilter}>
+                <SelectTrigger className="h-9 w-[52px] shrink-0 px-2">
+                  <Smartphone className="w-3.5 h-3.5" />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectItem value="all">Tất cả</SelectItem>
+                  <SelectItem value="yes">Có thiết bị</SelectItem>
+                  <SelectItem value="no">Chưa có thiết bị</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            {search && (
+            {(search || deviceFilter !== "all") && (
               <div className="border rounded-lg divide-y max-h-48 overflow-y-auto">
                 {searchResults.length === 0 ? (
                   <p className="text-xs text-muted-foreground p-3 text-center">Không tìm thấy</p>
@@ -86,6 +106,7 @@ function GroupMembersDialog({ group, open, onClose }: { group: UserGroup; open: 
           </div>
 
           {/* Member list */}
+
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground uppercase tracking-wide">
               Danh sách ({members.length})
