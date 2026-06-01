@@ -38,4 +38,5 @@ google-services.json
 
 # Misc
 *.log
+webapp/deploy/*.tar.gz
 android/.kotlin/

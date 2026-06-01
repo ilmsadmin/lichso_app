@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -54,12 +56,12 @@ import com.lichso.app.ui.components.LichSoConfirmDialog
 @Composable
 fun AIChatScreen(
     onBackClick: () -> Unit = {},
-    onNavigateToProfile: () -> Unit = {},
     initialMessage: String? = null,
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val c = LichSoThemeColors.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var showProfileSheet by remember { mutableStateOf(false) }
 
     // Auto-send initial message (e.g. from "Hỏi AI về ngày này")
     LaunchedEffect(initialMessage) {
@@ -117,7 +119,7 @@ fun AIChatScreen(
         if (!profileSummary.isComplete) {
             ProfileCompletionBanner(
                 missingFields = profileSummary.missingFields,
-                onNavigateToProfile = onNavigateToProfile
+                onUpdateProfile = { showProfileSheet = true }
             )
         }
 
@@ -151,6 +153,18 @@ fun AIChatScreen(
                     inputText = TextFieldValue("")
                 }
             }
+        )
+    }
+
+    // ═══ PROFILE EDIT BOTTOM SHEET ═══
+    if (showProfileSheet) {
+        ProfileEditSheet(
+            initial = state.profileSummary,
+            onDismiss = { showProfileSheet = false },
+            onSave = { name, day, month, year, hour, minute, gender ->
+                viewModel.saveProfile(name, day, month, year, hour, minute, gender)
+                showProfileSheet = false
+            },
         )
     }
 }
@@ -277,7 +291,7 @@ private fun SuggestionChip(icon: ImageVector, text: String, onClick: () -> Unit)
 @Composable
 private fun ProfileCompletionBanner(
     missingFields: List<String>,
-    onNavigateToProfile: () -> Unit
+    onUpdateProfile: () -> Unit
 ) {
     val c = LichSoThemeColors.current
     var dismissed by remember { mutableStateOf(false) }
@@ -384,7 +398,7 @@ private fun ProfileCompletionBanner(
                     RoundedCornerShape(12.dp)
                 )
                 .clip(RoundedCornerShape(12.dp))
-                .clickable(onClick = onNavigateToProfile)
+                .clickable(onClick = onUpdateProfile)
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
@@ -404,6 +418,164 @@ private fun ProfileCompletionBanner(
                     color = Color.White
                 )
             )
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────
+// PROFILE EDIT BOTTOM SHEET — nhập hồ sơ ngay trong màn AI
+// ──────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProfileEditSheet(
+    initial: UserProfileSummary,
+    onDismiss: () -> Unit,
+    onSave: (name: String, day: Int, month: Int, year: Int, hour: Int, minute: Int, gender: String) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var name by remember {
+        mutableStateOf(if (initial.displayName == "Người dùng") "" else initial.displayName)
+    }
+    var day by remember { mutableStateOf(initial.birthDay.takeIf { it > 0 }?.toString() ?: "") }
+    var month by remember { mutableStateOf(initial.birthMonth.takeIf { it > 0 }?.toString() ?: "") }
+    var year by remember { mutableStateOf(initial.birthYear.takeIf { it > 0 }?.toString() ?: "") }
+    var hour by remember { mutableStateOf(initial.birthHour.takeIf { it >= 0 }?.toString() ?: "") }
+    var minute by remember { mutableStateOf(initial.birthMinute.takeIf { it >= 0 }?.toString() ?: "") }
+    var gender by remember { mutableStateOf(initial.gender.ifBlank { "Nam" }) }
+    var showErrors by remember { mutableStateOf(false) }
+
+    val dayInt = day.toIntOrNull() ?: 0
+    val monthInt = month.toIntOrNull() ?: 0
+    val yearInt = year.toIntOrNull() ?: 0
+    val nameOk = name.trim().isNotBlank()
+    val dateOk = dayInt in 1..31 && monthInt in 1..12 && yearInt in 1900..2100
+
+    val numberKeyboard = KeyboardOptions(keyboardType = KeyboardType.Number)
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .imePadding()
+        ) {
+            Text("Cập nhật hồ sơ", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Nhập thông tin để AI phân tích tử vi, hợp tuổi, hướng xuất hành chính xác hơn cho bạn.",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Họ tên") },
+                singleLine = true,
+                isError = showErrors && !nameOk,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(12.dp))
+
+            // Ngày / Tháng / Năm sinh (dương lịch)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = day,
+                    onValueChange = { day = it.filter(Char::isDigit).take(2) },
+                    label = { Text("Ngày") },
+                    singleLine = true,
+                    keyboardOptions = numberKeyboard,
+                    isError = showErrors && !dateOk,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = month,
+                    onValueChange = { month = it.filter(Char::isDigit).take(2) },
+                    label = { Text("Tháng") },
+                    singleLine = true,
+                    keyboardOptions = numberKeyboard,
+                    isError = showErrors && !dateOk,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = year,
+                    onValueChange = { year = it.filter(Char::isDigit).take(4) },
+                    label = { Text("Năm") },
+                    singleLine = true,
+                    keyboardOptions = numberKeyboard,
+                    isError = showErrors && !dateOk,
+                    modifier = Modifier.weight(1.4f)
+                )
+            }
+            if (showErrors && !dateOk) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Nhập ngày/tháng/năm sinh hợp lệ (năm 1900–2100).",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+
+            // Giờ / Phút sinh (tuỳ chọn)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = hour,
+                    onValueChange = { hour = it.filter(Char::isDigit).take(2) },
+                    label = { Text("Giờ sinh") },
+                    placeholder = { Text("Tuỳ chọn") },
+                    singleLine = true,
+                    keyboardOptions = numberKeyboard,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = minute,
+                    onValueChange = { minute = it.filter(Char::isDigit).take(2) },
+                    label = { Text("Phút") },
+                    placeholder = { Text("Tuỳ chọn") },
+                    singleLine = true,
+                    keyboardOptions = numberKeyboard,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Spacer(Modifier.height(16.dp))
+
+            Text("Giới tính", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("Nam", "Nữ", "Khác").forEach { g ->
+                    FilterChip(
+                        selected = gender == g,
+                        onClick = { gender = g },
+                        label = { Text(g) }
+                    )
+                }
+            }
+            Spacer(Modifier.height(20.dp))
+
+            Button(
+                onClick = {
+                    if (nameOk && dateOk) {
+                        onSave(
+                            name.trim(), dayInt, monthInt, yearInt,
+                            hour.toIntOrNull() ?: -1, minute.toIntOrNull() ?: -1, gender
+                        )
+                    } else {
+                        showErrors = true
+                    }
+                },
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Text("Lưu hồ sơ", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.navigationBarsPadding())
         }
     }
 }

@@ -56,8 +56,6 @@ fun LoginNudgeBanner(
             LoginNudgeSession.shown = true
             delay(3_000)
             visible = true
-            delay(5_000)
-            visible = false
         }
     }
 

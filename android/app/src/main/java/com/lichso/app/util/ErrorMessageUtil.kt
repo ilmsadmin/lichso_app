@@ -7,6 +7,7 @@ import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.lichso.app.data.remote.LichSoApiException
 import java.net.ConnectException
+import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
@@ -55,8 +56,26 @@ object ErrorMessageUtil {
                 || throwable is FirebaseAuthException ->
                 "Không thể đăng nhập bằng Google. Vui lòng thử lại hoặc dùng tài khoản Google khác."
 
-            throwable is LichSoApiException && throwable.statusCode in 400..499 ->
-                msg.ifBlank { "Không thể xác thực tài khoản Google. Vui lòng thử lại." }
+            throwable is LichSoApiException -> when (throwable.statusCode) {
+                HttpURLConnection.HTTP_BAD_REQUEST ->
+                    "Thông tin gửi lên chưa hợp lệ. Vui lòng kiểm tra lại."
+                HttpURLConnection.HTTP_UNAUTHORIZED, HttpURLConnection.HTTP_FORBIDDEN ->
+                    "Phiên đăng nhập hết hạn, vui lòng đăng nhập lại."
+                HttpURLConnection.HTTP_NOT_FOUND ->
+                    "Không tìm thấy dữ liệu cần thiết. Vui lòng thử lại sau."
+                408 ->
+                    "Kết nối quá chậm, vui lòng thử lại."
+                409 ->
+                    "Dữ liệu đã thay đổi. Vui lòng tải lại và thử lại."
+                422 ->
+                    "Một số thông tin chưa đúng định dạng. Vui lòng kiểm tra lại."
+                429 ->
+                    "Bạn thao tác hơi nhanh. Vui lòng chờ một lát rồi thử lại."
+                in 500..599 ->
+                    "Máy chủ đang bận, vui lòng thử lại sau."
+                else ->
+                    fallback
+            }
 
             // Không có kết nối mạng / không phân giải được tên miền
             throwable is UnknownHostException
@@ -88,6 +107,10 @@ object ErrorMessageUtil {
                 "Máy chủ đang bận, vui lòng thử lại sau."
 
             // Lỗi mạng chung (OkHttp / Retrofit)
+            msg.contains("AI proxy", ignoreCase = true)
+                || msg.contains("AI_PROXY", ignoreCase = true) ->
+                "Tính năng AI hiện chưa sẵn sàng. Vui lòng thử lại sau."
+
             msg.contains("network", ignoreCase = true)
                 || msg.contains("socket", ignoreCase = true)
                 || msg.contains("IO") ->

@@ -1,7 +1,6 @@
 package com.lichso.app.data.auth
 
 import android.content.Context
-import android.provider.Settings
 import android.util.Log
 import androidx.credentials.*
 import androidx.credentials.exceptions.GetCredentialCancellationException
@@ -78,7 +77,7 @@ class AuthRepository @Inject constructor(
     suspend fun signInWithGoogle(activityContext: Context): Result<UserInfo> {
         if (webClientId.isBlank()) {
             return Result.failure(
-                IllegalStateException("GOOGLE_WEB_CLIENT_ID is not configured. Add it to local.properties.")
+                IllegalStateException("Đăng nhập Google hiện chưa sẵn sàng. Vui lòng thử lại sau.")
             )
         }
 
@@ -128,9 +127,7 @@ class AuthRepository @Inject constructor(
                     val user = authResult.user
 
                     if (user != null) {
-                        val deviceId = Settings.Secure.getString(
-                            context.contentResolver, Settings.Secure.ANDROID_ID
-                        ) ?: ""
+                        val deviceId = tokenManager.getInstallationId()
                         // Exchange Google token for backend JWT (required for app session).
                         // device_id lets the backend fold any anonymous guest for this
                         // device into the Google account (upgrade-in-place or merge).
@@ -138,9 +135,7 @@ class AuthRepository @Inject constructor(
                             firebaseAuth.signOut()
                             tokenManager.clearTokens()
                             return Result.failure(
-                                IllegalStateException(
-                                    "Đăng nhập máy chủ thất bại: ${error.message ?: "unknown error"}"
-                                )
+                                error
                             )
                         }
 
@@ -149,7 +144,7 @@ class AuthRepository @Inject constructor(
                         val roles = loginResponse.user.roles
                         val permissions = loginResponse.user.permissions
                         tokenManager.saveUserSession(backendId, roles, permissions)
-                        Log.d(tag, "Backend auth OK — user=${loginResponse.user.email} roles=$roles")
+                        Log.d(tag, "Backend auth OK — roles=$roles")
 
                         // Re-register FCM token with backend now that we have the auth token,
                         // so the device is linked to this user account.
@@ -179,13 +174,13 @@ class AuthRepository @Inject constructor(
                         Analytics.logEvent("login", mapOf("method" to "google"))
                         Result.success(userInfo)
                     } else {
-                        Result.failure(Exception("Firebase auth returned null user"))
+                        Result.failure(Exception("Không thể xác nhận tài khoản Google. Vui lòng thử lại."))
                     }
                 } else {
-                    Result.failure(Exception("Unexpected credential type"))
+                    Result.failure(Exception("Không thể xác nhận tài khoản Google. Vui lòng thử lại."))
                 }
             }
-            else -> Result.failure(Exception("Unexpected credential type"))
+            else -> Result.failure(Exception("Không thể xác nhận tài khoản Google. Vui lòng thử lại."))
         }
     }
 

@@ -10,6 +10,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -316,13 +317,16 @@ class LichSoApi @Inject constructor(
                 }
                 val type = object : TypeToken<ApiResponse<T>>() {}.type
                 val wrapper: ApiResponse<T> = gson.fromJson(body, type)
+                    ?: return Result.failure(LichSoApiException(response.code, "Máy chủ không trả về dữ liệu hợp lệ"))
                 if (!wrapper.success || wrapper.data == null) {
-                    return Result.failure(LichSoApiException(response.code, wrapper.message ?: "API error"))
+                    return Result.failure(LichSoApiException(response.code, wrapper.message ?: "Không thể xử lý yêu cầu"))
                 }
                 Result.success(wrapper.data)
             }
-        } catch (e: Exception) {
+        } catch (e: IOException) {
             Result.failure(e)
+        } catch (e: Exception) {
+            Result.failure(LichSoApiException(-1, "Không thể đọc dữ liệu từ máy chủ"))
         }
     }
 
@@ -337,8 +341,10 @@ class LichSoApi @Inject constructor(
                 }
                 Result.success(Unit)
             }
-        } catch (e: Exception) {
+        } catch (e: IOException) {
             Result.failure(e)
+        } catch (e: Exception) {
+            Result.failure(LichSoApiException(-1, "Không thể xử lý phản hồi từ máy chủ"))
         }
     }
 

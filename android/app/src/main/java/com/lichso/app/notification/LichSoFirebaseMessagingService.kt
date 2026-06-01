@@ -3,7 +3,6 @@ package com.lichso.app.notification
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
-import android.provider.Settings
 import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -69,10 +68,7 @@ class LichSoFirebaseMessagingService : FirebaseMessagingService() {
 
     private suspend fun registerWithBackend(fcmToken: String) {
         val authToken = tokenManager.getAccessToken()
-        val deviceId = Settings.Secure.getString(
-            contentResolver,
-            Settings.Secure.ANDROID_ID
-        ) ?: ""
+        val deviceId = tokenManager.getInstallationId()
 
         val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
         val result = api.registerDeviceToken(
@@ -86,7 +82,7 @@ class LichSoFirebaseMessagingService : FirebaseMessagingService() {
         if (result.isSuccess) {
             Log.d(TAG, "Device token registered with backend")
         } else {
-            Log.w(TAG, "Failed to register device token: ${result.exceptionOrNull()?.message}")
+            Log.w(TAG, "Failed to register device token", result.exceptionOrNull())
         }
     }
 

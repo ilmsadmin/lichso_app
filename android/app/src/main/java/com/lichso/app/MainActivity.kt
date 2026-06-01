@@ -1,27 +1,33 @@
 package com.lichso.app
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.datastore.preferences.core.edit
 import com.lichso.app.ui.LichSoMainScreen
 import com.lichso.app.ui.screen.onboarding.OnboardingScreen
 import com.lichso.app.ui.screen.settings.SettingsKeys
 import com.lichso.app.ui.screen.settings.safeSettingsData
 import com.lichso.app.ui.screen.settings.settingsDataStore
-import com.lichso.app.ui.screen.splash.SplashScreen
 import com.lichso.app.ui.theme.LichSoTheme
-import com.lichso.app.ui.theme.seasonalPaletteForMonth
 import com.lichso.app.update.InAppUpdateManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
@@ -29,7 +35,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
-private enum class AppScreen { SPLASH, ONBOARDING, MAIN }
+private enum class AppScreen { ONBOARDING, MAIN }
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -110,30 +116,42 @@ class MainActivity : ComponentActivity() {
                 com.lichso.app.ui.theme.solarTermPalette(LocalDate.now())
             } else null
 
-            // Track which screen to show
-            var currentScreen by remember { mutableStateOf(AppScreen.SPLASH) }
-
-            // Read onboarding state once on first composition
-            var onboardingCompleted by remember { mutableStateOf<Boolean?>(null) }
+            // Không còn màn splash: vào thẳng Onboarding (nếu chưa xong) hoặc Main.
+            // currentScreen = null trong lúc đọc cờ onboarding từ DataStore (rất nhanh)
+            // → chỉ hiển thị nền theme, tránh nháy sai màn.
+            var currentScreen by remember { mutableStateOf<AppScreen?>(null) }
             LaunchedEffect(Unit) {
                 val prefs = context.safeSettingsData.first()
-                onboardingCompleted = prefs[SettingsKeys.ONBOARDING_COMPLETED] ?: false
+                val done = prefs[SettingsKeys.ONBOARDING_COMPLETED] ?: false
+                currentScreen = if (done) AppScreen.MAIN else AppScreen.ONBOARDING
+            }
+
+            // ── Xin quyền thông báo (Android 13+) khi vào Home ──
+            // Thay cho trang cấp quyền trong onboarding: hệ thống sẽ tự hỏi 1 lần.
+            val notifPermLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { /* user chọn cho/không — app vẫn chạy bình thường */ }
+            LaunchedEffect(currentScreen) {
+                if (currentScreen == AppScreen.MAIN &&
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                ) {
+                    val granted = ContextCompat.checkSelfPermission(
+                        context, Manifest.permission.POST_NOTIFICATIONS
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (!granted) {
+                        notifPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                }
             }
 
             LichSoTheme(darkTheme = darkMode, seasonalColors = seasonalColors) {
                 when (currentScreen) {
-                    AppScreen.SPLASH -> {
-                        SplashScreen(
-                            onSplashFinished = {
-                                currentScreen = when (onboardingCompleted) {
-                                    true -> AppScreen.MAIN
-                                    false -> AppScreen.ONBOARDING
-                                    // null = still loading from DataStore, default to MAIN to avoid blank screen
-                                    null -> AppScreen.MAIN
-                                }
-                            }
-                        )
-                    }
+                    // Đang đọc cờ onboarding — nền theme trống trong tích tắc.
+                    null -> androidx.compose.foundation.layout.Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background)
+                    )
 
                     AppScreen.ONBOARDING -> {
                         OnboardingScreen(

@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.lichso.app.R
+import com.lichso.app.feature.tour.tourTarget
 import com.lichso.app.data.remote.Banner
 import com.lichso.app.data.remote.WeatherState
 import com.lichso.app.domain.HistoricalEventProvider
@@ -416,6 +417,7 @@ private fun RedTopSection(
                 Box(
                     modifier = Modifier
                         .size(40.dp)
+                        .tourTarget("menu")
                         .background(Color.White.copy(alpha = 0.15f), CircleShape)
                         .clip(CircleShape)
                         .clickable { onMenuClick() },

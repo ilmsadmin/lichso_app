@@ -139,7 +139,9 @@ QUY TẮC FORMAT BẮT BUỘC (rất quan trọng, phải tuân thủ tuyệt đ
             val proxyAppSecret = BuildConfig.AI_PROXY_APP_SECRET.trim()
 
             if (proxyBaseUrl.isBlank() || proxyAppId.isBlank() || proxyAppSecret.isBlank()) {
-                return@withContext Result.failure(Exception("AI proxy chưa được cấu hình đầy đủ (AI_PROXY_*)."))
+                return@withContext Result.failure(
+                    IllegalStateException("Tính năng AI hiện chưa sẵn sàng. Vui lòng thử lại sau.")
+                )
             }
             val proxyUrl = buildProxyUrl(proxyBaseUrl)
 
@@ -183,14 +185,21 @@ QUY TẮC FORMAT BẮT BUỘC (rất quan trọng, phải tuân thủ tuyệt đ
                     if (content != null) {
                         Result.success(content.trim())
                     } else {
-                        Result.failure(Exception("Empty response from AI"))
+                        Result.failure(Exception("AI chưa có phản hồi phù hợp. Vui lòng thử lại."))
                     }
                 } else {
-                    Result.failure(Exception("API error ${resp.code}: ${body?.take(200)}"))
+                    val message = when (resp.code) {
+                        401, 403 -> "Tính năng AI hiện chưa sẵn sàng. Vui lòng thử lại sau."
+                        408 -> "Kết nối AI quá chậm. Vui lòng thử lại."
+                        429 -> "AI đang có nhiều yêu cầu. Vui lòng chờ một lát rồi thử lại."
+                        in 500..599 -> "Máy chủ AI đang bận. Vui lòng thử lại sau."
+                        else -> "Không thể kết nối AI lúc này. Vui lòng thử lại."
+                    }
+                    Result.failure(LichSoApiException(resp.code, message))
                 }
             }
         } catch (e: java.io.IOException) {
-            Result.failure(Exception("Lỗi kết nối mạng: ${e.message}"))
+            Result.failure(e)
         } catch (e: Exception) {
             Result.failure(e)
         }

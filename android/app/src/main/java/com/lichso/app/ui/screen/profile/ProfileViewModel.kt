@@ -681,7 +681,11 @@ class ProfileViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     isDeletingAccount = false,
-                    toastMessage = if (result.isSuccess) "Tài khoản đã được xóa" else "Xóa tài khoản thất bại: ${result.exceptionOrNull()?.message}"
+                    toastMessage = if (result.isSuccess) {
+                        "Tài khoản đã được xóa"
+                    } else {
+                        "Không thể xóa tài khoản: ${ErrorMessageUtil.friendlyMessage(result.exceptionOrNull())}"
+                    }
                 )
             }
         }

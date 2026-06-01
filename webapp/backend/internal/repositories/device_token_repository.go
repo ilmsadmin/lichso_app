@@ -21,31 +21,82 @@ func NewDeviceTokenRepository(db *gorm.DB) *DeviceTokenRepository {
 // an existing linked user — prevents cold-start (unauthenticated) registration
 // from unlinking a token that was already associated with a user account.
 func (r *DeviceTokenRepository) Upsert(token *models.DeviceToken) error {
-	// Build raw SQL for the upsert so we can use COALESCE on user_id.
-	sql := `
-		INSERT INTO device_tokens
-			(user_id, token, platform, app_version, device_id, device_name, is_active, last_seen, created_at, updated_at)
-		VALUES
-			(?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), NOW())
-		ON CONFLICT (token) DO UPDATE SET
-			user_id     = COALESCE(EXCLUDED.user_id, device_tokens.user_id),
-			platform    = EXCLUDED.platform,
-			app_version = EXCLUDED.app_version,
-			device_id   = EXCLUDED.device_id,
-			device_name = CASE WHEN EXCLUDED.device_name != '' THEN EXCLUDED.device_name ELSE device_tokens.device_name END,
-			is_active   = EXCLUDED.is_active,
-			last_seen   = NOW(),
-			updated_at  = NOW()
-		RETURNING id, created_at, updated_at, last_seen
-	`
-	var userID interface{}
-	if token.UserID != nil {
-		userID = token.UserID
+	var existing models.DeviceToken
+	var err error
+	found := false
+
+	// 1. Try to find by token first
+	if token.Token != "" {
+		err = r.db.Where("token = ? AND deleted_at IS NULL", token.Token).First(&existing).Error
+		if err == nil {
+			found = true
+		} else if err != gorm.ErrRecordNotFound {
+			return err
+		}
 	}
-	return r.db.Raw(sql,
-		userID, token.Token, token.Platform,
-		token.AppVersion, token.DeviceID, token.DeviceName, token.IsActive,
-	).Scan(token).Error
+
+	// 2. If not found by token, try to find by device_id (if provided and non-empty)
+	if !found && token.DeviceID != "" {
+		err = r.db.Where("device_id = ? AND deleted_at IS NULL", token.DeviceID).
+			Order("last_seen DESC, updated_at DESC").
+			First(&existing).Error
+		if err == nil {
+			found = true
+		} else if err != gorm.ErrRecordNotFound {
+			return err
+		}
+	}
+
+	if found {
+		// Update existing record
+		if token.UserID != nil {
+			existing.UserID = token.UserID
+		}
+		// If Token has changed, update it
+		if token.Token != "" {
+			existing.Token = token.Token
+		}
+		existing.Platform = token.Platform
+		existing.AppVersion = token.AppVersion
+		existing.DeviceID = token.DeviceID
+		if token.DeviceName != "" {
+			existing.DeviceName = token.DeviceName
+		}
+		existing.IsActive = token.IsActive
+		existing.LastSeen = time.Now()
+		existing.UpdatedAt = time.Now()
+
+		if err := r.db.Save(&existing).Error; err != nil {
+			return err
+		}
+		// Update token struct fields with saved values (for caller compatibility)
+		token.ID = existing.ID
+		token.UserID = existing.UserID
+		token.CreatedAt = existing.CreatedAt
+		token.UpdatedAt = existing.UpdatedAt
+		token.LastSeen = existing.LastSeen
+
+		// Deactivate any other records with the same device_id to prevent duplicates
+		if token.DeviceID != "" {
+			err = r.db.Model(&models.DeviceToken{}).
+				Where("device_id = ? AND id != ? AND deleted_at IS NULL", token.DeviceID, existing.ID).
+				Updates(map[string]interface{}{
+					"is_active":  false,
+					"updated_at": time.Now(),
+				}).Error
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	// 3. Not found by token or device_id, insert a new record
+	token.ID = uuid.New()
+	token.LastSeen = time.Now()
+	token.CreatedAt = time.Now()
+	token.UpdatedAt = time.Now()
+	return r.db.Create(token).Error
 }
 
 // DeactivateByToken marks a specific token as inactive (logout/unregister).

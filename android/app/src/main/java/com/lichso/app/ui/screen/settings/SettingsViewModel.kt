@@ -37,6 +37,7 @@ val Context.safeSettingsData: Flow<Preferences>
 
 object SettingsKeys {
     val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+    val HOME_TOUR_COMPLETED = booleanPreferencesKey("home_tour_completed")
     val NOTIFY_ENABLED = booleanPreferencesKey("notify_enabled")
     val LUNAR_BADGE = booleanPreferencesKey("lunar_badge")
     val GIO_DAI_CAT = booleanPreferencesKey("gio_dai_cat")

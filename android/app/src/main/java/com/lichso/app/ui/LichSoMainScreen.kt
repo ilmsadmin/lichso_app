@@ -63,6 +63,16 @@ import com.lichso.app.feature.points.ui.DailyOracleDialog
 import com.lichso.app.feature.points.domain.ActionType
 import com.lichso.app.feature.points.domain.Clock as PointsClock
 import com.lichso.app.data.remote.Popup
+import com.lichso.app.feature.tour.LocalTourController
+import com.lichso.app.feature.tour.TourController
+import com.lichso.app.feature.tour.TourOverlay
+import com.lichso.app.feature.tour.TourStep
+import com.lichso.app.feature.tour.tourTarget
+import com.lichso.app.ui.screen.settings.SettingsKeys
+import com.lichso.app.ui.screen.settings.settingsDataStore
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.datastore.preferences.core.edit
+import kotlinx.coroutines.flow.first
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
@@ -95,6 +105,34 @@ fun LichSoMainScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+
+    // ── Tour guide cho người mới (highlight thanh điều hướng & menu) ──
+    val tourController = remember {
+        TourController(
+            steps = listOf(
+                TourStep("home", "Hôm nay", "Chạm để xem nhanh thông tin ngày hôm nay: âm lịch, giờ hoàng đạo, tiết khí."),
+                TourStep("calendar", "Lịch tháng", "Xem lịch âm – dương cả tháng và tra cứu ngày tốt / ngày xấu."),
+                TourStep("tasks", "Ghi chú", "Ghi chú và đặt nhắc việc theo từng ngày."),
+                TourStep("quiz_home", "Đố Vui", "Chơi đố vui kiến thức để nhận điểm thưởng mỗi ngày."),
+                TourStep("tools", "Tiện ích", "Phong thủy, xem ngày, văn khấn, gia phả, trợ lý AI… đều ở đây."),
+                TourStep("menu", "Menu", "Mở menu để vào tất cả tính năng: Văn khấn, Gia phả, Cài đặt và nhiều hơn nữa."),
+            ),
+            onFinished = {
+                scope.launch {
+                    context.settingsDataStore.edit { it[SettingsKeys.HOME_TOUR_COMPLETED] = true }
+                }
+            },
+        )
+    }
+    // Tự khởi động tour lần đầu (sau onboarding, khi vào Home).
+    LaunchedEffect(Unit) {
+        val done = context.settingsDataStore.data.first()[SettingsKeys.HOME_TOUR_COMPLETED] ?: false
+        if (!done && currentRoute == "home") {
+            kotlinx.coroutines.delay(450) // chờ layout đo xong vị trí các mục
+            tourController.start()
+        }
+    }
+
     fun handleBannerAction(target: String) {
         val route = target.trim()
         if (route.isBlank()) return
@@ -142,13 +180,19 @@ fun LichSoMainScreen(
         )
     }
 
-    // ── Daily Oracle Popup: hiển thị 1 lần/ngày khi mở app ──
-    // shouldShowDailyOraclePopup là true khi chưa show hôm nay → chốt vào local state
-    // ngay lập tức để tránh dialog biến mất khi DataStore ghi xong và flow emit false.
+    // ── Daily Oracle Popup: 1 lần/ngày, nhưng KHÔNG mở ngay khi vừa vào app ──
+    // "Để sau": chỉ hiện khi user quay lại Home sau khi đã rời đi ít nhất một lần,
+    // tránh làm phiền lúc khởi động và không đụng tour hướng dẫn.
     val shouldShowDailyOracle by pointsViewModel.shouldShowDailyOraclePopup.collectAsState()
     var dailyOracleVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(shouldShowDailyOracle) {
-        if (shouldShowDailyOracle && !dailyOracleVisible) {
+    var hasLeftHome by remember { mutableStateOf(false) }
+    LaunchedEffect(currentRoute) {
+        if (currentRoute != "home") hasLeftHome = true
+    }
+    LaunchedEffect(currentRoute, shouldShowDailyOracle, hasLeftHome) {
+        if (shouldShowDailyOracle && !dailyOracleVisible &&
+            currentRoute == "home" && hasLeftHome && !tourController.isActive
+        ) {
             dailyOracleVisible = true
             pointsViewModel.dismissDailyOraclePopup() // ghi ngày hôm nay vào DataStore
         }
@@ -221,6 +265,7 @@ fun LichSoMainScreen(
         }
     }
 
+    CompositionLocalProvider(LocalTourController provides tourController) {
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = drawerState.isOpen,
@@ -419,7 +464,6 @@ fun LichSoMainScreen(
                     "history" -> ThisDayInHistoryScreen(onBackClick = { currentRoute = "home" })
                     "chat" -> AIChatScreen(
                         onBackClick = { currentRoute = "home" },
-                        onNavigateToProfile = { currentRoute = "profile" },
                         initialMessage = initialAiMessage.also { initialAiMessage = null }
                     )
                     "settings" -> SettingsScreen(onBackClick = { currentRoute = "home" })
@@ -711,8 +755,12 @@ fun LichSoMainScreen(
                 }
             }
         }
+
+        // ── Tour guide overlay (trên cùng) ──
+        TourOverlay(tourController)
     }
     } // end ModalNavigationDrawer
+    } // end CompositionLocalProvider (LocalTourController)
 }
 
 // ══════════════════════════════════════════
@@ -1115,6 +1163,7 @@ private fun BottomNavBar(
                     Box(
                         modifier = Modifier
                             .weight(1f)
+                            .tourTarget(item.route)
                             .clip(RoundedCornerShape(20.dp))
                             .clickable { onRouteSelected(item.route) },
                         contentAlignment = Alignment.Center
@@ -1163,6 +1212,7 @@ private fun BottomNavBar(
                     Box(
                         modifier = Modifier
                             .weight(1f)
+                            .tourTarget(item.route)
                             .clip(RoundedCornerShape(20.dp))
                             .clickable { onRouteSelected(item.route) },
                         contentAlignment = Alignment.Center
@@ -1215,6 +1265,7 @@ private fun BottomNavBar(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .offset(y = (-16).dp)
+                .tourTarget("home")
         ) {
             Box(
                 modifier = Modifier

@@ -66,18 +66,18 @@ class WeatherApi @Inject constructor(
             if (openMeteoResult.isSuccess) {
                 return@withContext openMeteoResult
             }
-            Log.w(TAG, "Open-Meteo failed: ${openMeteoResult.exceptionOrNull()?.message}, trying wttr.in fallback")
+            Log.w(TAG, "Open-Meteo failed, trying wttr.in fallback", openMeteoResult.exceptionOrNull())
 
             // Fallback: wttr.in
             val wttrResult = fetchFromWttrIn(location)
             if (wttrResult.isSuccess) {
                 return@withContext wttrResult
             }
-            Log.e(TAG, "wttr.in also failed: ${wttrResult.exceptionOrNull()?.message}")
+            Log.e(TAG, "wttr.in also failed", wttrResult.exceptionOrNull())
 
             // Cả hai đều fail
             Result.failure(
-                Exception("Không thể lấy thời tiết. Open-Meteo: ${openMeteoResult.exceptionOrNull()?.message}, wttr.in: ${wttrResult.exceptionOrNull()?.message}")
+                Exception("Không thể cập nhật thời tiết lúc này. Vui lòng thử lại sau.")
             )
         }
 
@@ -104,12 +104,12 @@ class WeatherApi @Inject constructor(
                 val body = resp.body?.string()
 
                 if (!resp.isSuccessful || body.isNullOrBlank()) {
-                    return Result.failure(Exception("HTTP ${resp.code}"))
+                    return Result.failure(LichSoApiException(resp.code, "Không thể cập nhật thời tiết lúc này."))
                 }
 
                 val weatherResponse = gson.fromJson(body, OpenMeteoResponse::class.java)
                 val current = weatherResponse.current
-                    ?: return Result.failure(Exception("No current data"))
+                    ?: return Result.failure(Exception("Không có dữ liệu thời tiết hiện tại."))
 
                 val isDay = (current.isDay ?: 1) == 1
                 val (description, icon) = WeatherInfo.fromWeatherCode(current.weatherCode ?: 0, isDay)
@@ -175,13 +175,13 @@ class WeatherApi @Inject constructor(
                 val body = resp.body?.string()
 
                 if (!resp.isSuccessful || body.isNullOrBlank()) {
-                    return Result.failure(Exception("wttr.in HTTP ${resp.code}"))
+                    return Result.failure(LichSoApiException(resp.code, "Không thể cập nhật thời tiết lúc này."))
                 }
 
                 val root = JsonParser.parseString(body).asJsonObject
                 val currentArray = root.getAsJsonArray("current_condition")
                 if (currentArray == null || currentArray.size() == 0) {
-                    return Result.failure(Exception("wttr.in: no current_condition"))
+                    return Result.failure(Exception("Không có dữ liệu thời tiết hiện tại."))
                 }
                 val current = currentArray[0].asJsonObject
 

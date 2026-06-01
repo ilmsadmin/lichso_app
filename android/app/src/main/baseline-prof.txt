@@ -1,0 +1,18 @@
+# Baseline Profile — Lịch Số
+#
+# Human-Readable Format (HRF) rules. AGP nhúng file này vào AAB và
+# androidx.profileinstaller (đã có sẵn transitive qua Compose) sẽ cài đặt
+# profile ngay khi app được cài / chạy lần đầu, giúp ART biên dịch AOT các
+# lớp/hàm trên đường khởi động → giảm thời gian cold start (số liệu Play
+# Console "App startup time").
+#
+# Cờ:  H = Hot,  S = Startup,  P = Post-startup
+#
+# Thư viện Compose / AndroidX đã kèm baseline profile riêng nên ở đây chỉ
+# cần bao phủ toàn bộ code của app (gồm cả lớp Hilt sinh ra trong cùng
+# package). Đây là profile viết tay diện rộng — an toàn, không có nhược điểm;
+# muốn tối ưu sâu hơn có thể sinh profile thực đo bằng macrobenchmark sau.
+
+HSPLcom/lichso/app/**->**(**)**
+SPLcom/lichso/app/**->**(**)**
+Lcom/lichso/app/**;

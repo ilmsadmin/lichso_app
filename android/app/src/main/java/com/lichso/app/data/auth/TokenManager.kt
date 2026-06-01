@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,6 +23,7 @@ class TokenManager @Inject constructor(
     private val USER_ROLES = stringPreferencesKey("user_roles")           // comma-separated
     private val USER_PERMISSIONS = stringPreferencesKey("user_permissions") // comma-separated
     private val FCM_TOKEN = stringPreferencesKey("fcm_token")
+    private val INSTALLATION_ID = stringPreferencesKey("installation_id")
 
     suspend fun getAccessToken(): String? =
         context.backendTokenDataStore.data.map { it[ACCESS_TOKEN] }.firstOrNull()
@@ -58,7 +60,31 @@ class TokenManager @Inject constructor(
     }
 
     suspend fun clearTokens() {
-        context.backendTokenDataStore.edit { it.clear() }
+        context.backendTokenDataStore.edit { prefs ->
+            prefs.remove(ACCESS_TOKEN)
+            prefs.remove(REFRESH_TOKEN)
+            prefs.remove(BACKEND_USER_ID)
+            prefs.remove(USER_ROLES)
+            prefs.remove(USER_PERMISSIONS)
+        }
+    }
+
+    suspend fun getInstallationId(): String {
+        val existing = context.backendTokenDataStore.data
+            .map { it[INSTALLATION_ID] }
+            .firstOrNull()
+        if (!existing.isNullOrBlank()) return existing
+
+        val created = UUID.randomUUID().toString()
+        context.backendTokenDataStore.edit { prefs ->
+            if (prefs[INSTALLATION_ID].isNullOrBlank()) {
+                prefs[INSTALLATION_ID] = created
+            }
+        }
+        return context.backendTokenDataStore.data
+            .map { it[INSTALLATION_ID] }
+            .firstOrNull()
+            ?: created
     }
 
     suspend fun saveFcmToken(token: String) {

@@ -48,14 +48,20 @@ object AppModule {
                 .header("X-Device-Name", deviceName)
                 .header("X-OS-Version", Build.VERSION.RELEASE ?: "")
 
-            val deviceId = android.provider.Settings.Secure.getString(
-                context.contentResolver, android.provider.Settings.Secure.ANDROID_ID
-            ) ?: ""
+            val deviceId = try {
+                kotlinx.coroutines.runBlocking { tokenManager.getInstallationId() }
+            } catch (_: Exception) {
+                ""
+            }
             if (deviceId.isNotEmpty()) {
                 builder.header("X-Device-ID", deviceId)
             }
 
-            val token = kotlinx.coroutines.runBlocking { tokenManager.getAccessToken() }
+            val token = try {
+                kotlinx.coroutines.runBlocking { tokenManager.getAccessToken() }
+            } catch (_: Exception) {
+                null
+            }
             if (!token.isNullOrEmpty() && chain.request().header("Authorization") == null) {
                 builder.header("Authorization", "Bearer $token")
             }
@@ -70,12 +76,17 @@ object AppModule {
         // Interceptor to cache responses even if server has no cache headers (e.g. 7 days for articles)
         val cacheInterceptor = Interceptor { chain ->
             val response = chain.proceed(chain.request())
-            val cacheControl = okhttp3.CacheControl.Builder()
-                .maxAge(7, TimeUnit.DAYS)
-                .build()
-            response.newBuilder()
-                .header("Cache-Control", cacheControl.toString())
-                .build()
+            val request = chain.request()
+            if (request.method == "GET" && request.header("Authorization") == null) {
+                val cacheControl = okhttp3.CacheControl.Builder()
+                    .maxAge(7, TimeUnit.DAYS)
+                    .build()
+                response.newBuilder()
+                    .header("Cache-Control", cacheControl.toString())
+                    .build()
+            } else {
+                response
+            }
         }
 
         return OkHttpClient.Builder()

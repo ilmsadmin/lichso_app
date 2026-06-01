@@ -27,6 +27,8 @@ import com.lichso.app.feature.points.domain.SpendResult
 import com.lichso.app.notification.NotificationScheduler
 import com.lichso.app.ui.screen.profile.ProfileKeys
 import com.lichso.app.ui.screen.settings.settingsDataStore
+import com.lichso.app.util.ErrorMessageUtil
+import androidx.datastore.preferences.core.edit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -159,6 +161,32 @@ class ChatViewModel @Inject constructor(
                         )
                     )
                 }
+            }
+        }
+    }
+
+    /**
+     * Lưu hồ sơ cá nhân từ sheet "Cập nhật hồ sơ" ngay trong màn AI.
+     * Ghi vào DataStore → flow ở init{} tự cập nhật profileSummary & ẩn banner.
+     */
+    fun saveProfile(
+        name: String,
+        day: Int,
+        month: Int,
+        year: Int,
+        hour: Int,
+        minute: Int,
+        gender: String,
+    ) {
+        viewModelScope.launch {
+            dataStore.edit { prefs ->
+                prefs[ProfileKeys.DISPLAY_NAME] = name.trim()
+                prefs[ProfileKeys.BIRTH_DAY] = day
+                prefs[ProfileKeys.BIRTH_MONTH] = month
+                prefs[ProfileKeys.BIRTH_YEAR] = year
+                prefs[ProfileKeys.BIRTH_HOUR] = hour
+                prefs[ProfileKeys.BIRTH_MINUTE] = minute
+                prefs[ProfileKeys.GENDER] = gender
             }
         }
     }
@@ -329,27 +357,11 @@ class ChatViewModel @Inject constructor(
             )
 
             val response = result.getOrElse { error ->
-                val errMsg = error.message ?: ""
-                val hint = when {
-                    errMsg.contains("401") || errMsg.contains("User not found") ->
-                        "🔮 Thầy tử vi đang bận đi uống trà, chưa kịp trả lời!\nĐể tôi tra cứu sách vở giúp bạn trước nhé:\n\n"
-                    errMsg.contains("402") || errMsg.contains("insufficient") ->
-                        "💰 Thầy tử vi đang chờ nạp thêm linh khí (credit)!\nTạm thời tôi xem sách cổ giúp trước nhé:\n\n"
-                    errMsg.contains("403") || errMsg.contains("Forbidden") ->
-                        "🚫 Cánh cổng tâm linh tạm thời bị khóa!\nĐể tôi tra cứu sách vở giúp bạn trước:\n\n"
-                    errMsg.contains("429") ->
-                        "🍵 Thầy đang nghỉ giải lao vì quá nhiều người hỏi!\nBạn thử quay lại sau vài phút nhé. Tạm thời tôi xem giúp:\n\n"
-                    errMsg.contains("500") || errMsg.contains("502") || errMsg.contains("503") ->
-                        "🏚️ Đền thờ AI đang bảo trì...\nThầy sẽ quay lại sớm thôi! Tạm xem nhanh:\n\n"
-                    errMsg.contains("timeout") || errMsg.contains("Timeout") || errMsg.contains("timed out") ->
-                        "🌫️ Đường truyền tâm linh hơi chập chờn...\nKiểm tra kết nối mạng rồi thử lại nhé! Tạm xem nhanh:\n\n"
-                    errMsg.contains("kết nối") || errMsg.contains("network") || errMsg.contains("Unable to resolve") || errMsg.contains("UnknownHost") ->
-                        "📡 Mất kết nối với thế giới tâm linh!\nKiểm tra WiFi/4G rồi thử lại nhé. Tạm xem sách cổ:\n\n"
-                    errMsg.contains("proxy") || errMsg.contains("AI_PROXY_") ->
-                        "🔒 Cổng kết nối AI an toàn chưa sẵn sàng!\nĐể tôi xem sách cổ trả lời trước nhé:\n\n"
-                    else ->
-                        "🔮 Thầy tử vi đang đi vắng, để tôi xem sách cổ trả lời trước nhé!\n\n"
-                }
+                val friendly = ErrorMessageUtil.friendlyMessage(
+                    error,
+                    fallback = "AI đang tạm bận. Tôi sẽ trả lời nhanh bằng dữ liệu có sẵn trước nhé."
+                )
+                val hint = "$friendly\nTạm thời tôi xem sách cổ trả lời trước nhé:\n\n"
                 hint + generateLocalResponse(text.trim())
             }
 
