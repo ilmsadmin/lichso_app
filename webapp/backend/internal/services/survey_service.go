@@ -161,7 +161,7 @@ func (s *SurveyService) SubmitResponse(surveyID uuid.UUID, req *dto.SubmitSurvey
 	}
 
 	if !survey.IsActive {
-		return errors.New("survey is no longer active")
+		return errors.New("Khảo sát này đã kết thúc hoặc không còn hoạt động")
 	}
 
 	// Check if already submitted
@@ -170,7 +170,7 @@ func (s *SurveyService) SubmitResponse(surveyID uuid.UUID, req *dto.SubmitSurvey
 		s.logger.Warn("Failed to check prior survey submissions", zap.Error(err))
 	}
 	if already {
-		return errors.New("you have already submitted a response for this survey")
+		return errors.New("Bạn đã gửi phản hồi cho khảo sát này rồi")
 	}
 
 	// Transform answers
@@ -198,7 +198,7 @@ func (s *SurveyService) SubmitResponse(surveyID uuid.UUID, req *dto.SubmitSurvey
 				}
 			}
 			if !answered {
-				return fmt.Errorf("question '%s' is required", q.Title)
+				return fmt.Errorf("câu hỏi '%s' là bắt buộc", q.Title)
 			}
 		}
 	}
