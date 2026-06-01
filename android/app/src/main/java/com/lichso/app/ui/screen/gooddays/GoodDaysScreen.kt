@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.gooddays
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -124,7 +125,7 @@ fun GoodDaysScreen(onBackClick: () -> Unit = {}, viewModel: HomeViewModel = hilt
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         // ═══ TOP BAR ═══
         AppTopBar(

@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.chat
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -99,7 +100,7 @@ fun AIChatScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
             .then(if (imeBottom > 0) Modifier.imePadding() else Modifier)
     ) {
         // ═══ AI HEADER — Red gradient with gold radial accent ═══
@@ -193,7 +194,7 @@ private fun SuggestionChipsRow(viewModel: ChatViewModel) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(c.bg)
+            .screenBackground(c.bg)
             .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp)
     ) {
         Text(
@@ -423,7 +424,7 @@ private fun ChatInputBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(c.bg)
+            .screenBackground(c.bg)
             .padding(horizontal = 12.dp, vertical = 8.dp)
             .navigationBarsPadding(),
         verticalAlignment = Alignment.Bottom,

@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.prayers
 
+import com.lichso.app.ui.theme.screenBackground
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -54,6 +55,7 @@ fun PrayersScreen(
     onMenuClick: () -> Unit = {},
     onDetailVisibilityChanged: (Boolean) -> Unit = {},
     initialPrayerId: Int? = null,
+    headerImageUrl: String? = null,
     viewModel: PrayersViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -76,7 +78,8 @@ fun PrayersScreen(
             uiState = uiState,
             viewModel = viewModel,
             onBackClick = onBackClick,
-            onMenuClick = onMenuClick
+            onMenuClick = onMenuClick,
+            headerImageUrl = headerImageUrl,
         )
 
         // ── Detail overlay (slide up) ──
@@ -109,18 +112,19 @@ private fun PrayerListScreen(
     uiState: PrayersUiState,
     viewModel: PrayersViewModel,
     onBackClick: () -> Unit,
-    onMenuClick: () -> Unit = {}
+    onMenuClick: () -> Unit = {},
+    headerImageUrl: String? = null,
 ) {
     val c = LichSoThemeColors.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
             .imePadding()
     ) {
         // ── Header ──
-        PrayerHeader(onMenuClick = onMenuClick)
+        PrayerHeader(onMenuClick = onMenuClick, headerImageUrl = headerImageUrl)
 
         // ── Search Bar ──
         SearchBar(
@@ -206,11 +210,12 @@ private fun PrayerListScreen(
 // HEADER
 // ══════════════════════════════════════════
 @Composable
-private fun PrayerHeader(onMenuClick: () -> Unit) {
+private fun PrayerHeader(onMenuClick: () -> Unit, headerImageUrl: String? = null) {
     AppTopBar(
         title = "Văn Khấn",
         onBackClick = onMenuClick,
-        leadingIcon = Icons.Filled.Menu
+        leadingIcon = Icons.Filled.Menu,
+        headerImageUrl = headerImageUrl,
     )
 }
 
@@ -648,7 +653,7 @@ private fun PrayerDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         // ── Detail Header ──
         DetailHeader(
@@ -955,7 +960,7 @@ private fun DetailBottomBar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(c.bg)
+            .screenBackground(c.bg)
             .border(
                 width = 1.dp,
                 color = c.outlineVariant,

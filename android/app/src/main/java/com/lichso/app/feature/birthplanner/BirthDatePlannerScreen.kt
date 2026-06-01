@@ -1,5 +1,6 @@
 package com.lichso.app.feature.birthplanner
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -59,7 +60,7 @@ fun BirthDatePlannerScreen(onBackClick: () -> Unit = {}) {
         }.sortedByDescending { it.score }.take(10)
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(c.bg)) {
+    Column(modifier = Modifier.fillMaxSize().screenBackground(c.bg)) {
         AppTopBar(
             title = "Ngày sinh đẹp",
             subtitle = "Gợi ý ngày quanh dự sinh",

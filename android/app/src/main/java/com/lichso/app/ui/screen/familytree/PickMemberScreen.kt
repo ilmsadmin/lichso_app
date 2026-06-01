@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.familytree
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -69,7 +70,7 @@ fun PickMemberScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
             .imePadding()
     ) {
         // ── Header ──

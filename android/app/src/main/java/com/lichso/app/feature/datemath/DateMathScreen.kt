@@ -1,5 +1,6 @@
 package com.lichso.app.feature.datemath
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -44,7 +45,7 @@ fun DateMathScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         AppTopBar(
             title = "Máy tính ngày",

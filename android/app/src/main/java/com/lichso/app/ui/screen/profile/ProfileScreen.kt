@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.profile
 
+import com.lichso.app.ui.theme.screenBackground
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -152,7 +153,7 @@ fun ProfileScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         // ═══ PROFILE HEADER ═══
         ProfileHeader(

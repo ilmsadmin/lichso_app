@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.calendar
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -48,6 +49,7 @@ fun CalendarScreen(
     onEditVisibilityChanged: (Boolean) -> Unit = {},
     onAskAiClick: (day: Int, month: Int, year: Int) -> Unit = { _, _, _ -> },
     onArticleClick: (String) -> Unit = {},
+    headerImageUrl: String? = null,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val c = LichSoThemeColors.current
@@ -82,6 +84,7 @@ fun CalendarScreen(
             onSearchClick = onSearchClick,
             onMenuClick = onMenuClick,
             onArticleClick = onArticleClick,
+            headerImageUrl = headerImageUrl,
             onDayClick = { day ->
                 viewModel.selectDay(day.solarDay, day.solarMonth, day.solarYear)
                 dayActionsViewModel.selectDate(day.solarDay, day.solarMonth, day.solarYear)
@@ -238,6 +241,7 @@ private fun CalendarContent(
     onSearchClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
     onArticleClick: (String) -> Unit = {},
+    headerImageUrl: String? = null,
     onDayClick: (CalendarDay) -> Unit
 ) {
     val c = LichSoThemeColors.current
@@ -247,7 +251,7 @@ private fun CalendarContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         // ═══ TOP BAR ═══
         AppTopBar(
@@ -255,6 +259,7 @@ private fun CalendarContent(
             subtitle = "Âm lịch · ${uiState.dayInfo?.yearCanChi ?: ""}",
             onBackClick = onMenuClick,
             leadingIcon = Icons.Filled.Menu,
+            headerImageUrl = headerImageUrl,
             actions = {
                 HeaderIconButton(
                     icon = Icons.Filled.Search,

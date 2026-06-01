@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.tasks
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -95,7 +96,7 @@ fun TasksScreen3(
 
     Box(modifier = Modifier.fillMaxSize()) {
         // ═══ LIST SCREEN ═══
-        Column(modifier = Modifier.fillMaxSize().background(c.bg).imePadding()) {
+        Column(modifier = Modifier.fillMaxSize().screenBackground(c.bg).imePadding()) {
         // ═══ TOP BAR ═══
         NTRTopBar(
             selectedTab = selectedTab,

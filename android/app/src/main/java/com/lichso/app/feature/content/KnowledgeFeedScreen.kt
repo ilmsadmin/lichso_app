@@ -1,5 +1,6 @@
 package com.lichso.app.feature.content
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -45,7 +46,7 @@ fun KnowledgeFeedScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         AppTopBar(
             title = "Khám Phá",

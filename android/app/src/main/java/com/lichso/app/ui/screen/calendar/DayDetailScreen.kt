@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.calendar
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -61,7 +62,7 @@ fun DayDetailScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         // ═══ HERO HEADER ═══
         DayDetailHero(

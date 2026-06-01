@@ -459,7 +459,12 @@ class LichSoApi @Inject constructor(
         period: String = "weekly",
         limit: Int = 50,
     ): Result<List<LeaderboardEntry>> = withContext(Dispatchers.IO) {
-        execute(get("/quiz/leaderboard?period=$period&limit=$limit"))
+        // Leaderboard changes immediately after a quiz — always bypass OkHttp disk cache
+        execute(Request.Builder()
+            .url("$BASE_URL/quiz/leaderboard?period=$period&limit=$limit")
+            .cacheControl(CacheControl.FORCE_NETWORK)
+            .build()
+        )
     }
 
     // ── Quiz auth endpoints ──
@@ -506,7 +511,12 @@ class LichSoApi @Inject constructor(
         token: String,
         period: String = "weekly",
     ): Result<MyRankResponse> = withContext(Dispatchers.IO) {
-        execute(get("/quiz/leaderboard/me?period=$period", token))
+        execute(Request.Builder()
+            .url("$BASE_URL/quiz/leaderboard/me?period=$period")
+            .cacheControl(CacheControl.FORCE_NETWORK)
+            .header("Authorization", "Bearer $token")
+            .build()
+        )
     }
 
     suspend fun getPointWallet(token: String): Result<PointWallet> = withContext(Dispatchers.IO) {

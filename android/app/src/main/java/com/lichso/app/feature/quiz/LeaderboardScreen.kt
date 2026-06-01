@@ -1,5 +1,6 @@
 package com.lichso.app.feature.quiz
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,7 +32,7 @@ import com.lichso.app.ui.theme.LichSoThemeColors
 private val periodLabels = listOf(
     "weekly" to "Tuần này",
     "monthly" to "Tháng này",
-    "all_time" to "Toàn thời gian",
+    "alltime" to "Toàn thời gian",
 )
 
 @Composable
@@ -53,7 +54,7 @@ fun LeaderboardScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         AppTopBar(
             title = "Bảng xếp hạng",

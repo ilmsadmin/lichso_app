@@ -1,5 +1,6 @@
 package com.lichso.app.feature.countdown
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -51,7 +52,7 @@ fun CountdownScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         AppTopBar(
             title = "Đếm ngược sự kiện",

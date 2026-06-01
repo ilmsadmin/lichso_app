@@ -690,10 +690,26 @@ func (s *QuizService) applyScoreForUser(userID uuid.UUID, totalPoints int, xp in
 			scoreRow.AvatarURL = publicInfo.AvatarURL
 		}
 		scoreRow.TotalScore += totalPoints
-		scoreRow.WeekScore += totalPoints
-		scoreRow.MonthScore += totalPoints
 		scoreRow.XP += xp
 		scoreRow.UpdatedAt = now
+
+		// Reset week_score at the start of a new ISO week
+		if existing.LastQuiz != nil {
+			nowYear, nowWeek := now.ISOWeek()
+			lastYear, lastWeek := existing.LastQuiz.ISOWeek()
+			if nowYear != lastYear || nowWeek != lastWeek {
+				scoreRow.WeekScore = 0
+			}
+		}
+		scoreRow.WeekScore += totalPoints
+
+		// Reset month_score at the start of a new calendar month
+		if existing.LastQuiz != nil {
+			if now.Year() != existing.LastQuiz.Year() || now.Month() != existing.LastQuiz.Month() {
+				scoreRow.MonthScore = 0
+			}
+		}
+		scoreRow.MonthScore += totalPoints
 
 		if existing.LastQuiz != nil {
 			diff := today.Sub(existing.LastQuiz.Truncate(24 * time.Hour))

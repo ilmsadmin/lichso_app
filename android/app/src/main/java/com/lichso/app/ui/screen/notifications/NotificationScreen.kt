@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.notifications
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -49,7 +50,7 @@ fun NotificationScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         // ═══ TOP BAR ═══
         TopBar(

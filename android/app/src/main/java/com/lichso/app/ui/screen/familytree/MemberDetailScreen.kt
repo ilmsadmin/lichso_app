@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.familytree
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.ui.res.painterResource
 import com.lichso.app.R
 import android.net.Uri
@@ -81,7 +82,7 @@ fun MemberDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         // ── Hero ──
         MemberHero(member, isDeceased, onBack, onEdit = { viewModel.openEditMember(member.id) }, onDelete = { showDeleteDialog = true })
@@ -854,7 +855,7 @@ private fun ActionBar(c: LichSoColors, onEdit: () -> Unit = {}, onDelete: () -> 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(c.bg)
+            .screenBackground(c.bg)
             .drawBehind {
                 drawLine(
                     color = c.outlineVariant,

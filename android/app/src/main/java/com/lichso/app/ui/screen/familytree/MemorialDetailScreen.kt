@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.familytree
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.ui.res.painterResource
 import com.lichso.app.R
 import androidx.compose.foundation.*
@@ -70,7 +71,7 @@ fun MemorialDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
             .imePadding()
     ) {
         // ── Hero ──

@@ -1,5 +1,6 @@
 package com.lichso.app.feature.cycle
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -61,7 +62,7 @@ fun CycleTrackerScreen(
     val fertileEnd = ovulationDay.plusDays(1)
     val daysToNext = ChronoUnit.DAYS.between(today, nextPeriodStart)
 
-    Column(modifier = Modifier.fillMaxSize().background(c.bg)) {
+    Column(modifier = Modifier.fillMaxSize().screenBackground(c.bg)) {
         AppTopBar(
             title = "Chu kỳ kinh nguyệt",
             subtitle = "Dự đoán · Rụng trứng · Lịch sử",

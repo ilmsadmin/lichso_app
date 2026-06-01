@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.familytree
 
+import com.lichso.app.ui.theme.screenBackground
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -91,7 +92,7 @@ fun FamilySettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
             .imePadding()
     ) {
         // Header

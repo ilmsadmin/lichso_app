@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.settings
 
+import com.lichso.app.ui.theme.screenBackground
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Intent
@@ -181,7 +182,7 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         // ═══ TOP BAR ═══
         SettingsTopBar(onBackClick = onBackClick)

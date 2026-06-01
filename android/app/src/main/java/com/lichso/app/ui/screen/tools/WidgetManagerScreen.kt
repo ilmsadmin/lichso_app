@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.tools
 
+import com.lichso.app.ui.theme.screenBackground
 import android.appwidget.AppWidgetManager
 import android.os.Build
 import androidx.compose.foundation.*
@@ -54,7 +55,7 @@ fun WidgetManagerScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         // ═══ TOP BAR ═══
         AppTopBar(

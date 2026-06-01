@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.bookmarks
 
+import com.lichso.app.ui.theme.screenBackground
 import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
@@ -132,7 +133,7 @@ fun BookmarksScreen(
         )
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(c.bg)) {
+    Box(modifier = Modifier.fillMaxSize().screenBackground(c.bg)) {
         Column(modifier = Modifier.fillMaxSize().imePadding()) {
             // ═══ HEADER ═══
             BookmarksHeader(

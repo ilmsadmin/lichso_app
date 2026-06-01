@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.templates
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -58,7 +59,7 @@ private fun TemplateListScreen(
     onTemplateClick: (TemplateItem) -> Unit
 ) {
     val c = LichSoThemeColors.current
-    Box(modifier = Modifier.fillMaxSize().background(c.bg)) {
+    Box(modifier = Modifier.fillMaxSize().screenBackground(c.bg)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -117,7 +118,7 @@ private fun TemplateDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         // Header with back button
         Row(

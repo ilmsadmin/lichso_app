@@ -1,5 +1,6 @@
 package com.lichso.app.feature.quiz
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -68,7 +69,7 @@ fun QuizHomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             AppTopBar(

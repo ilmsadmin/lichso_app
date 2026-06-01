@@ -1,5 +1,6 @@
 package com.lichso.app.feature.quiz
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -53,7 +54,7 @@ fun QuizSessionScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         AppTopBar(
             title = "Đố Vui",

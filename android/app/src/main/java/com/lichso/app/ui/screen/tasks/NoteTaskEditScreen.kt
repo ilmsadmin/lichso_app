@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.tasks
 
+import com.lichso.app.ui.theme.screenBackground
 import android.app.TimePickerDialog
 import android.widget.Toast
 import androidx.compose.animation.*
@@ -189,7 +190,7 @@ fun NoteTaskEditScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()
@@ -1646,7 +1647,7 @@ private fun NoteColorToolbar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         HorizontalDivider(thickness = 0.5.dp, color = c.outlineVariant)
 

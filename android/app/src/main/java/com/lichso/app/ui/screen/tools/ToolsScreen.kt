@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.tools
 
+import com.lichso.app.ui.theme.screenBackground
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.*
@@ -99,7 +100,8 @@ private data class ToolSection(
 fun ToolsScreen(
     onBackClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
-    onToolClick: (ToolAction) -> Unit = {}
+    onToolClick: (ToolAction) -> Unit = {},
+    headerImageUrl: String? = null,
 ) {
     val c = LichSoThemeColors.current
 
@@ -385,13 +387,14 @@ fun ToolsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         AppTopBar(
             title = "Tiện ích",
             subtitle = "Khám phá công cụ hữu ích",
             onBackClick = onMenuClick,
-            leadingIcon = Icons.Filled.Menu
+            leadingIcon = Icons.Filled.Menu,
+            headerImageUrl = headerImageUrl,
         )
 
         Column(

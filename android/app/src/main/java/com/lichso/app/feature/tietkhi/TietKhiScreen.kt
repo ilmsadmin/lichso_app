@@ -1,5 +1,6 @@
 package com.lichso.app.feature.tietkhi
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -76,7 +77,7 @@ fun TietKhiScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg),
+            .screenBackground(c.bg),
     ) {
         AppTopBar(
             title = "24 Tiết Khí",

@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.history
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -74,7 +75,7 @@ fun ThisDayInHistoryScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         // ═══ GREEN GRADIENT HEADER ═══
         HistoryHeader(

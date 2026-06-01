@@ -14,11 +14,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.lichso.app.ui.theme.LichSoThemeColors
 
 // ══════════════════════════════════════════════════════════
@@ -44,6 +46,7 @@ fun AppTopBar(
     onBackClick: (() -> Unit)? = null,
     leadingIcon: ImageVector? = null,
     gradientColors: List<Color>? = null,
+    headerImageUrl: String? = null,
     actions: @Composable RowScope.() -> Unit = {},
     bottomContent: @Composable (ColumnScope.() -> Unit)? = null
 ) {
@@ -57,17 +60,39 @@ fun AppTopBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                Brush.linearGradient(
-                    colors = colors,
-                    start = Offset(0f, 0f),
-                    end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
-                )
+            .then(
+                if (headerImageUrl.isNullOrBlank())
+                    Modifier.background(
+                        Brush.linearGradient(
+                            colors = colors,
+                            start = Offset(0f, 0f),
+                            end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                        )
+                    )
+                else Modifier
             )
             .statusBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
-        Column {
+        // Custom header image (replaces gradient)
+        if (!headerImageUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = headerImageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize(),
+            )
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.Black.copy(alpha = 0.35f))
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+        ) {
             // Top row: back button + title + actions
             Row(
                 modifier = Modifier.fillMaxWidth(),

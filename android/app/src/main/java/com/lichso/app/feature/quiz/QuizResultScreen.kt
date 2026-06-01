@@ -1,5 +1,6 @@
 package com.lichso.app.feature.quiz
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -47,7 +48,7 @@ fun QuizResultScreen(
     val quizState by viewModel.quizState.collectAsState()
     val finishedState = quizState as? QuizState.Finished
 
-    Box(modifier = Modifier.fillMaxSize().background(c.bg)) {
+    Box(modifier = Modifier.fillMaxSize().screenBackground(c.bg)) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {

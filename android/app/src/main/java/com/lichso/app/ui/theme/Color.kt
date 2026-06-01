@@ -1,7 +1,17 @@
 package com.lichso.app.ui.theme
 
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
+
+val LocalScreenBackgroundMode = compositionLocalOf { false }
+
+fun Modifier.screenBackground(defaultColor: Color): Modifier = composed {
+    val hasServerBg = LocalScreenBackgroundMode.current
+    background(if (hasServerBg) Color.Transparent else defaultColor)
+}
 
 // ══════════════════════════════════════════
 // LỊCH SỐ — Design System Colors v2

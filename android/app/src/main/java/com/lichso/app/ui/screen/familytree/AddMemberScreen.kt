@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.familytree
 
+import com.lichso.app.ui.theme.screenBackground
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -109,7 +110,7 @@ fun AddMemberScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
             .imePadding()
     ) {
         // ── Header ──
@@ -443,7 +444,7 @@ fun AddMemberScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(c.bg)
+                .screenBackground(c.bg)
                 .drawBehind {
                     drawLine(c.outlineVariant, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx())
                 }

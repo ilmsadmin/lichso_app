@@ -1,5 +1,6 @@
 package com.lichso.app.ui
 
+import com.lichso.app.ui.theme.screenBackground
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.*
@@ -238,7 +239,7 @@ fun LichSoMainScreen(
         // Bottom bar height (72dp bar + 8dp raised offset) + actual navigation bar inset
         val bottomBarTotalHeight = 80.dp + navBarBottom
 
-        Box(modifier = modifier.fillMaxSize().background(c.bg)) {
+        Box(modifier = modifier.fillMaxSize().screenBackground(c.bg)) {
         // Content area
         Box(
             modifier = Modifier
@@ -263,311 +264,316 @@ fun LichSoMainScreen(
             val headerBgUrl = normalizeServerMediaUrl(
                 rememberScreenBackgroundUrl("${currentRoute}_header", screenBgRepo)
             )
-            when (currentRoute) {
-                "home" -> HomeScreen(
-                    onSettingsClick = { currentRoute = "settings" },
-                    onMenuClick = toggleDrawer,
-                    onProfileClick = { currentRoute = "profile" },
-                    onHistoryClick = { currentRoute = "history" },
-                    onNotificationClick = { currentRoute = "notifications" },
-                    onCountdownClick = { currentRoute = "countdown" },
-                    onFortuneCardShown = {
-                        pointsViewModel.award(ActionType.VIEW_FORTUNE_CARD)
-                    },
-                    onBannerAction = { route -> handleBannerAction(route) },
-                    hasServerBackground = !normalizedBgUrl.isNullOrBlank(),
-                    headerImageUrl = headerBgUrl,
-                )
-                "calendar" -> CalendarScreen(
-                    onGoodDaysClick = { currentRoute = "gooddays" },
-                    onSearchClick = { currentRoute = "search" },
-                    onMenuClick = toggleDrawer,
-                    onEditVisibilityChanged = { taskEditShowing = it },
-                    onAskAiClick = { day, month, year ->
-                        initialAiMessage = "Phân tích chi tiết ngày $day/$month/$year"
-                        currentRoute = "chat"
-                    },
-                    onArticleClick = { articleId ->
-                        selectedArticleId = articleId
-                        articleDetailBackRoute = "calendar"
-                        currentRoute = "article_detail"
-                    },
-                )
-                "gooddays" -> GoodDaysScreen(
-                    onBackClick = { currentRoute = "home" }
-                )
-                "prayers" -> PrayersScreen(
-                    onBackClick = { currentRoute = "home" },
-                    onMenuClick = toggleDrawer,
-                    onDetailVisibilityChanged = { prayerDetailShowing = it },
-                    initialPrayerId = initialPrayerId.also { initialPrayerId = null }
-                )
-                "profile" -> ProfileScreen(
-                    onSettingsClick = { currentRoute = "settings" },
-                    onFamilyTreeClick = { currentRoute = "familytree" },
-                    onBackClick = { currentRoute = "home" },
-                    onMenuClick = toggleDrawer,
-                    onTasksClick = { currentRoute = "tasks" },
-                    onBookmarksClick = { currentRoute = "bookmarks" },
-                    onLedgerClick = { currentRoute = "ledger" },
-                )
-                "tasks" -> TasksScreen3(
-                    onBackClick = { currentRoute = "home" },
-                    onMenuClick = toggleDrawer,
-                    onEditVisibilityChanged = { taskEditShowing = it }
-                )
-                "tools" -> ToolsScreen(
-                    onBackClick = { currentRoute = "home" },
-                    onMenuClick = toggleDrawer,
-                    onToolClick = { action ->
-                        when (action) {
-                            ToolAction.AI_CHAT -> {
-                                initialAiMessage = null
-                                currentRoute = "chat"
+            CompositionLocalProvider(LocalScreenBackgroundMode provides !normalizedBgUrl.isNullOrBlank()) {
+                when (currentRoute) {
+                    "home" -> HomeScreen(
+                        onSettingsClick = { currentRoute = "settings" },
+                        onMenuClick = toggleDrawer,
+                        onProfileClick = { currentRoute = "profile" },
+                        onHistoryClick = { currentRoute = "history" },
+                        onNotificationClick = { currentRoute = "notifications" },
+                        onCountdownClick = { currentRoute = "countdown" },
+                        onFortuneCardShown = {
+                            pointsViewModel.award(ActionType.VIEW_FORTUNE_CARD)
+                        },
+                        onBannerAction = { route -> handleBannerAction(route) },
+                        hasServerBackground = !normalizedBgUrl.isNullOrBlank(),
+                        headerImageUrl = headerBgUrl,
+                    )
+                    "calendar" -> CalendarScreen(
+                        onGoodDaysClick = { currentRoute = "gooddays" },
+                        onSearchClick = { currentRoute = "search" },
+                        onMenuClick = toggleDrawer,
+                        onEditVisibilityChanged = { taskEditShowing = it },
+                        onAskAiClick = { day, month, year ->
+                            initialAiMessage = "Phân tích chi tiết ngày $day/$month/$year"
+                            currentRoute = "chat"
+                        },
+                        onArticleClick = { articleId ->
+                            selectedArticleId = articleId
+                            articleDetailBackRoute = "calendar"
+                            currentRoute = "article_detail"
+                        },
+                        headerImageUrl = headerBgUrl,
+                    )
+                    "gooddays" -> GoodDaysScreen(
+                        onBackClick = { currentRoute = "home" }
+                    )
+                    "prayers" -> PrayersScreen(
+                        onBackClick = { currentRoute = "home" },
+                        onMenuClick = toggleDrawer,
+                        onDetailVisibilityChanged = { prayerDetailShowing = it },
+                        initialPrayerId = initialPrayerId.also { initialPrayerId = null },
+                        headerImageUrl = headerBgUrl,
+                    )
+                    "profile" -> ProfileScreen(
+                        onSettingsClick = { currentRoute = "settings" },
+                        onFamilyTreeClick = { currentRoute = "familytree" },
+                        onBackClick = { currentRoute = "home" },
+                        onMenuClick = toggleDrawer,
+                        onTasksClick = { currentRoute = "tasks" },
+                        onBookmarksClick = { currentRoute = "bookmarks" },
+                        onLedgerClick = { currentRoute = "ledger" },
+                    )
+                    "tasks" -> TasksScreen3(
+                        onBackClick = { currentRoute = "home" },
+                        onMenuClick = toggleDrawer,
+                        onEditVisibilityChanged = { taskEditShowing = it }
+                    )
+                    "tools" -> ToolsScreen(
+                        onBackClick = { currentRoute = "home" },
+                        onMenuClick = toggleDrawer,
+                        onToolClick = { action ->
+                            when (action) {
+                                ToolAction.AI_CHAT -> {
+                                    initialAiMessage = null
+                                    currentRoute = "chat"
+                                }
+                                ToolAction.FENG_SHUI_COMPASS -> currentRoute = "feng_shui_compass"
+                                ToolAction.LO_BAN_RULER -> currentRoute = "lo_ban"
+                                ToolAction.BAT_TRACH -> currentRoute = "bat_trach"
+                                ToolAction.XONG_DAT -> {
+                                    initialAiMessage = "Hãy gợi ý người xông đất hợp tuổi, hợp mệnh và các lưu ý cần tránh cho năm nay."
+                                    currentRoute = "chat"
+                                }
+                                ToolAction.XUAT_HANH -> {
+                                    initialAiMessage = "Hãy gợi ý hướng và giờ xuất hành tốt, kèm giải thích ngắn gọn theo phong thuỷ."
+                                    currentRoute = "chat"
+                                }
+                                ToolAction.SAO_HAN -> {
+                                    initialAiMessage = "Hãy phân tích sao hạn năm nay và cho lời khuyên hoá giải đơn giản, dễ hiểu."
+                                    currentRoute = "chat"
+                                }
+                                ToolAction.PHI_TINH -> {
+                                    initialAiMessage = "Hãy giải thích phi tinh cửu cung và gợi ý cách đọc cơ bản cho người mới."
+                                    currentRoute = "chat"
+                                }
+                                ToolAction.FAMILY_TREE -> currentRoute = "familytree"
+                                ToolAction.HISTORY -> currentRoute = "history"
+                                ToolAction.GOOD_DAYS -> currentRoute = "gooddays"
+                                ToolAction.ZODIAC_COMPAT -> {
+                                    initialSearchTool = "zodiac"
+                                    currentRoute = "search"
+                                    pointsViewModel.award(ActionType.USE_ZODIAC_COMPAT)
+                                }
+                                ToolAction.LUNAR_CONVERT -> {
+                                    initialSearchTool = "lunar"
+                                    currentRoute = "search"
+                                    pointsViewModel.award(ActionType.USE_LUNAR_CONVERTER)
+                                }
+                                ToolAction.PRAYERS -> currentRoute = "prayers"
+                                ToolAction.BOOKMARKS -> currentRoute = "bookmarks"
+                                ToolAction.ORACLE_DRAW -> currentRoute = "oracle_draw"
+                                ToolAction.DAILY_STORE -> currentRoute = "daily_store"
+                                ToolAction.POINTS_LEDGER -> currentRoute = "ledger"
+                                ToolAction.ZODIAC_COLLECTION -> currentRoute = "zodiac_collection"
+                                ToolAction.DATE_PICKER -> currentRoute = "date_picker"
+                                ToolAction.STREAK_FREEZE -> currentRoute = "streak_freeze"
+                                ToolAction.TIET_KHI -> currentRoute = "tiet_khi"
+                                ToolAction.HOW_TO_EARN -> currentRoute = "points_tutorial"
+                                ToolAction.DATE_MATH -> currentRoute = "date_math"
+                                ToolAction.COUNTDOWN -> currentRoute = "countdown"
+                                ToolAction.BIRTH_PLANNER -> currentRoute = "birth_planner"
+                                ToolAction.CYCLE_TRACKER -> currentRoute = "cycle_tracker"
+                                ToolAction.WORLD_CLOCK -> currentRoute = "world_clock"
+                                ToolAction.WIDGET_MANAGER -> currentRoute = "widget_manager"
+                                ToolAction.QUIZ -> currentRoute = "quiz_home"
+                                ToolAction.KNOWLEDGE_FEED -> currentRoute = "knowledge_feed"
+                                else -> {}
                             }
-                            ToolAction.FENG_SHUI_COMPASS -> currentRoute = "feng_shui_compass"
-                            ToolAction.LO_BAN_RULER -> currentRoute = "lo_ban"
-                            ToolAction.BAT_TRACH -> currentRoute = "bat_trach"
-                            ToolAction.XONG_DAT -> {
-                                initialAiMessage = "Hãy gợi ý người xông đất hợp tuổi, hợp mệnh và các lưu ý cần tránh cho năm nay."
-                                currentRoute = "chat"
+                        },
+                        headerImageUrl = headerBgUrl,
+                    )
+                    "feng_shui_compass" -> CompassScreen(
+                        onBackClick = { currentRoute = "tools" },
+                        onAskAiClick = { prompt ->
+                            initialAiMessage = prompt
+                            currentRoute = "chat"
+                        }
+                    )
+                    "lo_ban" -> LoBanScreen(
+                        onBackClick = { currentRoute = "tools" },
+                        onAskAiClick = { prompt ->
+                            initialAiMessage = prompt
+                            currentRoute = "chat"
+                        }
+                    )
+                    "bat_trach" -> BatTrachScreen(
+                        onBackClick = { currentRoute = "tools" },
+                        onAskAiClick = { prompt ->
+                            initialAiMessage = prompt
+                            currentRoute = "chat"
+                        }
+                    )
+                    "notifications" -> NotificationScreen(
+                        onBackClick = { currentRoute = "home" }
+                    )
+                    "familytree" -> FamilyTreeScreen(
+                        onBackClick = { currentRoute = "profile" },
+                        onPrayersClick = { prayerId ->
+                            initialPrayerId = prayerId
+                            currentRoute = "prayers"
+                        }
+                    )
+                    "history" -> ThisDayInHistoryScreen(onBackClick = { currentRoute = "home" })
+                    "chat" -> AIChatScreen(
+                        onBackClick = { currentRoute = "home" },
+                        onNavigateToProfile = { currentRoute = "profile" },
+                        initialMessage = initialAiMessage.also { initialAiMessage = null }
+                    )
+                    "settings" -> SettingsScreen(onBackClick = { currentRoute = "home" })
+                    "search" -> SearchScreen(
+                        onBackClick = { currentRoute = "calendar" },
+                        onDateSelected = { year, month, day ->
+                            homeViewModel.goToDate(year, month, day)
+                            currentRoute = "calendar"
+                        },
+                        onGoodDaysClick = { currentRoute = "gooddays" },
+                        initialTool = initialSearchTool.also { initialSearchTool = null }
+                    )
+                    "bookmarks" -> BookmarksScreen(
+                        onBackClick = { currentRoute = "profile" },
+                        onDateSelected = { year, month, day ->
+                            homeViewModel.goToDate(year, month, day)
+                            currentRoute = "calendar"
+                        },
+                        onAddBookmark = { currentRoute = "calendar" }
+                    )
+                    "oracle_draw" -> com.lichso.app.feature.points.ui.OracleDrawScreen(
+                        onBackClick = { currentRoute = "tools" },
+                        onDrawn = { currentRoute = "oracle_result" },
+                        clock = pointsClock,
+                    )
+                    "oracle_result" -> com.lichso.app.feature.points.ui.OracleResultScreen(
+                        onBackClick = { currentRoute = "tools" },
+                        onAskAi = { prompt ->
+                            initialAiMessage = prompt
+                            currentRoute = "chat"
+                        },
+                        clock = pointsClock,
+                    )
+                    "ledger" -> com.lichso.app.feature.points.ui.LedgerScreen(
+                        onBackClick = { currentRoute = "tools" },
+                    )
+                    "daily_store" -> com.lichso.app.feature.points.ui.DailyUnlockStoreScreen(
+                        onBackClick = { currentRoute = "tools" },
+                    )
+                    "zodiac_collection" -> com.lichso.app.feature.points.ui.ZodiacCollectionScreen(
+                        onBackClick = { currentRoute = "tools" },
+                    )
+                    "date_picker" -> com.lichso.app.feature.datepicker.DatePickerToolScreen(
+                        onBackClick = { currentRoute = "tools" },
+                    )
+                    "streak_freeze" -> com.lichso.app.feature.points.ui.StreakFreezeScreen(
+                        onBackClick = { currentRoute = "profile" },
+                    )
+                    "tiet_khi" -> com.lichso.app.feature.tietkhi.TietKhiScreen(
+                        onBackClick = { currentRoute = "tools" },
+                    )
+                    "date_math" -> com.lichso.app.feature.datemath.DateMathScreen(
+                        onBackClick = { currentRoute = "tools" },
+                    )
+                    "countdown" -> com.lichso.app.feature.countdown.CountdownScreen(
+                        onBackClick = { currentRoute = "tools" },
+                    )
+                    "birth_planner" -> com.lichso.app.feature.birthplanner.BirthDatePlannerScreen(
+                        onBackClick = { currentRoute = "tools" },
+                    )
+                    "cycle_tracker" -> com.lichso.app.feature.cycle.CycleTrackerScreen(
+                        onBackClick = { currentRoute = "tools" },
+                    )
+                    "world_clock" -> com.lichso.app.feature.worldclock.WorldClockScreen(
+                        onBackClick = { currentRoute = "tools" },
+                    )
+                    "points_tutorial" -> com.lichso.app.feature.points.ui.PointsTutorialScreen(
+                        onBack = { currentRoute = "profile" },
+                        onAction = { actionType ->
+                            currentRoute = when (actionType.deeplink) {
+                                "lichso://home" -> "home"
+                                "lichso://calendar" -> "calendar"
+                                "lichso://prayers" -> "prayers"
+                                "lichso://tools" -> "tools"
+                                "lichso://chat" -> "chat"
+                                "lichso://oracle" -> "oracle_draw"
+                                "lichso://history" -> "history"
+                                "lichso://ledger" -> "ledger"
+                                "lichso://profile" -> "profile"
+                                "lichso://store" -> "daily_store"
+                                "lichso://search" -> "search"
+                                "lichso://date_picker" -> "date_picker"
+                                "lichso://bookmarks" -> "bookmarks"
+                                "lichso://tiet_khi" -> "tiet_khi"
+                                "lichso://tasks" -> "home" // tasks integrated in home
+                                else -> "home"
                             }
-                            ToolAction.XUAT_HANH -> {
-                                initialAiMessage = "Hãy gợi ý hướng và giờ xuất hành tốt, kèm giải thích ngắn gọn theo phong thuỷ."
-                                currentRoute = "chat"
-                            }
-                            ToolAction.SAO_HAN -> {
-                                initialAiMessage = "Hãy phân tích sao hạn năm nay và cho lời khuyên hoá giải đơn giản, dễ hiểu."
-                                currentRoute = "chat"
-                            }
-                            ToolAction.PHI_TINH -> {
-                                initialAiMessage = "Hãy giải thích phi tinh cửu cung và gợi ý cách đọc cơ bản cho người mới."
-                                currentRoute = "chat"
-                            }
-                            ToolAction.FAMILY_TREE -> currentRoute = "familytree"
-                            ToolAction.HISTORY -> currentRoute = "history"
-                            ToolAction.GOOD_DAYS -> currentRoute = "gooddays"
-                            ToolAction.ZODIAC_COMPAT -> {
-                                initialSearchTool = "zodiac"
-                                currentRoute = "search"
-                                pointsViewModel.award(ActionType.USE_ZODIAC_COMPAT)
-                            }
-                            ToolAction.LUNAR_CONVERT -> {
-                                initialSearchTool = "lunar"
-                                currentRoute = "search"
-                                pointsViewModel.award(ActionType.USE_LUNAR_CONVERTER)
-                            }
-                            ToolAction.PRAYERS -> currentRoute = "prayers"
-                            ToolAction.BOOKMARKS -> currentRoute = "bookmarks"
-                            ToolAction.ORACLE_DRAW -> currentRoute = "oracle_draw"
-                            ToolAction.DAILY_STORE -> currentRoute = "daily_store"
-                            ToolAction.POINTS_LEDGER -> currentRoute = "ledger"
-                            ToolAction.ZODIAC_COLLECTION -> currentRoute = "zodiac_collection"
-                            ToolAction.DATE_PICKER -> currentRoute = "date_picker"
-                            ToolAction.STREAK_FREEZE -> currentRoute = "streak_freeze"
-                            ToolAction.TIET_KHI -> currentRoute = "tiet_khi"
-                            ToolAction.HOW_TO_EARN -> currentRoute = "points_tutorial"
-                            ToolAction.DATE_MATH -> currentRoute = "date_math"
-                            ToolAction.COUNTDOWN -> currentRoute = "countdown"
-                            ToolAction.BIRTH_PLANNER -> currentRoute = "birth_planner"
-                            ToolAction.CYCLE_TRACKER -> currentRoute = "cycle_tracker"
-                            ToolAction.WORLD_CLOCK -> currentRoute = "world_clock"
-                            ToolAction.WIDGET_MANAGER -> currentRoute = "widget_manager"
-                            ToolAction.QUIZ -> currentRoute = "quiz_home"
-                            ToolAction.KNOWLEDGE_FEED -> currentRoute = "knowledge_feed"
-                            else -> {}
+                        },
+                    )
+                    "widget_manager" -> WidgetManagerScreen(
+                        onBackClick = { currentRoute = "tools" }
+                    )
+                    "quiz_home" -> com.lichso.app.feature.quiz.QuizHomeScreen(
+                        onBackClick = { currentRoute = "home" },
+                        onStartDaily = {
+                            quizCategory = null
+                            currentRoute = "quiz_session"
+                        },
+                        onStartTopic = { category ->
+                            quizCategory = category
+                            currentRoute = "quiz_session"
+                        },
+                        onLeaderboard = { currentRoute = "leaderboard" },
+                    )
+                    "quiz_session" -> com.lichso.app.feature.quiz.QuizSessionScreen(
+                        onBackClick = { currentRoute = "quiz_home" },
+                        onFinished = { currentRoute = "quiz_result" },
+                        initialCategory = quizCategory,
+                        onAskAi = { prompt ->
+                            initialAiMessage = prompt
+                            currentRoute = "chat"
+                        },
+                    )
+                    "quiz_result" -> com.lichso.app.feature.quiz.QuizResultScreen(
+                        onBackClick = { currentRoute = "quiz_home" },
+                        onAskAi = { prompt ->
+                            initialAiMessage = prompt
+                            currentRoute = "chat"
+                        },
+                        onPlayAgain = { currentRoute = "quiz_session" },
+                    )
+                    "leaderboard" -> com.lichso.app.feature.quiz.LeaderboardScreen(
+                        onBackClick = { currentRoute = "quiz_home" },
+                    )
+                    "knowledge_feed" -> com.lichso.app.feature.content.KnowledgeFeedScreen(
+                        onBackClick = { currentRoute = "home" },
+                        onAskAi = { prompt ->
+                            initialAiMessage = prompt
+                            currentRoute = "chat"
+                        },
+                        onArticleClick = { articleId ->
+                            selectedArticleId = articleId
+                            articleDetailBackRoute = "knowledge_feed"
+                            currentRoute = "article_detail"
+                        }
+                    )
+                    "article_detail" -> {
+                        selectedArticleId?.let { articleId ->
+                            com.lichso.app.feature.content.ArticleDetailScreen(
+                                articleId = articleId,
+                                onBackClick = { currentRoute = articleDetailBackRoute }
+                            )
                         }
                     }
-                )
-                "feng_shui_compass" -> CompassScreen(
-                    onBackClick = { currentRoute = "tools" },
-                    onAskAiClick = { prompt ->
-                        initialAiMessage = prompt
-                        currentRoute = "chat"
-                    }
-                )
-                "lo_ban" -> LoBanScreen(
-                    onBackClick = { currentRoute = "tools" },
-                    onAskAiClick = { prompt ->
-                        initialAiMessage = prompt
-                        currentRoute = "chat"
-                    }
-                )
-                "bat_trach" -> BatTrachScreen(
-                    onBackClick = { currentRoute = "tools" },
-                    onAskAiClick = { prompt ->
-                        initialAiMessage = prompt
-                        currentRoute = "chat"
-                    }
-                )
-                "notifications" -> NotificationScreen(
-                    onBackClick = { currentRoute = "home" }
-                )
-                "familytree" -> FamilyTreeScreen(
-                    onBackClick = { currentRoute = "profile" },
-                    onPrayersClick = { prayerId ->
-                        initialPrayerId = prayerId
-                        currentRoute = "prayers"
-                    }
-                )
-                "history" -> ThisDayInHistoryScreen(onBackClick = { currentRoute = "home" })
-                "chat" -> AIChatScreen(
-                    onBackClick = { currentRoute = "home" },
-                    onNavigateToProfile = { currentRoute = "profile" },
-                    initialMessage = initialAiMessage.also { initialAiMessage = null }
-                )
-                "settings" -> SettingsScreen(onBackClick = { currentRoute = "home" })
-                "search" -> SearchScreen(
-                    onBackClick = { currentRoute = "calendar" },
-                    onDateSelected = { year, month, day ->
-                        homeViewModel.goToDate(year, month, day)
-                        currentRoute = "calendar"
-                    },
-                    onGoodDaysClick = { currentRoute = "gooddays" },
-                    initialTool = initialSearchTool.also { initialSearchTool = null }
-                )
-                "bookmarks" -> BookmarksScreen(
-                    onBackClick = { currentRoute = "profile" },
-                    onDateSelected = { year, month, day ->
-                        homeViewModel.goToDate(year, month, day)
-                        currentRoute = "calendar"
-                    },
-                    onAddBookmark = { currentRoute = "calendar" }
-                )
-                "oracle_draw" -> com.lichso.app.feature.points.ui.OracleDrawScreen(
-                    onBackClick = { currentRoute = "tools" },
-                    onDrawn = { currentRoute = "oracle_result" },
-                    clock = pointsClock,
-                )
-                "oracle_result" -> com.lichso.app.feature.points.ui.OracleResultScreen(
-                    onBackClick = { currentRoute = "tools" },
-                    onAskAi = { prompt ->
-                        initialAiMessage = prompt
-                        currentRoute = "chat"
-                    },
-                    clock = pointsClock,
-                )
-                "ledger" -> com.lichso.app.feature.points.ui.LedgerScreen(
-                    onBackClick = { currentRoute = "tools" },
-                )
-                "daily_store" -> com.lichso.app.feature.points.ui.DailyUnlockStoreScreen(
-                    onBackClick = { currentRoute = "tools" },
-                )
-                "zodiac_collection" -> com.lichso.app.feature.points.ui.ZodiacCollectionScreen(
-                    onBackClick = { currentRoute = "tools" },
-                )
-                "date_picker" -> com.lichso.app.feature.datepicker.DatePickerToolScreen(
-                    onBackClick = { currentRoute = "tools" },
-                )
-                "streak_freeze" -> com.lichso.app.feature.points.ui.StreakFreezeScreen(
-                    onBackClick = { currentRoute = "profile" },
-                )
-                "tiet_khi" -> com.lichso.app.feature.tietkhi.TietKhiScreen(
-                    onBackClick = { currentRoute = "tools" },
-                )
-                "date_math" -> com.lichso.app.feature.datemath.DateMathScreen(
-                    onBackClick = { currentRoute = "tools" },
-                )
-                "countdown" -> com.lichso.app.feature.countdown.CountdownScreen(
-                    onBackClick = { currentRoute = "tools" },
-                )
-                "birth_planner" -> com.lichso.app.feature.birthplanner.BirthDatePlannerScreen(
-                    onBackClick = { currentRoute = "tools" },
-                )
-                "cycle_tracker" -> com.lichso.app.feature.cycle.CycleTrackerScreen(
-                    onBackClick = { currentRoute = "tools" },
-                )
-                "world_clock" -> com.lichso.app.feature.worldclock.WorldClockScreen(
-                    onBackClick = { currentRoute = "tools" },
-                )
-                "points_tutorial" -> com.lichso.app.feature.points.ui.PointsTutorialScreen(
-                    onBack = { currentRoute = "profile" },
-                    onAction = { actionType ->
-                        currentRoute = when (actionType.deeplink) {
-                            "lichso://home" -> "home"
-                            "lichso://calendar" -> "calendar"
-                            "lichso://prayers" -> "prayers"
-                            "lichso://tools" -> "tools"
-                            "lichso://chat" -> "chat"
-                            "lichso://oracle" -> "oracle_draw"
-                            "lichso://history" -> "history"
-                            "lichso://ledger" -> "ledger"
-                            "lichso://profile" -> "profile"
-                            "lichso://store" -> "daily_store"
-                            "lichso://search" -> "search"
-                            "lichso://date_picker" -> "date_picker"
-                            "lichso://bookmarks" -> "bookmarks"
-                            "lichso://tiet_khi" -> "tiet_khi"
-                            "lichso://tasks" -> "home" // tasks integrated in home
-                            else -> "home"
-                        }
-                    },
-                )
-                "widget_manager" -> WidgetManagerScreen(
-                    onBackClick = { currentRoute = "tools" }
-                )
-                "quiz_home" -> com.lichso.app.feature.quiz.QuizHomeScreen(
-                    onBackClick = { currentRoute = "home" },
-                    onStartDaily = {
-                        quizCategory = null
-                        currentRoute = "quiz_session"
-                    },
-                    onStartTopic = { category ->
-                        quizCategory = category
-                        currentRoute = "quiz_session"
-                    },
-                    onLeaderboard = { currentRoute = "leaderboard" },
-                )
-                "quiz_session" -> com.lichso.app.feature.quiz.QuizSessionScreen(
-                    onBackClick = { currentRoute = "quiz_home" },
-                    onFinished = { currentRoute = "quiz_result" },
-                    initialCategory = quizCategory,
-                    onAskAi = { prompt ->
-                        initialAiMessage = prompt
-                        currentRoute = "chat"
-                    },
-                )
-                "quiz_result" -> com.lichso.app.feature.quiz.QuizResultScreen(
-                    onBackClick = { currentRoute = "quiz_home" },
-                    onAskAi = { prompt ->
-                        initialAiMessage = prompt
-                        currentRoute = "chat"
-                    },
-                    onPlayAgain = { currentRoute = "quiz_session" },
-                )
-                "leaderboard" -> com.lichso.app.feature.quiz.LeaderboardScreen(
-                    onBackClick = { currentRoute = "quiz_home" },
-                )
-                "knowledge_feed" -> com.lichso.app.feature.content.KnowledgeFeedScreen(
-                    onBackClick = { currentRoute = "home" },
-                    onAskAi = { prompt ->
-                        initialAiMessage = prompt
-                        currentRoute = "chat"
-                    },
-                    onArticleClick = { articleId ->
-                        selectedArticleId = articleId
-                        articleDetailBackRoute = "knowledge_feed"
-                        currentRoute = "article_detail"
-                    }
-                )
-                "article_detail" -> {
-                    selectedArticleId?.let { articleId ->
-                        com.lichso.app.feature.content.ArticleDetailScreen(
-                            articleId = articleId,
-                            onBackClick = { currentRoute = articleDetailBackRoute }
-                        )
-                    }
+                    else -> HomeScreen(
+                        onSettingsClick = { currentRoute = "settings" },
+                        onMenuClick = toggleDrawer,
+                        onProfileClick = { currentRoute = "profile" },
+                        onHistoryClick = { currentRoute = "history" },
+                        onNotificationClick = { currentRoute = "notifications" },
+                        onBannerAction = { route -> handleBannerAction(route) },
+                        hasServerBackground = !normalizedBgUrl.isNullOrBlank(),
+                        headerImageUrl = headerBgUrl,
+                    )
                 }
-                else -> HomeScreen(
-                    onSettingsClick = { currentRoute = "settings" },
-                    onMenuClick = toggleDrawer,
-                    onProfileClick = { currentRoute = "profile" },
-                    onHistoryClick = { currentRoute = "history" },
-                    onNotificationClick = { currentRoute = "notifications" },
-                    onBannerAction = { route -> handleBannerAction(route) },
-                    hasServerBackground = !normalizedBgUrl.isNullOrBlank(),
-                    headerImageUrl = headerBgUrl,
-                )
             }
         }
 
@@ -1090,7 +1096,7 @@ private fun BottomNavBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .background(c.bg)
+                .screenBackground(c.bg)
         ) {
             Row(
                 modifier = Modifier

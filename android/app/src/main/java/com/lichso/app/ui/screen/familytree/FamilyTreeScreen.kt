@@ -1,5 +1,6 @@
 package com.lichso.app.ui.screen.familytree
 
+import com.lichso.app.ui.theme.screenBackground
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -489,7 +490,7 @@ private fun FamilyTreeListScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.bg)
+            .screenBackground(c.bg)
     ) {
         // Header (brown gradient)
         FamilyTreeHeader(uiState, onBackClick, onSettingsClick = { viewModel.openFamilySettings() })
@@ -846,7 +847,7 @@ private fun TabBar(selectedTab: Int, onTabSelect: (Int) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(c.bg)
+            .screenBackground(c.bg)
             .border(width = 0.dp, color = Color.Transparent) // for bottom border
             .drawBehind {
                 drawLine(

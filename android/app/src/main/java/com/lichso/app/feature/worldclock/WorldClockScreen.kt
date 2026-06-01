@@ -1,5 +1,6 @@
 package com.lichso.app.feature.worldclock
 
+import com.lichso.app.ui.theme.screenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -48,7 +49,7 @@ fun WorldClockScreen(
     val c = LichSoThemeColors.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Box(modifier = Modifier.fillMaxSize().background(c.bg)) {
+    Box(modifier = Modifier.fillMaxSize().screenBackground(c.bg)) {
         Column(modifier = Modifier.fillMaxSize()) {
             AppTopBar(
                 title = "Múi giờ thế giới",

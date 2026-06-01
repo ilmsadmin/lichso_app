@@ -839,6 +839,8 @@ class QuizViewModel @Inject constructor(
                 repository.finishSession(token, sessionId).fold(
                     onSuccess = { result ->
                         markReplayCredited(currentSessionType, currentSessionCategory, state.questions.map { it.id })
+                        // Refresh leaderboard immediately so the user sees their new rank
+                        loadLeaderboard(currentLeaderboardPeriod)
                         _quizState.value = QuizState.Finished(result, state.answers, state.questions)
                     },
                     onFailure = {
@@ -847,6 +849,9 @@ class QuizViewModel @Inject constructor(
                 )
             }
         } else {
+            // Guest path or session-ID-less fallback (startSession server error).
+            // Save locally then attempt immediate sync so already-logged-in users
+            // don't lose their score waiting until next app launch.
             viewModelScope.launch {
                 repository.saveGuestSession(
                     sessionType = currentSessionType,
@@ -856,6 +861,14 @@ class QuizViewModel @Inject constructor(
                     startedAtMs = currentSessionStartedAtMs.takeIf { it > 0 } ?: System.currentTimeMillis(),
                     finishedAtMs = System.currentTimeMillis(),
                 )
+                // Sync immediately if we can obtain a valid token
+                val syncToken = authToken ?: refreshBackendTokenForSync()
+                if (!syncToken.isNullOrBlank()) {
+                    val synced = repository.syncPendingGuestSessions(syncToken).getOrNull() ?: 0
+                    if (synced > 0) {
+                        loadLeaderboard(currentLeaderboardPeriod)
+                    }
+                }
             }
             _quizState.value = QuizState.Finished(null, state.answers, state.questions)
         }
