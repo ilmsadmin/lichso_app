@@ -80,6 +80,36 @@ func (m *AuthMiddleware) Authenticate() fiber.Handler {
 	}
 }
 
+// OptionalAuthenticate parses a JWT access token if one is present and stores the
+// user info in locals, but never rejects the request. Use it on endpoints that must
+// serve both guests and logged-in users (e.g. device token registration) so an
+// authenticated caller's device gets linked to their account while guests still pass.
+func (m *AuthMiddleware) OptionalAuthenticate() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		token := extractBearerToken(c)
+		if token == "" {
+			return c.Next()
+		}
+
+		claims, err := utils.ValidateToken(token, m.cfg.JWT.Secret)
+		if err != nil || claims.Type != utils.AccessToken {
+			return c.Next() // treat as guest
+		}
+
+		// Honour token revocation when we can check it.
+		if claims.ID != "" {
+			if isBlacklisted, bErr := m.cacheService.IsTokenBlacklisted(claims.ID); bErr == nil && isBlacklisted {
+				return c.Next()
+			}
+		}
+
+		c.Locals("user_id", claims.UserID.String())
+		c.Locals("user_email", claims.Email)
+		c.Locals("user_roles", claims.Roles)
+		return c.Next()
+	}
+}
+
 // RequireRoles returns a middleware that checks if user has one of the required roles
 func (m *AuthMiddleware) RequireRoles(roles ...string) fiber.Handler {
 	return func(c *fiber.Ctx) error {

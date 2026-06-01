@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lichso.app.ui.components.AppTopBar
 import com.lichso.app.ui.components.LoginNudgeBanner
+import com.lichso.app.ui.components.BannerCarousel
 import com.lichso.app.ui.theme.LichSoThemeColors
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -55,6 +56,7 @@ fun QuizHomeScreen(
     onStartDaily: () -> Unit = {},
     onStartTopic: (String) -> Unit = {},
     onLeaderboard: () -> Unit = {},
+    onBannerAction: (String) -> Unit = {},
     viewModel: QuizViewModel = hiltViewModel(),
 ) {
     val c = LichSoThemeColors.current
@@ -93,6 +95,13 @@ fun QuizHomeScreen(
                 )
 
                 GameplayRulesCard()
+
+                if (homeState.banners.isNotEmpty()) {
+                    BannerCarousel(
+                        banners = homeState.banners,
+                        onBannerAction = onBannerAction,
+                    )
+                }
 
                 // ── Category grid ──
                 SectionHeader(title = "Chọn chủ đề", icon = Icons.Filled.Category)

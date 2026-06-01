@@ -45,12 +45,23 @@ type ChangePasswordRequest struct {
 // GoogleLoginRequest represents a Google OAuth login request
 type GoogleLoginRequest struct {
 	IDToken string `json:"id_token" validate:"required"`
+	// DeviceID lets the backend reconcile an existing anonymous guest user
+	// (provider=guest, provider_id=device_id) with the Google account on sign-in.
+	DeviceID string `json:"device_id"`
 }
 
-// UpdateProfileRequest represents a request to update the current user's profile
+// GuestLoginRequest creates or resumes an anonymous guest session keyed by device id.
+type GuestLoginRequest struct {
+	DeviceID    string `json:"device_id" validate:"required,min=4"`
+	DeviceName  string `json:"device_name"`
+	DisplayName string `json:"display_name"`
+}
+
+// UpdateProfileRequest represents a request to update the current user's profile.
+// LastName is optional so single-token display names (e.g. guests) are accepted.
 type UpdateProfileRequest struct {
 	FirstName string `json:"first_name" validate:"required,min=1,max=100"`
-	LastName  string `json:"last_name" validate:"required,min=1,max=100"`
+	LastName  string `json:"last_name" validate:"omitempty,max=100"`
 }
 
 // ============================================

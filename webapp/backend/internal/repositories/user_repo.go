@@ -357,6 +357,104 @@ func (r *UserRepository) SoftDelete(id uuid.UUID) error {
 	return r.db.Where("id = ?", id).Delete(&models.User{}).Error
 }
 
+// MergeGuestInto reassigns a guest user's data to a destination account in a
+// single transaction. Used when a returning Google account already exists and a
+// separate guest row was created on a new device. Multi-row tables are simply
+// reassigned; composite-unique tables move only non-conflicting rows; aggregate
+// single-row tables (scores/wallet/streak) are summed into the destination.
+func (r *UserRepository) MergeGuestInto(srcID, dstID uuid.UUID) error {
+	if srcID == dstID {
+		return nil
+	}
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// Plain reassign — only keyed by user_id, no other per-user uniqueness.
+		plain := []string{
+			"device_tokens", "bookmarks", "user_notes", "user_countdowns",
+			"reminders", "refresh_tokens", "quiz_sessions", "quiz_assist_usages",
+			"point_transactions", "user_achievements", "newsletter_subscribers",
+		}
+		for _, table := range plain {
+			if err := tx.Exec(
+				fmt.Sprintf("UPDATE %s SET user_id = ? WHERE user_id = ?", table), dstID, srcID,
+			).Error; err != nil {
+				return fmt.Errorf("merge %s: %w", table, err)
+			}
+		}
+
+		// Composite-unique (user_id + key): move rows the destination doesn't
+		// already have, then drop the guest's leftovers.
+		composite := []struct{ table, key string }{
+			{"quiz_category_masteries", "category"},
+			{"user_badges", "badge_key"},
+		}
+		for _, c := range composite {
+			move := fmt.Sprintf(
+				"UPDATE %[1]s s SET user_id = ? WHERE s.user_id = ? AND NOT EXISTS "+
+					"(SELECT 1 FROM %[1]s d WHERE d.user_id = ? AND d.%[2]s = s.%[2]s)",
+				c.table, c.key)
+			if err := tx.Exec(move, dstID, srcID, dstID).Error; err != nil {
+				return fmt.Errorf("merge %s: %w", c.table, err)
+			}
+			if err := tx.Exec(
+				fmt.Sprintf("DELETE FROM %s WHERE user_id = ?", c.table), srcID,
+			).Error; err != nil {
+				return fmt.Errorf("cleanup %s: %w", c.table, err)
+			}
+		}
+
+		// Aggregate single-row tables: insert-or-sum into the destination.
+		if err := tx.Exec(`
+			INSERT INTO quiz_scores (user_id, display_name, avatar_url, total_score, week_score, month_score, best_streak, cur_streak, xp, updated_at)
+			SELECT ?, display_name, avatar_url, total_score, week_score, month_score, best_streak, cur_streak, xp, NOW()
+			FROM quiz_scores WHERE user_id = ?
+			ON CONFLICT (user_id) DO UPDATE SET
+				total_score = quiz_scores.total_score + EXCLUDED.total_score,
+				week_score  = quiz_scores.week_score  + EXCLUDED.week_score,
+				month_score = quiz_scores.month_score + EXCLUDED.month_score,
+				best_streak = GREATEST(quiz_scores.best_streak, EXCLUDED.best_streak),
+				cur_streak  = GREATEST(quiz_scores.cur_streak, EXCLUDED.cur_streak),
+				xp          = quiz_scores.xp + EXCLUDED.xp,
+				updated_at  = NOW()`, dstID, srcID).Error; err != nil {
+			return fmt.Errorf("merge quiz_scores: %w", err)
+		}
+		if err := tx.Exec("DELETE FROM quiz_scores WHERE user_id = ?", srcID).Error; err != nil {
+			return fmt.Errorf("cleanup quiz_scores: %w", err)
+		}
+
+		if err := tx.Exec(`
+			INSERT INTO point_wallets (user_id, balance, lifetime_earned, lifetime_spent, updated_at)
+			SELECT ?, balance, lifetime_earned, lifetime_spent, NOW()
+			FROM point_wallets WHERE user_id = ?
+			ON CONFLICT (user_id) DO UPDATE SET
+				balance         = point_wallets.balance + EXCLUDED.balance,
+				lifetime_earned = point_wallets.lifetime_earned + EXCLUDED.lifetime_earned,
+				lifetime_spent  = point_wallets.lifetime_spent + EXCLUDED.lifetime_spent,
+				updated_at      = NOW()`, dstID, srcID).Error; err != nil {
+			return fmt.Errorf("merge point_wallets: %w", err)
+		}
+		if err := tx.Exec("DELETE FROM point_wallets WHERE user_id = ?", srcID).Error; err != nil {
+			return fmt.Errorf("cleanup point_wallets: %w", err)
+		}
+
+		if err := tx.Exec(`
+			INSERT INTO user_streaks (user_id, current_streak, longest_streak, last_visit_date, total_visits, created_at, updated_at)
+			SELECT ?, current_streak, longest_streak, last_visit_date, total_visits, NOW(), NOW()
+			FROM user_streaks WHERE user_id = ?
+			ON CONFLICT (user_id) DO UPDATE SET
+				current_streak = GREATEST(user_streaks.current_streak, EXCLUDED.current_streak),
+				longest_streak = GREATEST(user_streaks.longest_streak, EXCLUDED.longest_streak),
+				total_visits   = user_streaks.total_visits + EXCLUDED.total_visits,
+				updated_at     = NOW()`, dstID, srcID).Error; err != nil {
+			return fmt.Errorf("merge user_streaks: %w", err)
+		}
+		if err := tx.Exec("DELETE FROM user_streaks WHERE user_id = ?", srcID).Error; err != nil {
+			return fmt.Errorf("cleanup user_streaks: %w", err)
+		}
+
+		return nil
+	})
+}
+
 // ToggleActive toggles the is_active status of a user
 func (r *UserRepository) ToggleActive(id uuid.UUID, isActive bool) error {
 	return r.db.Model(&models.User{}).Where("id = ?", id).

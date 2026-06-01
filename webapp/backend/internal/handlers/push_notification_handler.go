@@ -79,8 +79,8 @@ func (h *PushNotificationHandler) RegisterToken(c *fiber.Ctx) error {
 		LastSeen:   time.Now(),
 	}
 
-	// Attach user ID from JWT claims if authenticated
-	if userIDStr, ok := c.Locals("userID").(string); ok && userIDStr != "" {
+	// Attach user ID from JWT claims if authenticated (set by OptionalAuthenticate).
+	if userIDStr, ok := c.Locals("user_id").(string); ok && userIDStr != "" {
 		if uid, err := uuid.Parse(userIDStr); err == nil {
 			token.UserID = &uid
 		}

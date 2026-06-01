@@ -24,7 +24,11 @@ func NewBannerHandler(service *services.BannerService, validator *validators.Val
 
 // GetActive handles GET /api/banners (public)
 func (h *BannerHandler) GetActive(c *fiber.Ctx) error {
-	banners, err := h.service.GetActiveBanners(clientPlatform(c))
+	location := c.Query("location")
+	if location == "" {
+		location = c.Query("type") // fallback for old clients
+	}
+	banners, err := h.service.GetActiveBanners(clientPlatform(c), location)
 	if err != nil {
 		return utils.ErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}

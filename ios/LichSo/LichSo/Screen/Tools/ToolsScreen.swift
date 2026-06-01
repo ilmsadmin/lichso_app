@@ -12,6 +12,7 @@ struct ToolItem: Identifiable {
 
 struct ToolSection: Identifiable {
     let id = UUID()
+    let bannerType: String
     let title: String
     let subtitle: String
     let accent: Color
@@ -20,12 +21,15 @@ struct ToolSection: Identifiable {
 
 struct ToolsScreen: View {
     var onMenuClick: () -> Void = {}
+    var onBannerAction: (String) -> Void = { _ in }
     
     @State private var activeRoute: String? = nil
+    @State private var sectionBanners: [Banner] = []
     
     // We can use NavigationStack triggers or similar
     let sections = [
         ToolSection(
+            bannerType: "tools_calendar",
             title: "Lịch & Ngày tốt",
             subtitle: "Chọn ngày · Đổi lịch · Tiết khí · Văn khấn",
             accent: Color(hex: "2E7D32"),
@@ -39,6 +43,7 @@ struct ToolsScreen: View {
             ]
         ),
         ToolSection(
+            bannerType: "tools_feng_shui",
             title: "Phong thủy & Nghi lễ",
             subtitle: "La bàn · Lỗ Ban · Bát trạch · Nghi lễ năm",
             accent: Color(hex: "1565C0"),
@@ -53,6 +58,7 @@ struct ToolsScreen: View {
             ]
         ),
         ToolSection(
+            bannerType: "tools_utility",
             title: "Công cụ thực dụng",
             subtitle: "Tính ngày · Đếm ngược · Đồng hồ · Gia phả",
             accent: Color(hex: "1565C0"),
@@ -68,6 +74,7 @@ struct ToolsScreen: View {
             ]
         ),
         ToolSection(
+            bannerType: "tools_collection",
             title: "Kho & Khám phá",
             subtitle: "AI · Rút quẻ · Sưu tập · Điểm thưởng",
             accent: Color(hex: "6A1B9A"),
@@ -124,6 +131,9 @@ struct ToolsScreen: View {
                         .padding(.vertical, 16)
                     }
                 }
+            }
+            .task {
+                await loadSectionBanners()
             }
             .navigationDestination(for: String.self) { route in
                 if route.hasPrefix("ai_chat:") {
@@ -211,6 +221,11 @@ struct ToolsScreen: View {
     
     private func sectionView(_ section: ToolSection) -> some View {
         VStack(alignment: .leading, spacing: 10) {
+            if let banner = sectionBanners.first(where: { $0.type?.lowercased() == section.bannerType.lowercased() }) {
+                sectionBannerView(banner)
+                    .padding(.horizontal, 16)
+            }
+
             // Header
             HStack(spacing: 8) {
                 RoundedRectangle(cornerRadius: 2)
@@ -288,5 +303,71 @@ struct ToolsScreen: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(LSTheme.outlineVariant.opacity(0.3), lineWidth: 1)
         )
+    }
+
+    private func sectionBannerView(_ banner: Banner) -> some View {
+        let imageUrl = normalizeServerMediaUrl(banner.imageUrl)
+        return Button {
+            let route = banner.ctaRoute?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !route.isEmpty {
+                onBannerAction(route)
+            }
+        } label: {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(hex: (banner.bgColor ?? "").replacingOccurrences(of: "#", with: "").isEmpty ? "8D1A00" : (banner.bgColor ?? "").replacingOccurrences(of: "#", with: "")))
+                    .frame(height: 84)
+
+                if let imageUrl, let url = URL(string: imageUrl) {
+                    CachedAsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Color.clear
+                    }
+                    .frame(height: 84)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.black.opacity(0.45),
+                                Color.black.opacity(0.15),
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(banner.title)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    if let subtitle = banner.subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.9))
+                            .lineLimit(1)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    @MainActor
+    private func loadSectionBanners() async {
+        do {
+            let list = try await QuizService.shared.fetchBanners()
+            sectionBanners = list.filter { $0.active }.sorted { $0.sortOrder < $1.sortOrder }
+        } catch {
+            sectionBanners = []
+        }
     }
 }

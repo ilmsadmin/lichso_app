@@ -95,7 +95,7 @@ data class Banner(
     @SerializedName("cta_type") val ctaType: String?,
     @SerializedName("cta_route") val ctaRoute: String?,
     @SerializedName("bg_color") val bgColor: String?,
-    val type: String?,
+    val locations: List<String>?,
     @SerializedName("is_active") val active: Boolean = true,
     @SerializedName("sort_order") val sortOrder: Int = 0,
 )
@@ -354,8 +354,36 @@ class LichSoApi @Inject constructor(
 
     // ── Auth endpoints ──
 
-    suspend fun loginWithGoogle(idToken: String): Result<LoginResponse> = withContext(Dispatchers.IO) {
-        execute(post("/auth/google", mapOf("id_token" to idToken)))
+    suspend fun loginWithGoogle(idToken: String, deviceId: String = ""): Result<LoginResponse> = withContext(Dispatchers.IO) {
+        execute(post("/auth/google", mapOf("id_token" to idToken, "device_id" to deviceId)))
+    }
+
+    /** Creates or resumes an anonymous guest session keyed by device id. */
+    suspend fun guestLogin(
+        deviceId: String,
+        deviceName: String = "",
+        displayName: String = "",
+    ): Result<LoginResponse> = withContext(Dispatchers.IO) {
+        execute(post("/auth/guest", mapOf(
+            "device_id" to deviceId,
+            "device_name" to deviceName,
+            "display_name" to displayName,
+        )))
+    }
+
+    /** Updates the current user's name (works for guest and Google sessions). */
+    suspend fun updateProfile(
+        token: String,
+        firstName: String,
+        lastName: String = "",
+    ): Result<AuthUser> = withContext(Dispatchers.IO) {
+        val json = gson.toJson(mapOf("first_name" to firstName, "last_name" to lastName))
+        val request = Request.Builder()
+            .url("$BASE_URL/auth/me")
+            .put(json.toRequestBody(jsonMediaType))
+            .header("Authorization", "Bearer $token")
+            .build()
+        execute<GetMeData>(request).map { it.user }
     }
 
     suspend fun refreshBackendToken(refreshToken: String): Result<LoginResponse> = withContext(Dispatchers.IO) {
@@ -378,8 +406,12 @@ class LichSoApi @Inject constructor(
 
     // ── Content endpoints ──
 
-    suspend fun getBanners(): Result<List<Banner>> = withContext(Dispatchers.IO) {
-        execute(get("/banners"))
+    suspend fun getBanners(location: String? = null): Result<List<Banner>> = withContext(Dispatchers.IO) {
+        val path = buildString {
+            append("/banners")
+            if (location != null) append("?location=${location.encodeUrl()}")
+        }
+        execute(get(path))
     }
 
     suspend fun getPopups(): Result<List<Popup>> = withContext(Dispatchers.IO) {

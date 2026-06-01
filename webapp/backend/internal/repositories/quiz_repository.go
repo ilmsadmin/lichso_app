@@ -17,6 +17,34 @@ type QuizRepository struct {
 	db *gorm.DB
 }
 
+func localVNTime() time.Time {
+	loc, err := time.LoadLocation("Asia/Ho_Chi_Minh")
+	if err != nil {
+		// Fallback UTC+7
+		loc = time.FixedZone("ICT", 7*60*60)
+	}
+	return time.Now().In(loc)
+}
+
+func currentWeekRangeVN(nowVN time.Time) (time.Time, time.Time) {
+	weekday := int(nowVN.Weekday())
+	if weekday == 0 {
+		weekday = 7 // Sunday
+	}
+	start := time.Date(
+		nowVN.Year(), nowVN.Month(), nowVN.Day(),
+		0, 0, 0, 0, nowVN.Location(),
+	).AddDate(0, 0, -(weekday - 1)) // Monday 00:00
+	end := start.AddDate(0, 0, 7) // next Monday 00:00
+	return start, end
+}
+
+func currentMonthRangeVN(nowVN time.Time) (time.Time, time.Time) {
+	start := time.Date(nowVN.Year(), nowVN.Month(), 1, 0, 0, 0, 0, nowVN.Location())
+	end := start.AddDate(0, 1, 0) // first day next month 00:00
+	return start, end
+}
+
 // QuizUserPublicInfo is the minimal user profile needed by leaderboard rows.
 type QuizUserPublicInfo struct {
 	DisplayName string
@@ -303,12 +331,19 @@ func (r *QuizRepository) GetLeaderboard(period string, limit int) ([]models.Quiz
 		`).
 		Joins("LEFT JOIN users u ON u.id = qs.user_id")
 
+	nowVN := localVNTime()
 	switch period {
 	case "monthly":
+		start, end := currentMonthRangeVN(nowVN)
+		query = query.Where("qs.last_quiz >= ? AND qs.last_quiz < ?", start.UTC(), end.UTC()).
+			Where("qs.month_score > 0")
 		query = query.Order("month_score DESC, total_score DESC")
 	case "alltime":
 		query = query.Order("total_score DESC, best_streak DESC")
 	default: // weekly
+		start, end := currentWeekRangeVN(nowVN)
+		query = query.Where("qs.last_quiz >= ? AND qs.last_quiz < ?", start.UTC(), end.UTC()).
+			Where("qs.week_score > 0")
 		query = query.Order("week_score DESC, total_score DESC")
 	}
 
@@ -324,18 +359,40 @@ func (r *QuizRepository) GetLeaderboard(period string, limit int) ([]models.Quiz
 func (r *QuizRepository) GetUserRank(userID uuid.UUID, period string) (int, error) {
 	var rank int64
 	var col string
+	baseQuery := r.db.Model(&models.QuizScore{})
+	nowVN := localVNTime()
+
 	switch period {
 	case "monthly":
 		col = "month_score"
+		start, end := currentMonthRangeVN(nowVN)
+		baseQuery = baseQuery.Where("last_quiz >= ? AND last_quiz < ?", start.UTC(), end.UTC()).
+			Where("month_score > 0")
 	case "alltime":
 		col = "total_score"
 	default:
 		col = "week_score"
+		start, end := currentWeekRangeVN(nowVN)
+		baseQuery = baseQuery.Where("last_quiz >= ? AND last_quiz < ?", start.UTC(), end.UTC()).
+			Where("week_score > 0")
+	}
+
+	// If user has no valid score in the requested period, they are not ranked.
+	var userScore int64
+	if err := baseQuery.
+		Where("user_id = ?", userID).
+		Select(col).
+		Limit(1).
+		Scan(&userScore).Error; err != nil {
+		return 0, err
+	}
+	if userScore <= 0 {
+		return 0, nil
 	}
 
 	// Count how many users have a higher score than this user.
-	subQuery := r.db.Model(&models.QuizScore{}).Select(col).Where("user_id = ?", userID)
-	err := r.db.Model(&models.QuizScore{}).
+	subQuery := baseQuery.Session(&gorm.Session{}).Select(col).Where("user_id = ?", userID)
+	err := baseQuery.Session(&gorm.Session{}).
 		Where(col+" > (?)", subQuery).
 		Count(&rank).Error
 	if err != nil {

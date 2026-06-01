@@ -34,17 +34,17 @@ func (s *BannerService) Create(req *dto.CreateBannerRequest) (*dto.BannerRespons
 		IconKey:  req.IconKey,
 		CtaText:  req.CtaText,
 		CtaType:  req.CtaType,
-		CtaRoute: req.CtaRoute,
-		BgColor:  req.BgColor,
-		Type:     req.Type,
-		Platform: req.Platform,
+		CtaRoute:  req.CtaRoute,
+		BgColor:   req.BgColor,
+		Locations: req.Locations,
+		Platform:  req.Platform,
 	}
 
 	if banner.CtaType == "" {
 		banner.CtaType = "route"
 	}
-	if banner.Type == "" {
-		banner.Type = "feature"
+	if len(banner.Locations) == 0 {
+		banner.Locations = []string{"home"}
 	}
 	if banner.Platform == "" {
 		banner.Platform = models.PlatformAll
@@ -81,9 +81,9 @@ func (s *BannerService) GetByID(id uuid.UUID) (*dto.BannerResponse, error) {
 }
 
 // GetActiveBanners returns active banners for public API, filtered by client platform
-// ("android"/"ios"; empty returns only platform-agnostic banners).
+// ("android"/"ios"; empty returns only platform-agnostic banners) and location.
 // If use_server_banners setting is false, returns empty list so app uses local banners.
-func (s *BannerService) GetActiveBanners(platform string) ([]dto.BannerResponse, error) {
+func (s *BannerService) GetActiveBanners(platform string, location string) ([]dto.BannerResponse, error) {
 	// Check if server banners are enabled
 	ctx := context.Background()
 	setting, err := s.settingRepo.FindByKey(ctx, models.SettingKeyUseServerBanners)
@@ -96,7 +96,7 @@ func (s *BannerService) GetActiveBanners(platform string) ([]dto.BannerResponse,
 	}
 	// Default: server banners enabled (or setting not found)
 
-	banners, err := s.repo.ListActive(platform)
+	banners, err := s.repo.ListActive(platform, location)
 	if err != nil {
 		s.logger.Error("Failed to fetch active banners", zap.Error(err))
 		return nil, fmt.Errorf("failed to fetch banners: %w", err)
@@ -157,8 +157,8 @@ func (s *BannerService) Update(id uuid.UUID, req *dto.UpdateBannerRequest) (*dto
 	if req.BgColor != nil {
 		banner.BgColor = *req.BgColor
 	}
-	if req.Type != nil {
-		banner.Type = *req.Type
+	if req.Locations != nil {
+		banner.Locations = req.Locations
 	}
 	if req.Platform != nil {
 		banner.Platform = *req.Platform
@@ -239,7 +239,7 @@ func toBannerResponse(b *models.Banner) *dto.BannerResponse {
 		CtaType:   b.CtaType,
 		CtaRoute:  b.CtaRoute,
 		BgColor:   b.BgColor,
-		Type:      b.Type,
+		Locations: b.Locations,
 		Platform:  b.Platform,
 		IsActive:  b.IsActive,
 		SortOrder: b.SortOrder,

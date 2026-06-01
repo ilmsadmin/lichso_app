@@ -1066,13 +1066,46 @@ func (s *QuizService) GetMyRank(userID uuid.UUID, period string) (*MyRankRespons
 		return nil, fmt.Errorf("failed to get rank: %w", err)
 	}
 
+	weekScore := scoreRow.WeekScore
+	monthScore := scoreRow.MonthScore
+	if scoreRow.LastQuiz != nil {
+		loc, err := time.LoadLocation("Asia/Ho_Chi_Minh")
+		if err != nil {
+			loc = time.FixedZone("ICT", 7*60*60)
+		}
+		nowVN := time.Now().In(loc)
+		lastVN := scoreRow.LastQuiz.In(nowVN.Location())
+		weekStart := startOfWeekMonday(nowVN)
+		weekEnd := weekStart.AddDate(0, 0, 7)
+		monthStart := time.Date(nowVN.Year(), nowVN.Month(), 1, 0, 0, 0, 0, nowVN.Location())
+		monthEnd := monthStart.AddDate(0, 1, 0)
+		if lastVN.Before(weekStart) || !lastVN.Before(weekEnd) {
+			weekScore = 0
+		}
+		if lastVN.Before(monthStart) || !lastVN.Before(monthEnd) {
+			monthScore = 0
+		}
+	} else {
+		weekScore = 0
+		monthScore = 0
+	}
+
 	return &MyRankResponse{
 		Rank:       rank,
-		WeekScore:  scoreRow.WeekScore,
-		MonthScore: scoreRow.MonthScore,
+		WeekScore:  weekScore,
+		MonthScore: monthScore,
 		TotalScore: scoreRow.TotalScore,
 		CurStreak:  scoreRow.CurStreak,
 	}, nil
+}
+
+func startOfWeekMonday(t time.Time) time.Time {
+	weekday := int(t.Weekday())
+	if weekday == 0 {
+		weekday = 7
+	}
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location()).
+		AddDate(0, 0, -(weekday - 1))
 }
 
 // ============================================

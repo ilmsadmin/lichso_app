@@ -15,13 +15,16 @@ import {
   Layers3,
   Hash,
 } from "lucide-react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboardStats } from "@/hooks/useDashboard";
 import { useContentStats } from "@/hooks/useContentStats";
 import { useAuth } from "@/hooks/useAuth";
-import { formatDate } from "@/lib/utils";
+import { usePermission } from "@/hooks/usePermission";
+import { cn, formatDate } from "@/lib/utils";
+import { adminQuickAccessItems } from "@/components/layouts/adminNav";
 
 function StatCard({
   title,
@@ -37,14 +40,20 @@ function StatCard({
   trend?: string;
 }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-muted-foreground text-sm font-medium">{title}</CardTitle>
-        <Icon className="text-muted-foreground h-4 w-4" />
+    <Card className="gap-0 py-4">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 px-4 pb-2">
+        <CardTitle className="text-muted-foreground truncate text-xs font-medium sm:text-sm">
+          {title}
+        </CardTitle>
+        <Icon className="text-muted-foreground h-4 w-4 shrink-0" />
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        {description && <p className="text-muted-foreground mt-1 text-xs">{description}</p>}
+      <CardContent className="px-4">
+        <div className="text-xl font-bold sm:text-2xl">{value}</div>
+        {description && (
+          <p className="text-muted-foreground mt-1 line-clamp-2 text-[11px] sm:text-xs">
+            {description}
+          </p>
+        )}
         {trend && (
           <div className="mt-1 flex items-center gap-1">
             <TrendingUp className="h-3 w-3 text-green-500" />
@@ -93,22 +102,55 @@ function getStatusColor(status: string) {
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+  const { can, isSuperAdmin } = usePermission();
   const { data: stats, isLoading, error } = useDashboardStats();
   const { data: contentStats, isLoading: isContentLoading } = useContentStats();
 
+  const quickItems = adminQuickAccessItems.filter(
+    (item) => !item.permission || isSuperAdmin() || can(item.permission)
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
+        <p className="text-muted-foreground mt-0.5 text-sm sm:mt-1 sm:text-base">
           Welcome back, {user?.full_name || user?.first_name || "User"}!
         </p>
       </div>
 
+      {/* Quick access — grid of frequently used menus */}
+      {quickItems.length > 0 && (
+        <div>
+          <h2 className="mb-2 text-sm font-semibold sm:text-base">Truy cập nhanh</h2>
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8">
+            {quickItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="bg-card hover:bg-accent flex flex-col items-center gap-1.5 rounded-xl border p-2.5 text-center transition active:scale-95 sm:p-3"
+              >
+                <span
+                  className={cn(
+                    "flex h-9 w-9 items-center justify-center rounded-lg sm:h-10 sm:w-10",
+                    item.tint
+                  )}
+                >
+                  <item.icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                </span>
+                <span className="line-clamp-2 text-[10px] leading-tight font-medium sm:text-[11px]">
+                  {item.label}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Stats Cards */}
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <StatsCardSkeleton key={i} />
           ))}
@@ -121,7 +163,7 @@ export default function AdminDashboard() {
         </Card>
       ) : stats ? (
         <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <StatCard
               title="Total Users"
               value={stats.total_users}
@@ -151,15 +193,15 @@ export default function AdminDashboard() {
 
           {/* Content Stats */}
           <div>
-            <h2 className="mb-3 text-lg font-semibold">Quản lý nội dung</h2>
+            <h2 className="mb-2 text-base font-semibold sm:mb-3 sm:text-lg">Quản lý nội dung</h2>
             {isContentLoading ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <StatsCardSkeleton key={`content-${i}`} />
                 ))}
               </div>
             ) : contentStats ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                 <StatCard
                   title="Bài viết"
                   value={contentStats.totalArticles}

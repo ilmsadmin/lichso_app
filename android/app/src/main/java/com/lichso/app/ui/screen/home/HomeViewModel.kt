@@ -282,7 +282,7 @@ class HomeViewModel @Inject constructor(
 
     private fun loadBanners() {
         viewModelScope.launch {
-            contentRepository.getBanners()
+            contentRepository.getBanners("home")
                 .onSuccess { list ->
                     val active = list.filter { it.active }.sortedBy { it.sortOrder }
                     _uiState.update { it.copy(banners = active) }

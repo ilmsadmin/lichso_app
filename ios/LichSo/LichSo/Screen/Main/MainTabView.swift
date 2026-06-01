@@ -106,9 +106,14 @@ struct MainTabView: View {
                             onBannerAction: { route in handleBannerAction(route) }
                         )
                     case .quiz:
-                        QuizHomeScreen()
+                        QuizHomeScreen(
+                            onBannerAction: { route in handleBannerAction(route) }
+                        )
                     case .tools:
-                        ToolsScreen(onMenuClick: { showSidebar = true })
+                        ToolsScreen(
+                            onMenuClick: { showSidebar = true },
+                            onBannerAction: { route in handleBannerAction(route) }
+                        )
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

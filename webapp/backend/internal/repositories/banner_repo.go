@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -33,7 +34,7 @@ func (r *BannerRepository) GetByID(id uuid.UUID) (*models.Banner, error) {
 // ListActive returns active banners within valid date range, ordered by sort_order.
 // When platform is "android" or "ios", only banners targeting that platform (or "all")
 // are returned. An empty platform returns only platform-agnostic ("all") banners.
-func (r *BannerRepository) ListActive(platform string) ([]models.Banner, error) {
+func (r *BannerRepository) ListActive(platform string, location string) ([]models.Banner, error) {
 	var banners []models.Banner
 	now := time.Now()
 	query := r.db.Where("is_active = ?", true).
@@ -44,6 +45,30 @@ func (r *BannerRepository) ListActive(platform string) ([]models.Banner, error) 
 	} else {
 		query = query.Where("platform = ?", models.PlatformAll)
 	}
+
+	if location != "" {
+		// Old clients send ?type=quiz, handle backward compatibility
+		if location == "quiz" {
+			location = "quiz_home"
+		}
+		
+		locs := strings.Split(location, ",")
+		if len(locs) == 1 {
+			query = query.Where("locations @> ?", `["`+locs[0]+`"]`)
+		} else {
+			var orConditions []string
+			var args []interface{}
+			for _, loc := range locs {
+				orConditions = append(orConditions, "locations @> ?")
+				args = append(args, `["`+loc+`"]`)
+			}
+			query = query.Where(strings.Join(orConditions, " OR "), args...)
+		}
+	} else {
+		// By default, exclude quiz banners so they don't leak into home screen on older app versions
+		query = query.Where("NOT (locations @> ?)", `["quiz_home"]`)
+	}
+
 	err := query.Order("sort_order ASC, created_at DESC").Find(&banners).Error
 	return banners, err
 }
@@ -56,7 +81,7 @@ func (r *BannerRepository) ListAll(page, pageSize int, search string) ([]models.
 	query := r.db.Model(&models.Banner{})
 	if search != "" {
 		searchPattern := "%" + search + "%"
-		query = query.Where("(title ILIKE ? OR subtitle ILIKE ? OR type ILIKE ?)", searchPattern, searchPattern, searchPattern)
+		query = query.Where("(title ILIKE ? OR subtitle ILIKE ?)", searchPattern, searchPattern)
 	}
 
 	if err := query.Count(&total).Error; err != nil {

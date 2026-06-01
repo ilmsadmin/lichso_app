@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -101,7 +102,12 @@ fun LeaderboardScreen(
 
         // My rank banner (if available)
         myRank?.let { rank ->
-            MyRankBanner(rank = rank.rank, score = rank.weekScore, modifier = Modifier.padding(horizontal = 16.dp))
+            val myScore = when (selectedPeriod) {
+                "monthly" -> rank.monthScore
+                "alltime" -> rank.totalScore
+                else -> rank.weekScore
+            }
+            MyRankBanner(rank = rank.rank, score = myScore, modifier = Modifier.padding(horizontal = 16.dp))
             Spacer(modifier = Modifier.height(8.dp))
         }
 
@@ -142,7 +148,7 @@ fun LeaderboardScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 itemsIndexed(entries) { _, entry ->
-                    LeaderboardRow(entry = entry)
+                    LeaderboardRow(entry = entry, period = selectedPeriod)
                 }
                 item { Spacer(modifier = Modifier.height(16.dp)) }
             }
@@ -191,8 +197,19 @@ private fun MyRankBanner(rank: Int, score: Int, modifier: Modifier = Modifier) {
 // ── Leaderboard row ──
 
 @Composable
-private fun LeaderboardRow(entry: LeaderboardEntry) {
+private fun LeaderboardRow(entry: LeaderboardEntry, period: String) {
     val c = LichSoThemeColors.current
+    // Score that determines the ranking for the selected tab.
+    val periodScore = when (period) {
+        "monthly" -> entry.monthScore
+        "alltime" -> entry.totalScore
+        else -> entry.weekScore
+    }
+    val periodLabel = when (period) {
+        "monthly" -> "điểm tháng"
+        "alltime" -> "điểm"
+        else -> "điểm tuần"
+    }
     val rankColor = when (entry.rank) {
         1 -> Color(0xFFFFD700)
         2 -> Color(0xFFC0C0C0)
@@ -256,7 +273,8 @@ private fun LeaderboardRow(entry: LeaderboardEntry) {
             )
         }
 
-        // Name + score
+        // Name + period score (kept in the flexible column so the score text
+        // never squeezes the name — that previously truncated "Thái Dương" → "Thái").
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 entry.displayName,
@@ -266,14 +284,15 @@ private fun LeaderboardRow(entry: LeaderboardEntry) {
                     color = c.textPrimary,
                 ),
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
-                "${entry.weekScore} điểm tuần",
+                "$periodScore $periodLabel",
                 style = TextStyle(fontSize = 12.sp, color = c.textSecondary),
             )
         }
 
-        // Total score chip
+        // Total score chip — compact, fixed-width number (same on every tab).
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))

@@ -273,6 +273,34 @@ func (h *AuthHandler) GoogleLogin(c *fiber.Ctx) error {
 	return utils.SuccessResponse(c, "Google login successful", result)
 }
 
+// GuestLogin handles POST /api/auth/guest
+// Creates or resumes an anonymous guest session keyed by device id so every app
+// user (guest included) has a row in the users table.
+func (h *AuthHandler) GuestLogin(c *fiber.Ctx) error {
+	var req dto.GuestLoginRequest
+	if err := c.BodyParser(&req); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid JSON format")
+	}
+
+	if errors := h.validator.ValidateStruct(&req); errors != nil {
+		return utils.ValidationErrorResponse(c, errors)
+	}
+
+	ipAddress := c.IP()
+	userAgent := buildClientUserAgent(c)
+
+	result, err := h.authService.GuestLogin(&req, ipAddress, userAgent)
+	if err != nil {
+		if appErr, ok := utils.IsAppError(err); ok {
+			return utils.ErrorResponse(c, appErr.Code, appErr.Message)
+		}
+		h.logger.Error("Guest login failed", zap.Error(err))
+		return utils.InternalErrorResponse(c)
+	}
+
+	return utils.SuccessResponse(c, "Guest session started", result)
+}
+
 // GetMe handles GET /api/auth/me
 func (h *AuthHandler) GetMe(c *fiber.Ctx) error {
 	// Get user ID from context

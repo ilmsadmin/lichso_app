@@ -62,27 +62,39 @@ class LichSoApp : Application() {
         CalendarWidgetScheduler.scheduleWidgetUpdates(this)
         AppUpdateChecker.schedule(this)
 
-        // Đăng ký FCM token với backend mỗi lần khởi động.
-        // onNewToken trong LichSoFirebaseMessagingService xử lý khi token đổi mới;
-        // đây là fallback đảm bảo token luôn được sync dù service chưa chạy.
+        // Mỗi lần khởi động:
+        //  1. Đảm bảo luôn có backend token — nếu chưa đăng nhập Google thì tạo
+        //     phiên guest ẩn danh (theo device_id) để user nào cũng có bản ghi ở
+        //     bảng users và mọi request đều được gắn vào user đó.
+        //  2. Đăng ký FCM device token với token hiện tại (guest hoặc user) nên
+        //     thiết bị luôn được link đúng người dùng.
         appScope.launch {
             try {
-                val fcmToken = FirebaseMessaging.getInstance().token.await()
-                tokenManager.saveFcmToken(fcmToken)
-                val authToken = tokenManager.getAccessToken()
                 val deviceId = Settings.Secure.getString(
                     contentResolver, Settings.Secure.ANDROID_ID
                 ) ?: ""
                 val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
+
+                // 1. Ensure a backend session (guest fallback).
+                if (tokenManager.getAccessToken() == null && deviceId.isNotEmpty()) {
+                    api.guestLogin(deviceId = deviceId, deviceName = deviceName)
+                        .getOrNull()?.let { resp ->
+                            tokenManager.saveTokens(resp.accessToken, resp.refreshToken)
+                        }
+                }
+
+                // 2. Register FCM device token under the current session.
+                val fcmToken = FirebaseMessaging.getInstance().token.await()
+                tokenManager.saveFcmToken(fcmToken)
                 api.registerDeviceToken(
                     fcmToken = fcmToken,
                     appVersion = com.lichso.app.BuildConfig.VERSION_NAME,
                     deviceId = deviceId,
                     deviceName = deviceName,
-                    authToken = authToken,
+                    authToken = tokenManager.getAccessToken(),
                 )
             } catch (e: Exception) {
-                android.util.Log.w("LichSoApp", "FCM token registration failed: ${e.message}")
+                android.util.Log.w("LichSoApp", "Startup session/FCM registration failed: ${e.message}")
             }
         }
     }

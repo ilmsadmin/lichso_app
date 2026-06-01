@@ -1,14 +1,11 @@
 package com.lichso.app.ui.screen.tools
 
 import com.lichso.app.ui.theme.screenBackground
+import android.graphics.Color as AndroidColor
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -30,8 +27,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.lichso.app.data.remote.Banner
 import com.lichso.app.ui.components.AppTopBar
 import com.lichso.app.ui.icons.PrayerIcons
 import com.lichso.app.ui.theme.LichSoThemeColors
@@ -90,6 +91,7 @@ private data class ToolItem(
 )
 
 private data class ToolSection(
+    val locationKey: String,
     val title: String,
     val subtitle: String,
     val accent: Color,
@@ -101,9 +103,12 @@ fun ToolsScreen(
     onBackClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
     onToolClick: (ToolAction) -> Unit = {},
+    onBannerAction: (String) -> Unit = {},
     headerImageUrl: String? = null,
+    viewModel: ToolsViewModel = hiltViewModel(),
 ) {
     val c = LichSoThemeColors.current
+    val uiState by viewModel.uiState.collectAsState()
 
     // ── Nhóm 1: Lịch & Ngày tốt ──
     val calendarTools = listOf(
@@ -359,24 +364,28 @@ fun ToolsScreen(
 
     val sections = listOf(
         ToolSection(
+            locationKey = "tools_calendar",
             title = "Lịch & Ngày tốt",
             subtitle = "Chọn ngày · Đổi lịch · Tiết khí · Văn khấn",
             accent = Color(0xFF2E7D32),
             items = calendarTools
         ),
         ToolSection(
+            locationKey = "tools_feng_shui",
             title = "Phong thủy & Nghi lễ",
             subtitle = "La bàn · Lỗ Ban · Bát trạch · Nghi lễ năm",
             accent = Color(0xFF1565C0),
             items = fengShuiTools
         ),
         ToolSection(
+            locationKey = "tools_utility",
             title = "Công cụ thực dụng",
             subtitle = "Tính ngày · Đếm ngược · Đồng hồ · Gia phả",
             accent = Color(0xFF1565C0),
             items = utilityTools
         ),
         ToolSection(
+            locationKey = "tools_collection",
             title = "Kho & Khám phá",
             subtitle = "AI · Rút quẻ · Sưu tập · Điểm thưởng",
             accent = Color(0xFF6A1B9A),
@@ -401,9 +410,24 @@ fun ToolsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 16.dp)
+            .padding(bottom = 16.dp)
         ) {
             sections.forEachIndexed { index, section ->
+                val sectionBanner = remember(uiState.banners, section.locationKey) {
+                    uiState.banners.firstOrNull { banner ->
+                        banner.locations?.contains(section.locationKey) == true
+                    }
+                }
+                if (sectionBanner != null) {
+                    ToolsSectionBanner(
+                        banner = sectionBanner,
+                        onClick = {
+                            val route = sectionBanner.ctaRoute
+                            if (!route.isNullOrBlank()) onBannerAction(route)
+                        }
+                    )
+                }
+
                 ToolsSectionHeader(
                     title = section.title,
                     subtitle = section.subtitle,
@@ -491,6 +515,93 @@ fun ToolsScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ToolsSectionBanner(
+    banner: Banner,
+    onClick: () -> Unit,
+) {
+    val cardColor = remember(banner.bgColor) {
+        parseHexColorOrNull(banner.bgColor) ?: Color(0xFF8D1A00)
+    }
+    val imageUrl = remember(banner.imageUrl) { normalizeServerMediaUrl(banner.imageUrl) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(84.dp)
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(cardColor)
+        )
+        if (!imageUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = banner.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.45f),
+                            Color.Black.copy(alpha = 0.16f)
+                        )
+                    )
+                )
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = banner.title,
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+            if (!banner.subtitle.isNullOrBlank()) {
+                Text(
+                    text = banner.subtitle,
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 11.sp,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+private fun parseHexColorOrNull(hex: String?): Color? {
+    val clean = hex?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    return runCatching {
+        Color(AndroidColor.parseColor(clean))
+    }.getOrNull()
+}
+
+private fun normalizeServerMediaUrl(rawUrl: String?): String? {
+    val value = rawUrl?.trim().orEmpty()
+    if (value.isEmpty()) return null
+    if (value.startsWith("http://") || value.startsWith("https://")) return value
+    val cleaned = if (value.startsWith("/")) value.drop(1) else value
+    return when {
+        cleaned.startsWith("api/uploads/") -> "https://lichso.vn/$cleaned"
+        cleaned.startsWith("uploads/") -> "https://lichso.vn/api/$cleaned"
+        else -> "https://lichso.vn/$cleaned"
     }
 }
 

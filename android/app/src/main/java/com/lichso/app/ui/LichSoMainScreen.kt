@@ -323,6 +323,7 @@ fun LichSoMainScreen(
                     "tools" -> ToolsScreen(
                         onBackClick = { currentRoute = "home" },
                         onMenuClick = toggleDrawer,
+                        onBannerAction = { route -> handleBannerAction(route) },
                         onToolClick = { action ->
                             when (action) {
                                 ToolAction.AI_CHAT -> {
@@ -522,6 +523,7 @@ fun LichSoMainScreen(
                             currentRoute = "quiz_session"
                         },
                         onLeaderboard = { currentRoute = "leaderboard" },
+                        onBannerAction = { route -> handleBannerAction(route) },
                     )
                     "quiz_session" -> com.lichso.app.feature.quiz.QuizSessionScreen(
                         onBackClick = { currentRoute = "quiz_home" },

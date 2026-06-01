@@ -11,6 +11,8 @@ import com.lichso.app.data.remote.MyRankResponse
 import com.lichso.app.data.remote.QuizQuestion
 import com.lichso.app.data.remote.SessionResult
 import com.lichso.app.data.remote.SubmitAnswerResult
+import com.lichso.app.data.remote.Banner
+import com.lichso.app.feature.content.ContentRepository
 import com.lichso.app.feature.points.data.PointsRepository
 import com.lichso.app.util.ErrorMessageUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -62,6 +64,7 @@ sealed interface QuizState {
 data class QuizHomeUiState(
     val dailyQuestionCount: Int? = null,
     val categoryQuestionCounts: Map<String, Int> = emptyMap(),
+    val banners: List<Banner> = emptyList(),
 )
 
 enum class QuizAssistType(val cost: Int, val label: String) {
@@ -76,6 +79,7 @@ class QuizViewModel @Inject constructor(
     private val repository: QuizRepository,
     private val authRepository: AuthRepository,
     private val pointsRepository: PointsRepository,
+    private val contentRepository: ContentRepository,
 ) : ViewModel() {
 
     private val sharedPreferences = context.getSharedPreferences("quiz_prefs", Context.MODE_PRIVATE)
@@ -138,9 +142,12 @@ class QuizViewModel @Inject constructor(
             val categoryCounts = categoryIds.associateWith { category ->
                 repository.fetchQuestions(category = category, limit = 50).getOrNull()?.size ?: 0
             }
+            val quizBanners = contentRepository.getBanners("quiz_home").getOrNull() ?: emptyList()
+
             _homeState.value = QuizHomeUiState(
                 dailyQuestionCount = dailyCount,
                 categoryQuestionCounts = categoryCounts,
+                banners = quizBanners,
             )
         }
     }

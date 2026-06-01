@@ -527,39 +527,80 @@ func (s *AuthService) GoogleLogin(req *dto.GoogleLoginRequest, ipAddress, userAg
 		return nil, utils.ErrGoogleTokenInvalid
 	}
 
+	// Look up any anonymous guest tied to this device so we can fold it into the
+	// Google account (upgrade-in-place when possible, merge otherwise).
+	var guest *models.User
+	if deviceID := strings.TrimSpace(req.DeviceID); deviceID != "" {
+		guest, _ = s.userRepo.FindByProvider(models.ProviderGuest, deviceID)
+	}
+
 	// Try to find existing user by provider
 	user, err := s.userRepo.FindByProvider(models.ProviderGoogle, googleUser.Sub)
 	if err != nil {
 		// User not found by provider, check by email
 		user, err = s.userRepo.FindByEmail(googleUser.Email)
 		if err != nil {
-			// No existing user, create a new one
-			user = &models.User{
-				ID:         uuid.New(),
-				Email:      googleUser.Email,
-				FirstName:  googleUser.GivenName,
-				LastName:   googleUser.FamilyName,
-				Avatar:     googleUser.Picture,
-				Provider:   models.ProviderGoogle,
-				ProviderID: googleUser.Sub,
-				IsActive:   true,
-			}
+			if guest != nil {
+				// Upgrade the existing guest in place — same user_id keeps all of the
+				// guest's data (devices, quiz, points, streak) with zero migration.
+				guest.Provider = models.ProviderGoogle
+				guest.ProviderID = googleUser.Sub
+				guest.Email = googleUser.Email
+				if googleUser.Picture != "" {
+					guest.Avatar = googleUser.Picture
+				}
+				// Preserve a name the user personalised; otherwise adopt the Google name.
+				if guest.FirstName == "" || guest.FirstName == "Người dùng" {
+					guest.FirstName = googleUser.GivenName
+					guest.LastName = googleUser.FamilyName
+				}
+				if err := s.userRepo.Update(guest); err != nil {
+					s.logger.Error("Failed to upgrade guest to Google user", zap.Error(err))
+					return nil, utils.ErrDatabaseFail
+				}
+				user = guest
+				guest = nil // consumed by the upgrade
 
-			if err := s.userRepo.Create(user); err != nil {
-				s.logger.Error("Failed to create Google user", zap.Error(err))
-				return nil, utils.ErrDatabaseFail
-			}
+				if len(user.Roles) == 0 {
+					var viewerRole models.Role
+					s.userRepo.FindRoleByName(models.RoleViewer, &viewerRole)
+					if viewerRole.ID != uuid.Nil {
+						_ = s.userRepo.AssignRole(user.ID, viewerRole.ID, nil)
+						user.Roles = []models.Role{viewerRole}
+					}
+				}
 
-			// Assign default viewer role
-			var viewerRole models.Role
-			s.userRepo.FindRoleByName(models.RoleViewer, &viewerRole)
-			if viewerRole.ID != uuid.Nil {
-				_ = s.userRepo.AssignRole(user.ID, viewerRole.ID, nil)
-				user.Roles = []models.Role{viewerRole}
-			}
+				s.logActivity(user.ID.String(), user.Email, models.ActionUserUpdate, models.ModuleAuth,
+					"Guest upgraded to Google account", models.StatusSuccess, ipAddress, userAgent)
+			} else {
+				// No existing user, create a new one
+				user = &models.User{
+					ID:         uuid.New(),
+					Email:      googleUser.Email,
+					FirstName:  googleUser.GivenName,
+					LastName:   googleUser.FamilyName,
+					Avatar:     googleUser.Picture,
+					Provider:   models.ProviderGoogle,
+					ProviderID: googleUser.Sub,
+					IsActive:   true,
+				}
 
-			s.logActivity(user.ID.String(), user.Email, models.ActionUserCreate, models.ModuleAuth,
-				"New user registered via Google", models.StatusSuccess, ipAddress, userAgent)
+				if err := s.userRepo.Create(user); err != nil {
+					s.logger.Error("Failed to create Google user", zap.Error(err))
+					return nil, utils.ErrDatabaseFail
+				}
+
+				// Assign default viewer role
+				var viewerRole models.Role
+				s.userRepo.FindRoleByName(models.RoleViewer, &viewerRole)
+				if viewerRole.ID != uuid.Nil {
+					_ = s.userRepo.AssignRole(user.ID, viewerRole.ID, nil)
+					user.Roles = []models.Role{viewerRole}
+				}
+
+				s.logActivity(user.ID.String(), user.Email, models.ActionUserCreate, models.ModuleAuth,
+					"New user registered via Google", models.StatusSuccess, ipAddress, userAgent)
+			}
 		} else {
 			// User exists with same email but different provider — link Google provider
 			user.Provider = models.ProviderGoogle
@@ -581,6 +622,18 @@ func (s *AuthService) GoogleLogin(req *dto.GoogleLoginRequest, ipAddress, userAg
 				s.logger.Error("Failed to update Google user avatar", zap.Error(err))
 				// Non-fatal: continue login even if avatar update fails
 			}
+		}
+	}
+
+	// A guest row survived (the Google account already existed) — merge the guest's
+	// device/quiz/points data into the resolved account, then retire the guest.
+	if guest != nil && guest.ID != user.ID {
+		if err := s.userRepo.MergeGuestInto(guest.ID, user.ID); err != nil {
+			s.logger.Warn("Failed to merge guest into Google account", zap.Error(err))
+		} else {
+			_ = s.userRepo.SoftDelete(guest.ID)
+			s.logActivity(user.ID.String(), user.Email, models.ActionUserUpdate, models.ModuleAuth,
+				"Merged guest device data into account", models.StatusSuccess, ipAddress, userAgent)
 		}
 	}
 
@@ -641,6 +694,93 @@ func (s *AuthService) GoogleLogin(req *dto.GoogleLoginRequest, ipAddress, userAg
 	// Log activity
 	s.logActivity(user.ID.String(), user.Email, models.ActionUserLogin, models.ModuleAuth,
 		"User logged in via Google", models.StatusSuccess, ipAddress, userAgent)
+
+	return &dto.LoginResponse{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		ExpiresIn:    tokenPair.ExpiresIn,
+		TokenType:    tokenPair.TokenType,
+		User:         dto.ToAuthUserResponse(user, permissions),
+	}, nil
+}
+
+// GuestLogin creates or resumes an anonymous guest user keyed by device id and
+// returns a token pair. This lets the app use the authenticated infrastructure
+// (device linking, profile updates, quiz/points) without a real account, and
+// gives every app user a row in the users table.
+func (s *AuthService) GuestLogin(req *dto.GuestLoginRequest, ipAddress, userAgent string) (*dto.LoginResponse, error) {
+	deviceID := strings.TrimSpace(req.DeviceID)
+	if deviceID == "" {
+		return nil, utils.NewAppError(400, "device_id is required")
+	}
+	displayName := strings.TrimSpace(req.DisplayName)
+
+	user, err := s.userRepo.FindByProvider(models.ProviderGuest, deviceID)
+	if err != nil {
+		// First time we see this device — create a guest user.
+		name := displayName
+		if name == "" {
+			name = "Người dùng"
+		}
+		user = &models.User{
+			ID:         uuid.New(),
+			Email:      models.GuestEmail(deviceID),
+			FirstName:  name,
+			Provider:   models.ProviderGuest,
+			ProviderID: deviceID,
+			IsActive:   true,
+		}
+		if err := s.userRepo.Create(user); err != nil {
+			s.logger.Error("Failed to create guest user", zap.Error(err))
+			return nil, utils.ErrDatabaseFail
+		}
+		s.logActivity(user.ID.String(), user.Email, models.ActionUserCreate, models.ModuleAuth,
+			"New guest user created", models.StatusSuccess, ipAddress, userAgent)
+	} else if displayName != "" && (user.FirstName == "" || user.FirstName == "Người dùng") {
+		// Sync a name the user had set locally before any server identity existed.
+		user.FirstName = displayName
+		if err := s.userRepo.Update(user); err != nil {
+			s.logger.Warn("Failed to update guest display name", zap.Error(err))
+		}
+	}
+
+	if !user.IsActive {
+		return nil, utils.ErrUserInactive
+	}
+
+	// Issue tokens (guests carry no roles).
+	roleNames := make([]string, len(user.Roles))
+	for i, role := range user.Roles {
+		roleNames[i] = role.Name
+	}
+
+	jwtCfg := &utils.JWTConfig{
+		Secret:             s.cfg.JWT.Secret,
+		AccessTokenExpiry:  s.cfg.JWT.AccessTokenExpiry,
+		RefreshTokenExpiry: s.cfg.JWT.RefreshTokenExpiry,
+		Issuer:             s.cfg.JWT.Issuer,
+	}
+	tokenPair, _, err := utils.GenerateTokenPair(jwtCfg, user.ID, user.Email, roleNames)
+	if err != nil {
+		s.logger.Error("Failed to generate guest tokens", zap.Error(err))
+		return nil, utils.ErrInternal
+	}
+
+	refreshToken := &models.RefreshToken{
+		UserID:    user.ID,
+		Token:     tokenPair.RefreshToken,
+		UserAgent: userAgent,
+		IPAddress: ipAddress,
+		ExpiresAt: time.Now().Add(s.cfg.JWT.RefreshTokenExpiry),
+	}
+	if err := s.userRepo.SaveRefreshToken(refreshToken); err != nil {
+		s.logger.Error("Failed to save guest refresh token", zap.Error(err))
+		return nil, utils.ErrDatabaseFail
+	}
+
+	_ = s.userRepo.UpdateLastLogin(user.ID)
+
+	permissions, _ := s.userRepo.GetUserPermissions(user.ID)
 
 	return &dto.LoginResponse{
 		AccessToken:  tokenPair.AccessToken,

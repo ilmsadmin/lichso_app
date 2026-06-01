@@ -19,7 +19,7 @@ type Banner struct {
 	CtaType   string         `gorm:"type:varchar(20);default:'route'" json:"cta_type,omitempty"`
 	CtaRoute  string         `gorm:"type:varchar(255)" json:"cta_route,omitempty"`
 	BgColor   string         `gorm:"type:varchar(20)" json:"bg_color,omitempty"`
-	Type      string         `gorm:"type:varchar(50);default:'feature'" json:"type"`
+	Locations []string       `gorm:"type:jsonb;serializer:json;default:'[\"home\"]'" json:"locations"`
 	Platform  string         `gorm:"type:varchar(20);not null;default:'all'" json:"platform"`
 	IsActive  bool           `gorm:"default:true" json:"is_active"`
 	SortOrder int            `gorm:"default:0" json:"sort_order"`

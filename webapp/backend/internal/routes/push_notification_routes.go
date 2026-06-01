@@ -14,7 +14,9 @@ func SetupPushNotificationRoutes(
 	handler *handlers.PushNotificationHandler,
 ) {
 	// ── Device token registration (optional auth — works for guests too) ──
-	push := router.Group("/push")
+	// OptionalAuthenticate links the device to the caller's account when a valid
+	// Bearer token is present, while still allowing unauthenticated (guest) calls.
+	push := router.Group("/push", authMiddleware.OptionalAuthenticate())
 	push.Post("/register", handler.RegisterToken)
 	push.Delete("/register", handler.UnregisterToken)
 

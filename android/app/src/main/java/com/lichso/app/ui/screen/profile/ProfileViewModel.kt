@@ -468,9 +468,10 @@ class ProfileViewModel @Inject constructor(
             }
         }
 
+        val newName = s.editName.trim().ifBlank { "Người dùng" }
         viewModelScope.launch {
             dataStore.edit { prefs ->
-                prefs[ProfileKeys.DISPLAY_NAME] = s.editName.trim().ifBlank { "Người dùng" }
+                prefs[ProfileKeys.DISPLAY_NAME] = newName
                 prefs[ProfileKeys.EMAIL] = s.editEmail.trim()
                 prefs[ProfileKeys.BIRTH_DAY] = birthDay
                 prefs[ProfileKeys.BIRTH_MONTH] = birthMonth
@@ -479,6 +480,8 @@ class ProfileViewModel @Inject constructor(
                 prefs[ProfileKeys.BIRTH_MINUTE] = birthMinute
                 prefs[ProfileKeys.GENDER] = s.editGender
             }
+            // Sync the display name into the users table (guest or Google session).
+            authRepository.updateProfileName(newName)
             _uiState.update {
                 it.copy(
                     showEditProfileSheet = false,

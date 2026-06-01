@@ -128,8 +128,13 @@ class AuthRepository @Inject constructor(
                     val user = authResult.user
 
                     if (user != null) {
-                        // Exchange Google token for backend JWT (required for app session)
-                        val loginResponse = api.loginWithGoogle(idToken).getOrElse { error ->
+                        val deviceId = Settings.Secure.getString(
+                            context.contentResolver, Settings.Secure.ANDROID_ID
+                        ) ?: ""
+                        // Exchange Google token for backend JWT (required for app session).
+                        // device_id lets the backend fold any anonymous guest for this
+                        // device into the Google account (upgrade-in-place or merge).
+                        val loginResponse = api.loginWithGoogle(idToken, deviceId).getOrElse { error ->
                             firebaseAuth.signOut()
                             tokenManager.clearTokens()
                             return Result.failure(
@@ -149,9 +154,6 @@ class AuthRepository @Inject constructor(
                         // Re-register FCM token with backend now that we have the auth token,
                         // so the device is linked to this user account.
                         tokenManager.getFcmToken()?.let { fcmToken ->
-                            val deviceId = Settings.Secure.getString(
-                                context.contentResolver, Settings.Secure.ANDROID_ID
-                            ) ?: ""
                             val deviceName = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}".trim()
                             api.registerDeviceToken(
                                 fcmToken = fcmToken,
@@ -190,6 +192,19 @@ class AuthRepository @Inject constructor(
     suspend fun getBackendToken(): String? {
         val access = tokenManager.getAccessToken() ?: return null
         return access
+    }
+
+    /**
+     * Pushes the local display name into the users table on the server. Works for
+     * both guest and Google sessions (whichever backend token is current). The
+     * whole name is stored as first_name so single-token names render correctly.
+     */
+    suspend fun updateProfileName(displayName: String): Result<Unit> {
+        val name = displayName.trim()
+        if (name.isEmpty()) return Result.success(Unit)
+        val token = refreshBackendTokenIfNeeded()
+            ?: return Result.failure(IllegalStateException("No backend session"))
+        return api.updateProfile(token, firstName = name, lastName = "").map { }
     }
 
     suspend fun refreshBackendTokenIfNeeded(): String? {

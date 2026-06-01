@@ -11,7 +11,15 @@ import (
 const (
 	ProviderLocal  = "local"
 	ProviderGoogle = "google"
+	ProviderGuest  = "guest"
 )
+
+// GuestEmail builds the synthetic, unique email used for an anonymous guest user.
+// The users.email column is unique + not-null, so guests need a deterministic
+// placeholder derived from their stable device id.
+func GuestEmail(deviceID string) string {
+	return "guest-" + deviceID + "@guest.lichso.vn"
+}
 
 // User represents a user in the system
 type User struct {

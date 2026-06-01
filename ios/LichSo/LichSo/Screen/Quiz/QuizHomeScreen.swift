@@ -11,7 +11,9 @@ struct QuizHomeScreen: View {
     @EnvironmentObject private var googleAuth: GoogleAuthService
     @State private var dailyQuestionCount: Int?
     @State private var categoryCounts: [String: Int] = [:]
+    @State private var quizBanners: [Banner] = []
     @State private var isLoadingCategoryCounts = true
+    var onBannerAction: (String) -> Void = { _ in }
     
     let categories = [
         iOSQuizCategory(id: "history_vn", label: "Lịch sử VN", icon: "book.fill", colors: [Color(hex: "8B0000"), Color(hex: "D32F2F")]),
@@ -66,6 +68,13 @@ struct QuizHomeScreen: View {
                             }
                             
                             rulesCard
+
+                            if !quizBanners.isEmpty {
+                                BannerCarousel(
+                                    banners: quizBanners,
+                                    onBannerAction: onBannerAction
+                                )
+                            }
                             
                             // Category list header
                             sectionHeader(title: "Chọn chủ đề", icon: "folder.fill")
@@ -104,6 +113,13 @@ struct QuizHomeScreen: View {
         async let daily = try? QuizService.shared.fetchDailyQuestions(date: today)
         let loadedDaily = await daily
         dailyQuestionCount = loadedDaily?.count
+
+        do {
+            let list = try await QuizService.shared.fetchBanners(type: "quiz_home")
+            quizBanners = list.filter { $0.active }.sorted { $0.sortOrder < $1.sortOrder }
+        } catch {
+            quizBanners = []
+        }
 
         var counts: [String: Int] = [:]
         for category in categories {

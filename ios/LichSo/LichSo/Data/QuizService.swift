@@ -225,8 +225,14 @@ public class QuizService: ObservableObject {
         return try await execute(req)
     }
 
-    public func fetchBanners() async throws -> [Banner] {
-        let req = makeRequest(path: "/banners")
+    public func fetchBanners(type: String? = nil) async throws -> [Banner] {
+        let path: String
+        if let type, let encoded = type.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            path = "/banners?type=\(encoded)"
+        } else {
+            path = "/banners"
+        }
+        let req = makeRequest(path: path)
         return try await execute(req)
     }
 

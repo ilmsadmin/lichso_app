@@ -29,7 +29,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useBanners, useDeleteBanner, useToggleBanner } from "@/hooks/useBanners";
 import { DEFAULT_PAGE_SIZE, ROUTES } from "@/lib/constants";
-import { BANNER_TYPES } from "@/types/banner";
+
+import { APP_ROUTES } from "@/types/banner";
 
 export default function BannersPage() {
   const [page, setPage] = useState(1);
@@ -58,8 +59,9 @@ export default function BannersPage() {
     setPage(1);
   }, []);
 
-  const getTypeInfo = (type: string) => {
-    return BANNER_TYPES.find((t) => t.value === type) || { value: type, label: type, color: "#666" };
+  const getLocationsInfo = (locations: string[] | undefined) => {
+    if (!locations || locations.length === 0) return "Chưa chọn";
+    return locations.map(l => APP_ROUTES.find(r => r.value === l)?.label || l).join(", ");
   };
 
   const formatDate = (dateStr?: string) => {
@@ -130,7 +132,7 @@ export default function BannersPage() {
                     <GripVertical className="h-4 w-4 text-muted-foreground" />
                   </TableHead>
                   <TableHead>Banner</TableHead>
-                  <TableHead className="hidden md:table-cell">Loại</TableHead>
+                  <TableHead className="hidden md:table-cell">Vị trí</TableHead>
                   <TableHead className="hidden lg:table-cell">CTA</TableHead>
                   <TableHead className="hidden lg:table-cell">Thời gian</TableHead>
                   <TableHead>Trạng thái</TableHead>
@@ -139,7 +141,6 @@ export default function BannersPage() {
               </TableHeader>
               <TableBody>
                 {banners.map((banner) => {
-                  const typeInfo = getTypeInfo(banner.type);
                   return (
                     <TableRow key={banner.id}>
                       {/* Sort order */}
@@ -154,7 +155,7 @@ export default function BannersPage() {
                           <div
                             className="h-10 w-10 shrink-0 rounded-lg"
                             style={{
-                              background: `linear-gradient(135deg, ${banner.bg_color || typeInfo.color}, ${typeInfo.color}dd)`,
+                              background: `linear-gradient(135deg, ${banner.bg_color || "#1565C0"}, ${banner.bg_color || "#0D47A1"}dd)`,
                             }}
                           />
                           <div className="min-w-0">
@@ -175,19 +176,11 @@ export default function BannersPage() {
                         </div>
                       </TableCell>
 
-                      {/* Type */}
-                      <TableCell className="hidden md:table-cell">
-                        <Badge
-                          variant="outline"
-                          className="gap-1"
-                          style={{ borderColor: typeInfo.color, color: typeInfo.color }}
-                        >
-                          <span
-                            className="inline-block h-2 w-2 rounded-full"
-                            style={{ backgroundColor: typeInfo.color }}
-                          />
-                          {typeInfo.label}
-                        </Badge>
+                      {/* Locations */}
+                      <TableCell className="hidden md:table-cell max-w-[150px]">
+                        <span className="truncate block text-sm">
+                          {getLocationsInfo(banner.locations)}
+                        </span>
                       </TableCell>
 
                       {/* CTA */}

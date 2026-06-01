@@ -37,6 +37,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -54,7 +55,7 @@ import {
 import { useCreateBanner, useUpdateBanner } from "@/hooks/useBanners";
 import { ROUTES } from "@/lib/constants";
 import { getImageUrl } from "@/lib/utils";
-import { BANNER_TYPES, PLATFORM_OPTIONS } from "@/types/banner";
+import { BANNER_TYPES, PLATFORM_OPTIONS, APP_ROUTES } from "@/types/banner";
 import type { Banner, CreateBannerRequest } from "@/types/banner";
 import { MediaPickerDialog } from "@/components/shared/MediaPickerDialog";
 import type { MediaFile } from "@/types/media";
@@ -63,45 +64,6 @@ interface BannerFormProps {
   banner?: Banner;
   isEdit?: boolean;
 }
-
-// Banner type color mapping (matches Android app)
-const TYPE_COLORS: Record<string, { start: string; end: string }> = {
-  feature: { start: "#BF360C", end: "#8D1A00" },
-  content: { start: "#1565C0", end: "#0D47A1" },
-  quiz: { start: "#2E7D32", end: "#1B5E20" },
-  ai: { start: "#4A148C", end: "#311B92" },
-  promo: { start: "#E65100", end: "#BF360C" },
-  custom: { start: "#37474F", end: "#263238" },
-};
-
-const APP_ROUTES = [
-  { value: "home", label: "Trang chủ" },
-  { value: "calendar", label: "Lịch tháng" },
-  { value: "gooddays", label: "Ngày tốt/xấu" },
-  { value: "knowledge_feed", label: "Bài viết khám phá" },
-  { value: "quiz_home", label: "Đố vui" },
-  { value: "chat", label: "AI Tử Vi" },
-  { value: "tools", label: "Tiện ích" },
-  { value: "prayers", label: "Văn khấn" },
-  { value: "history", label: "Ngày này năm xưa" },
-  { value: "profile", label: "Hồ sơ" },
-  { value: "bookmarks", label: "Ngày đã lưu" },
-  { value: "tasks", label: "Ghi chú" },
-  { value: "countdown", label: "Đếm ngày" },
-  { value: "familytree", label: "Cây gia phả" },
-  { value: "oracle_draw", label: "Rút thẻ" },
-  { value: "daily_store", label: "Cửa hàng ngày" },
-  { value: "ledger", label: "Lịch sử điểm" },
-  { value: "zodiac_collection", label: "Bộ sưu tập con giáp" },
-  { value: "date_picker", label: "Chọn ngày đẹp" },
-  { value: "tiet_khi", label: "Tiết khí" },
-  { value: "date_math", label: "Tính ngày" },
-  { value: "birth_planner", label: "Kế hoạch sinh" },
-  { value: "cycle_tracker", label: "Theo dõi chu kỳ" },
-  { value: "world_clock", label: "Giờ thế giới" },
-  { value: "widget_manager", label: "Quản lý widget" },
-  { value: "leaderboard", label: "Bảng xếp hạng" },
-] as const;
 
 const BANNER_ICON_PRESETS: Array<{ key: string; label: string; Icon: LucideIcon }> = [
   { key: "calendar", label: "Lịch ngày", Icon: CalendarDays },
@@ -150,7 +112,7 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
           cta_type: banner.cta_type ?? inferCtaType(banner.cta_route),
           cta_route: banner.cta_route ?? "",
           bg_color: banner.bg_color ?? "",
-          type: banner.type,
+          locations: banner.locations ?? ["home"],
           platform: banner.platform ?? "all",
           is_active: banner.is_active,
           sort_order: banner.sort_order,
@@ -167,7 +129,7 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
           cta_type: "route",
           cta_route: "",
           bg_color: "",
-          type: "feature",
+          locations: ["home"],
           platform: "all",
           is_active: true,
           sort_order: 0,
@@ -188,7 +150,7 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
         cta_type: banner.cta_type ?? inferCtaType(banner.cta_route),
         cta_route: banner.cta_route ?? "",
         bg_color: banner.bg_color ?? "",
-        type: banner.type,
+        locations: banner.locations ?? ["home"],
         platform: banner.platform ?? "all",
         is_active: banner.is_active,
         sort_order: banner.sort_order,
@@ -250,7 +212,6 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
     }
   };
 
-  const typeColors = TYPE_COLORS[form.type || "feature"] || TYPE_COLORS.feature;
   const selectedIconPreset = BANNER_ICON_PRESETS.find((preset) => preset.key === form.icon_key);
   const PreviewIcon = selectedIconPreset?.Icon;
 
@@ -311,31 +272,32 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
                   />
                 </div>
 
-                {/* Type & Color */}
+                {/* Locations & Color */}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Loại banner</Label>
-                    <Select
-                      value={form.type}
-                      onValueChange={(v) => setForm({ ...form, type: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {BANNER_TYPES.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>
-                            <span className="flex items-center gap-2">
-                              <span
-                                className="inline-block h-3 w-3 rounded-full"
-                                style={{ backgroundColor: t.color }}
-                              />
-                              {t.label}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>Vị trí hiển thị *</Label>
+                    <div className="grid grid-cols-2 gap-2 mt-2 max-h-60 overflow-y-auto rounded-md border p-3">
+                      {APP_ROUTES.map((route) => (
+                        <div key={route.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`loc-${route.value}`}
+                            checked={form.locations?.includes(route.value)}
+                            onCheckedChange={(checked) => {
+                              const newLocations = checked
+                                ? [...(form.locations || []), route.value]
+                                : (form.locations || []).filter((l) => l !== route.value);
+                              setForm({ ...form, locations: newLocations });
+                            }}
+                          />
+                          <Label htmlFor={`loc-${route.value}`} className="text-sm font-normal cursor-pointer leading-none">
+                            {route.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                    {(form.locations?.length || 0) === 0 && (
+                      <p className="text-xs text-red-500">Vui lòng chọn ít nhất một vị trí</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -350,7 +312,7 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
                       />
                       <input
                         type="color"
-                        value={form.bg_color || typeColors.start}
+                        value={form.bg_color || "#1565C0"}
                         onChange={(e) => setForm({ ...form, bg_color: e.target.value })}
                         className="h-10 w-10 cursor-pointer rounded border p-0.5"
                       />
@@ -635,7 +597,7 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
                 <div className="flex gap-3 pt-4">
                   <Button
                     type="submit"
-                    disabled={createBanner.isPending || updateBanner.isPending}
+                    disabled={createBanner.isPending || updateBanner.isPending || (form.locations?.length || 0) === 0}
                   >
                     {createBanner.isPending || updateBanner.isPending
                       ? "Đang lưu..."
@@ -679,7 +641,7 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
                   <div
                     className="relative flex items-center gap-3 overflow-hidden rounded-xl p-3"
                     style={{
-                      background: `linear-gradient(135deg, ${form.bg_color || typeColors.start}, ${typeColors.end})`,
+                      background: `linear-gradient(135deg, ${form.bg_color || "#1565C0"}, ${form.bg_color || "#0D47A1"})`,
                       minHeight: "60px",
                     }}
                   >
@@ -712,15 +674,7 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
                         <PreviewIcon className="h-6 w-6 text-white" />
                       ) : (
                         <span className="text-[10px] font-bold uppercase text-white">
-                          {form.type === "content"
-                            ? "BV"
-                            : form.type === "quiz"
-                              ? "QZ"
-                              : form.type === "ai"
-                                ? "AI"
-                                : form.type === "promo"
-                                  ? "KM"
-                                  : "LS"}
+                          LS
                         </span>
                       )}
                     </div>
@@ -759,9 +713,9 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
               {/* Info */}
               <div className="mt-4 space-y-2 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Loại:</span>
-                  <span className="font-medium">
-                    {BANNER_TYPES.find((t) => t.value === form.type)?.label || form.type}
+                  <span className="text-muted-foreground">Vị trí hiển thị:</span>
+                  <span className="font-medium text-right max-w-[160px] truncate">
+                    {form.locations?.map((l) => APP_ROUTES.find((r) => r.value === l)?.label || l).join(", ") || "Chưa chọn"}
                   </span>
                 </div>
                 <div className="flex justify-between">
