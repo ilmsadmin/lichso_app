@@ -16,6 +16,8 @@ func SetupContentRoutes(
 	eventHandler *handlers.EventHandler,
 	festivalHandler *handlers.FolkFestivalHandler,
 ) {
+	router.Use(publicContentCache())
+
 	// ============================================
 	// Article Routes (Public)
 	// ============================================
@@ -77,4 +79,49 @@ func SetupContentRoutes(
 	festivals.Get("/slug/:slug", festivalHandler.GetBySlug)
 	festivals.Get("/", festivalHandler.List)
 	festivals.Get("/:id", festivalHandler.GetByID)
+}
+
+func publicContentCache() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		if c.Method() != fiber.MethodGet {
+			return c.Next()
+		}
+
+		path := c.Path()
+		switch {
+		case path == "/api/articles" || path == "/api/articles/":
+			c.Set(fiber.HeaderCacheControl, "public, max-age=600, stale-while-revalidate=3600")
+		case path == "/api/categories" || path == "/api/categories/":
+			c.Set(fiber.HeaderCacheControl, "public, max-age=600, stale-while-revalidate=3600")
+		case hasPublicPrefix(path, "/api/articles/slug/"), hasPublicArticleIDPath(path):
+			c.Set(fiber.HeaderCacheControl, "public, max-age=3600, stale-while-revalidate=86400")
+		case hasPublicPrefix(path, "/api/categories/slug/"), hasPublicCategoryIDPath(path):
+			c.Set(fiber.HeaderCacheControl, "public, max-age=1800, stale-while-revalidate=3600")
+		case hasPublicPrefix(path, "/api/events/"),
+			hasPublicPrefix(path, "/api/famous-people/"),
+			hasPublicPrefix(path, "/api/festivals/"):
+			c.Set(fiber.HeaderCacheControl, "public, max-age=1800, stale-while-revalidate=3600")
+		case hasPublicPrefix(path, "/api/day-content/"),
+			hasPublicPrefix(path, "/api/quotes/"):
+			c.Set(fiber.HeaderCacheControl, "public, max-age=600, stale-while-revalidate=3600")
+		}
+
+		return c.Next()
+	}
+}
+
+func hasPublicPrefix(path string, prefix string) bool {
+	return len(path) >= len(prefix) && path[:len(prefix)] == prefix
+}
+
+func hasPublicArticleIDPath(path string) bool {
+	return hasPublicPrefix(path, "/api/articles/") &&
+		path != "/api/articles/search" &&
+		path != "/api/articles/random" &&
+		!hasPublicPrefix(path, "/api/articles/slug/")
+}
+
+func hasPublicCategoryIDPath(path string) bool {
+	return hasPublicPrefix(path, "/api/categories/") &&
+		!hasPublicPrefix(path, "/api/categories/slug/")
 }

@@ -16,7 +16,14 @@ func SetupMediaRoutes(
 ) {
 	// Serve uploaded files (public access for is_public files)
 	router.Static("/uploads", uploadPath, fiber.Static{
-		Browse: false,
+		Browse:    false,
+		Compress:  true,
+		ByteRange: true,
+		MaxAge:    30 * 24 * 60 * 60,
+		ModifyResponse: func(c *fiber.Ctx) error {
+			c.Set(fiber.HeaderCacheControl, "public, max-age=2592000, immutable")
+			return nil
+		},
 	})
 
 	// Admin media management routes (require authentication)

@@ -1,6 +1,8 @@
 package com.lichso.app.di
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import androidx.room.Room
 import com.lichso.app.data.local.FamilyTreeRepository
 import com.lichso.app.data.local.LichSoDatabase
@@ -20,8 +22,11 @@ import dagger.hilt.components.SingletonComponent
 import android.os.Build
 import com.lichso.app.BuildConfig
 import com.lichso.app.data.auth.TokenManager
+import okhttp3.Cache
+import okhttp3.CacheControl
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import java.io.File
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
@@ -41,7 +46,8 @@ object AppModule {
             .trim()
         val userAgent = "LichSo-Android/${BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE}; $deviceName)"
         val userAgentInterceptor = Interceptor { chain ->
-            val builder = chain.request().newBuilder()
+            val request = chain.request()
+            val builder = request.newBuilder()
                 .header("User-Agent", userAgent)
                 .header("X-Client-Platform", "android")
                 .header("X-App-Version", BuildConfig.VERSION_NAME)
@@ -62,35 +68,49 @@ object AppModule {
             } catch (_: Exception) {
                 null
             }
-            if (!token.isNullOrEmpty() && chain.request().header("Authorization") == null) {
+            if (!token.isNullOrEmpty() &&
+                request.header("Authorization") == null &&
+                !request.isPublicContentRequest()
+            ) {
                 builder.header("Authorization", "Bearer $token")
             }
 
             chain.proceed(builder.build())
         }
-        
-        // Cache configuration: 50MB
-        val cacheSize = 50 * 1024 * 1024L
-        val cache = okhttp3.Cache(context.cacheDir, cacheSize)
 
-        // Interceptor to cache responses even if server has no cache headers (e.g. 7 days for articles)
+        val offlineCacheInterceptor = Interceptor { chain ->
+            var request = chain.request()
+            if (request.isPublicContentRequest() && !context.hasNetworkConnection()) {
+                request = request.newBuilder()
+                    .cacheControl(
+                        CacheControl.Builder()
+                            .onlyIfCached()
+                            .maxStale(7, TimeUnit.DAYS)
+                            .build()
+                    )
+                    .build()
+            }
+            chain.proceed(request)
+        }
+
         val cacheInterceptor = Interceptor { chain ->
             val response = chain.proceed(chain.request())
             val request = chain.request()
-            if (request.method == "GET" && request.header("Authorization") == null) {
-                val cacheControl = okhttp3.CacheControl.Builder()
-                    .maxAge(7, TimeUnit.DAYS)
-                    .build()
+            val maxAgeSeconds = request.publicContentMaxAgeSeconds()
+            if (maxAgeSeconds != null && request.header("Authorization") == null) {
                 response.newBuilder()
-                    .header("Cache-Control", cacheControl.toString())
+                    .header("Cache-Control", "public, max-age=$maxAgeSeconds")
                     .build()
             } else {
                 response
             }
         }
 
+        val cache = Cache(File(context.cacheDir, "http_cache"), 100L * 1024L * 1024L)
+
         return OkHttpClient.Builder()
             .cache(cache)
+            .addInterceptor(offlineCacheInterceptor)
             .addInterceptor(userAgentInterceptor)
             .addNetworkInterceptor(cacheInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -203,4 +223,39 @@ object AppModule {
         @ApplicationContext context: Context,
         api: LichSoApi,
     ): ScreenBackgroundRepository = ScreenBackgroundRepository(context, api)
+}
+
+private fun okhttp3.Request.isPublicContentRequest(): Boolean =
+    method == "GET" && publicContentMaxAgeSeconds() != null
+
+private fun okhttp3.Request.publicContentMaxAgeSeconds(): Int? {
+    val path = url.encodedPath
+    if (!url.host.endsWith("lichso.vn")) return null
+    return when {
+        path.startsWith("/api/uploads/") -> 30 * 24 * 60 * 60
+        path == "/api/articles" || path == "/api/articles/" -> 10 * 60
+        path.startsWith("/api/articles/slug/") -> 60 * 60
+        path.matches(Regex("^/api/articles/[^/]+$")) -> 60 * 60
+        path == "/api/categories" || path == "/api/categories/" -> 10 * 60
+        path.startsWith("/api/categories/slug/") -> 30 * 60
+        path.matches(Regex("^/api/categories/[^/]+$")) -> 30 * 60
+        path.startsWith("/api/day-content/") -> 10 * 60
+        path.startsWith("/api/events/") -> 30 * 60
+        path.startsWith("/api/famous-people/") -> 30 * 60
+        path.startsWith("/api/festivals/") -> 30 * 60
+        path.startsWith("/api/quotes/") -> 10 * 60
+        path.startsWith("/api/banners") -> 5 * 60
+        path.startsWith("/api/popups") -> 5 * 60
+        path.startsWith("/api/screen-backgrounds") -> null
+        else -> null
+    }
+}
+
+private fun Context.hasNetworkConnection(): Boolean {
+    val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        ?: return true
+    val network = connectivityManager.activeNetwork ?: return false
+    val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+    return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+        capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 }
