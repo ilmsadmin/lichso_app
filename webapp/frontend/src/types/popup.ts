@@ -2,6 +2,8 @@
 // Popup Types
 // ============================================
 
+import type { Platform } from "@/types/banner";
+
 export interface Popup {
   id: string;
   title: string;
@@ -9,6 +11,7 @@ export interface Popup {
   cta_type?: "route" | "url";
   cta_route?: string;
   position: "center_left" | "center_right" | "top_left" | "top_right" | "bottom_left" | "bottom_right";
+  platform: Platform;
   is_active: boolean;
   start_date?: string;
   end_date?: string;
@@ -22,6 +25,7 @@ export interface CreatePopupRequest {
   cta_type?: "route" | "url";
   cta_route?: string;
   position?: "center_left" | "center_right" | "top_left" | "top_right" | "bottom_left" | "bottom_right";
+  platform?: Platform;
   is_active?: boolean;
   start_date?: string;
   end_date?: string;
@@ -33,6 +37,7 @@ export interface UpdatePopupRequest {
   cta_type?: "route" | "url";
   cta_route?: string;
   position?: "center_left" | "center_right" | "top_left" | "top_right" | "bottom_left" | "bottom_right";
+  platform?: Platform;
   is_active?: boolean;
   start_date?: string;
   end_date?: string;

@@ -24,7 +24,7 @@ func NewPopupHandler(service *services.PopupService, validator *validators.Valid
 
 // GetActive handles GET /api/popups (public)
 func (h *PopupHandler) GetActive(c *fiber.Ctx) error {
-	popups, err := h.service.GetActivePopups()
+	popups, err := h.service.GetActivePopups(clientPlatform(c))
 	if err != nil {
 		return utils.ErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}

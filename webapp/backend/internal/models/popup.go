@@ -15,6 +15,7 @@ type Popup struct {
 	CtaType   string         `gorm:"type:varchar(20);default:'route'" json:"cta_type,omitempty"`
 	CtaRoute  string         `gorm:"type:varchar(255)" json:"cta_route,omitempty"`
 	Position  string         `gorm:"type:varchar(50);default:'center'" json:"position"`
+	Platform  string         `gorm:"type:varchar(20);not null;default:'all'" json:"platform"`
 	IsActive  bool           `gorm:"default:true" json:"is_active"`
 	StartDate *time.Time     `gorm:"type:timestamptz" json:"start_date,omitempty"`
 	EndDate   *time.Time     `gorm:"type:timestamptz" json:"end_date,omitempty"`

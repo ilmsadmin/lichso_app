@@ -33,6 +33,7 @@ private let HeaderGradient: [Color] = [
 
 struct HomeScreen: View {
     var onMenuClick: () -> Void = {}
+    var onBannerAction: (String) -> Void = { _ in }
 
     @StateObject private var viewModel = HomeViewModel()
     @ObservedObject private var weatherService = WeatherService.shared
@@ -86,6 +87,9 @@ struct HomeScreen: View {
                     calendarPage(info: info)
                 }
             }
+
+            // ── Drag-and-drop popup overlay ──
+            HomePopupOverlay(popups: viewModel.popups, onAction: onBannerAction)
         }
         .sheet(isPresented: $showNotifications) {
             NavigationStack {
@@ -166,6 +170,12 @@ struct HomeScreen: View {
                 Spacer()
             }
             .padding(.horizontal, 24)
+
+            // ── Banner carousel ──
+            let banners = viewModel.banners.isEmpty ? DEFAULT_BANNERS : viewModel.banners
+            BannerCarousel(banners: banners, onBannerAction: onBannerAction)
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
         }
         .padding(.bottom, 12)
         .background(

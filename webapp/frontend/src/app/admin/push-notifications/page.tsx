@@ -173,9 +173,16 @@ export default function PushNotificationsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm">
-                      {campaign.target_type === "all" ? "Tất cả" : "Người dùng cụ thể"}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm">
+                        {campaign.target_type === "all" ? "Tất cả" : "Người dùng cụ thể"}
+                      </span>
+                      {campaign.target_platform && campaign.target_platform !== "all" && (
+                        <Badge variant="outline" className="text-[10px] uppercase">
+                          {campaign.target_platform}
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     {campaign.status === "sent" ? (

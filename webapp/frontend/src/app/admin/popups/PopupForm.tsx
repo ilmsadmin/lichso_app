@@ -33,6 +33,7 @@ import { useCreatePopup, useUpdatePopup } from "@/hooks/usePopups";
 import { ROUTES } from "@/lib/constants";
 import { getImageUrl } from "@/lib/utils";
 import { POPUP_POSITIONS } from "@/types/popup";
+import { PLATFORM_OPTIONS } from "@/types/banner";
 import type { Popup, CreatePopupRequest } from "@/types/popup";
 import { MediaPickerDialog } from "@/components/shared/MediaPickerDialog";
 import type { MediaFile } from "@/types/media";
@@ -80,6 +81,7 @@ export default function PopupForm({ popup, isEdit }: PopupFormProps) {
           cta_type: popup.cta_type ?? inferCtaType(popup.cta_route),
           cta_route: popup.cta_route ?? "",
           position: popup.position,
+          platform: popup.platform ?? "all",
           is_active: popup.is_active,
           start_date: popup.start_date ? popup.start_date.slice(0, 16) : "",
           end_date: popup.end_date ? popup.end_date.slice(0, 16) : "",
@@ -90,6 +92,7 @@ export default function PopupForm({ popup, isEdit }: PopupFormProps) {
           cta_type: "route",
           cta_route: "",
           position: "center_right",
+          platform: "all",
           is_active: true,
           start_date: "",
           end_date: "",
@@ -104,6 +107,7 @@ export default function PopupForm({ popup, isEdit }: PopupFormProps) {
         cta_type: popup.cta_type ?? inferCtaType(popup.cta_route),
         cta_route: popup.cta_route ?? "",
         position: popup.position,
+        platform: popup.platform ?? "all",
         is_active: popup.is_active,
         start_date: popup.start_date ? popup.start_date.slice(0, 16) : "",
         end_date: popup.end_date ? popup.end_date.slice(0, 16) : "",
@@ -222,6 +226,31 @@ export default function PopupForm({ popup, isEdit }: PopupFormProps) {
                   </Select>
                   <p className="text-muted-foreground text-xs">
                     Đây là vị trí popup xuất hiện lần đầu. Người dùng vẫn di chuyển (drag) được popup này bằng tay.
+                  </p>
+                </div>
+
+                {/* Platform */}
+                <div className="space-y-2">
+                  <Label htmlFor="platform">Nền tảng hiển thị</Label>
+                  <Select
+                    value={form.platform ?? "all"}
+                    onValueChange={(v) =>
+                      setForm({ ...form, platform: v as "all" | "android" | "ios" })
+                    }
+                  >
+                    <SelectTrigger id="platform">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PLATFORM_OPTIONS.map((p) => (
+                        <SelectItem key={p.value} value={p.value}>
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-muted-foreground text-xs">
+                    Popup chỉ hiển thị trên nền tảng được chọn. Màn hình Android và iOS có thể khác nhau.
                   </p>
                 </div>
 

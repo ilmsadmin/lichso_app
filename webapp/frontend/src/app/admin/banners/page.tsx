@@ -158,7 +158,14 @@ export default function BannersPage() {
                             }}
                           />
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">{banner.title}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="truncate text-sm font-medium">{banner.title}</p>
+                              {banner.platform && banner.platform !== "all" && (
+                                <Badge variant="secondary" className="shrink-0 text-[10px] uppercase">
+                                  {banner.platform}
+                                </Badge>
+                              )}
+                            </div>
                             {banner.subtitle && (
                               <p className="text-muted-foreground truncate text-xs">
                                 {banner.subtitle}

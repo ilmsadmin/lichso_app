@@ -19,7 +19,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCreateCampaign, useUpdateCampaign, usePushTemplates, usePushGroups } from "@/hooks/usePushNotifications";
 import { useUsers } from "@/hooks/useUsers";
-import type { PushCampaign, CreateCampaignRequest, PushTemplate } from "@/types/push-notification";
+import type { PushCampaign, CreateCampaignRequest, PushTemplate, CampaignPlatform } from "@/types/push-notification";
+import { PLATFORM_OPTIONS } from "@/types/banner";
 import { ROUTES } from "@/lib/constants";
 import { getInitials, getImageUrl } from "@/lib/utils";
 import { MediaPickerDialog } from "@/components/shared/MediaPickerDialog";
@@ -151,6 +152,9 @@ export function CampaignForm({ campaign }: CampaignFormProps) {
   const [targetType, setTargetType] = useState<"all" | "users" | "group">(
     campaign?.target_type ?? "all"
   );
+  const [targetPlatform, setTargetPlatform] = useState<CampaignPlatform>(
+    campaign?.target_platform ?? "all"
+  );
   const [selectedUsers, setSelectedUsers] = useState<SelectedUser[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string>(
     campaign?.target_group_id ?? ""
@@ -176,6 +180,7 @@ export function CampaignForm({ campaign }: CampaignFormProps) {
       image_url: imageURL || undefined,
       click_action: clickAction || undefined,
       target_type: targetType,
+      target_platform: targetPlatform,
       template_id: selectedTemplateId || undefined,
       ...(targetType === "users" && {
         target_users: selectedUsers.map((u) => u.id),
@@ -261,6 +266,28 @@ export function CampaignForm({ campaign }: CampaignFormProps) {
             <CardTitle className="text-sm">Đối tượng nhận</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Platform filter */}
+            <div className="space-y-1.5">
+              <Label>Nền tảng nhận</Label>
+              <Select value={targetPlatform} onValueChange={(v) => setTargetPlatform(v as CampaignPlatform)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PLATFORM_OPTIONS.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>
+                      {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Chỉ gửi tới thiết bị thuộc nền tảng được chọn (kết hợp với đối tượng bên dưới).
+              </p>
+            </div>
+
+            <Separator />
+
             <div className="grid grid-cols-3 gap-2">
               {[
                 { value: "all", label: "Tất cả", icon: <Bell className="w-4 h-4" />, desc: "Mọi thiết bị" },

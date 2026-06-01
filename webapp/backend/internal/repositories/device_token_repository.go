@@ -87,11 +87,15 @@ func (r *DeviceTokenRepository) GetActiveTokens(platform string, limit, offset i
 }
 
 // GetActiveTokensByUserIDs returns active tokens for a list of user IDs.
-func (r *DeviceTokenRepository) GetActiveTokensByUserIDs(userIDs []uuid.UUID) ([]string, error) {
+// When platform is non-empty ("android"/"ios"), results are restricted to that platform.
+func (r *DeviceTokenRepository) GetActiveTokensByUserIDs(userIDs []uuid.UUID, platform string) ([]string, error) {
 	var tokens []string
-	err := r.db.Model(&models.DeviceToken{}).
-		Where("user_id IN ? AND is_active = true AND deleted_at IS NULL", userIDs).
-		Pluck("token", &tokens).Error
+	query := r.db.Model(&models.DeviceToken{}).
+		Where("user_id IN ? AND is_active = true AND deleted_at IS NULL", userIDs)
+	if platform != "" {
+		query = query.Where("platform = ?", platform)
+	}
+	err := query.Pluck("token", &tokens).Error
 	return tokens, err
 }
 

@@ -34,6 +34,8 @@ struct HomeUiState {
 @MainActor
 class HomeViewModel: ObservableObject {
     @Published var state = HomeUiState()
+    @Published var banners: [Banner] = []
+    @Published var popups: [Popup] = []
     private let provider = DayInfoProvider.shared
     @AppStorage("setting_week_start") private var weekStart: String = "Thứ 2" {
         didSet { reloadCalendarDays() }
@@ -41,6 +43,28 @@ class HomeViewModel: ObservableObject {
 
     init() {
         loadCurrentDate()
+        Task { await loadBanners() }
+        Task { await loadPopups() }
+    }
+
+    // ── Banners: server only, sorted by sortOrder, active only ──
+    func loadBanners() async {
+        do {
+            let list = try await QuizService.shared.fetchBanners()
+            banners = list.filter { $0.active }.sorted { $0.sortOrder < $1.sortOrder }
+        } catch {
+            banners = []
+        }
+    }
+
+    // ── Popups: active only ──
+    func loadPopups() async {
+        do {
+            let list = try await QuizService.shared.fetchPopups()
+            popups = list.filter { $0.active }
+        } catch {
+            popups = []
+        }
     }
 
     func loadCurrentDate() {

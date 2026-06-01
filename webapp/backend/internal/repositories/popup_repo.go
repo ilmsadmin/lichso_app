@@ -31,14 +31,20 @@ func (r *PopupRepository) GetByID(id uuid.UUID) (*models.Popup, error) {
 }
 
 // ListActive returns active popups within valid date range.
-func (r *PopupRepository) ListActive() ([]models.Popup, error) {
+// When platform is "android" or "ios", only popups targeting that platform (or "all")
+// are returned. An empty platform returns only platform-agnostic ("all") popups.
+func (r *PopupRepository) ListActive(platform string) ([]models.Popup, error) {
 	var popups []models.Popup
 	now := time.Now()
-	err := r.db.Where("is_active = ?", true).
+	query := r.db.Where("is_active = ?", true).
 		Where("(start_date IS NULL OR start_date <= ?)", now).
-		Where("(end_date IS NULL OR end_date >= ?)", now).
-		Order("created_at DESC").
-		Find(&popups).Error
+		Where("(end_date IS NULL OR end_date >= ?)", now)
+	if platform == models.PlatformAndroid || platform == models.PlatformIOS {
+		query = query.Where("platform = ? OR platform = ?", models.PlatformAll, platform)
+	} else {
+		query = query.Where("platform = ?", models.PlatformAll)
+	}
+	err := query.Order("created_at DESC").Find(&popups).Error
 	return popups, err
 }
 

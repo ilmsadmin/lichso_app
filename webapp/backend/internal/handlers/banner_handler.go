@@ -24,7 +24,7 @@ func NewBannerHandler(service *services.BannerService, validator *validators.Val
 
 // GetActive handles GET /api/banners (public)
 func (h *BannerHandler) GetActive(c *fiber.Ctx) error {
-	banners, err := h.service.GetActiveBanners()
+	banners, err := h.service.GetActiveBanners(clientPlatform(c))
 	if err != nil {
 		return utils.ErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}

@@ -224,4 +224,14 @@ public class QuizService: ObservableObject {
         let req = makeRequest(path: "/articles/\(id)")
         return try await execute(req)
     }
+
+    public func fetchBanners() async throws -> [Banner] {
+        let req = makeRequest(path: "/banners")
+        return try await execute(req)
+    }
+
+    public func fetchPopups() async throws -> [Popup] {
+        let req = makeRequest(path: "/popups")
+        return try await execute(req)
+    }
 }

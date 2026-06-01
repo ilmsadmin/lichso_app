@@ -2,6 +2,8 @@
 // Banner Types
 // ============================================
 
+export type Platform = "all" | "android" | "ios";
+
 export interface Banner {
   id: string;
   title: string;
@@ -14,6 +16,7 @@ export interface Banner {
   cta_route?: string;
   bg_color?: string;
   type: string;
+  platform: Platform;
   is_active: boolean;
   sort_order: number;
   start_date?: string;
@@ -33,6 +36,7 @@ export interface CreateBannerRequest {
   cta_route?: string;
   bg_color?: string;
   type?: string;
+  platform?: Platform;
   is_active?: boolean;
   sort_order?: number;
   start_date?: string;
@@ -50,6 +54,7 @@ export interface UpdateBannerRequest {
   cta_route?: string;
   bg_color?: string;
   type?: string;
+  platform?: Platform;
   is_active?: boolean;
   sort_order?: number;
   start_date?: string;
@@ -66,6 +71,12 @@ export interface BannerOrder {
   id: string;
   sort_order: number;
 }
+
+export const PLATFORM_OPTIONS = [
+  { value: "all", label: "Cả hai (Android & iOS)", short: "Cả hai" },
+  { value: "android", label: "Chỉ Android", short: "Android" },
+  { value: "ios", label: "Chỉ iOS", short: "iOS" },
+] as const;
 
 export const BANNER_TYPES = [
   { value: "feature", label: "Tính năng", color: "#BF360C" },

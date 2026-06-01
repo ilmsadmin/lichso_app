@@ -18,6 +18,7 @@ type CreateBannerRequest struct {
 	CtaRoute  string     `json:"cta_route" validate:"omitempty,max=255"`
 	BgColor   string     `json:"bg_color" validate:"omitempty,max=20"`
 	Type      string     `json:"type" validate:"omitempty,max=50"`
+	Platform  string     `json:"platform" validate:"omitempty,oneof=all android ios"`
 	IsActive  *bool      `json:"is_active"`
 	SortOrder *int       `json:"sort_order"`
 	StartDate *time.Time `json:"start_date"`
@@ -36,6 +37,7 @@ type UpdateBannerRequest struct {
 	CtaRoute  *string    `json:"cta_route" validate:"omitempty,max=255"`
 	BgColor   *string    `json:"bg_color" validate:"omitempty,max=20"`
 	Type      *string    `json:"type" validate:"omitempty,max=50"`
+	Platform  *string    `json:"platform" validate:"omitempty,oneof=all android ios"`
 	IsActive  *bool      `json:"is_active"`
 	SortOrder *int       `json:"sort_order"`
 	StartDate *time.Time `json:"start_date"`
@@ -55,6 +57,7 @@ type BannerResponse struct {
 	CtaRoute  string  `json:"cta_route,omitempty"`
 	BgColor   string  `json:"bg_color,omitempty"`
 	Type      string  `json:"type"`
+	Platform  string  `json:"platform"`
 	IsActive  bool    `json:"is_active"`
 	SortOrder int     `json:"sort_order"`
 	StartDate *string `json:"start_date,omitempty"`

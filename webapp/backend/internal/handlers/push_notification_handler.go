@@ -125,11 +125,12 @@ type createCampaignRequest struct {
 	Body          string            `json:"body" validate:"required,min=2"`
 	ImageURL      string            `json:"image_url"`
 	ClickAction   string            `json:"click_action"`
-	DataPayload   map[string]string `json:"data_payload"`
-	TargetType    string            `json:"target_type" validate:"required,oneof=all users group"`
-	TargetUsers   []string          `json:"target_users"`
-	TargetGroupID *uuid.UUID        `json:"target_group_id"`
-	ScheduledAt   *time.Time        `json:"scheduled_at"`
+	DataPayload    map[string]string `json:"data_payload"`
+	TargetType     string            `json:"target_type" validate:"required,oneof=all users group"`
+	TargetPlatform string            `json:"target_platform" validate:"omitempty,oneof=all android ios"`
+	TargetUsers    []string          `json:"target_users"`
+	TargetGroupID  *uuid.UUID        `json:"target_group_id"`
+	ScheduledAt    *time.Time        `json:"scheduled_at"`
 }
 
 // AdminListCampaigns handles GET /api/admin/push/campaigns
@@ -178,13 +179,14 @@ func (h *PushNotificationHandler) AdminCreateCampaign(c *fiber.Ctx) error {
 		Title:         req.Title,
 		Body:          req.Body,
 		ImageURL:      req.ImageURL,
-		ClickAction:   req.ClickAction,
-		DataPayload:   req.DataPayload,
-		TargetType:    req.TargetType,
-		TargetUsers:   req.TargetUsers,
-		TargetGroupID: req.TargetGroupID,
-		ScheduledAt:   req.ScheduledAt,
-		CreatedBy:     createdBy,
+		ClickAction:    req.ClickAction,
+		DataPayload:    req.DataPayload,
+		TargetType:     req.TargetType,
+		TargetPlatform: req.TargetPlatform,
+		TargetUsers:    req.TargetUsers,
+		TargetGroupID:  req.TargetGroupID,
+		ScheduledAt:    req.ScheduledAt,
+		CreatedBy:      createdBy,
 	})
 	if err != nil {
 		h.logger.Error("Failed to create campaign", zap.Error(err))
@@ -210,12 +212,13 @@ func (h *PushNotificationHandler) AdminUpdateCampaign(c *fiber.Ctx) error {
 		Title:         req.Title,
 		Body:          req.Body,
 		ImageURL:      req.ImageURL,
-		ClickAction:   req.ClickAction,
-		DataPayload:   req.DataPayload,
-		TargetType:    req.TargetType,
-		TargetUsers:   req.TargetUsers,
-		TargetGroupID: req.TargetGroupID,
-		ScheduledAt:   req.ScheduledAt,
+		ClickAction:    req.ClickAction,
+		DataPayload:    req.DataPayload,
+		TargetType:     req.TargetType,
+		TargetPlatform: req.TargetPlatform,
+		TargetUsers:    req.TargetUsers,
+		TargetGroupID:  req.TargetGroupID,
+		ScheduledAt:    req.ScheduledAt,
 	})
 	if err != nil {
 		h.logger.Error("Failed to update campaign", zap.Error(err))

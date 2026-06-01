@@ -13,6 +13,7 @@ type CreatePopupRequest struct {
 	CtaType   string     `json:"cta_type" validate:"omitempty,oneof=route url"`
 	CtaRoute  string     `json:"cta_route" validate:"omitempty,max=255"`
 	Position  string     `json:"position" validate:"omitempty,max=50"`
+	Platform  string     `json:"platform" validate:"omitempty,oneof=all android ios"`
 	IsActive  *bool      `json:"is_active"`
 	StartDate *time.Time `json:"start_date"`
 	EndDate   *time.Time `json:"end_date"`
@@ -25,6 +26,7 @@ type UpdatePopupRequest struct {
 	CtaType   *string    `json:"cta_type" validate:"omitempty,oneof=route url"`
 	CtaRoute  *string    `json:"cta_route" validate:"omitempty,max=255"`
 	Position  *string    `json:"position" validate:"omitempty,max=50"`
+	Platform  *string    `json:"platform" validate:"omitempty,oneof=all android ios"`
 	IsActive  *bool      `json:"is_active"`
 	StartDate *time.Time `json:"start_date"`
 	EndDate   *time.Time `json:"end_date"`
@@ -38,6 +40,7 @@ type PopupResponse struct {
 	CtaType   string  `json:"cta_type,omitempty"`
 	CtaRoute  string  `json:"cta_route,omitempty"`
 	Position  string  `json:"position"`
+	Platform  string  `json:"platform"`
 	IsActive  bool    `json:"is_active"`
 	StartDate *string `json:"start_date,omitempty"`
 	EndDate   *string `json:"end_date,omitempty"`

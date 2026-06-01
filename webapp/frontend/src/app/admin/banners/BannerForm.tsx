@@ -54,7 +54,7 @@ import {
 import { useCreateBanner, useUpdateBanner } from "@/hooks/useBanners";
 import { ROUTES } from "@/lib/constants";
 import { getImageUrl } from "@/lib/utils";
-import { BANNER_TYPES } from "@/types/banner";
+import { BANNER_TYPES, PLATFORM_OPTIONS } from "@/types/banner";
 import type { Banner, CreateBannerRequest } from "@/types/banner";
 import { MediaPickerDialog } from "@/components/shared/MediaPickerDialog";
 import type { MediaFile } from "@/types/media";
@@ -151,6 +151,7 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
           cta_route: banner.cta_route ?? "",
           bg_color: banner.bg_color ?? "",
           type: banner.type,
+          platform: banner.platform ?? "all",
           is_active: banner.is_active,
           sort_order: banner.sort_order,
           start_date: banner.start_date ? banner.start_date.slice(0, 16) : "",
@@ -167,6 +168,7 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
           cta_route: "",
           bg_color: "",
           type: "feature",
+          platform: "all",
           is_active: true,
           sort_order: 0,
           start_date: "",
@@ -187,6 +189,7 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
         cta_route: banner.cta_route ?? "",
         bg_color: banner.bg_color ?? "",
         type: banner.type,
+        platform: banner.platform ?? "all",
         is_active: banner.is_active,
         sort_order: banner.sort_order,
         start_date: banner.start_date ? banner.start_date.slice(0, 16) : "",
@@ -547,6 +550,31 @@ export default function BannerForm({ banner, isEdit }: BannerFormProps) {
                       />
                     </div>
                   )}
+                </div>
+
+                {/* Platform */}
+                <div className="space-y-2">
+                  <Label>Nền tảng hiển thị</Label>
+                  <Select
+                    value={form.platform ?? "all"}
+                    onValueChange={(v) =>
+                      setForm({ ...form, platform: v as "all" | "android" | "ios" })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PLATFORM_OPTIONS.map((p) => (
+                        <SelectItem key={p.value} value={p.value}>
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-muted-foreground text-xs">
+                    Banner chỉ hiển thị trên nền tảng được chọn. Màn hình Android và iOS có thể khác nhau.
+                  </p>
                 </div>
 
                 {/* Sort & Active */}

@@ -37,6 +37,7 @@ func (s *BannerService) Create(req *dto.CreateBannerRequest) (*dto.BannerRespons
 		CtaRoute: req.CtaRoute,
 		BgColor:  req.BgColor,
 		Type:     req.Type,
+		Platform: req.Platform,
 	}
 
 	if banner.CtaType == "" {
@@ -44,6 +45,9 @@ func (s *BannerService) Create(req *dto.CreateBannerRequest) (*dto.BannerRespons
 	}
 	if banner.Type == "" {
 		banner.Type = "feature"
+	}
+	if banner.Platform == "" {
+		banner.Platform = models.PlatformAll
 	}
 
 	if req.IsActive != nil {
@@ -76,9 +80,10 @@ func (s *BannerService) GetByID(id uuid.UUID) (*dto.BannerResponse, error) {
 	return toBannerResponse(banner), nil
 }
 
-// GetActiveBanners returns active banners for public API.
+// GetActiveBanners returns active banners for public API, filtered by client platform
+// ("android"/"ios"; empty returns only platform-agnostic banners).
 // If use_server_banners setting is false, returns empty list so app uses local banners.
-func (s *BannerService) GetActiveBanners() ([]dto.BannerResponse, error) {
+func (s *BannerService) GetActiveBanners(platform string) ([]dto.BannerResponse, error) {
 	// Check if server banners are enabled
 	ctx := context.Background()
 	setting, err := s.settingRepo.FindByKey(ctx, models.SettingKeyUseServerBanners)
@@ -91,7 +96,7 @@ func (s *BannerService) GetActiveBanners() ([]dto.BannerResponse, error) {
 	}
 	// Default: server banners enabled (or setting not found)
 
-	banners, err := s.repo.ListActive()
+	banners, err := s.repo.ListActive(platform)
 	if err != nil {
 		s.logger.Error("Failed to fetch active banners", zap.Error(err))
 		return nil, fmt.Errorf("failed to fetch banners: %w", err)
@@ -154,6 +159,9 @@ func (s *BannerService) Update(id uuid.UUID, req *dto.UpdateBannerRequest) (*dto
 	}
 	if req.Type != nil {
 		banner.Type = *req.Type
+	}
+	if req.Platform != nil {
+		banner.Platform = *req.Platform
 	}
 	if req.IsActive != nil {
 		banner.IsActive = *req.IsActive
@@ -232,6 +240,7 @@ func toBannerResponse(b *models.Banner) *dto.BannerResponse {
 		CtaRoute:  b.CtaRoute,
 		BgColor:   b.BgColor,
 		Type:      b.Type,
+		Platform:  b.Platform,
 		IsActive:  b.IsActive,
 		SortOrder: b.SortOrder,
 		CreatedAt: b.CreatedAt.Format(time.RFC3339),

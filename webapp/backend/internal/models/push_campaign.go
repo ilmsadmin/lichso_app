@@ -29,6 +29,8 @@ type PushCampaign struct {
 	// JSON object stored as text: {"key":"value"} for app deep-link data
 	DataPayload string         `gorm:"type:text;default:'{}'" json:"data_payload"`
 	TargetType  string         `gorm:"type:varchar(20);not null;default:'all'" json:"target_type"`
+	// Platform filter for delivery: "all", "android", or "ios"
+	TargetPlatform string      `gorm:"type:varchar(20);not null;default:'all'" json:"target_platform"`
 	// Comma-separated user IDs when target_type = "users"
 	TargetUsers string         `gorm:"type:text;default:''" json:"target_users"`
 	// Group ID when target_type = "group"

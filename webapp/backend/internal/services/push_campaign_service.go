@@ -49,13 +49,14 @@ type CreateCampaignInput struct {
 	Body          string
 	ImageURL      string
 	ClickAction   string
-	DataPayload   map[string]string
-	TargetType    string
-	TargetUsers   []string // user IDs when target_type = "users"
-	TargetGroupID *uuid.UUID
-	TemplateID    *uuid.UUID
-	ScheduledAt   *time.Time
-	CreatedBy     *uuid.UUID
+	DataPayload    map[string]string
+	TargetType     string
+	TargetPlatform string   // "all", "android", or "ios"
+	TargetUsers    []string // user IDs when target_type = "users"
+	TargetGroupID  *uuid.UUID
+	TemplateID     *uuid.UUID
+	ScheduledAt    *time.Time
+	CreatedBy      *uuid.UUID
 }
 
 func (s *PushCampaignService) Create(input CreateCampaignInput) (*models.PushCampaign, error) {
@@ -70,6 +71,11 @@ func (s *PushCampaignService) Create(input CreateCampaignInput) (*models.PushCam
 		targetType = models.CampaignTargetAll
 	}
 
+	targetPlatform := input.TargetPlatform
+	if targetPlatform == "" {
+		targetPlatform = models.PlatformAll
+	}
+
 	status := models.CampaignStatusDraft
 	if input.ScheduledAt != nil {
 		status = models.CampaignStatusScheduled
@@ -80,10 +86,11 @@ func (s *PushCampaignService) Create(input CreateCampaignInput) (*models.PushCam
 		Body:          input.Body,
 		ImageURL:      input.ImageURL,
 		ClickAction:   input.ClickAction,
-		DataPayload:   dataJSON,
-		TargetType:    targetType,
-		TargetUsers:   strings.Join(input.TargetUsers, ","),
-		TargetGroupID: input.TargetGroupID,
+		DataPayload:    dataJSON,
+		TargetType:     targetType,
+		TargetPlatform: targetPlatform,
+		TargetUsers:    strings.Join(input.TargetUsers, ","),
+		TargetGroupID:  input.TargetGroupID,
 		TemplateID:    input.TemplateID,
 		Status:        status,
 		ScheduledAt:   input.ScheduledAt,
@@ -115,12 +122,13 @@ type UpdateCampaignInput struct {
 	Body          string
 	ImageURL      string
 	ClickAction   string
-	DataPayload   map[string]string
-	TargetType    string
-	TargetUsers   []string
-	TargetGroupID *uuid.UUID
-	TemplateID    *uuid.UUID
-	ScheduledAt   *time.Time
+	DataPayload    map[string]string
+	TargetType     string
+	TargetPlatform string
+	TargetUsers    []string
+	TargetGroupID  *uuid.UUID
+	TemplateID     *uuid.UUID
+	ScheduledAt    *time.Time
 }
 
 func (s *PushCampaignService) Update(id uuid.UUID, input UpdateCampaignInput) (*models.PushCampaign, error) {
@@ -147,6 +155,9 @@ func (s *PushCampaignService) Update(id uuid.UUID, input UpdateCampaignInput) (*
 	}
 	if input.TargetType != "" {
 		campaign.TargetType = input.TargetType
+	}
+	if input.TargetPlatform != "" {
+		campaign.TargetPlatform = input.TargetPlatform
 	}
 	campaign.TargetUsers = strings.Join(input.TargetUsers, ",")
 	campaign.TargetGroupID = input.TargetGroupID
@@ -266,13 +277,19 @@ func (s *PushCampaignService) dispatchCampaign(campaign *models.PushCampaign) {
 }
 
 func (s *PushCampaignService) resolveTokens(campaign *models.PushCampaign) ([]string, error) {
+	// Empty string => no platform restriction (all platforms).
+	platformFilter := campaign.TargetPlatform
+	if platformFilter == models.PlatformAll {
+		platformFilter = ""
+	}
+
 	switch campaign.TargetType {
 	case models.CampaignTargetAll:
 		// Collect all active tokens in pages to avoid loading millions into memory
 		var allTokens []string
 		offset := 0
 		for {
-			batch, err := s.deviceTokenRepo.GetActiveTokens("android", 1000, offset)
+			batch, err := s.deviceTokenRepo.GetActiveTokens(platformFilter, 1000, offset)
 			if err != nil {
 				return nil, err
 			}
@@ -296,7 +313,7 @@ func (s *PushCampaignService) resolveTokens(campaign *models.PushCampaign) ([]st
 				userIDs = append(userIDs, id)
 			}
 		}
-		return s.deviceTokenRepo.GetActiveTokensByUserIDs(userIDs)
+		return s.deviceTokenRepo.GetActiveTokensByUserIDs(userIDs, platformFilter)
 
 	case models.CampaignTargetGroup:
 		if campaign.TargetGroupID == nil {
@@ -306,7 +323,7 @@ func (s *PushCampaignService) resolveTokens(campaign *models.PushCampaign) ([]st
 		if err != nil || len(userIDs) == 0 {
 			return nil, err
 		}
-		return s.deviceTokenRepo.GetActiveTokensByUserIDs(userIDs)
+		return s.deviceTokenRepo.GetActiveTokensByUserIDs(userIDs, platformFilter)
 
 	default:
 		return nil, fmt.Errorf("unknown target_type: %s", campaign.TargetType)

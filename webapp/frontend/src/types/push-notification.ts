@@ -1,5 +1,6 @@
 export type CampaignStatus = "draft" | "scheduled" | "sending" | "sent" | "failed";
 export type CampaignTarget = "all" | "users" | "group";
+export type CampaignPlatform = "all" | "android" | "ios";
 
 export interface PushCampaign {
   id: string;
@@ -9,6 +10,7 @@ export interface PushCampaign {
   click_action?: string;
   data_payload?: string;
   target_type: CampaignTarget;
+  target_platform: CampaignPlatform;
   target_users?: string;
   target_group_id?: string;
   template_id?: string;
@@ -73,6 +75,7 @@ export interface CreateCampaignRequest {
   click_action?: string;
   data_payload?: Record<string, string>;
   target_type: CampaignTarget;
+  target_platform?: CampaignPlatform;
   target_users?: string[];
   target_group_id?: string;
   template_id?: string;

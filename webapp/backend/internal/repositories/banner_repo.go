@@ -31,14 +31,20 @@ func (r *BannerRepository) GetByID(id uuid.UUID) (*models.Banner, error) {
 }
 
 // ListActive returns active banners within valid date range, ordered by sort_order.
-func (r *BannerRepository) ListActive() ([]models.Banner, error) {
+// When platform is "android" or "ios", only banners targeting that platform (or "all")
+// are returned. An empty platform returns only platform-agnostic ("all") banners.
+func (r *BannerRepository) ListActive(platform string) ([]models.Banner, error) {
 	var banners []models.Banner
 	now := time.Now()
-	err := r.db.Where("is_active = ?", true).
+	query := r.db.Where("is_active = ?", true).
 		Where("(start_date IS NULL OR start_date <= ?)", now).
-		Where("(end_date IS NULL OR end_date >= ?)", now).
-		Order("sort_order ASC, created_at DESC").
-		Find(&banners).Error
+		Where("(end_date IS NULL OR end_date >= ?)", now)
+	if platform == models.PlatformAndroid || platform == models.PlatformIOS {
+		query = query.Where("platform = ? OR platform = ?", models.PlatformAll, platform)
+	} else {
+		query = query.Where("platform = ?", models.PlatformAll)
+	}
+	err := query.Order("sort_order ASC, created_at DESC").Find(&banners).Error
 	return banners, err
 }
 

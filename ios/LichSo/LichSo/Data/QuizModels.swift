@@ -236,6 +236,115 @@ public struct ArticleCategory: Codable, Hashable {
     public let slug: String
 }
 
+// ═══════════════════════════════════════════
+// Home banners & popups (matches Android Banner/Popup)
+// ═══════════════════════════════════════════
+
+public struct Banner: Codable, Identifiable, Hashable {
+    public let id: String
+    public let title: String
+    public let subtitle: String?
+    public let imageUrl: String?
+    public let iconUrl: String?
+    public let iconKey: String?
+    public let ctaText: String?
+    public let ctaType: String?
+    public let ctaRoute: String?
+    public let bgColor: String?
+    public let type: String?
+    public let active: Bool
+    public let sortOrder: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, subtitle, type
+        case imageUrl = "image_url"
+        case iconUrl = "icon_url"
+        case iconKey = "icon_key"
+        case ctaText = "cta_text"
+        case ctaType = "cta_type"
+        case ctaRoute = "cta_route"
+        case bgColor = "bg_color"
+        case active = "is_active"
+        case sortOrder = "sort_order"
+    }
+
+    public init(
+        id: String,
+        title: String,
+        subtitle: String? = nil,
+        imageUrl: String? = nil,
+        iconUrl: String? = nil,
+        iconKey: String? = nil,
+        ctaText: String? = nil,
+        ctaType: String? = nil,
+        ctaRoute: String? = nil,
+        bgColor: String? = nil,
+        type: String? = nil,
+        active: Bool = true,
+        sortOrder: Int = 0
+    ) {
+        self.id = id
+        self.title = title
+        self.subtitle = subtitle
+        self.imageUrl = imageUrl
+        self.iconUrl = iconUrl
+        self.iconKey = iconKey
+        self.ctaText = ctaText
+        self.ctaType = ctaType
+        self.ctaRoute = ctaRoute
+        self.bgColor = bgColor
+        self.type = type
+        self.active = active
+        self.sortOrder = sortOrder
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        title = try c.decodeIfPresent(String.self, forKey: .title) ?? ""
+        subtitle = try c.decodeIfPresent(String.self, forKey: .subtitle)
+        imageUrl = try c.decodeIfPresent(String.self, forKey: .imageUrl)
+        iconUrl = try c.decodeIfPresent(String.self, forKey: .iconUrl)
+        iconKey = try c.decodeIfPresent(String.self, forKey: .iconKey)
+        ctaText = try c.decodeIfPresent(String.self, forKey: .ctaText)
+        ctaType = try c.decodeIfPresent(String.self, forKey: .ctaType)
+        ctaRoute = try c.decodeIfPresent(String.self, forKey: .ctaRoute)
+        bgColor = try c.decodeIfPresent(String.self, forKey: .bgColor)
+        type = try c.decodeIfPresent(String.self, forKey: .type)
+        active = try c.decodeIfPresent(Bool.self, forKey: .active) ?? true
+        sortOrder = try c.decodeIfPresent(Int.self, forKey: .sortOrder) ?? 0
+    }
+}
+
+public struct Popup: Codable, Identifiable, Hashable {
+    public let id: String
+    public let title: String
+    public let imageUrl: String
+    public let ctaType: String?
+    public let ctaRoute: String?
+    public let active: Bool
+    public let position: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, position
+        case imageUrl = "image_url"
+        case ctaType = "cta_type"
+        case ctaRoute = "cta_route"
+        case active = "is_active"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        title = try c.decodeIfPresent(String.self, forKey: .title) ?? ""
+        imageUrl = try c.decodeIfPresent(String.self, forKey: .imageUrl) ?? ""
+        ctaType = try c.decodeIfPresent(String.self, forKey: .ctaType)
+        ctaRoute = try c.decodeIfPresent(String.self, forKey: .ctaRoute)
+        active = try c.decodeIfPresent(Bool.self, forKey: .active) ?? true
+        position = try c.decodeIfPresent(String.self, forKey: .position)
+    }
+}
+
 public struct Article: Codable, Identifiable, Hashable {
     public let id: String
     public let title: String

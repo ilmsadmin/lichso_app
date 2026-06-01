@@ -101,7 +101,10 @@ struct MainTabView: View {
                     case .notes:
                         NotesScreen()
                     case .today:
-                        HomeScreen(onMenuClick: { showSidebar = true })
+                        HomeScreen(
+                            onMenuClick: { showSidebar = true },
+                            onBannerAction: { route in handleBannerAction(route) }
+                        )
                     case .quiz:
                         QuizHomeScreen()
                     case .tools:
@@ -153,6 +156,32 @@ struct MainTabView: View {
             NavigationStack {
                 KnowledgeFeedScreen()
             }
+        }
+    }
+
+    // MARK: - Banner / Popup Actions
+
+    private func handleBannerAction(_ target: String) {
+        let route = target.trimmingCharacters(in: .whitespacesAndNewlines)
+        if route.isEmpty { return }
+
+        // External links → open in browser
+        if route.hasPrefix("http://") || route.hasPrefix("https://") {
+            if let url = URL(string: route) {
+                UIApplication.shared.open(url)
+            }
+            return
+        }
+
+        switch route {
+        case "chat":
+            showAIChat = true
+        case "quiz_home", "quiz":
+            selectedTab = .quiz
+        case "home":
+            selectedTab = .today
+        default:
+            handleSidebarNavigation(route)
         }
     }
 

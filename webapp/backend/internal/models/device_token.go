@@ -1,6 +1,7 @@
 package models
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -8,10 +9,26 @@ import (
 )
 
 const (
+	PlatformAll     = "all"
 	PlatformAndroid = "android"
 	PlatformIOS     = "ios"
 	PlatformWeb     = "web"
 )
+
+// NormalizePlatform maps a raw platform string (e.g. from the X-Client-Platform
+// header, "IOS"/"ANDROID") to a canonical value. Unknown values return "".
+func NormalizePlatform(raw string) string {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case PlatformAndroid:
+		return PlatformAndroid
+	case PlatformIOS:
+		return PlatformIOS
+	case PlatformWeb:
+		return PlatformWeb
+	default:
+		return ""
+	}
+}
 
 // DeviceToken stores FCM push tokens per user device.
 type DeviceToken struct {

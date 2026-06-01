@@ -1,0 +1,1 @@
+ALTER TABLE push_campaigns ADD COLUMN IF NOT EXISTS target_platform VARCHAR(20) NOT NULL DEFAULT 'all';

@@ -161,8 +161,15 @@ export default function PopupsPage() {
                     </TableCell>
 
                     {/* Title */}
-                    <TableCell className="font-medium max-w-[200px] truncate">
-                      {popup.title}
+                    <TableCell className="font-medium max-w-[200px]">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate">{popup.title}</span>
+                        {popup.platform && popup.platform !== "all" && (
+                          <Badge variant="outline" className="shrink-0 text-[10px] uppercase">
+                            {popup.platform}
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
 
                     {/* Position */}

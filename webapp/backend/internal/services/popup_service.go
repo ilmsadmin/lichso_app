@@ -30,6 +30,7 @@ func (s *PopupService) Create(req *dto.CreatePopupRequest) (*dto.PopupResponse, 
 		CtaType:  req.CtaType,
 		CtaRoute: req.CtaRoute,
 		Position: req.Position,
+		Platform: req.Platform,
 	}
 
 	if popup.CtaType == "" {
@@ -37,6 +38,9 @@ func (s *PopupService) Create(req *dto.CreatePopupRequest) (*dto.PopupResponse, 
 	}
 	if popup.Position == "" {
 		popup.Position = "center"
+	}
+	if popup.Platform == "" {
+		popup.Platform = models.PlatformAll
 	}
 
 	if req.IsActive != nil {
@@ -66,9 +70,10 @@ func (s *PopupService) GetByID(id uuid.UUID) (*dto.PopupResponse, error) {
 	return toPopupResponse(popup), nil
 }
 
-// GetActivePopups returns active popups for public API.
-func (s *PopupService) GetActivePopups() ([]dto.PopupResponse, error) {
-	popups, err := s.repo.ListActive()
+// GetActivePopups returns active popups for public API, filtered by client platform
+// ("android"/"ios"; empty returns only platform-agnostic popups).
+func (s *PopupService) GetActivePopups(platform string) ([]dto.PopupResponse, error) {
+	popups, err := s.repo.ListActive(platform)
 	if err != nil {
 		s.logger.Error("Failed to fetch active popups", zap.Error(err))
 		return nil, fmt.Errorf("failed to fetch active popups: %w", err)
@@ -116,6 +121,9 @@ func (s *PopupService) Update(id uuid.UUID, req *dto.UpdatePopupRequest) (*dto.P
 	}
 	if req.Position != nil {
 		popup.Position = *req.Position
+	}
+	if req.Platform != nil {
+		popup.Platform = *req.Platform
 	}
 	if req.IsActive != nil {
 		popup.IsActive = *req.IsActive
@@ -168,6 +176,7 @@ func toPopupResponse(p *models.Popup) *dto.PopupResponse {
 		CtaType:   p.CtaType,
 		CtaRoute:  p.CtaRoute,
 		Position:  p.Position,
+		Platform:  p.Platform,
 		IsActive:  p.IsActive,
 		CreatedAt: p.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: p.UpdatedAt.Format(time.RFC3339),
