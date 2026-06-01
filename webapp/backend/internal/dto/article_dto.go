@@ -90,6 +90,7 @@ type CreateArticleCategoryRequest struct {
 	Description string `json:"description" validate:"max=1000"`
 	ParentID    string `json:"parent_id" validate:"omitempty,uuid"`
 	Icon        string `json:"icon" validate:"omitempty,max=100"`
+	ImageURL    string `json:"image_url" validate:"omitempty,max=500"`
 	SortOrder   int    `json:"sort_order" validate:"min=0"`
 }
 
@@ -100,6 +101,7 @@ type UpdateArticleCategoryRequest struct {
 	Description *string `json:"description" validate:"omitempty,max=1000"`
 	ParentID    *string `json:"parent_id" validate:"omitempty,uuid"`
 	Icon        *string `json:"icon" validate:"omitempty,max=100"`
+	ImageURL    *string `json:"image_url" validate:"omitempty,max=500"`
 	SortOrder   *int    `json:"sort_order" validate:"omitempty,min=0"`
 	IsActive    *bool   `json:"is_active"`
 }
@@ -112,6 +114,7 @@ type ArticleCategoryResponse struct {
 	Description string                    `json:"description,omitempty"`
 	ParentID    string                    `json:"parent_id,omitempty"`
 	Icon        string                    `json:"icon,omitempty"`
+	ImageURL    string                    `json:"image_url,omitempty"`
 	SortOrder   int                       `json:"sort_order"`
 	IsActive    bool                      `json:"is_active"`
 	Children    []ArticleCategoryResponse `json:"children,omitempty"`

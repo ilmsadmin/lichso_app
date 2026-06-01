@@ -17,6 +17,7 @@ export interface ArticleCategory {
   description: string;
   parent_id: string | null;
   icon: string;
+  image_url?: string;
   sort_order: number;
   is_active: boolean;
   created_at: string;
@@ -139,6 +140,7 @@ export interface CreateCategoryRequest {
   description?: string;
   parent_id?: string;
   icon?: string;
+  image_url?: string;
   sort_order?: number;
   is_active?: boolean;
 }
@@ -151,6 +153,7 @@ export interface UpdateCategoryRequest {
   description?: string;
   parent_id?: string;
   icon?: string;
+  image_url?: string;
   sort_order?: number;
   is_active?: boolean;
 }

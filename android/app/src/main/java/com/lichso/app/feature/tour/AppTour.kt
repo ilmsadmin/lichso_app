@@ -244,10 +244,15 @@ private fun TourTooltipCard(
                         onClick = onNext,
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = Color.White,
                         ),
                     ) {
-                        Text(if (isLast) "Xong" else "Tiếp theo", fontSize = 14.sp)
+                        Text(
+                            text = if (isLast) "Xong" else "Tiếp theo",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                        )
                     }
                 }
             }

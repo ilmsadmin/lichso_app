@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,6 +31,7 @@ import androidx.compose.ui.layout.ContentScale
 import com.lichso.app.data.remote.*
 import com.lichso.app.ui.components.AppTopBar
 import com.lichso.app.ui.theme.LichSoThemeColors
+import kotlinx.coroutines.flow.distinctUntilChanged
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -42,6 +44,19 @@ fun KnowledgeFeedScreen(
 ) {
     val c = LichSoThemeColors.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(listState, uiState.articles.size, uiState.hasMoreArticles, uiState.isLoadingMore) {
+        snapshotFlow {
+            val layoutInfo = listState.layoutInfo
+            val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisibleIndex >= layoutInfo.totalItemsCount - 4
+        }
+            .distinctUntilChanged()
+            .collect { shouldLoadMore ->
+                if (shouldLoadMore) viewModel.loadMoreArticles()
+            }
+    }
 
     Column(
         modifier = Modifier
@@ -73,6 +88,7 @@ fun KnowledgeFeedScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
+                state = listState,
                 contentPadding = PaddingValues(bottom = 24.dp),
             ) {
                 uiState.quote?.let { quote ->
@@ -113,12 +129,94 @@ fun KnowledgeFeedScreen(
                     }
                 }
 
+                if (uiState.categories.isNotEmpty()) {
+                    item {
+                        SectionHeader(title = "Danh mục bài viết")
+                    }
+                    item {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            item {
+                                CategoryCard(
+                                    name = "Tất cả",
+                                    imageUrl = null,
+                                    selected = uiState.selectedCategorySlug == null,
+                                    onClick = { viewModel.selectCategory(null) },
+                                )
+                            }
+                            items(uiState.categories) { category ->
+                                CategoryCard(
+                                    name = category.name,
+                                    imageUrl = category.imageUrl,
+                                    selected = uiState.selectedCategorySlug == category.slug,
+                                    onClick = { viewModel.selectCategory(category) },
+                                )
+                            }
+                        }
+                    }
+                }
+
                 if (uiState.articles.isNotEmpty()) {
                     item {
-                        SectionHeader(title = "Bài viết mới nhất")
+                        SectionHeader(title = uiState.selectedCategoryName ?: "Bài viết mới nhất")
                     }
                     items(uiState.articles) { article ->
                         ArticleCard(article = article, onClick = { onArticleClick(article.id) })
+                    }
+                    if (uiState.isLoadingMore) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(
+                                    color = c.red,
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp,
+                                )
+                            }
+                        }
+                    } else if (!uiState.hasMoreArticles && uiState.articles.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "Bạn đã xem hết bài viết hiện có",
+                                style = TextStyle(fontSize = 12.sp, color = c.textTertiary),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp),
+                            )
+                        }
+                    }
+                } else if (uiState.categories.isNotEmpty() && uiState.isLoadingMore) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 24.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator(
+                                color = c.red,
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                            )
+                        }
+                    }
+                } else if (uiState.categories.isNotEmpty() && uiState.selectedCategorySlug != null) {
+                    item {
+                        Text(
+                            text = "Chưa có bài viết trong danh mục này",
+                            style = TextStyle(fontSize = 13.sp, color = c.textTertiary),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 24.dp),
+                        )
                     }
                 }
 
@@ -139,6 +237,84 @@ fun KnowledgeFeedScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CategoryCard(
+    name: String,
+    imageUrl: String?,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val c = LichSoThemeColors.current
+    val normalizedUrl = remember(imageUrl) { normalizeContentImageUrl(imageUrl) }
+
+    Box(
+        modifier = Modifier
+            .width(132.dp)
+            .height(92.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(c.surfaceContainer)
+            .border(
+                width = if (selected) 2.dp else 1.dp,
+                color = if (selected) c.gold else c.outlineVariant,
+                shape = RoundedCornerShape(16.dp),
+            )
+            .clickable(onClick = onClick)
+    ) {
+        if (!normalizedUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = normalizedUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize(),
+            )
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.72f)),
+                        )
+                    )
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(c.red.copy(alpha = 0.82f), c.gold.copy(alpha = 0.72f)),
+                            start = Offset(0f, 0f),
+                            end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY),
+                        )
+                    )
+            )
+            Icon(
+                Icons.AutoMirrored.Filled.Article,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.36f),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(10.dp)
+                    .size(30.dp),
+            )
+        }
+        Text(
+            text = name,
+            style = TextStyle(
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                lineHeight = 17.sp,
+            ),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(12.dp),
+        )
     }
 }
 
@@ -352,20 +528,7 @@ private fun PersonCard(person: FamousPerson) {
 private fun ArticleCard(article: Article, onClick: () -> Unit = {}) {
     val c = LichSoThemeColors.current
     val featuredImage = article.featuredImage
-    val normalizedUrl = remember(featuredImage) {
-        if (featuredImage.isNullOrBlank()) null
-        else if (featuredImage.startsWith("http://") || featuredImage.startsWith("https://")) featuredImage
-        else {
-            val cleaned = if (featuredImage.startsWith("/")) featuredImage.substring(1) else featuredImage
-            if (cleaned.startsWith("api/uploads/")) {
-                "https://lichso.vn/$cleaned"
-            } else if (cleaned.startsWith("uploads/")) {
-                "https://lichso.vn/api/$cleaned"
-            } else {
-                "https://lichso.vn/$cleaned"
-            }
-        }
-    }
+    val normalizedUrl = remember(featuredImage) { normalizeContentImageUrl(featuredImage) }
 
     Row(
         modifier = Modifier
@@ -447,5 +610,17 @@ private fun ArticleCard(article: Article, onClick: () -> Unit = {}) {
                 )
             }
         }
+    }
+}
+
+private fun normalizeContentImageUrl(url: String?): String? {
+    if (url.isNullOrBlank()) return null
+    if (url.startsWith("http://") || url.startsWith("https://")) return url
+
+    val cleaned = if (url.startsWith("/")) url.substring(1) else url
+    return when {
+        cleaned.startsWith("api/uploads/") -> "https://lichso.vn/$cleaned"
+        cleaned.startsWith("uploads/") -> "https://lichso.vn/api/$cleaned"
+        else -> "https://lichso.vn/$cleaned"
     }
 }

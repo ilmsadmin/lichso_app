@@ -38,7 +38,7 @@ func (r *ArticleRepository) GetBySlug(slug string) (*models.Article, error) {
 }
 
 // List returns paginated articles with optional filters.
-func (r *ArticleRepository) List(page, pageSize int, status string, search string, categoryID *uuid.UUID, isFeatured *bool) ([]models.Article, int64, error) {
+func (r *ArticleRepository) List(page, pageSize int, status string, search string, categoryIDs []uuid.UUID, isFeatured *bool) ([]models.Article, int64, error) {
 	var articles []models.Article
 	var total int64
 
@@ -51,8 +51,8 @@ func (r *ArticleRepository) List(page, pageSize int, status string, search strin
 		searchPattern := "%" + search + "%"
 		query = query.Where("(title ILIKE ? OR excerpt ILIKE ?)", searchPattern, searchPattern)
 	}
-	if categoryID != nil {
-		query = query.Where("category_id = ?", *categoryID)
+	if len(categoryIDs) > 0 {
+		query = query.Where("category_id IN ?", categoryIDs)
 	}
 	if isFeatured != nil {
 		query = query.Where("is_featured = ?", *isFeatured)
@@ -269,6 +269,23 @@ func (r *ArticleCategoryRepository) GetBySlug(slug string) (*models.ArticleCateg
 	var category models.ArticleCategory
 	err := r.db.Where("slug = ? AND is_active = ?", slug, true).First(&category).Error
 	return &category, err
+}
+
+// GetDescendantIDs returns active child category IDs for a category tree.
+func (r *ArticleCategoryRepository) GetDescendantIDs(parentID uuid.UUID) ([]uuid.UUID, error) {
+	var ids []uuid.UUID
+	err := r.db.Raw(`
+		WITH RECURSIVE category_tree AS (
+			SELECT id FROM article_categories
+			WHERE parent_id = ? AND is_active = TRUE AND deleted_at IS NULL
+			UNION ALL
+			SELECT c.id FROM article_categories c
+			INNER JOIN category_tree ct ON c.parent_id = ct.id
+			WHERE c.is_active = TRUE AND c.deleted_at IS NULL
+		)
+		SELECT id FROM category_tree
+	`, parentID).Scan(&ids).Error
+	return ids, err
 }
 
 // List returns all active categories as a tree structure.

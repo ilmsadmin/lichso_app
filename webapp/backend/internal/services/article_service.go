@@ -137,8 +137,8 @@ func (s *ArticleService) GetBySlug(slug string) (*dto.ArticleResponse, error) {
 }
 
 // List returns paginated articles (public).
-func (s *ArticleService) List(page, pageSize int, search string, categoryID *uuid.UUID, isFeatured *bool) ([]dto.ArticleListResponse, int64, error) {
-	articles, total, err := s.articleRepo.List(page, pageSize, models.ArticleStatusPublished, search, categoryID, isFeatured)
+func (s *ArticleService) List(page, pageSize int, search string, categoryIDs []uuid.UUID, isFeatured *bool) ([]dto.ArticleListResponse, int64, error) {
+	articles, total, err := s.articleRepo.List(page, pageSize, models.ArticleStatusPublished, search, categoryIDs, isFeatured)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to fetch articles: %w", err)
 	}
@@ -293,6 +293,37 @@ func (s *ArticleService) Delete(id uuid.UUID) error {
 	return nil
 }
 
+// ResolveCategoryID resolves either a category UUID or slug into an ID.
+func (s *ArticleService) ResolveCategoryID(value string) (*uuid.UUID, error) {
+	if value == "" {
+		return nil, nil
+	}
+	if id, err := uuid.Parse(value); err == nil {
+		return &id, nil
+	}
+	category, err := s.categoryRepo.GetBySlug(value)
+	if err != nil {
+		return nil, fmt.Errorf("category not found: %w", err)
+	}
+	return &category.ID, nil
+}
+
+// ResolveCategoryTreeIDs resolves a category UUID or slug and includes its active descendants.
+func (s *ArticleService) ResolveCategoryTreeIDs(value string) ([]uuid.UUID, error) {
+	categoryID, err := s.ResolveCategoryID(value)
+	if err != nil || categoryID == nil {
+		return nil, err
+	}
+
+	ids := []uuid.UUID{*categoryID}
+	descendantIDs, err := s.categoryRepo.GetDescendantIDs(*categoryID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch child categories: %w", err)
+	}
+	ids = append(ids, descendantIDs...)
+	return ids, nil
+}
+
 // ============================================
 // Helper functions
 // ============================================
@@ -376,6 +407,7 @@ func toArticleCategoryResponse(c *models.ArticleCategory) *dto.ArticleCategoryRe
 		Slug:        c.Slug,
 		Description: c.Description,
 		Icon:        c.Icon,
+		ImageURL:    utils.NormalizeUploadURL(c.ImageURL),
 		SortOrder:   c.SortOrder,
 		IsActive:    c.IsActive,
 		CreatedAt:   c.CreatedAt.Format(time.RFC3339),
@@ -438,6 +470,7 @@ func (s *ArticleCategoryService) Create(req *dto.CreateArticleCategoryRequest) (
 		Slug:        slug,
 		Description: req.Description,
 		Icon:        req.Icon,
+		ImageURL:    req.ImageURL,
 		SortOrder:   req.SortOrder,
 	}
 
@@ -529,6 +562,9 @@ func (s *ArticleCategoryService) Update(id uuid.UUID, req *dto.UpdateArticleCate
 	}
 	if req.Icon != nil {
 		category.Icon = *req.Icon
+	}
+	if req.ImageURL != nil {
+		category.ImageURL = *req.ImageURL
 	}
 	if req.SortOrder != nil {
 		category.SortOrder = *req.SortOrder

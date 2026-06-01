@@ -67,6 +67,9 @@ data class ArticleCategory(
     val id: String,
     val name: String,
     val slug: String,
+    val description: String? = null,
+    @SerializedName("image_url") val imageUrl: String? = null,
+    val children: List<ArticleCategory>? = null,
 )
 
 data class Festival(
@@ -458,6 +461,10 @@ class LichSoApi @Inject constructor(
             if (category != null) append("&category=${category.encodeUrl()}")
         }
         execute(get(path))
+    }
+
+    suspend fun getCategories(): Result<List<ArticleCategory>> = withContext(Dispatchers.IO) {
+        execute(get("/categories"))
     }
 
     suspend fun getArticle(id: String): Result<Article> = withContext(Dispatchers.IO) {

@@ -81,12 +81,20 @@ func (h *ArticleHandler) List(c *fiber.Ctx) error {
 	pagination := utils.ParsePagination(c)
 	search := c.Query("search")
 
-	var categoryID *uuid.UUID
+	var categoryIDs []uuid.UUID
 	if catIDStr := c.Query("category_id"); catIDStr != "" {
-		catID, err := uuid.Parse(catIDStr)
-		if err == nil {
-			categoryID = &catID
+		resolvedIDs, err := h.service.ResolveCategoryTreeIDs(catIDStr)
+		if err != nil {
+			return utils.ErrorResponse(c, fiber.StatusBadRequest, "Danh mục không hợp lệ")
 		}
+		categoryIDs = resolvedIDs
+	}
+	if category := c.Query("category"); category != "" && len(categoryIDs) == 0 {
+		resolvedIDs, err := h.service.ResolveCategoryTreeIDs(category)
+		if err != nil {
+			return utils.ErrorResponse(c, fiber.StatusBadRequest, "Danh mục không hợp lệ")
+		}
+		categoryIDs = resolvedIDs
 	}
 
 	var isFeatured *bool
@@ -108,7 +116,7 @@ func (h *ArticleHandler) List(c *fiber.Ctx) error {
 		return utils.PaginatedResponse(c, "Danh sách bài viết theo tag", result, pagination.Page, pagination.Limit, total)
 	}
 
-	result, total, err := h.service.List(pagination.Page, pagination.Limit, search, categoryID, isFeatured)
+	result, total, err := h.service.List(pagination.Page, pagination.Limit, search, categoryIDs, isFeatured)
 	if err != nil {
 		return utils.ErrorResponse(c, fiber.StatusInternalServerError, err.Error())
 	}

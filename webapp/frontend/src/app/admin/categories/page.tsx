@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Plus, Pencil, Trash2, MoreHorizontal, Layers3 } from "lucide-react";
+import Image from "next/image";
+import { Plus, Pencil, Trash2, MoreHorizontal, Upload, X } from "lucide-react";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { SearchInput } from "@/components/shared/SearchInput";
 import { Pagination } from "@/components/shared/Pagination";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { MediaPickerDialog } from "@/components/shared/MediaPickerDialog";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import {
   useCategories,
@@ -44,8 +46,9 @@ import {
 } from "@/hooks/useArticles";
 import { usePermission } from "@/hooks/usePermission";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getImageUrl } from "@/lib/utils";
 import type { ArticleCategory } from "@/types/article";
+import type { MediaFile } from "@/types/media";
 
 export default function CategoriesPage() {
   const { can } = usePermission();
@@ -59,8 +62,10 @@ export default function CategoriesPage() {
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formIcon, setFormIcon] = useState("");
+  const [formImageUrl, setFormImageUrl] = useState("");
   const [formSortOrder, setFormSortOrder] = useState(0);
   const [formIsActive, setFormIsActive] = useState(true);
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
 
 
   const { data, isLoading } = useCategories({ page, limit, search: search || undefined });
@@ -80,6 +85,7 @@ export default function CategoriesPage() {
     setFormName("");
     setFormDescription("");
     setFormIcon("");
+    setFormImageUrl("");
     setFormSortOrder(0);
     setFormIsActive(true);
     setShowCreateDialog(true);
@@ -89,9 +95,14 @@ export default function CategoriesPage() {
     setFormName(cat.name);
     setFormDescription(cat.description || "");
     setFormIcon(cat.icon || "");
+    setFormImageUrl(cat.image_url || "");
     setFormSortOrder(cat.sort_order);
     setFormIsActive(cat.is_active);
     setEditCategory(cat);
+  };
+
+  const handleMediaSelect = (file: MediaFile) => {
+    setFormImageUrl(file.url);
   };
 
   const handleCreate = () => {
@@ -100,6 +111,7 @@ export default function CategoriesPage() {
         name: formName,
         description: formDescription || undefined,
         icon: formIcon || undefined,
+        image_url: formImageUrl || undefined,
         sort_order: formSortOrder,
         is_active: formIsActive,
       },
@@ -117,6 +129,7 @@ export default function CategoriesPage() {
         name: formName,
         description: formDescription || undefined,
         icon: formIcon || undefined,
+        image_url: formImageUrl,
         sort_order: formSortOrder,
         is_active: formIsActive,
       },
@@ -183,6 +196,13 @@ export default function CategoriesPage() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-9 w-9 shrink-0 rounded-md">
+                            {cat.image_url && (
+                              <AvatarImage
+                                src={getImageUrl(cat.image_url)}
+                                alt={cat.name}
+                                className="rounded-md object-cover"
+                              />
+                            )}
                             <AvatarFallback className="bg-primary/10 text-primary rounded-md text-lg">
                               <CatIcon className="h-4 w-4" />
                             </AvatarFallback>
@@ -293,6 +313,11 @@ export default function CategoriesPage() {
                 placeholder="Mô tả danh mục"
               />
             </div>
+            <CategoryImagePicker
+              imageUrl={formImageUrl}
+              onPick={() => setMediaPickerOpen(true)}
+              onClear={() => setFormImageUrl("")}
+            />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Icon</Label>
@@ -347,6 +372,11 @@ export default function CategoriesPage() {
               <Label>Mô tả</Label>
               <Input value={formDescription} onChange={(e) => setFormDescription(e.target.value)} />
             </div>
+            <CategoryImagePicker
+              imageUrl={formImageUrl}
+              onPick={() => setMediaPickerOpen(true)}
+              onClear={() => setFormImageUrl("")}
+            />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Icon</Label>
@@ -398,6 +428,58 @@ export default function CategoriesPage() {
         }}
       />
 
+      <MediaPickerDialog
+        open={mediaPickerOpen}
+        onOpenChange={setMediaPickerOpen}
+        onSelect={handleMediaSelect}
+        title="Chọn ảnh danh mục"
+        imagesOnly={true}
+      />
+
+    </div>
+  );
+}
+
+function CategoryImagePicker({
+  imageUrl,
+  onPick,
+  onClear,
+}: {
+  imageUrl: string;
+  onPick: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>Ảnh đại diện danh mục</Label>
+      <div className="flex items-center gap-3">
+        <div className="bg-muted flex h-20 w-28 shrink-0 items-center justify-center overflow-hidden rounded-md border">
+          {imageUrl ? (
+            <Image
+              src={getImageUrl(imageUrl)}
+              alt="Ảnh đại diện danh mục"
+              width={112}
+              height={80}
+              unoptimized
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="text-muted-foreground text-xs">Chưa có ảnh</span>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={onPick}>
+            <Upload className="mr-2 h-4 w-4" />
+            Chọn từ Media
+          </Button>
+          {imageUrl && (
+            <Button type="button" variant="ghost" onClick={onClear}>
+              <X className="mr-2 h-4 w-4" />
+              Xóa ảnh
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

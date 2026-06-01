@@ -15,6 +15,7 @@ type ArticleCategory struct {
 	Description string         `gorm:"type:text" json:"description,omitempty"`
 	ParentID    *uuid.UUID     `gorm:"type:uuid;index" json:"parent_id,omitempty"`
 	Icon        string         `gorm:"type:varchar(100)" json:"icon,omitempty"`
+	ImageURL    string         `gorm:"type:varchar(500)" json:"image_url,omitempty"`
 	SortOrder   int            `gorm:"default:0" json:"sort_order"`
 	IsActive    bool           `gorm:"default:true" json:"is_active"`
 	CreatedAt   time.Time      `gorm:"type:timestamptz;not null;default:now()" json:"created_at"`

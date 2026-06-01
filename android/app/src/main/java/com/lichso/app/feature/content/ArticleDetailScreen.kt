@@ -29,6 +29,7 @@ import com.lichso.app.ui.theme.LichSoThemeColors
 fun ArticleDetailScreen(
     articleId: String,
     onBackClick: () -> Unit = {},
+    onArticleClick: (String) -> Unit = {},
     viewModel: ArticleDetailViewModel = hiltViewModel(),
 ) {
     val c = LichSoThemeColors.current
@@ -58,7 +59,11 @@ fun ArticleDetailScreen(
         } else if (!uiState.error.isNullOrBlank()) {
             ErrorView(message = uiState.error.orEmpty(), onRetry = { viewModel.loadArticle(articleId) })
         } else if (uiState.article != null) {
-            ArticleContent(article = uiState.article!!)
+            ArticleContent(
+                article = uiState.article!!,
+                relatedArticles = uiState.relatedArticles,
+                onArticleClick = onArticleClick,
+            )
         } else {
             ErrorView(
                 message = "Không có dữ liệu bài viết. Vui lòng thử lại.",
@@ -108,7 +113,11 @@ private fun ErrorView(message: String, onRetry: () -> Unit) {
 }
 
 @Composable
-private fun ArticleContent(article: Article) {
+private fun ArticleContent(
+    article: Article,
+    relatedArticles: List<Article>,
+    onArticleClick: (String) -> Unit,
+) {
     val c = LichSoThemeColors.current
 
     val normalizedFeaturedImage = remember(article.featuredImage) {
@@ -123,7 +132,7 @@ private fun ArticleContent(article: Article) {
         }
     }
 
-    val fullHtml = remember(article, normalizedFeaturedImage, c.isDark) {
+    val fullHtml = remember(article, normalizedFeaturedImage, relatedArticles, c.isDark) {
         val rawContent = article.content ?: article.excerpt ?: "Không có nội dung."
         val fixedContent = rawContent
             .replace("src=\"/uploads/", "src=\"https://lichso.vn/api/uploads/")
@@ -135,6 +144,8 @@ private fun ArticleContent(article: Article) {
         val dividerColor = if (c.isDark) "#5A4F42" else "#D8C2BF"
         val categoryBg = if (c.isDark) "rgba(239,83,80,0.22)" else "rgba(183,28,28,0.12)"
         val categoryText = if (c.isDark) "#FF8A80" else "#B71C1C"
+        val cardBg = if (c.isDark) "#2A1A1A" else "#FFFFFF"
+        val cardBorder = if (c.isDark) "#4B3936" else "#E6D8D4"
 
         val coverHtml = if (!normalizedFeaturedImage.isNullOrBlank()) {
             "<img class=\"cover\" src=\"$normalizedFeaturedImage\" alt=\"cover\" />"
@@ -144,6 +155,7 @@ private fun ArticleContent(article: Article) {
         } ?: ""
         val readingHtml = article.readingTime?.let { "<span class=\"meta-item\">• $it phút đọc</span>" } ?: ""
         val dateHtml = article.publishedAt?.takeIf { it.isNotBlank() }?.let { "<div class=\"date\">Đăng ngày: ${it.take(10)}</div>" } ?: ""
+        val relatedHtml = buildRelatedArticlesHtml(relatedArticles)
 
         """
         <!DOCTYPE html>
@@ -170,6 +182,20 @@ private fun ArticleContent(article: Article) {
         .date { color: $subColor; font-size: 12px; margin-bottom: 14px; }
         hr { border: 0; border-top: 1px solid $dividerColor; margin: 18px 0; }
         p { margin-bottom: 16px; }
+        .related { margin-top: 28px; padding-top: 18px; border-top: 1px solid $dividerColor; }
+        .related-title { font-size: 18px; font-weight: 800; margin: 0 0 12px 0; color: $textColor; }
+        .related-card {
+            display: block;
+            background: $cardBg;
+            border: 1px solid $cardBorder;
+            border-radius: 14px;
+            padding: 12px;
+            margin: 10px 0;
+            color: $textColor;
+            text-decoration: none;
+        }
+        .related-card-title { font-size: 15px; font-weight: 700; line-height: 1.4; margin-bottom: 6px; }
+        .related-card-meta { color: $subColor; font-size: 12px; }
         </style>
         </head>
         <body>
@@ -179,6 +205,7 @@ private fun ArticleContent(article: Article) {
         $dateHtml
         <hr />
         $fixedContent
+        $relatedHtml
         </body>
         </html>
         """.trimIndent()
@@ -186,13 +213,18 @@ private fun ArticleContent(article: Article) {
 
     ArticleHtmlView(
         html = fullHtml,
+        onArticleClick = onArticleClick,
         modifier = Modifier
             .fillMaxSize(),
     )
 }
 
 @Composable
-private fun ArticleHtmlView(html: String, modifier: Modifier = Modifier) {
+private fun ArticleHtmlView(
+    html: String,
+    onArticleClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     androidx.compose.ui.viewinterop.AndroidView(
         factory = { context ->
             android.webkit.WebView(context).apply {
@@ -213,6 +245,31 @@ private fun ArticleHtmlView(html: String, modifier: Modifier = Modifier) {
                 settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
                 settings.allowFileAccessFromFileURLs = false
                 settings.allowUniversalAccessFromFileURLs = false
+                webViewClient = object : android.webkit.WebViewClient() {
+                    override fun shouldOverrideUrlLoading(
+                        view: android.webkit.WebView?,
+                        request: android.webkit.WebResourceRequest?,
+                    ): Boolean {
+                        val url = request?.url?.toString().orEmpty()
+                        val prefix = "lichso://article/"
+                        return if (url.startsWith(prefix)) {
+                            onArticleClick(url.removePrefix(prefix))
+                            true
+                        } else {
+                            if (url.startsWith("http://") || url.startsWith("https://")) {
+                                runCatching {
+                                    context.startActivity(
+                                        android.content.Intent(
+                                            android.content.Intent.ACTION_VIEW,
+                                            android.net.Uri.parse(url),
+                                        )
+                                    )
+                                }
+                            }
+                            true
+                        }
+                    }
+                }
             }
         },
         update = { webView ->
@@ -221,3 +278,32 @@ private fun ArticleHtmlView(html: String, modifier: Modifier = Modifier) {
         modifier = modifier
     )
 }
+
+private fun buildRelatedArticlesHtml(articles: List<Article>): String {
+    if (articles.isEmpty()) return ""
+    val cards = articles.joinToString(separator = "\n") { article ->
+        val category = article.category?.name?.takeIf { it.isNotBlank() } ?: "Bài viết"
+        val date = article.publishedAt?.takeIf { it.isNotBlank() }?.take(10)
+        val meta = listOfNotNull(category, date).joinToString(" • ")
+        """
+        <a class="related-card" href="lichso://article/${article.id}">
+            <div class="related-card-title">${escapeHtml(article.title)}</div>
+            <div class="related-card-meta">${escapeHtml(meta)}</div>
+        </a>
+        """.trimIndent()
+    }
+    return """
+    <section class="related">
+        <h2 class="related-title">Bài viết liên quan</h2>
+        $cards
+    </section>
+    """.trimIndent()
+}
+
+private fun escapeHtml(value: String): String =
+    value
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;")
+        .replace("'", "&#39;")

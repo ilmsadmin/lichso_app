@@ -12,6 +12,7 @@ class ContentRepository @Inject constructor(private val api: LichSoApi) {
     suspend fun getEventsByDate(month: Int, day: Int): Result<List<ContentEvent>> = api.getEventsByDate(month, day)
     suspend fun getFamousPeopleByBirthday(month: Int, day: Int): Result<List<FamousPerson>> = api.getFamousPeopleByBirthday(month, day)
     suspend fun getArticles(page: Int = 1, limit: Int = 20, category: String? = null): Result<List<Article>> = api.getArticles(page, limit, category)
+    suspend fun getCategories(): Result<List<ArticleCategory>> = api.getCategories()
     suspend fun getArticle(id: String): Result<Article> = api.getArticle(id)
     suspend fun getFestivalsByLunarDate(month: Int, day: Int): Result<List<Festival>> = api.getFestivalsByLunarDate(month, day)
     suspend fun getTodayQuote(): Result<Quote> = api.getTodayQuote()

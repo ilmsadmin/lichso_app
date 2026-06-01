@@ -98,6 +98,7 @@ fun LichSoMainScreen(
     var initialAiMessage by remember { mutableStateOf<String?>(null) }
     var initialSearchTool by remember { mutableStateOf<String?>(null) }
     var quizCategory by remember { mutableStateOf<String?>(null) }
+    var openSelectedDayDetail by remember { mutableStateOf(false) }
     val homeViewModel: HomeViewModel = hiltViewModel()
     val screenBgRepo = homeViewModel.screenBackgroundRepository
     val pointsViewModel: PointsViewModel = hiltViewModel()
@@ -146,6 +147,10 @@ fun LichSoMainScreen(
             "chat" -> {
                 initialAiMessage = null
                 currentRoute = "chat"
+            }
+            "quiz_session" -> {
+                quizCategory = null
+                currentRoute = "quiz_session"
             }
             else -> currentRoute = route
         }
@@ -318,12 +323,17 @@ fun LichSoMainScreen(
                         onHistoryClick = { currentRoute = "history" },
                         onNotificationClick = { currentRoute = "notifications" },
                         onCountdownClick = { currentRoute = "countdown" },
+                        onDayDetailClick = {
+                            openSelectedDayDetail = true
+                            currentRoute = "calendar"
+                        },
                         onFortuneCardShown = {
                             pointsViewModel.award(ActionType.VIEW_FORTUNE_CARD)
                         },
                         onBannerAction = { route -> handleBannerAction(route) },
                         hasServerBackground = !normalizedBgUrl.isNullOrBlank(),
                         headerImageUrl = headerBgUrl,
+                        viewModel = homeViewModel,
                     )
                     "calendar" -> CalendarScreen(
                         onGoodDaysClick = { currentRoute = "gooddays" },
@@ -339,7 +349,10 @@ fun LichSoMainScreen(
                             articleDetailBackRoute = "calendar"
                             currentRoute = "article_detail"
                         },
+                        openSelectedDayDetail = openSelectedDayDetail,
+                        onSelectedDayDetailOpened = { openSelectedDayDetail = false },
                         headerImageUrl = headerBgUrl,
+                        viewModel = homeViewModel,
                     )
                     "gooddays" -> GoodDaysScreen(
                         onBackClick = { currentRoute = "home" }
@@ -605,7 +618,11 @@ fun LichSoMainScreen(
                         selectedArticleId?.let { articleId ->
                             com.lichso.app.feature.content.ArticleDetailScreen(
                                 articleId = articleId,
-                                onBackClick = { currentRoute = articleDetailBackRoute }
+                                onBackClick = { currentRoute = articleDetailBackRoute },
+                                onArticleClick = { relatedArticleId ->
+                                    selectedArticleId = relatedArticleId
+                                    currentRoute = "article_detail"
+                                },
                             )
                         }
                     }
@@ -618,6 +635,7 @@ fun LichSoMainScreen(
                         onBannerAction = { route -> handleBannerAction(route) },
                         hasServerBackground = !normalizedBgUrl.isNullOrBlank(),
                         headerImageUrl = headerBgUrl,
+                        viewModel = homeViewModel,
                     )
                 }
             }

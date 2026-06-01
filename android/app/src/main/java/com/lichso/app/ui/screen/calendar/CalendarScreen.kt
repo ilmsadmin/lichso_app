@@ -49,6 +49,8 @@ fun CalendarScreen(
     onEditVisibilityChanged: (Boolean) -> Unit = {},
     onAskAiClick: (day: Int, month: Int, year: Int) -> Unit = { _, _, _ -> },
     onArticleClick: (String) -> Unit = {},
+    openSelectedDayDetail: Boolean = false,
+    onSelectedDayDetailOpened: () -> Unit = {},
     headerImageUrl: String? = null,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -72,6 +74,18 @@ fun CalendarScreen(
     // Load month bookmarks when month changes
     LaunchedEffect(uiState.currentMonth, uiState.currentYear) {
         dayActionsViewModel.loadMonthBookmarks(uiState.currentMonth, uiState.currentYear)
+    }
+
+    LaunchedEffect(openSelectedDayDetail, uiState.selectedDate, uiState.dayInfo) {
+        if (openSelectedDayDetail && uiState.dayInfo != null) {
+            dayActionsViewModel.selectDate(
+                uiState.selectedDate.dayOfMonth,
+                uiState.selectedDate.monthValue,
+                uiState.selectedDate.year,
+            )
+            showDayDetail = true
+            onSelectedDayDetailOpened()
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {

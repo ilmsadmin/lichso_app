@@ -118,6 +118,7 @@ fun HomeScreen(
     onHistoryClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
     onCountdownClick: () -> Unit = {},
+    onDayDetailClick: () -> Unit = {},
     onFortuneCardShown: () -> Unit = {},
     onBannerAction: (String) -> Unit = {},
     hasServerBackground: Boolean = false,
@@ -275,7 +276,11 @@ fun HomeScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             // ═══ BIG DATE DISPLAY ═══
-                            BigDateSection(info = info, hasServerBackground = hasServerBackground)
+                            BigDateSection(
+                                info = info,
+                                hasServerBackground = hasServerBackground,
+                                onDayDetailClick = onDayDetailClick,
+                            )
 
                             Spacer(modifier = Modifier.height(6.dp))
 
@@ -774,7 +779,11 @@ private fun SwipeHint() {
 // ══════════════════════════════════════════
 
 @Composable
-private fun BigDateSection(info: DayInfo, hasServerBackground: Boolean = false) {
+private fun BigDateSection(
+    info: DayInfo,
+    hasServerBackground: Boolean = false,
+    onDayDetailClick: () -> Unit = {},
+) {
     val c = LichSoThemeColors.current
 
     Column(
@@ -824,7 +833,9 @@ private fun BigDateSection(info: DayInfo, hasServerBackground: Boolean = false) 
 
         // Lunar date info card
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onDayDetailClick),
             shape = RoundedCornerShape(16.dp),
             color = if (hasServerBackground) Color.Transparent else if (c.isDark) Color(0xFF2A1A1A) else Color.White,
             shadowElevation = if (hasServerBackground) 0.dp else 2.dp,
@@ -892,6 +903,7 @@ private fun BigDateSection(info: DayInfo, hasServerBackground: Boolean = false) 
 
         // Day quality indicator
         Row(
+            modifier = Modifier.clickable(onClick = onDayDetailClick),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
