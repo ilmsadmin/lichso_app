@@ -20,6 +20,7 @@ import {
   BrainCircuit,
   Megaphone,
   Bell,
+  ClipboardList,
   FolderOpen,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -70,6 +71,7 @@ export const adminNavSections: AdminNavSection[] = [
       { label: "Đố vui", href: ROUTES.ADMIN_QUIZ, icon: BrainCircuit, permission: "content.read" },
       { label: "Banners", href: ROUTES.ADMIN_BANNERS, icon: Megaphone, permission: "content.read" },
       { label: "Popups", href: ROUTES.ADMIN_POPUPS, icon: Layers3, permission: "content.read" },
+      { label: "Khảo sát", href: ROUTES.ADMIN_SURVEYS, icon: ClipboardList, permission: "content.read" },
       { label: "Ảnh nền", href: ROUTES.ADMIN_SCREEN_BACKGROUNDS, icon: Sparkles, permission: "settings.read" },
       { label: "Push Notifications", href: ROUTES.ADMIN_PUSH_NOTIFICATIONS, icon: Bell, permission: "content.read" },
     ],

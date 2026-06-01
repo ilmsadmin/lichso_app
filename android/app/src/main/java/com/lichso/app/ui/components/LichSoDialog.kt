@@ -84,7 +84,10 @@ fun LichSoDialog(
             Button(
                 onClick = onConfirm,
                 enabled = confirmEnabled,
-                colors = ButtonDefaults.buttonColors(containerColor = resolvedConfirmColor),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = resolvedConfirmColor,
+                    contentColor = Color.White
+                ),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(confirmText, fontWeight = FontWeight.SemiBold)
@@ -165,7 +168,10 @@ fun LichSoConfirmDialog(
         confirmButton = {
             Button(
                 onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = resolvedConfirmColor2),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = resolvedConfirmColor2,
+                    contentColor = Color.White
+                ),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(confirmText, fontWeight = FontWeight.SemiBold)

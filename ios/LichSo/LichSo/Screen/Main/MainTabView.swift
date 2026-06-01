@@ -60,6 +60,7 @@ struct MainTabView: View {
     @State private var showBookmarks = false
     @State private var showPrayers = false
     @State private var showKnowledgeFeed = false
+    @State private var showQuizSession = false
 
     var body: some View {
         ZStack {
@@ -162,6 +163,9 @@ struct MainTabView: View {
                 KnowledgeFeedScreen()
             }
         }
+        .fullScreenCover(isPresented: $showQuizSession) {
+            QuizSessionScreen(sessionType: "daily", category: nil)
+        }
     }
 
     // MARK: - Banner / Popup Actions
@@ -183,6 +187,8 @@ struct MainTabView: View {
             showAIChat = true
         case "quiz_home", "quiz":
             selectedTab = .quiz
+        case "quiz_session":
+            showQuizSession = true
         case "home":
             selectedTab = .today
         default:

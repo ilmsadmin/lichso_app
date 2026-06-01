@@ -76,7 +76,10 @@ fun BookmarkLabelDialog(
         confirmButton = {
             Button(
                 onClick = { onSave(label) },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC62828)),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFC62828),
+                    contentColor = Color.White
+                ),
                 shape = RoundedCornerShape(12.dp)
             ) { Text("Lưu", fontWeight = FontWeight.SemiBold) }
         },
@@ -189,7 +192,10 @@ fun AddNoteForDayDialog(
             Button(
                 onClick = { if (title.isNotBlank()) onAdd(title, content, selectedColor) },
                 enabled = title.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2E7D32),
+                    contentColor = Color.White
+                ),
                 shape = RoundedCornerShape(12.dp)
             ) { Text("Thêm", fontWeight = FontWeight.SemiBold) }
         },
@@ -332,7 +338,10 @@ fun AddReminderForDayDialog(
                     if (title.isNotBlank()) onAdd(title, h, m, repeatType)
                 },
                 enabled = title.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF57F17)),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFF57F17),
+                    contentColor = Color.White
+                ),
                 shape = RoundedCornerShape(12.dp)
             ) { Text("Đặt nhắc", fontWeight = FontWeight.SemiBold) }
         },

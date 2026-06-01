@@ -24,6 +24,7 @@ import {
   Megaphone,
   Bell,
   BarChart3,
+  ClipboardList,
 } from "lucide-react";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useAuth } from "@/hooks/useAuth";
@@ -113,6 +114,12 @@ const navItems: NavItem[] = [
     label: "Popups",
     href: ROUTES.ADMIN_POPUPS,
     icon: Layers3,
+    permission: "content.read",
+  },
+  {
+    label: "Khảo sát",
+    href: ROUTES.ADMIN_SURVEYS,
+    icon: ClipboardList,
     permission: "content.read",
   },
   {

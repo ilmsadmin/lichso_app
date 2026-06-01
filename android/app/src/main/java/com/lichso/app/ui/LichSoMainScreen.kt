@@ -80,6 +80,7 @@ import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
+import com.lichso.app.feature.survey.SurveyScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -262,7 +263,7 @@ fun LichSoMainScreen(
         }
     }
 
-    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays", "profile", "oracle_draw", "oracle_result", "ledger", "daily_store", "zodiac_collection", "date_picker", "streak_freeze", "points_tutorial", "tiet_khi", "widget_manager", "quiz_session", "quiz_result", "leaderboard", "knowledge_feed", "article_detail") || prayerDetailShowing || taskEditShowing
+    val hideBottomBar = currentRoute in listOf("chat", "familytree", "settings", "history", "notifications", "search", "bookmarks", "gooddays", "profile", "oracle_draw", "oracle_result", "ledger", "daily_store", "zodiac_collection", "date_picker", "streak_freeze", "points_tutorial", "tiet_khi", "widget_manager", "quiz_session", "quiz_result", "leaderboard", "knowledge_feed", "article_detail", "survey") || prayerDetailShowing || taskEditShowing
 
     val toggleDrawer: () -> Unit = {
         scope.launch {
@@ -626,6 +627,11 @@ fun LichSoMainScreen(
                             )
                         }
                     }
+                    "survey" -> {
+                        SurveyScreen(
+                            onBackClick = { currentRoute = "home" }
+                        )
+                    }
                     else -> HomeScreen(
                         onSettingsClick = { currentRoute = "settings" },
                         onMenuClick = toggleDrawer,
@@ -809,6 +815,7 @@ private fun DrawerMenuContent(
         DrawerMenuItem("history", "Ngày này năm xưa", Icons.Outlined.HistoryEdu, Icons.Filled.HistoryEdu),
         DrawerMenuItem("familytree", "Cây gia phả", Icons.Outlined.AccountTree, Icons.Filled.AccountTree),
         DrawerMenuItem("knowledge_feed", "Bài viết khám phá", Icons.Outlined.Article, Icons.Filled.Article),
+        DrawerMenuItem("survey", "Khảo sát ý kiến", Icons.Outlined.RateReview, Icons.Filled.RateReview),
     )
 
     val bottomItems = listOf(

@@ -70,6 +70,7 @@ export const ROUTES = {
   ADMIN_QUIZ: "/admin/quiz",
   ADMIN_BANNERS: "/admin/banners",
   ADMIN_POPUPS: "/admin/popups",
+  ADMIN_SURVEYS: "/admin/surveys",
   ADMIN_SCREEN_BACKGROUNDS: "/admin/screen-backgrounds",
   // V4 AI Management
   ADMIN_AI_ARTICLES: "/admin/ai-articles",

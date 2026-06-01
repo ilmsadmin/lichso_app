@@ -33,7 +33,7 @@ import { useCreatePopup, useUpdatePopup } from "@/hooks/usePopups";
 import { ROUTES } from "@/lib/constants";
 import { getImageUrl } from "@/lib/utils";
 import { POPUP_POSITIONS } from "@/types/popup";
-import { PLATFORM_OPTIONS } from "@/types/banner";
+import { PLATFORM_OPTIONS, APP_ROUTES } from "@/types/banner";
 import type { Popup, CreatePopupRequest } from "@/types/popup";
 import { MediaPickerDialog } from "@/components/shared/MediaPickerDialog";
 import type { MediaFile } from "@/types/media";
@@ -42,25 +42,6 @@ interface PopupFormProps {
   popup?: Popup;
   isEdit?: boolean;
 }
-
-const APP_ROUTES = [
-  { value: "home", label: "Trang chủ" },
-  { value: "calendar", label: "Lịch tháng" },
-  { value: "gooddays", label: "Ngày tốt/xấu" },
-  { value: "knowledge_feed", label: "Bài viết khám phá" },
-  { value: "quiz_home", label: "Đố vui" },
-  { value: "chat", label: "AI Tử Vi" },
-  { value: "tools", label: "Tiện ích" },
-  { value: "prayers", label: "Văn khấn" },
-  { value: "history", label: "Ngày này năm xưa" },
-  { value: "profile", label: "Hồ sơ" },
-  { value: "bookmarks", label: "Ngày đã lưu" },
-  { value: "tasks", label: "Ghi chú" },
-  { value: "countdown", label: "Đếm ngày" },
-  { value: "oracle_draw", label: "Rút thẻ" },
-  { value: "daily_store", label: "Cửa hàng ngày" },
-  { value: "tiet_khi", label: "Tiết khí" },
-] as const;
 
 function inferCtaType(value?: string): "route" | "url" {
   return value?.startsWith("http://") || value?.startsWith("https://") ? "url" : "route";

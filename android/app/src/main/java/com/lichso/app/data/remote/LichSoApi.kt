@@ -427,6 +427,21 @@ class LichSoApi @Inject constructor(
         execute(get("/popups"))
     }
 
+    suspend fun getActiveSurvey(token: String? = null): Result<Survey> = withContext(Dispatchers.IO) {
+        execute(get("/surveys/active", token))
+    }
+
+    suspend fun submitSurveyResponse(
+        token: String?,
+        answers: List<UserAnswerPayload>,
+        deviceId: String?
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        executeVoid(postJson("/surveys/active/responses", mapOf(
+            "answers" to answers,
+            "device_id" to deviceId
+        ), token))
+    }
+
     suspend fun getScreenBackgrounds(): Result<List<ScreenBackground>> = withContext(Dispatchers.IO) {
         // Bypass disk cache: admin changes must be visible on next app launch
         execute(Request.Builder()

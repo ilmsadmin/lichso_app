@@ -94,6 +94,7 @@ export const APP_ROUTES = [
   { value: "gooddays", label: "Ngày tốt/xấu" },
   { value: "knowledge_feed", label: "Bài viết khám phá" },
   { value: "quiz_home", label: "Đố vui" },
+  { value: "survey", label: "Khảo sát ý kiến" },
   { value: "chat", label: "AI Tử Vi" },
   { value: "tools", label: "Tiện ích (Chung)" },
   { value: "tools_calendar", label: "Tiện ích - Lịch & Ngày tốt" },
@@ -119,4 +120,5 @@ export const APP_ROUTES = [
   { value: "world_clock", label: "Giờ thế giới" },
   { value: "widget_manager", label: "Quản lý widget" },
   { value: "leaderboard", label: "Bảng xếp hạng" },
+  { value: "quiz_session", label: "Đố vui - Chơi bộ đề hôm nay" },
 ] as const;
