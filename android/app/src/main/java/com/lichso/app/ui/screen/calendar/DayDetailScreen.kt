@@ -30,9 +30,7 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.ui.res.painterResource
 import com.lichso.app.R
-import com.lichso.app.data.local.entity.NoteEntity
-import com.lichso.app.data.local.entity.ReminderEntity
-import com.lichso.app.data.local.entity.TaskEntity
+import com.lichso.app.data.local.entity.ItemEntity
 import com.lichso.app.domain.model.*
 import com.lichso.app.ui.theme.LichSoThemeColors
 import com.lichso.app.ui.components.HeaderIconButton
@@ -53,9 +51,9 @@ fun DayDetailScreen(
     onAddNoteClick: () -> Unit = {},
     onAddReminderClick: () -> Unit = {},
     onBookmarkLongClick: () -> Unit = {},
-    dayNotes: List<NoteEntity> = emptyList(),
-    dayTasks: List<TaskEntity> = emptyList(),
-    dayReminders: List<ReminderEntity> = emptyList(),
+    dayNotes: List<ItemEntity> = emptyList(),
+    dayTasks: List<ItemEntity> = emptyList(),
+    dayReminders: List<ItemEntity> = emptyList(),
 ) {
     val c = LichSoThemeColors.current
 
@@ -338,9 +336,9 @@ private fun SectionTitle(icon: ImageVector, title: String) {
 // ══════════════════════════════════════════
 @Composable
 private fun DayNoteTaskReminderSection(
-    notes: List<NoteEntity>,
-    tasks: List<TaskEntity>,
-    reminders: List<ReminderEntity>,
+    notes: List<ItemEntity>,
+    tasks: List<ItemEntity>,
+    reminders: List<ItemEntity>,
     onAddNoteClick: () -> Unit = {},
     onAddReminderClick: () -> Unit = {}
 ) {
@@ -396,10 +394,10 @@ private fun DayNoteTaskReminderSection(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    if (note.content.isNotBlank()) {
+                    if (note.description.isNotBlank()) {
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = note.content,
+                            text = note.description,
                             style = TextStyle(
                                 fontSize = 12.sp,
                                 color = c.textSecondary,
@@ -526,7 +524,7 @@ private fun DayNoteTaskReminderSection(
             val borderColor = if (c.isDark) remindColor.copy(alpha = 0.3f) else remindColor.copy(alpha = 0.25f)
 
             val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-            val timeStr = timeFormat.format(Date(reminder.triggerTime))
+            val timeStr = timeFormat.format(Date((reminder.reminderAt ?: 0L)))
 
             val repeatLabel = when (reminder.repeatType) {
                 1 -> "Hàng ngày"
@@ -606,7 +604,7 @@ private fun DayNoteTaskReminderSection(
                                 )
                             )
                         }
-                        if (!reminder.isEnabled) {
+                        if (!reminder.reminderEnabled) {
                             Text(
                                 text = "Đã tắt",
                                 style = TextStyle(
@@ -617,10 +615,10 @@ private fun DayNoteTaskReminderSection(
                             )
                         }
                     }
-                    if (reminder.subtitle.isNotBlank()) {
+                    if (reminder.description.isNotBlank()) {
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = reminder.subtitle,
+                            text = reminder.description,
                             style = TextStyle(
                                 fontSize = 11.sp,
                                 color = c.textTertiary

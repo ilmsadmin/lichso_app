@@ -10,13 +10,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lichso.app.data.local.FamilyTreeExportImport
 import com.lichso.app.data.local.FamilyTreeRepository
-import com.lichso.app.data.local.dao.NoteDao
-import com.lichso.app.data.local.dao.ReminderDao
+import com.lichso.app.data.local.dao.ItemDao
 import com.lichso.app.data.local.entity.FamilySettingsEntity
 import com.lichso.app.data.local.entity.MemorialChecklistEntity
 import com.lichso.app.data.local.entity.MemberPhotoEntity
-import com.lichso.app.data.local.entity.NoteEntity
-import com.lichso.app.data.local.entity.ReminderEntity
+import com.lichso.app.data.local.entity.ItemEntity
 import com.lichso.app.notification.NotificationScheduler
 import com.lichso.app.util.CanChiCalculator
 import com.lichso.app.util.SmartRatingManager
@@ -178,8 +176,7 @@ data class FamilyTreeUiState(
 @HiltViewModel
 class FamilyTreeViewModel @Inject constructor(
     private val repository: FamilyTreeRepository,
-    private val noteDao: NoteDao,
-    private val reminderDao: ReminderDao,
+    private val itemDao: ItemDao,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -938,15 +935,14 @@ class FamilyTreeViewModel @Inject constructor(
         _uiState.update { it.copy(showMemorialNoteEdit = false, showMemorialReminderEdit = false, memorialEditTarget = null) }
     }
 
-    fun saveNoteForMemorial(note: NoteEntity) {
-        viewModelScope.launch { noteDao.insert(note) }
-    }
-
-    fun saveReminderForMemorial(reminder: ReminderEntity) {
+    /** Lưu một item (ghi chú hoặc nhắc nhở) gắn với ngày giỗ/thành viên. */
+    fun saveMemorialItem(item: ItemEntity) {
         viewModelScope.launch {
-            val id = reminderDao.insert(reminder)
-            NotificationScheduler.scheduleReminder(context, reminder.copy(id = id))
-            // Happy action: tạo nhắc nhở giỗ — engagement cao
+            val id = itemDao.insert(item)
+            if (item.hasReminder) {
+                NotificationScheduler.scheduleReminder(context, item.copy(id = id))
+            }
+            // Happy action: tạo ghi chú/nhắc giỗ — engagement cao
             SmartRatingManager.recordHappyAction(context)
         }
     }
@@ -961,10 +957,10 @@ class FamilyTreeViewModel @Inject constructor(
         _uiState.update { it.copy(showMemberReminderEdit = false, memberReminderTarget = null) }
     }
 
-    fun saveMemberReminder(reminder: ReminderEntity) {
+    fun saveMemberReminder(reminder: ItemEntity) {
         viewModelScope.launch {
-            val id = reminderDao.insert(reminder)
-            NotificationScheduler.scheduleReminder(context, reminder.copy(id = id))
+            val id = itemDao.insert(reminder)
+            if (reminder.hasReminder) NotificationScheduler.scheduleReminder(context, reminder.copy(id = id))
             SmartRatingManager.recordHappyAction(context)
         }
     }

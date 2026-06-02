@@ -7,13 +7,9 @@ import com.lichso.app.data.ai.AiTaskService
 import com.lichso.app.analytics.Analytics
 import com.lichso.app.data.local.AiMemoryStore
 import com.lichso.app.data.local.dao.ChatMessageDao
-import com.lichso.app.data.local.dao.NoteDao
-import com.lichso.app.data.local.dao.ReminderDao
-import com.lichso.app.data.local.dao.TaskDao
+import com.lichso.app.data.local.dao.ItemDao
 import com.lichso.app.data.local.entity.ChatMessageEntity
-import com.lichso.app.data.local.entity.NoteEntity
-import com.lichso.app.data.local.entity.ReminderEntity
-import com.lichso.app.data.local.entity.TaskEntity
+import com.lichso.app.data.local.entity.ItemEntity
 import com.lichso.app.data.remote.ChatMessage
 import com.lichso.app.data.remote.OpenRouterApi
 import com.lichso.app.domain.DayInfoProvider
@@ -91,9 +87,7 @@ class ChatViewModel @Inject constructor(
     private val awardPointsUseCase: AwardPointsUseCase,
     private val aiMemoryStore: AiMemoryStore,
     private val aiTaskService: AiTaskService,
-    private val taskDao: TaskDao,
-    private val noteDao: NoteDao,
-    private val reminderDao: ReminderDao
+    private val itemDao: ItemDao
 ) : ViewModel() {
 
     private val dataStore = context.settingsDataStore
@@ -394,20 +388,21 @@ class ChatViewModel @Inject constructor(
                             SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(it)?.time
                         } catch (_: Exception) { null }
                     }
-                    taskDao.insert(
-                        TaskEntity(
+                    itemDao.insert(
+                        ItemEntity(
                             title = item.title,
                             description = item.description,
+                            isTask = true,
                             priority = item.priority,
                             dueDate = dueDate
                         )
                     )
                 }
                 "note" -> {
-                    noteDao.insert(
-                        NoteEntity(
+                    itemDao.insert(
+                        ItemEntity(
                             title = item.title,
-                            content = item.description,
+                            description = item.description,
                             colorIndex = item.colorIndex
                         )
                     )
@@ -422,12 +417,13 @@ class ChatViewModel @Inject constructor(
                             cal.set(Calendar.SECOND, 0)
                         } catch (_: Exception) { }
                     }
-                    val entity = ReminderEntity(
+                    val entity = ItemEntity(
                             title = item.title,
-                            triggerTime = cal.timeInMillis,
+                            hasReminder = true,
+                            reminderAt = cal.timeInMillis,
                             repeatType = item.repeatType
                         )
-                    val id = reminderDao.insert(entity)
+                    val id = itemDao.insert(entity)
                     NotificationScheduler.scheduleReminder(context, entity.copy(id = id))
                 }
                 "date_query" -> {
@@ -436,111 +432,57 @@ class ChatViewModel @Inject constructor(
             }
         }
 
-        // Handle delete/edit/mark_done by searching existing items
+        // Handle delete/edit/mark_done by searching existing items (bảng hợp nhất)
+        suspend fun allItems(): List<ItemEntity> = try { itemDao.getAllItemsOnce() } catch (_: Exception) { emptyList() }
         when (result.action) {
-            "delete_task" -> {
+            "delete_task", "delete_note", "delete_reminder" -> {
                 result.items.forEach { item ->
                     val keyword = item.title.lowercase()
-                    // Try to find and delete via taskDao
-                    try {
-                        taskDao.getAllTasks().first().find { t ->
-                            t.title.lowercase().contains(keyword)
-                        }?.let { found ->
-                            taskDao.delete(found)
-                        }
-                    } catch (_: Exception) {}
+                    allItems().find { it.title.lowercase().contains(keyword) }?.let { found ->
+                        itemDao.delete(found)
+                        if (found.hasReminder) NotificationScheduler.cancelReminder(context, found.id)
+                    }
                 }
             }
-            "delete_note" -> {
-                result.items.forEach { item ->
-                    val keyword = item.title.lowercase()
-                    try {
-                        noteDao.getAllNotes().first().find { n ->
-                            n.title.lowercase().contains(keyword)
-                        }?.let { found ->
-                            noteDao.delete(found)
-                        }
-                    } catch (_: Exception) {}
-                }
-            }
-            "delete_reminder" -> {
-                result.items.forEach { item ->
-                    val keyword = item.title.lowercase()
-                    try {
-                        reminderDao.getAllReminders().first().find { r ->
-                            r.title.lowercase().contains(keyword)
-                        }?.let { found ->
-                            reminderDao.delete(found)
-                            NotificationScheduler.cancelReminder(context, found.id)
-                        }
-                    } catch (_: Exception) {}
-                }
-            }
-            "edit_task" -> {
+            "edit_task", "edit_note" -> {
                 result.items.forEach { item ->
                     val oldTitle = item.description.removePrefix("old_title:").lowercase()
-                    try {
-                        taskDao.getAllTasks().first().find { t ->
-                            t.title.lowercase().contains(oldTitle)
-                        }?.let { found ->
-                            taskDao.update(found.copy(title = item.title, updatedAt = System.currentTimeMillis()))
-                        }
-                    } catch (_: Exception) {}
-                }
-            }
-            "edit_note" -> {
-                result.items.forEach { item ->
-                    val oldTitle = item.description.removePrefix("old_title:").lowercase()
-                    try {
-                        noteDao.getAllNotes().first().find { n ->
-                            n.title.lowercase().contains(oldTitle)
-                        }?.let { found ->
-                            noteDao.update(found.copy(title = item.title, updatedAt = System.currentTimeMillis()))
-                        }
-                    } catch (_: Exception) {}
+                    allItems().find { it.title.lowercase().contains(oldTitle) }?.let { found ->
+                        itemDao.update(found.copy(title = item.title, updatedAt = System.currentTimeMillis()))
+                    }
                 }
             }
             "edit_task_priority" -> {
                 result.items.forEach { item ->
                     val keyword = item.title.lowercase()
-                    try {
-                        taskDao.getAllTasks().first().find { t ->
-                            t.title.lowercase().contains(keyword)
-                        }?.let { found ->
-                            taskDao.update(found.copy(priority = item.priority, updatedAt = System.currentTimeMillis()))
-                        }
-                    } catch (_: Exception) {}
+                    allItems().find { it.title.lowercase().contains(keyword) }?.let { found ->
+                        itemDao.update(found.copy(priority = item.priority, isTask = true, updatedAt = System.currentTimeMillis()))
+                    }
                 }
             }
             "edit_reminder" -> {
                 result.items.forEach { item ->
                     val keyword = item.title.lowercase()
-                    try {
-                        reminderDao.getAllReminders().first().find { r ->
-                            r.title.lowercase().contains(keyword)
-                        }?.let { found ->
-                            val cal = Calendar.getInstance()
-                            cal.timeInMillis = found.triggerTime
-                            item.time?.let { timeStr ->
-                                val parts = timeStr.split(":")
-                                cal.set(Calendar.HOUR_OF_DAY, parts[0].toInt().coerceIn(0, 23))
-                                cal.set(Calendar.MINUTE, parts.getOrElse(1) { "0" }.toInt().coerceIn(0, 59))
-                            }
-                            reminderDao.update(found.copy(triggerTime = cal.timeInMillis))
+                    allItems().find { it.title.lowercase().contains(keyword) }?.let { found ->
+                        val cal = Calendar.getInstance()
+                        cal.timeInMillis = found.reminderAt ?: System.currentTimeMillis()
+                        item.time?.let { timeStr ->
+                            val parts = timeStr.split(":")
+                            cal.set(Calendar.HOUR_OF_DAY, parts[0].toInt().coerceIn(0, 23))
+                            cal.set(Calendar.MINUTE, parts.getOrElse(1) { "0" }.toInt().coerceIn(0, 59))
                         }
-                    } catch (_: Exception) {}
+                        val updated = found.copy(hasReminder = true, reminderAt = cal.timeInMillis, updatedAt = System.currentTimeMillis())
+                        itemDao.update(updated)
+                        NotificationScheduler.scheduleReminder(context, updated)
+                    }
                 }
             }
             "mark_done" -> {
                 result.items.forEach { item ->
                     val keyword = item.title.lowercase()
-                    try {
-                        taskDao.getAllTasks().first().find { t ->
-                            t.title.lowercase().contains(keyword) && !t.isDone
-                        }?.let { found ->
-                            taskDao.toggleDone(found.id, true)
-                        }
-                    } catch (_: Exception) {}
+                    allItems().find { it.title.lowercase().contains(keyword) && !it.isDone }?.let { found ->
+                        itemDao.toggleDone(found.id, true)
+                    }
                 }
             }
         }
@@ -558,9 +500,10 @@ class ChatViewModel @Inject constructor(
     private suspend fun buildStatsResponse(action: String): String {
         val i = ChatIcons
         val sb = StringBuilder()
-        val tasks = try { taskDao.getAllTasks().first() } catch (_: Exception) { emptyList() }
-        val notes = try { noteDao.getAllNotes().first() } catch (_: Exception) { emptyList() }
-        val reminders = try { reminderDao.getAllReminders().first() } catch (_: Exception) { emptyList() }
+        val allItems = try { itemDao.getAllItemsOnce() } catch (_: Exception) { emptyList() }
+        val tasks = allItems.filter { it.isTask }
+        val notes = allItems.filter { !it.isTask && !it.hasReminder }
+        val reminders = allItems.filter { it.hasReminder }
 
         val today = LocalDate.now()
         val todayStr = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
@@ -649,7 +592,7 @@ class ChatViewModel @Inject constructor(
             "stats_reminders", "stats_all" -> {
                 if (action == "stats_all" && sb.isNotEmpty()) sb.appendLine()
                 val totalReminders = reminders.size
-                val enabledReminders = reminders.count { it.isEnabled }
+                val enabledReminders = reminders.count { it.reminderEnabled }
                 val disabledReminders = totalReminders - enabledReminders
                 val dailyReminders = reminders.count { it.repeatType == 1 }
                 val weeklyReminders = reminders.count { it.repeatType == 2 }
@@ -671,8 +614,8 @@ class ChatViewModel @Inject constructor(
                 if (enabledReminders > 0) {
                     sb.appendLine()
                     sb.appendLine("${i.INFO} Nhắc nhở đang hoạt động:")
-                    reminders.filter { it.isEnabled }.take(5).forEach { r ->
-                        val time = sdfTime.format(Date(r.triggerTime))
+                    reminders.filter { it.reminderEnabled }.take(5).forEach { r ->
+                        val time = sdfTime.format(Date(r.reminderAt ?: 0L))
                         val repeat = when (r.repeatType) {
                             1 -> "hàng ngày"; 2 -> "hàng tuần"; 3 -> "hàng tháng"; else -> "một lần"
                         }
@@ -725,16 +668,17 @@ class ChatViewModel @Inject constructor(
 
             // Thêm context task/note/reminder để AI hiểu tình trạng người dùng
             try {
-                val tasks = taskDao.getAllTasks().first()
-                val notes = noteDao.getAllNotes().first()
-                val reminders = reminderDao.getAllReminders().first()
+                val allItems = itemDao.getAllItemsOnce()
+                val tasks = allItems.filter { it.isTask }
+                val notes = allItems.filter { !it.isTask && !it.hasReminder }
+                val reminders = allItems.filter { it.hasReminder }
                 val pendingTasks = tasks.count { !it.isDone }
                 val doneTasks = tasks.count { it.isDone }
                 sb.appendLine()
                 sb.appendLine("=== THÔNG TIN TASK/GHI CHÚ ===")
                 sb.appendLine("Tổng task: ${tasks.size} (xong: $doneTasks, chưa xong: $pendingTasks)")
                 sb.appendLine("Tổng ghi chú: ${notes.size}")
-                sb.appendLine("Tổng nhắc nhở: ${reminders.size} (đang bật: ${reminders.count { it.isEnabled }})")
+                sb.appendLine("Tổng nhắc nhở: ${reminders.size} (đang bật: ${reminders.count { it.reminderEnabled }})")
                 if (pendingTasks > 0) {
                     sb.appendLine("Task chưa xong: ${tasks.filter { !it.isDone }.take(5).joinToString(", ") { it.title }}")
                 }

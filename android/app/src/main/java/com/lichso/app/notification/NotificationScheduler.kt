@@ -7,7 +7,7 @@ import android.content.Intent
 import android.os.Build
 import com.lichso.app.MainActivity
 import com.lichso.app.data.local.LichSoDatabase
-import com.lichso.app.data.local.entity.ReminderEntity
+import com.lichso.app.data.local.entity.ItemEntity
 import com.lichso.app.ui.screen.settings.SettingsKeys
 import com.lichso.app.ui.screen.settings.safeSettingsData
 import com.lichso.app.util.LunarCalendarUtil
@@ -93,13 +93,13 @@ object NotificationScheduler {
             cancelFestival(context)
         }
 
-        // Per-row reminders
+        // Per-row reminders (items có bật nhắc nhở)
         try {
             val db = LichSoDatabase.getInstance(context)
-            val all = db.reminderDao().getAllRemindersOnce()
-            all.forEach { r ->
-                if (notifyEnabled && r.isEnabled) scheduleReminder(context, r)
-                else cancelReminder(context, r.id)
+            val all = db.itemDao().getActiveRemindersOnce()
+            all.forEach { item ->
+                if (notifyEnabled) scheduleReminder(context, item)
+                else cancelReminder(context, item.id)
             }
         } catch (e: Exception) {
             android.util.Log.e(TAG, "rescheduleAll: DB read failed: ${e.message}")
@@ -150,8 +150,8 @@ object NotificationScheduler {
      * Lên lịch (hoặc reschedule) cho 1 reminder của user.
      * Tự huỷ alarm cũ (cùng request code) trước khi đặt lại.
      */
-    fun scheduleReminder(context: Context, reminder: ReminderEntity) {
-        if (!reminder.isEnabled) {
+    fun scheduleReminder(context: Context, reminder: ItemEntity) {
+        if (!reminder.hasReminder || !reminder.reminderEnabled || reminder.reminderAt == null) {
             cancelReminder(context, reminder.id)
             return
         }
@@ -267,13 +267,13 @@ object NotificationScheduler {
         )
     }
 
-    private fun buildReminderPendingIntent(context: Context, reminder: ReminderEntity): PendingIntent {
+    private fun buildReminderPendingIntent(context: Context, reminder: ItemEntity): PendingIntent {
         val intent = Intent(context, NotificationReceiver::class.java).apply {
             action = "com.lichso.app.notification.REMINDER_${reminder.id}"
             putExtra(EXTRA_TYPE, TYPE_REMINDER)
             putExtra(EXTRA_REMINDER_ID, reminder.id)
             putExtra(EXTRA_TITLE, reminder.title)
-            putExtra(EXTRA_BODY, reminder.subtitle.ifBlank { "Đã đến giờ nhắc nhở!" })
+            putExtra(EXTRA_BODY, reminder.description.ifBlank { "Đã đến giờ nhắc nhở!" })
         }
         return PendingIntent.getBroadcast(
             context, reminderReqCode(reminder.id), intent,
@@ -299,19 +299,20 @@ object NotificationScheduler {
      *   0 = Once, 1 = Daily, 2 = Weekly, 3 = MonthlySolar,
      *   4 = MonthlyLunar, 5 = Yearly (solar hoặc lunar tuỳ useLunar)
      */
-    private fun computeNextReminderTrigger(r: ReminderEntity): Long? {
+    private fun computeNextReminderTrigger(r: ItemEntity): Long? {
+        val triggerTime = r.reminderAt ?: return null
         val now = System.currentTimeMillis()
         val advanceMs = r.advanceDays.coerceAtLeast(0) * DAY_MS
         val nextEvent: Long = when (r.repeatType) {
-            1 -> nextRepeat(r.triggerTime, now + advanceMs, DAY_MS)
-            2 -> nextRepeat(r.triggerTime, now + advanceMs, 7 * DAY_MS)
-            3 -> nextMonthlySolar(r.triggerTime, now + advanceMs)
-            4 -> nextMonthlyLunar(r.triggerTime, now + advanceMs)
-            5 -> nextYearly(r.triggerTime, now + advanceMs, r.useLunar)
+            1 -> nextRepeat(triggerTime, now + advanceMs, DAY_MS)
+            2 -> nextRepeat(triggerTime, now + advanceMs, 7 * DAY_MS)
+            3 -> nextMonthlySolar(triggerTime, now + advanceMs)
+            4 -> nextMonthlyLunar(triggerTime, now + advanceMs)
+            5 -> nextYearly(triggerTime, now + advanceMs, r.useLunar)
             else -> {
                 // Once
-                if (r.triggerTime - advanceMs < now) return null
-                r.triggerTime
+                if (triggerTime - advanceMs < now) return null
+                triggerTime
             }
         }
         val trigger = nextEvent - advanceMs

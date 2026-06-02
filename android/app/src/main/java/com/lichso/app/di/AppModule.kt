@@ -129,13 +129,7 @@ object AppModule {
         LichSoDatabase.getInstance(context)
 
     @Provides
-    fun provideTaskDao(db: LichSoDatabase): TaskDao = db.taskDao()
-
-    @Provides
-    fun provideNoteDao(db: LichSoDatabase): NoteDao = db.noteDao()
-
-    @Provides
-    fun provideReminderDao(db: LichSoDatabase): ReminderDao = db.reminderDao()
+    fun provideItemDao(db: LichSoDatabase): ItemDao = db.itemDao()
 
     @Provides
     fun provideChatMessageDao(db: LichSoDatabase): ChatMessageDao = db.chatMessageDao()

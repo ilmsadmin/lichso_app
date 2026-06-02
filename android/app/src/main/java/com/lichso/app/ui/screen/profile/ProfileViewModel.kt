@@ -121,10 +121,8 @@ data class ProfileUiState(
 class ProfileViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val authRepository: AuthRepository,
-    private val noteDao: NoteDao,
-    private val reminderDao: ReminderDao,
+    private val itemDao: ItemDao,
     private val bookmarkDao: BookmarkDao,
-    private val taskDao: TaskDao,
     private val notificationDao: NotificationDao,
     private val chatMessageDao: ChatMessageDao,
     private val familyMemberDao: FamilyMemberDao,
@@ -219,16 +217,16 @@ class ProfileViewModel @Inject constructor(
             }
         }
 
-        // Collect note count
+        // Collect note count (item không phải task/nhắc)
         viewModelScope.launch {
-            noteDao.getCount().collect { count ->
+            itemDao.getTotalCount().collect { count ->
                 _uiState.update { it.copy(noteCount = count) }
             }
         }
 
         // Collect active reminder count
         viewModelScope.launch {
-            reminderDao.getActiveCount().collect { count ->
+            itemDao.getActiveReminderCount().collect { count ->
                 _uiState.update { it.copy(reminderCount = count) }
             }
         }
@@ -718,8 +716,8 @@ class ProfileViewModel @Inject constructor(
                 val json = withContext(Dispatchers.IO) {
                     AppBackupManager.buildBackupJson(
                         context = context,
-                        taskDao = taskDao, noteDao = noteDao,
-                        reminderDao = reminderDao, bookmarkDao = bookmarkDao,
+                        itemDao = itemDao,
+                        bookmarkDao = bookmarkDao,
                         notificationDao = notificationDao, chatMessageDao = chatMessageDao,
                         familyMemberDao = familyMemberDao, memorialDayDao = memorialDayDao,
                         memorialChecklistDao = memorialChecklistDao,
@@ -802,8 +800,8 @@ class ProfileViewModel @Inject constructor(
                 withContext(Dispatchers.IO) {
                     AppBackupManager.restoreFromBackup(
                         context = context, data = data,
-                        taskDao = taskDao, noteDao = noteDao,
-                        reminderDao = reminderDao, bookmarkDao = bookmarkDao,
+                        itemDao = itemDao,
+                        bookmarkDao = bookmarkDao,
                         notificationDao = notificationDao, chatMessageDao = chatMessageDao,
                         familyMemberDao = familyMemberDao, memorialDayDao = memorialDayDao,
                         memorialChecklistDao = memorialChecklistDao,

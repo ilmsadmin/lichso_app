@@ -69,9 +69,8 @@ class NotificationReceiver : BroadcastReceiver() {
             try {
                 if (type == NotificationScheduler.TYPE_REMINDER && reminderId > 0) {
                     val r = LichSoDatabase.getInstance(appContext)
-                        .reminderDao().getAllRemindersOnce()
-                        .find { it.id == reminderId }
-                    if (r != null && r.isEnabled && r.repeatType != 0) {
+                        .itemDao().getById(reminderId)
+                    if (r != null && r.hasReminder && r.reminderEnabled && r.repeatType != 0) {
                         NotificationScheduler.scheduleReminder(appContext, r)
                     }
                 } else {

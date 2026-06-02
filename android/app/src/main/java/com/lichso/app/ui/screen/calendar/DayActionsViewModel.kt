@@ -3,15 +3,12 @@ package com.lichso.app.ui.screen.calendar
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lichso.app.data.local.dao.BookmarkDao
-import com.lichso.app.data.local.dao.NoteDao
-import com.lichso.app.data.local.dao.ReminderDao
-import com.lichso.app.data.local.dao.TaskDao
+import com.lichso.app.data.local.dao.ItemDao
 import com.lichso.app.data.local.entity.BookmarkEntity
-import com.lichso.app.data.local.entity.NoteEntity
-import com.lichso.app.data.local.entity.ReminderEntity
-import com.lichso.app.data.local.entity.TaskEntity
+import com.lichso.app.data.local.entity.ItemEntity
 import com.lichso.app.feature.points.domain.ActionType
 import com.lichso.app.feature.points.domain.AwardPointsUseCase
+import com.lichso.app.notification.NotificationScheduler
 import com.lichso.app.util.SmartRatingManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -43,22 +40,22 @@ data class DayActionsUiState(
     val showAddReminderDialog: Boolean = false,
     val showBookmarkLabelDialog: Boolean = false,
 
-    // Notes / Tasks / Reminders for the selected day
-    val dayNotes: List<NoteEntity> = emptyList(),
-    val dayTasks: List<TaskEntity> = emptyList(),
-    val dayReminders: List<ReminderEntity> = emptyList(),
+    // Items gắn với ngày đang chọn (gộp ghi chú + việc + nhắc)
+    val dayItems: List<ItemEntity> = emptyList(),
 
     // Toast
     val toastMessage: String? = null
-)
+) {
+    val dayNotes: List<ItemEntity> get() = dayItems.filter { !it.isTask && !it.hasReminder }
+    val dayTasks: List<ItemEntity> get() = dayItems.filter { it.isTask }
+    val dayReminders: List<ItemEntity> get() = dayItems.filter { it.hasReminder }
+}
 
 @HiltViewModel
 class DayActionsViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val bookmarkDao: BookmarkDao,
-    private val noteDao: NoteDao,
-    private val reminderDao: ReminderDao,
-    private val taskDao: TaskDao,
+    private val itemDao: ItemDao,
     private val awardPointsUseCase: AwardPointsUseCase,
 ) : ViewModel() {
 
@@ -101,47 +98,26 @@ class DayActionsViewModel @Inject constructor(
                 }
             }
         }
-        // Load notes for this date (matched by title prefix "[dd/MM/yyyy]")
+        // Load tất cả item gắn với ngày này (theo dueDate trong [startOfDay, endOfDay))
         viewModelScope.launch {
-            val datePrefix = "[${"%02d".format(day)}/${"%02d".format(month)}/${year}]"
-            noteDao.getNotesForDate(datePrefix).collect { notes ->
-                _uiState.update { it.copy(dayNotes = notes) }
-            }
-        }
-        // Load tasks for this date (matched by dueDate)
-        viewModelScope.launch {
-            val cal = Calendar.getInstance().apply {
-                set(Calendar.YEAR, year)
-                set(Calendar.MONTH, month - 1)
-                set(Calendar.DAY_OF_MONTH, day)
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-            val startOfDay = cal.timeInMillis
-            taskDao.getTasksForDate(startOfDay).collect { tasks ->
-                _uiState.update { it.copy(dayTasks = tasks) }
-            }
-        }
-        // Load reminders for this date (matched by triggerTime range)
-        viewModelScope.launch {
-            val cal = Calendar.getInstance().apply {
-                set(Calendar.YEAR, year)
-                set(Calendar.MONTH, month - 1)
-                set(Calendar.DAY_OF_MONTH, day)
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-            val startOfDay = cal.timeInMillis
+            val startOfDay = startOfDayMillis(day, month, year)
             val endOfDay = startOfDay + 24 * 60 * 60 * 1000L
-            reminderDao.getRemindersForDateRange(startOfDay, endOfDay).collect { reminders ->
-                _uiState.update { it.copy(dayReminders = reminders) }
+            itemDao.getItemsForDateRange(startOfDay, endOfDay).collect { items ->
+                _uiState.update { it.copy(dayItems = items) }
             }
         }
     }
+
+    private fun startOfDayMillis(day: Int, month: Int, year: Int): Long =
+        Calendar.getInstance().apply {
+            set(Calendar.YEAR, year)
+            set(Calendar.MONTH, month - 1)
+            set(Calendar.DAY_OF_MONTH, day)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
 
     /**
      * Load bookmarks for the month (for calendar dots)
@@ -238,13 +214,14 @@ class DayActionsViewModel @Inject constructor(
         val state = _uiState.value
         if (title.isBlank()) return
 
-        val datePrefix = "${"%02d".format(state.selectedDay)}/${"%02d".format(state.selectedMonth)}/${state.selectedYear}"
+        val startOfDay = startOfDayMillis(state.selectedDay, state.selectedMonth, state.selectedYear)
         viewModelScope.launch {
-            noteDao.insert(
-                NoteEntity(
-                    title = "[$datePrefix] $title",
-                    content = content,
-                    colorIndex = colorIndex
+            itemDao.insert(
+                ItemEntity(
+                    title = title,
+                    description = content,
+                    colorIndex = colorIndex,
+                    dueDate = startOfDay,
                 )
             )
             _uiState.update {
@@ -281,14 +258,16 @@ class DayActionsViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            reminderDao.insert(
-                ReminderEntity(
-                    title = title,
-                    subtitle = "Ngày ${"%02d".format(state.selectedDay)}/${"%02d".format(state.selectedMonth)}/${state.selectedYear}",
-                    triggerTime = cal.timeInMillis,
-                    repeatType = repeatType
-                )
+            val entity = ItemEntity(
+                title = title,
+                description = "Ngày ${"%02d".format(state.selectedDay)}/${"%02d".format(state.selectedMonth)}/${state.selectedYear}",
+                hasReminder = true,
+                reminderAt = cal.timeInMillis,
+                repeatType = repeatType,
+                dueDate = startOfDayMillis(state.selectedDay, state.selectedMonth, state.selectedYear),
             )
+            val id = itemDao.insert(entity)
+            NotificationScheduler.scheduleReminder(appContext, entity.copy(id = id))
             _uiState.update {
                 it.copy(
                     showAddReminderDialog = false,

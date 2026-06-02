@@ -194,11 +194,6 @@ fun CalendarScreen(
     }
 
     if (showNoteOrReminderEdit) {
-        val editInitialType = if (dayActionsState.showAddNoteDialog)
-            com.lichso.app.ui.screen.tasks.EditItemType.NOTE
-        else
-            com.lichso.app.ui.screen.tasks.EditItemType.REMIND
-
         // Build attached date from current day info
         val attachedDate = com.lichso.app.ui.screen.tasks.AttachedDate(
             day = dayActionsState.selectedDay,
@@ -211,36 +206,36 @@ fun CalendarScreen(
                 it.lunarHoliday ?: it.solarHoliday ?: ""
             } ?: ""
         )
+        // Prefill: nếu là "Thêm nhắc nhở" thì bật sẵn năng lực nhắc.
+        val prefill = com.lichso.app.data.local.entity.ItemEntity(
+            title = "",
+            hasReminder = dayActionsState.showAddReminderDialog,
+        )
 
         Box(modifier = Modifier.fillMaxSize()) {
-            com.lichso.app.ui.screen.tasks.NoteTaskEditScreen(
-                initialType = editInitialType,
+            com.lichso.app.ui.screen.tasks.ItemEditScreen(
+                initialItem = prefill,
                 attachedDate = attachedDate,
                 onBackClick = {
                     dayActionsViewModel.hideAddNote()
                     dayActionsViewModel.hideAddReminder()
                 },
-                onSaveNote = { note ->
-                    dayActionsViewModel.addNoteForDay(note.title, note.content, note.colorIndex)
-                },
-                onSaveTask = { task ->
-                    // Tasks are also supported from here
-                    dayActionsViewModel.addNoteForDay(task.title, task.description, 0)
-                },
-                onSaveReminder = { reminder ->
-                    val cal = java.util.Calendar.getInstance()
-                    cal.timeInMillis = reminder.triggerTime
-                    dayActionsViewModel.addReminderForDay(
-                        reminder.title,
-                        cal.get(java.util.Calendar.HOUR_OF_DAY),
-                        cal.get(java.util.Calendar.MINUTE),
-                        reminder.repeatType
-                    )
-                },
-                onDelete = {
+                onSave = { item ->
+                    if (item.hasReminder && item.reminderAt != null) {
+                        val cal = java.util.Calendar.getInstance()
+                        cal.timeInMillis = item.reminderAt!!
+                        dayActionsViewModel.addReminderForDay(
+                            item.title,
+                            cal.get(java.util.Calendar.HOUR_OF_DAY),
+                            cal.get(java.util.Calendar.MINUTE),
+                            item.repeatType
+                        )
+                    } else {
+                        dayActionsViewModel.addNoteForDay(item.title, item.description, item.colorIndex)
+                    }
                     dayActionsViewModel.hideAddNote()
                     dayActionsViewModel.hideAddReminder()
-                }
+                },
             )
         }
     }

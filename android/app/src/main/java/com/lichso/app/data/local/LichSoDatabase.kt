@@ -12,9 +12,7 @@ import com.lichso.app.data.local.entity.*
 
 @Database(
     entities = [
-        TaskEntity::class,
-        NoteEntity::class,
-        ReminderEntity::class,
+        ItemEntity::class,
         ChatMessageEntity::class,
         BookmarkEntity::class,
         NotificationEntity::class,
@@ -36,13 +34,11 @@ import com.lichso.app.data.local.entity.*
         // v3 Quiz sync queue
         QuizOfflineSessionEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = true
 )
 abstract class LichSoDatabase : RoomDatabase() {
-    abstract fun taskDao(): TaskDao
-    abstract fun noteDao(): NoteDao
-    abstract fun reminderDao(): ReminderDao
+    abstract fun itemDao(): ItemDao
     abstract fun chatMessageDao(): ChatMessageDao
     abstract fun bookmarkDao(): BookmarkDao
     abstract fun notificationDao(): NotificationDao
@@ -258,6 +254,44 @@ abstract class LichSoDatabase : RoomDatabase() {
             Log.d(TAG, "MIGRATION_13_14 complete")
         }
 
+        /**
+         * Migration 14→15: Hợp nhất tasks + notes + reminders → bảng "items".
+         * Theo quyết định sản phẩm: bắt đầu mới (không cần giữ dữ liệu 3 bảng cũ),
+         * nên ở đây drop 3 bảng cũ và tạo bảng items mới. Các bảng khác giữ nguyên.
+         */
+        private val MIGRATION_14_15 = Migration(14, 15) { db ->
+            Log.d(TAG, "Running MIGRATION_14_15: unify tasks/notes/reminders → items")
+            db.execSQL("DROP TABLE IF EXISTS tasks")
+            db.execSQL("DROP TABLE IF EXISTS notes")
+            db.execSQL("DROP TABLE IF EXISTS reminders")
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS items (
+                    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    description TEXT NOT NULL DEFAULT '',
+                    tags TEXT NOT NULL DEFAULT '',
+                    isTask INTEGER NOT NULL DEFAULT 0,
+                    isDone INTEGER NOT NULL DEFAULT 0,
+                    priority INTEGER NOT NULL DEFAULT 1,
+                    dueDate INTEGER,
+                    dueTime TEXT,
+                    hasReminder INTEGER NOT NULL DEFAULT 0,
+                    reminderAt INTEGER,
+                    repeatType INTEGER NOT NULL DEFAULT 0,
+                    useLunar INTEGER NOT NULL DEFAULT 0,
+                    advanceDays INTEGER NOT NULL DEFAULT 0,
+                    reminderEnabled INTEGER NOT NULL DEFAULT 1,
+                    isPinned INTEGER NOT NULL DEFAULT 0,
+                    colorIndex INTEGER NOT NULL DEFAULT 0,
+                    createdAt INTEGER NOT NULL DEFAULT 0,
+                    updatedAt INTEGER NOT NULL DEFAULT 0
+                )
+            """.trimIndent())
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_items_dueDate ON items(dueDate)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_items_reminderAt ON items(reminderAt)")
+            Log.d(TAG, "MIGRATION_14_15 complete")
+        }
+
         private val MIGRATION_11_12 = Migration(11, 12) { db ->
             Log.d(TAG, "Running MIGRATION_11_12: countdown events")
             db.execSQL("""
@@ -283,7 +317,7 @@ abstract class LichSoDatabase : RoomDatabase() {
                     "lichso.db"
                 )
                     // Migrations
-                    .addMigrations(MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
+                    .addMigrations(MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)
                     .fallbackToDestructiveMigrationFrom(
                         // Only allow destructive migration from very old versions (pre-release)
                         // that we don't need to support. Current users on v9 are safe.

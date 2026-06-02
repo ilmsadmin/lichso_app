@@ -51,7 +51,7 @@ import com.lichso.app.ui.screen.prayers.PrayersScreen
 import com.lichso.app.ui.screen.profile.ProfileScreen
 import com.lichso.app.ui.screen.search.SearchScreen
 import com.lichso.app.ui.screen.settings.SettingsScreen
-import com.lichso.app.ui.screen.tasks.TasksScreen3
+import com.lichso.app.ui.screen.tasks.ItemsScreen
 import com.lichso.app.feature.fengshui.BatTrachScreen
 import com.lichso.app.feature.fengshui.CompassScreen
 import com.lichso.app.feature.fengshui.LoBanScreen
@@ -452,7 +452,7 @@ fun LichSoMainScreen(
                         onBookmarksClick = { currentRoute = "bookmarks" },
                         onLedgerClick = { currentRoute = "ledger" },
                     )
-                    "tasks" -> TasksScreen3(
+                    "tasks" -> ItemsScreen(
                         onBackClick = { goBack() },
                         onMenuClick = toggleDrawer,
                         onEditVisibilityChanged = { taskEditShowing = it }

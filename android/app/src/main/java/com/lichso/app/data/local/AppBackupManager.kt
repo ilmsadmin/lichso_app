@@ -55,7 +55,9 @@ object AppBackupManager {
         // Profile
         @SerializedName("profileAvatarBase64") val profileAvatarBase64: String? = null,
 
-        // Core user data
+        // Core user data — bảng hợp nhất "items" (thay tasks/notes/reminders).
+        // 3 trường cũ giữ lại để đọc backup phiên bản trước (chuyển thành items khi restore).
+        @SerializedName("items") val items: List<BackupItem> = emptyList(),
         @SerializedName("tasks") val tasks: List<BackupTask> = emptyList(),
         @SerializedName("notes") val notes: List<BackupNote> = emptyList(),
         @SerializedName("reminders") val reminders: List<BackupReminder> = emptyList(),
@@ -84,7 +86,30 @@ object AppBackupManager {
         @SerializedName("cycleLogs") val cycleLogs: List<BackupCycleLog> = emptyList(),
     )
 
-    // ── Original backup entities ──────────────────────────────────────────────
+    // ── Unified item backup ───────────────────────────────────────────────────
+
+    data class BackupItem(
+        @SerializedName("title") val title: String,
+        @SerializedName("description") val description: String = "",
+        @SerializedName("tags") val tags: String = "",
+        @SerializedName("isTask") val isTask: Boolean = false,
+        @SerializedName("isDone") val isDone: Boolean = false,
+        @SerializedName("priority") val priority: Int = 1,
+        @SerializedName("dueDate") val dueDate: Long? = null,
+        @SerializedName("dueTime") val dueTime: String? = null,
+        @SerializedName("hasReminder") val hasReminder: Boolean = false,
+        @SerializedName("reminderAt") val reminderAt: Long? = null,
+        @SerializedName("repeatType") val repeatType: Int = 0,
+        @SerializedName("useLunar") val useLunar: Boolean = false,
+        @SerializedName("advanceDays") val advanceDays: Int = 0,
+        @SerializedName("reminderEnabled") val reminderEnabled: Boolean = true,
+        @SerializedName("isPinned") val isPinned: Boolean = false,
+        @SerializedName("colorIndex") val colorIndex: Int = 0,
+        @SerializedName("createdAt") val createdAt: Long = 0,
+        @SerializedName("updatedAt") val updatedAt: Long = 0,
+    )
+
+    // ── Legacy backup entities (đọc backup cũ) ────────────────────────────────
 
     data class BackupTask(
         @SerializedName("title") val title: String,
@@ -296,9 +321,7 @@ object AppBackupManager {
     suspend fun buildBackupJson(
         context: Context,
         // Core DAOs
-        taskDao: TaskDao,
-        noteDao: NoteDao,
-        reminderDao: ReminderDao,
+        itemDao: ItemDao,
         bookmarkDao: BookmarkDao,
         notificationDao: NotificationDao,
         chatMessageDao: ChatMessageDao,
@@ -327,16 +350,16 @@ object AppBackupManager {
         val profileAvatarBase64 = readProfileAvatar(context)
 
         // ── Core Room data ──
-        val tasks = taskDao.getAllTasksOnce().map { t ->
-            BackupTask(t.title, t.description, t.dueDate, t.dueTime, t.priority,
-                t.isDone, t.labels, t.hasReminder, t.createdAt, t.updatedAt)
-        }
-        val notes = noteDao.getAllNotesOnce().map { n ->
-            BackupNote(n.title, n.content, n.colorIndex, n.isPinned, n.labels, n.createdAt, n.updatedAt)
-        }
-        val reminders = reminderDao.getAllRemindersOnce().map { r ->
-            BackupReminder(r.title, r.subtitle, r.triggerTime, r.repeatType,
-                r.isEnabled, r.useLunar, r.advanceDays, r.category, r.labels, r.createdAt)
+        val items = itemDao.getAllItemsOnce().map { i ->
+            BackupItem(
+                title = i.title, description = i.description, tags = i.tags,
+                isTask = i.isTask, isDone = i.isDone, priority = i.priority,
+                dueDate = i.dueDate, dueTime = i.dueTime,
+                hasReminder = i.hasReminder, reminderAt = i.reminderAt, repeatType = i.repeatType,
+                useLunar = i.useLunar, advanceDays = i.advanceDays, reminderEnabled = i.reminderEnabled,
+                isPinned = i.isPinned, colorIndex = i.colorIndex,
+                createdAt = i.createdAt, updatedAt = i.updatedAt,
+            )
         }
         val bookmarks = bookmarkDao.getAllBookmarksOnce().map { b ->
             BackupBookmark(b.solarDay, b.solarMonth, b.solarYear, b.label, b.note, b.colorIndex, b.createdAt)
@@ -417,7 +440,7 @@ object AppBackupManager {
             appSettings = appSettings,
             aiMemory = aiMemory,
             profileAvatarBase64 = profileAvatarBase64,
-            tasks = tasks, notes = notes, reminders = reminders,
+            items = items,
             bookmarks = bookmarks, notifications = notifications, chatMessages = chatMessages,
             familySettings = familySettings, familyMembers = familyMembers,
             memorialDays = memorialDays, memorialChecklist = memorialChecklist, memberPhotos = memberPhotos,
@@ -476,9 +499,7 @@ object AppBackupManager {
         context: Context,
         data: AppBackupData,
         // Core DAOs
-        taskDao: TaskDao,
-        noteDao: NoteDao,
-        reminderDao: ReminderDao,
+        itemDao: ItemDao,
         bookmarkDao: BookmarkDao,
         notificationDao: NotificationDao,
         chatMessageDao: ChatMessageDao,
@@ -505,9 +526,7 @@ object AppBackupManager {
         data.profileAvatarBase64?.let { restoreProfileAvatar(context, it) }
 
         // 3. Clear all Room tables
-        taskDao.deleteAll()
-        noteDao.deleteAll()
-        reminderDao.deleteAll()
+        itemDao.deleteAll()
         bookmarkDao.deleteAll()
         notificationDao.deleteAll()
         chatMessageDao.clearAll()
@@ -518,20 +537,33 @@ object AppBackupManager {
         clearPointsData(pointsDao, unlockDao, streakDao)
         clearV2Data(countdownEventDao, worldClockCityDao, cycleDao)
 
-        // 4. Core data
+        // 4. Core data — items hợp nhất
+        data.items.forEach { i ->
+            itemDao.insert(ItemEntity(
+                title = i.title, description = i.description, tags = i.tags,
+                isTask = i.isTask, isDone = i.isDone, priority = i.priority,
+                dueDate = i.dueDate, dueTime = i.dueTime,
+                hasReminder = i.hasReminder, reminderAt = i.reminderAt, repeatType = i.repeatType,
+                useLunar = i.useLunar, advanceDays = i.advanceDays, reminderEnabled = i.reminderEnabled,
+                isPinned = i.isPinned, colorIndex = i.colorIndex,
+                createdAt = i.createdAt, updatedAt = i.updatedAt,
+            ))
+        }
+        // Backward-compat: chuyển dữ liệu backup cũ (tasks/notes/reminders) thành items
         data.tasks.forEach { t ->
-            taskDao.insert(TaskEntity(title = t.title, description = t.description, dueDate = t.dueDate,
-                dueTime = t.dueTime, priority = t.priority, isDone = t.isDone,
-                labels = t.labels, hasReminder = t.hasReminder, createdAt = t.createdAt, updatedAt = t.updatedAt))
+            itemDao.insert(ItemEntity(title = t.title, description = t.description, tags = t.labels,
+                isTask = true, isDone = t.isDone, priority = t.priority, dueDate = t.dueDate, dueTime = t.dueTime,
+                hasReminder = t.hasReminder, createdAt = t.createdAt, updatedAt = t.updatedAt))
         }
         data.notes.forEach { n ->
-            noteDao.insert(NoteEntity(title = n.title, content = n.content, colorIndex = n.colorIndex,
-                isPinned = n.isPinned, labels = n.labels, createdAt = n.createdAt, updatedAt = n.updatedAt))
+            itemDao.insert(ItemEntity(title = n.title, description = n.content, tags = n.labels,
+                colorIndex = n.colorIndex, isPinned = n.isPinned, createdAt = n.createdAt, updatedAt = n.updatedAt))
         }
         data.reminders.forEach { r ->
-            reminderDao.insert(ReminderEntity(title = r.title, subtitle = r.subtitle, triggerTime = r.triggerTime,
-                repeatType = r.repeatType, isEnabled = r.isEnabled, useLunar = r.useLunar,
-                advanceDays = r.advanceDays, category = r.category, labels = r.labels, createdAt = r.createdAt))
+            itemDao.insert(ItemEntity(title = r.title, description = r.subtitle, tags = r.labels,
+                hasReminder = true, reminderAt = r.triggerTime, repeatType = r.repeatType,
+                reminderEnabled = r.isEnabled, useLunar = r.useLunar, advanceDays = r.advanceDays,
+                createdAt = r.createdAt))
         }
         data.bookmarks.forEach { b ->
             bookmarkDao.insert(BookmarkEntity(solarDay = b.solarDay, solarMonth = b.solarMonth,

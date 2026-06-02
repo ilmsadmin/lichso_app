@@ -5,46 +5,48 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "tasks")
-data class TaskEntity(
+/**
+ * ── Đối tượng hợp nhất: Ghi chú + Công việc + Nhắc nhở (1 object duy nhất) ──
+ *
+ * Trước đây là 3 entity riêng (TaskEntity / NoteEntity / ReminderEntity). Giờ gộp
+ * thành một "item" linh hoạt: luôn có title + description (mô tả) + tags. Các năng
+ * lực dưới đây BẬT/TẮT độc lập nên một item có thể vừa là ghi chú, vừa có checkbox
+ * việc cần làm, vừa có nhắc nhở:
+ *   • Task     : isTask + priority + isDone + dueDate/dueTime
+ *   • Reminder : hasReminder + reminderAt + repeatType + useLunar + advanceDays + reminderEnabled
+ *   • Note/UI  : isPinned + colorIndex
+ */
+@Entity(
+    tableName = "items",
+    indices = [Index(value = ["dueDate"]), Index(value = ["reminderAt"])]
+)
+data class ItemEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,
     val description: String = "",
-    val dueDate: Long? = null,       // epoch millis
-    val dueTime: String? = null,     // "HH:mm"
-    val priority: Int = 1,           // 0=Low, 1=Medium, 2=High
+    val tags: String = "",            // comma-separated tags (gộp từ labels cũ)
+
+    // ── Task capability ──
+    val isTask: Boolean = false,
     val isDone: Boolean = false,
-    val labels: String = "",         // comma-separated labels
-    val hasReminder: Boolean = false, // whether to create a reminder for this task
+    val priority: Int = 1,            // 0=Low, 1=Medium, 2=High
+    val dueDate: Long? = null,        // epoch millis (ngày đến hạn)
+    val dueTime: String? = null,      // "HH:mm"
+
+    // ── Reminder capability ──
+    val hasReminder: Boolean = false,
+    val reminderAt: Long? = null,     // epoch millis trigger
+    val repeatType: Int = 0,          // 0=Once,1=Daily,2=Weekly,3=Monthly,4=MonthlyLunar,5=Yearly
+    val useLunar: Boolean = false,
+    val advanceDays: Int = 0,         // nhắc trước N ngày (0=đúng ngày)
+    val reminderEnabled: Boolean = true,
+
+    // ── Note / visual ──
+    val isPinned: Boolean = false,
+    val colorIndex: Int = 0,
+
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
-)
-
-@Entity(tableName = "notes")
-data class NoteEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val title: String,
-    val content: String = "",
-    val colorIndex: Int = 0,         // index into predefined colors
-    val isPinned: Boolean = false,   // pinned to top
-    val labels: String = "",         // comma-separated labels
-    val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
-)
-
-@Entity(tableName = "reminders")
-data class ReminderEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val title: String,
-    val subtitle: String = "",
-    val triggerTime: Long,           // epoch millis
-    val repeatType: Int = 0,         // 0=Once, 1=Daily, 2=Weekly, 3=Monthly, 4=MonthlyLunar, 5=Yearly
-    val isEnabled: Boolean = true,
-    val useLunar: Boolean = false,   // whether this is a lunar calendar reminder
-    val advanceDays: Int = 0,        // remind N days before (0=same day, 1, 3, 7)
-    val category: Int = 0,           // 0=Holiday, 1=Birthday, 2=Lunar, 3=Personal, 4=Memorial
-    val labels: String = "",         // comma-separated labels
-    val createdAt: Long = System.currentTimeMillis()
 )
 
 @Entity(tableName = "bookmarks")

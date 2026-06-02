@@ -219,52 +219,39 @@ fun FamilyTreeScreen(
             ) + fadeOut(tween(200))
         ) {
             uiState.memorialEditTarget?.let { memorial ->
-                val editInitialType = if (uiState.showMemorialNoteEdit)
-                    com.lichso.app.ui.screen.tasks.EditItemType.NOTE
-                else
-                    com.lichso.app.ui.screen.tasks.EditItemType.REMIND
+                val isReminder = uiState.showMemorialReminderEdit
 
-                // Pre-fill for reminder: solar date parsed from memorial
-                val prefilledReminder = if (uiState.showMemorialReminderEdit) {
+                // Prefill: nhắc giỗ (lặp năm, âm lịch) hoặc ghi chú giỗ.
+                val prefill = if (isReminder) {
                     val sdf = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
                     val triggerTime = try { sdf.parse(memorial.solarDate)?.time ?: System.currentTimeMillis() } catch (_: Exception) { System.currentTimeMillis() }
-                    com.lichso.app.data.local.entity.ReminderEntity(
+                    com.lichso.app.data.local.entity.ItemEntity(
                         title = memorial.memberName,
-                        subtitle = "${memorial.relation} · ${memorial.lunarDate}",
-                        triggerTime = triggerTime,
+                        description = "${memorial.relation} · ${memorial.lunarDate}",
+                        hasReminder = true,
+                        reminderAt = triggerTime,
                         repeatType = 5,      // Yearly
                         useLunar = true,
-                        category = 4,        // Memorial (Ngày giỗ)
-                        labels = "Ngày giỗ"
+                        tags = "Ngày giỗ",
+                        colorIndex = 1,
                     )
-                } else null
-
-                // Pre-fill for note
-                val prefilledNote = if (uiState.showMemorialNoteEdit) {
-                    com.lichso.app.data.local.entity.NoteEntity(
+                } else {
+                    com.lichso.app.data.local.entity.ItemEntity(
                         title = memorial.memberName,
-                        content = "${memorial.relation} · ${memorial.lunarDate} (${memorial.solarDate})\n${memorial.countdown}",
-                        colorIndex = 1, // warm color
-                        labels = "Ngày giỗ"
+                        description = "${memorial.relation} · ${memorial.lunarDate} (${memorial.solarDate})\n${memorial.countdown}",
+                        colorIndex = 1,
+                        tags = "Ngày giỗ",
                     )
-                } else null
+                }
 
-                key(memorial.id, editInitialType) {
-                    com.lichso.app.ui.screen.tasks.NoteTaskEditScreen(
-                        initialType = editInitialType,
-                        prefillNote = prefilledNote,
-                        prefillReminder = prefilledReminder,
+                key(memorial.id, isReminder) {
+                    com.lichso.app.ui.screen.tasks.ItemEditScreen(
+                        initialItem = prefill,
                         onBackClick = { viewModel.closeMemorialEdit() },
-                        onSaveNote = { note ->
-                            viewModel.saveNoteForMemorial(note)
+                        onSave = { item ->
+                            viewModel.saveMemorialItem(item)
                             viewModel.closeMemorialEdit()
                         },
-                        onSaveTask = { /* not used */ },
-                        onSaveReminder = { reminder ->
-                            viewModel.saveReminderForMemorial(reminder)
-                            viewModel.closeMemorialEdit()
-                        },
-                        onDelete = { viewModel.closeMemorialEdit() }
                     )
                 }
             }
@@ -295,16 +282,17 @@ fun FamilyTreeScreen(
 
                     val lunarDateStr = member.deathDateLunar?.split("/")?.take(2)?.joinToString("/") ?: ""
 
-                    com.lichso.app.data.local.entity.ReminderEntity(
+                    com.lichso.app.data.local.entity.ItemEntity(
                         title = "Ngày giỗ ${member.role} ${member.name}",
-                        subtitle = "Giỗ ${member.role} · Đời ${member.generation}" +
+                        description = "Giỗ ${member.role} · Đời ${member.generation}" +
                                 if (lunarDateStr.isNotBlank()) " · $lunarDateStr Âm lịch" else "",
-                        triggerTime = triggerTime,
+                        hasReminder = true,
+                        reminderAt = triggerTime,
                         repeatType = 5,       // Yearly
                         useLunar = true,
                         advanceDays = 3,      // Nhắc trước 3 ngày
-                        category = 4,         // Memorial
-                        labels = "Ngày giỗ",
+                        tags = "Ngày giỗ",
+                        colorIndex = 1,
                     )
                 } else {
                     // ── Sinh nhật: solar birth date, advance 1 day, yearly, solar calendar ──
@@ -326,31 +314,28 @@ fun FamilyTreeScreen(
                         cal.timeInMillis
                     } else System.currentTimeMillis()
 
-                    com.lichso.app.data.local.entity.ReminderEntity(
+                    com.lichso.app.data.local.entity.ItemEntity(
                         title = "Sinh nhật ${member.role} ${member.name}",
-                        subtitle = "${member.role} · Đời ${member.generation}" +
+                        description = "${member.role} · Đời ${member.generation}" +
                                 if (member.birthYear != null) " · Sinh ${member.birthYear}" else "",
-                        triggerTime = triggerTime,
+                        hasReminder = true,
+                        reminderAt = triggerTime,
                         repeatType = 5,       // Yearly
                         useLunar = false,
                         advanceDays = 1,      // Nhắc trước 1 ngày
-                        category = 1,         // Birthday
-                        labels = "Sinh nhật",
+                        tags = "Sinh nhật",
+                        colorIndex = 3,
                     )
                 }
 
                 key(member.id, isDeceased) {
-                    com.lichso.app.ui.screen.tasks.NoteTaskEditScreen(
-                        initialType = com.lichso.app.ui.screen.tasks.EditItemType.REMIND,
-                        prefillReminder = prefilledReminder,
+                    com.lichso.app.ui.screen.tasks.ItemEditScreen(
+                        initialItem = prefilledReminder,
                         onBackClick = { viewModel.closeMemberReminderEdit() },
-                        onSaveNote = { /* not used */ },
-                        onSaveTask = { /* not used */ },
-                        onSaveReminder = { reminder ->
-                            viewModel.saveMemberReminder(reminder)
+                        onSave = { item ->
+                            viewModel.saveMemberReminder(item)
                             viewModel.closeMemberReminderEdit()
                         },
-                        onDelete = { viewModel.closeMemberReminderEdit() }
                     )
                 }
             }
