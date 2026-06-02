@@ -60,6 +60,7 @@ import type { MediaFileV3, MediaListParams, MediaAlbum } from "@/types/media";
 import { FolderTree } from "@/components/media/FolderTree";
 import { MediaSearchBar } from "@/components/media/MediaSearchBar";
 import { MediaDropzone } from "@/components/media/MediaDropzone";
+import { UploadImageEditor, isEditableImage } from "@/components/media/UploadImageEditor";
 import { MediaStatsCards } from "@/components/media/MediaStatsCards";
 import { MediaDetailPanel } from "@/components/media/MediaDetailPanel";
 import { MediaBulkActions } from "@/components/media/MediaBulkActions";
@@ -118,6 +119,9 @@ export default function MediaManagerV3() {
   const [urlDialogOpen, setUrlDialogOpen] = useState(false);
   const [importUrl, setImportUrl] = useState("");
 
+  // Pre-upload image editor (crop/resize a single image before uploading)
+  const [editorFile, setEditorFile] = useState<File | null>(null);
+
   // Folder
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
@@ -145,7 +149,7 @@ export default function MediaManagerV3() {
   // Handlers
   // ============================================
 
-  const handleUpload = useCallback(
+  const doUpload = useCallback(
     (uploadFiles: File[]) => {
       if (uploadFiles.length === 1) {
         uploadV3.mutate({ file: uploadFiles[0], folder: selectedFolderId || undefined });
@@ -157,6 +161,26 @@ export default function MediaManagerV3() {
       }
     },
     [uploadV3, uploadMultipleV3, selectedFolderId]
+  );
+
+  const handleUpload = useCallback(
+    (uploadFiles: File[]) => {
+      // A single editable image opens the crop/resize editor before uploading.
+      if (uploadFiles.length === 1 && isEditableImage(uploadFiles[0])) {
+        setEditorFile(uploadFiles[0]);
+        return;
+      }
+      doUpload(uploadFiles);
+    },
+    [doUpload]
+  );
+
+  const handleEditorConfirm = useCallback(
+    (file: File) => {
+      setEditorFile(null);
+      doUpload([file]);
+    },
+    [doUpload]
   );
 
   const handleImportUrl = () => {
@@ -690,6 +714,14 @@ export default function MediaManagerV3() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Pre-upload image editor (crop / resize a single image) */}
+      <UploadImageEditor
+        open={editorFile !== null}
+        file={editorFile}
+        onCancel={() => setEditorFile(null)}
+        onConfirm={handleEditorConfirm}
+      />
     </div>
   );
 }
