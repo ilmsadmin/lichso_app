@@ -1457,7 +1457,7 @@ private fun PersonNodeView(member: FamilyMember, onClick: () -> Unit) {
         Text(
             member.role,
             style = TextStyle(
-                fontSize = 8.sp,
+                fontSize = 9.sp,
                 fontWeight = if (member.isSelf) FontWeight.Bold else FontWeight.Medium,
                 color = if (member.isSelf) c.primary else c.outline,
             )
@@ -1470,7 +1470,7 @@ private fun PersonNodeView(member: FamilyMember, onClick: () -> Unit) {
             else -> ""
         }
         if (yearText.isNotEmpty()) {
-            Text(yearText, style = TextStyle(fontSize = 8.sp, color = c.outlineVariant))
+            Text(yearText, style = TextStyle(fontSize = 9.sp, color = c.outlineVariant))
         }
     }
 }
@@ -1555,7 +1555,7 @@ private fun MultiSpouseNodeView(
                     Text(
                         label,
                         style = TextStyle(
-                            fontSize = 8.sp,
+                            fontSize = 9.sp,
                             color = c.outline,
                             fontWeight = FontWeight.Medium,
                         ),

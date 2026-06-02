@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lichso.app.data.remote.LeaderboardEntry
 import com.lichso.app.ui.components.AppTopBar
+import com.lichso.app.ui.components.LichSoSkeletonList
 import com.lichso.app.ui.theme.LichSoThemeColors
 
 private val periodLabels = listOf(
@@ -36,6 +38,7 @@ private val periodLabels = listOf(
     "alltime" to "Toàn thời gian",
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeaderboardScreen(
     onBackClick: () -> Unit = {},
@@ -44,6 +47,7 @@ fun LeaderboardScreen(
     val c = LichSoThemeColors.current
     val leaderboard by viewModel.leaderboard.collectAsState()
     val myRank by viewModel.myRank.collectAsState()
+    val isRefreshing by viewModel.isLeaderboardRefreshing.collectAsState()
 
     var selectedPeriodIndex by remember { mutableIntStateOf(0) }
     val selectedPeriod = periodLabels[selectedPeriodIndex].first
@@ -113,13 +117,13 @@ fun LeaderboardScreen(
 
         val entries = leaderboard?.entries ?: emptyList()
         if (entries.isEmpty() && leaderboard == null) {
-            // Loading shimmer
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(color = c.primary)
-            }
+            // Skeleton loading — khung hàng xếp hạng "lấp lánh" trong lúc tải
+            LichSoSkeletonList(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 8.dp),
+                itemCount = 8,
+            )
         } else if (entries.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -142,15 +146,21 @@ fun LeaderboardScreen(
                 }
             }
         } else {
-            LazyColumn(
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.loadLeaderboard(selectedPeriod) },
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                itemsIndexed(entries) { _, entry ->
-                    LeaderboardRow(entry = entry, period = selectedPeriod)
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    itemsIndexed(entries) { _, entry ->
+                        LeaderboardRow(entry = entry, period = selectedPeriod)
+                    }
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
                 }
-                item { Spacer(modifier = Modifier.height(16.dp)) }
             }
         }
     }

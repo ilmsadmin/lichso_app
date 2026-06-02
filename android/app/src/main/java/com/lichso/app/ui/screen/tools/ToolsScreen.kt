@@ -675,7 +675,7 @@ private fun ToolCard(item: ToolItem, onClick: () -> Unit) {
                         Text(
                             item.badge,
                             style = TextStyle(
-                                fontSize = 7.sp,
+                                fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.Black
                             )

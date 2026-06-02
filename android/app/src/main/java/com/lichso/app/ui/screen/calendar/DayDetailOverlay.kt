@@ -268,7 +268,7 @@ private fun SmallInfoCard(
             .border(1.dp, border, RoundedCornerShape(12.dp))
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
-        Text(label, style = TextStyle(fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = c.textTertiary, letterSpacing = 0.8.sp))
+        Text(label, style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Bold, color = c.textTertiary, letterSpacing = 0.8.sp))
         Spacer(modifier = Modifier.height(4.dp))
         Text(value, style = TextStyle(fontFamily = FontFamily.Serif, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = c.textPrimary))
         if (sub.isNotEmpty()) {

@@ -30,6 +30,7 @@ import com.lichso.app.domain.model.*
 import com.lichso.app.ui.theme.*
 import com.lichso.app.ui.components.AppTopBar
 import com.lichso.app.ui.components.HeaderIconButton
+import com.lichso.app.ui.components.LichSoSkeletonList
 import com.lichso.app.ui.theme.LichSoThemeColors
 
 // ══════════════════════════════════════════
@@ -114,7 +115,14 @@ fun ThisDayInHistoryScreen(
         )
 
         // ═══ TIMELINE CONTENT ═══
-        if (uiState.events.isEmpty()) {
+        if (uiState.isLoading && uiState.events.isEmpty()) {
+            LichSoSkeletonList(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 8.dp),
+                itemCount = 6,
+            )
+        } else if (uiState.events.isEmpty()) {
             EmptyState()
         } else {
             TimelineContent(

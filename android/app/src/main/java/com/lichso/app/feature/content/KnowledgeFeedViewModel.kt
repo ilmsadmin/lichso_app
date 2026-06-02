@@ -12,6 +12,7 @@ import javax.inject.Inject
 
 data class KnowledgeFeedUiState(
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
     val events: List<ContentEvent> = emptyList(),
     val famousPeople: List<FamousPerson> = emptyList(),
@@ -40,7 +41,7 @@ class KnowledgeFeedViewModel @Inject constructor(
     }
 
     fun refresh() {
-        loadContent()
+        loadContent(isRefresh = true)
     }
 
     fun selectCategory(category: ArticleCategory?) {
@@ -89,12 +90,15 @@ class KnowledgeFeedViewModel @Inject constructor(
         }
     }
 
-    private fun loadContent() {
+    private fun loadContent(isRefresh: Boolean = false) {
         viewModelScope.launch {
             nextArticlePage = 1
             _uiState.update {
                 it.copy(
-                    isLoading = true,
+                    // Khi kéo làm mới mà đã có nội dung: giữ danh sách hiển thị, chỉ
+                    // hiện spinner pull-to-refresh thay vì loader toàn màn.
+                    isLoading = !isRefresh,
+                    isRefreshing = isRefresh,
                     isLoadingMore = false,
                     error = null,
                     hasMoreArticles = true,
@@ -125,6 +129,7 @@ class KnowledgeFeedViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     isLoading = false,
+                    isRefreshing = false,
                     events = events,
                     famousPeople = people,
                     categories = categories,

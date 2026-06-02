@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,11 +31,13 @@ import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import com.lichso.app.data.remote.*
 import com.lichso.app.ui.components.AppTopBar
+import com.lichso.app.ui.components.LichSoSkeletonList
 import com.lichso.app.ui.theme.LichSoThemeColors
 import kotlinx.coroutines.flow.distinctUntilChanged
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KnowledgeFeedScreen(
     onBackClick: () -> Unit = {},
@@ -79,13 +82,18 @@ fun KnowledgeFeedScreen(
         )
 
         if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(color = c.red)
-            }
+            LichSoSkeletonList(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 12.dp),
+                itemCount = 6,
+            )
         } else {
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = { viewModel.refresh() },
+                modifier = Modifier.fillMaxSize(),
+            ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 state = listState,
@@ -235,6 +243,7 @@ fun KnowledgeFeedScreen(
                         }
                     }
                 }
+            }
             }
         }
     }

@@ -857,7 +857,7 @@ private fun BookmarkCard(
                     )
                     Text(
                         item.dayOfWeek.take(4).uppercase(),
-                        style = TextStyle(fontSize = 8.sp, fontWeight = FontWeight.SemiBold, color = c.outline)
+                        style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = c.outline)
                     )
                 }
             }

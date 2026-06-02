@@ -570,7 +570,7 @@ private fun DateAttachmentCard(
                 )
                 Text(
                     monthNames.getOrElse(date.month) { "" },
-                    style = TextStyle(fontSize = 8.sp, fontWeight = FontWeight.SemiBold, color = Color.White.copy(alpha = 0.8f))
+                    style = TextStyle(fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = Color.White.copy(alpha = 0.8f))
                 )
             }
         }

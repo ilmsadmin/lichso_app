@@ -3,6 +3,18 @@ package com.lichso.app.ui
 import com.lichso.app.ui.theme.screenBackground
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -90,7 +102,50 @@ fun LichSoMainScreen(
     giftToken: String? = null,
 ) {
     val c = LichSoThemeColors.current
-    var currentRoute by remember { mutableStateOf(initialRoute) }
+    val haptic = LocalHapticFeedback.current
+
+    // ── Back stack điều hướng ──
+    // Trước đây dùng một biến `currentRoute` đơn lẻ nên nút Back hệ thống / gesture
+    // không quay lại được màn trước (thoát thẳng app). Giờ giữ lịch sử bằng một stack:
+    //  • Gán `currentRoute = "x"` → push (các tab gốc reset stack về [home, tab]).
+    //  • goBack() → pop. BackHandler nối nút Back hệ thống vào pop.
+    val topLevelRoutes = remember { setOf("home", "calendar", "tasks", "quiz_home", "tools") }
+    // rememberSaveable: giữ nguyên lịch sử điều hướng khi hệ thống kill process trong
+    // nền rồi user quay lại (trước đây mọi state đều mất, văng về Home).
+    val backStack = rememberSaveable(
+        saver = listSaver(
+            save = { it.toList() },
+            restore = { it.toMutableStateList() },
+        )
+    ) {
+        mutableStateListOf("home").apply {
+            if (initialRoute != "home") add(initialRoute)
+        }
+    }
+    val currentRouteState = remember {
+        object : MutableState<String> {
+            override var value: String
+                get() = backStack.last()
+                set(route) {
+                    val cur = backStack.lastOrNull()
+                    if (route == cur) return
+                    if (route in topLevelRoutes) {
+                        backStack.clear()
+                        if (route != "home") backStack.add("home")
+                        backStack.add(route)
+                    } else {
+                        backStack.add(route)
+                    }
+                }
+            override fun component1() = value
+            override fun component2(): (String) -> Unit = { value = it }
+        }
+    }
+    var currentRoute by currentRouteState
+    fun goBack() {
+        if (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
+    }
+
     var selectedArticleId by remember { mutableStateOf<String?>(null) }
     var articleDetailBackRoute by remember { mutableStateOf("knowledge_feed") }
     var prayerDetailShowing by remember { mutableStateOf(false) }
@@ -172,8 +227,14 @@ fun LichSoMainScreen(
     LaunchedEffect(Unit) {
         pointsViewModel.events.collect { ev ->
             when (ev) {
-                is PointsEvent.RankUp -> rankUpEvent = ev
-                is PointsEvent.CheckedIn -> SmartRatingManager.recordHappyAction(context.applicationContext)
+                is PointsEvent.RankUp -> {
+                    rankUpEvent = ev
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                }
+                is PointsEvent.CheckedIn -> {
+                    SmartRatingManager.recordHappyAction(context.applicationContext)
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                }
                 else -> Unit
             }
         }
@@ -271,6 +332,14 @@ fun LichSoMainScreen(
         }
     }
 
+    // ── Nút Back hệ thống / gesture ──
+    // Ưu tiên đóng drawer nếu đang mở; nếu không thì pop back stack.
+    // Khi chỉ còn 1 màn (home) → để hệ thống xử lý (thoát app).
+    BackHandler(enabled = drawerState.isOpen || backStack.size > 1) {
+        if (drawerState.isOpen) scope.launch { drawerState.close() }
+        else goBack()
+    }
+
     CompositionLocalProvider(LocalTourController provides tourController) {
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -316,7 +385,16 @@ fun LichSoMainScreen(
                 rememberScreenBackgroundUrl("${currentRoute}_header", screenBgRepo)
             )
             CompositionLocalProvider(LocalScreenBackgroundMode provides !normalizedBgUrl.isNullOrBlank()) {
-                when (currentRoute) {
+                AnimatedContent(
+                    targetState = currentRoute,
+                    transitionSpec = {
+                        (fadeIn(animationSpec = tween(220)) +
+                            slideInHorizontally(animationSpec = tween(220)) { it / 16 })
+                            .togetherWith(fadeOut(animationSpec = tween(150)))
+                    },
+                    label = "route_transition",
+                ) { animatedRoute ->
+                when (animatedRoute) {
                     "home" -> HomeScreen(
                         onSettingsClick = { currentRoute = "settings" },
                         onMenuClick = toggleDrawer,
@@ -356,10 +434,10 @@ fun LichSoMainScreen(
                         viewModel = homeViewModel,
                     )
                     "gooddays" -> GoodDaysScreen(
-                        onBackClick = { currentRoute = "home" }
+                        onBackClick = { goBack() }
                     )
                     "prayers" -> PrayersScreen(
-                        onBackClick = { currentRoute = "home" },
+                        onBackClick = { goBack() },
                         onMenuClick = toggleDrawer,
                         onDetailVisibilityChanged = { prayerDetailShowing = it },
                         initialPrayerId = initialPrayerId.also { initialPrayerId = null },
@@ -368,19 +446,19 @@ fun LichSoMainScreen(
                     "profile" -> ProfileScreen(
                         onSettingsClick = { currentRoute = "settings" },
                         onFamilyTreeClick = { currentRoute = "familytree" },
-                        onBackClick = { currentRoute = "home" },
+                        onBackClick = { goBack() },
                         onMenuClick = toggleDrawer,
                         onTasksClick = { currentRoute = "tasks" },
                         onBookmarksClick = { currentRoute = "bookmarks" },
                         onLedgerClick = { currentRoute = "ledger" },
                     )
                     "tasks" -> TasksScreen3(
-                        onBackClick = { currentRoute = "home" },
+                        onBackClick = { goBack() },
                         onMenuClick = toggleDrawer,
                         onEditVisibilityChanged = { taskEditShowing = it }
                     )
                     "tools" -> ToolsScreen(
-                        onBackClick = { currentRoute = "home" },
+                        onBackClick = { goBack() },
                         onMenuClick = toggleDrawer,
                         onBannerAction = { route -> handleBannerAction(route) },
                         onToolClick = { action ->
@@ -445,44 +523,44 @@ fun LichSoMainScreen(
                         headerImageUrl = headerBgUrl,
                     )
                     "feng_shui_compass" -> CompassScreen(
-                        onBackClick = { currentRoute = "tools" },
+                        onBackClick = { goBack() },
                         onAskAiClick = { prompt ->
                             initialAiMessage = prompt
                             currentRoute = "chat"
                         }
                     )
                     "lo_ban" -> LoBanScreen(
-                        onBackClick = { currentRoute = "tools" },
+                        onBackClick = { goBack() },
                         onAskAiClick = { prompt ->
                             initialAiMessage = prompt
                             currentRoute = "chat"
                         }
                     )
                     "bat_trach" -> BatTrachScreen(
-                        onBackClick = { currentRoute = "tools" },
+                        onBackClick = { goBack() },
                         onAskAiClick = { prompt ->
                             initialAiMessage = prompt
                             currentRoute = "chat"
                         }
                     )
                     "notifications" -> NotificationScreen(
-                        onBackClick = { currentRoute = "home" }
+                        onBackClick = { goBack() }
                     )
                     "familytree" -> FamilyTreeScreen(
-                        onBackClick = { currentRoute = "profile" },
+                        onBackClick = { goBack() },
                         onPrayersClick = { prayerId ->
                             initialPrayerId = prayerId
                             currentRoute = "prayers"
                         }
                     )
-                    "history" -> ThisDayInHistoryScreen(onBackClick = { currentRoute = "home" })
+                    "history" -> ThisDayInHistoryScreen(onBackClick = { goBack() })
                     "chat" -> AIChatScreen(
-                        onBackClick = { currentRoute = "home" },
+                        onBackClick = { goBack() },
                         initialMessage = initialAiMessage.also { initialAiMessage = null }
                     )
-                    "settings" -> SettingsScreen(onBackClick = { currentRoute = "home" })
+                    "settings" -> SettingsScreen(onBackClick = { goBack() })
                     "search" -> SearchScreen(
-                        onBackClick = { currentRoute = "calendar" },
+                        onBackClick = { goBack() },
                         onDateSelected = { year, month, day ->
                             homeViewModel.goToDate(year, month, day)
                             currentRoute = "calendar"
@@ -491,7 +569,7 @@ fun LichSoMainScreen(
                         initialTool = initialSearchTool.also { initialSearchTool = null }
                     )
                     "bookmarks" -> BookmarksScreen(
-                        onBackClick = { currentRoute = "profile" },
+                        onBackClick = { goBack() },
                         onDateSelected = { year, month, day ->
                             homeViewModel.goToDate(year, month, day)
                             currentRoute = "calendar"
@@ -499,12 +577,12 @@ fun LichSoMainScreen(
                         onAddBookmark = { currentRoute = "calendar" }
                     )
                     "oracle_draw" -> com.lichso.app.feature.points.ui.OracleDrawScreen(
-                        onBackClick = { currentRoute = "tools" },
+                        onBackClick = { goBack() },
                         onDrawn = { currentRoute = "oracle_result" },
                         clock = pointsClock,
                     )
                     "oracle_result" -> com.lichso.app.feature.points.ui.OracleResultScreen(
-                        onBackClick = { currentRoute = "tools" },
+                        onBackClick = { goBack() },
                         onAskAi = { prompt ->
                             initialAiMessage = prompt
                             currentRoute = "chat"
@@ -512,40 +590,40 @@ fun LichSoMainScreen(
                         clock = pointsClock,
                     )
                     "ledger" -> com.lichso.app.feature.points.ui.LedgerScreen(
-                        onBackClick = { currentRoute = "tools" },
+                        onBackClick = { goBack() },
                     )
                     "daily_store" -> com.lichso.app.feature.points.ui.DailyUnlockStoreScreen(
-                        onBackClick = { currentRoute = "tools" },
+                        onBackClick = { goBack() },
                     )
                     "zodiac_collection" -> com.lichso.app.feature.points.ui.ZodiacCollectionScreen(
-                        onBackClick = { currentRoute = "tools" },
+                        onBackClick = { goBack() },
                     )
                     "date_picker" -> com.lichso.app.feature.datepicker.DatePickerToolScreen(
-                        onBackClick = { currentRoute = "tools" },
+                        onBackClick = { goBack() },
                     )
                     "streak_freeze" -> com.lichso.app.feature.points.ui.StreakFreezeScreen(
-                        onBackClick = { currentRoute = "profile" },
+                        onBackClick = { goBack() },
                     )
                     "tiet_khi" -> com.lichso.app.feature.tietkhi.TietKhiScreen(
-                        onBackClick = { currentRoute = "tools" },
+                        onBackClick = { goBack() },
                     )
                     "date_math" -> com.lichso.app.feature.datemath.DateMathScreen(
-                        onBackClick = { currentRoute = "tools" },
+                        onBackClick = { goBack() },
                     )
                     "countdown" -> com.lichso.app.feature.countdown.CountdownScreen(
-                        onBackClick = { currentRoute = "tools" },
+                        onBackClick = { goBack() },
                     )
                     "birth_planner" -> com.lichso.app.feature.birthplanner.BirthDatePlannerScreen(
-                        onBackClick = { currentRoute = "tools" },
+                        onBackClick = { goBack() },
                     )
                     "cycle_tracker" -> com.lichso.app.feature.cycle.CycleTrackerScreen(
-                        onBackClick = { currentRoute = "tools" },
+                        onBackClick = { goBack() },
                     )
                     "world_clock" -> com.lichso.app.feature.worldclock.WorldClockScreen(
-                        onBackClick = { currentRoute = "tools" },
+                        onBackClick = { goBack() },
                     )
                     "points_tutorial" -> com.lichso.app.feature.points.ui.PointsTutorialScreen(
-                        onBack = { currentRoute = "profile" },
+                        onBack = { goBack() },
                         onAction = { actionType ->
                             currentRoute = when (actionType.deeplink) {
                                 "lichso://home" -> "home"
@@ -568,10 +646,10 @@ fun LichSoMainScreen(
                         },
                     )
                     "widget_manager" -> WidgetManagerScreen(
-                        onBackClick = { currentRoute = "tools" }
+                        onBackClick = { goBack() }
                     )
                     "quiz_home" -> com.lichso.app.feature.quiz.QuizHomeScreen(
-                        onBackClick = { currentRoute = "home" },
+                        onBackClick = { goBack() },
                         onStartDaily = {
                             quizCategory = null
                             currentRoute = "quiz_session"
@@ -584,7 +662,7 @@ fun LichSoMainScreen(
                         onBannerAction = { route -> handleBannerAction(route) },
                     )
                     "quiz_session" -> com.lichso.app.feature.quiz.QuizSessionScreen(
-                        onBackClick = { currentRoute = "quiz_home" },
+                        onBackClick = { goBack() },
                         onFinished = { currentRoute = "quiz_result" },
                         initialCategory = quizCategory,
                         onAskAi = { prompt ->
@@ -593,7 +671,7 @@ fun LichSoMainScreen(
                         },
                     )
                     "quiz_result" -> com.lichso.app.feature.quiz.QuizResultScreen(
-                        onBackClick = { currentRoute = "quiz_home" },
+                        onBackClick = { goBack() },
                         onAskAi = { prompt ->
                             initialAiMessage = prompt
                             currentRoute = "chat"
@@ -601,10 +679,10 @@ fun LichSoMainScreen(
                         onPlayAgain = { currentRoute = "quiz_session" },
                     )
                     "leaderboard" -> com.lichso.app.feature.quiz.LeaderboardScreen(
-                        onBackClick = { currentRoute = "quiz_home" },
+                        onBackClick = { goBack() },
                     )
                     "knowledge_feed" -> com.lichso.app.feature.content.KnowledgeFeedScreen(
-                        onBackClick = { currentRoute = "home" },
+                        onBackClick = { goBack() },
                         onAskAi = { prompt ->
                             initialAiMessage = prompt
                             currentRoute = "chat"
@@ -619,7 +697,7 @@ fun LichSoMainScreen(
                         selectedArticleId?.let { articleId ->
                             com.lichso.app.feature.content.ArticleDetailScreen(
                                 articleId = articleId,
-                                onBackClick = { currentRoute = articleDetailBackRoute },
+                                onBackClick = { goBack() },
                                 onArticleClick = { relatedArticleId ->
                                     selectedArticleId = relatedArticleId
                                     currentRoute = "article_detail"
@@ -629,7 +707,7 @@ fun LichSoMainScreen(
                     }
                     "survey" -> {
                         SurveyScreen(
-                            onBackClick = { currentRoute = "home" }
+                            onBackClick = { goBack() }
                         )
                     }
                     else -> HomeScreen(
@@ -643,6 +721,7 @@ fun LichSoMainScreen(
                         headerImageUrl = headerBgUrl,
                         viewModel = homeViewModel,
                     )
+                }
                 }
             }
         }
@@ -763,10 +842,11 @@ fun LichSoMainScreen(
                 // Close Button - placed inside the popup image layer
                 Box(
                     modifier = Modifier
-                        .size(18.dp)
                         .align(Alignment.TopEnd)
-                        .offset(x = (-8).dp, y = 8.dp)
-                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                        .offset(x = 4.dp, y = (-4).dp)
+                        .minimumInteractiveComponentSize()
+                        .size(24.dp)
+                        .background(Color.Black.copy(alpha = 0.55f), CircleShape)
                         .clickable { dismissedPopupIds.add(currentPopup.id) },
                     contentAlignment = Alignment.Center
                 ) {
@@ -774,7 +854,7 @@ fun LichSoMainScreen(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Đóng",
                         tint = Color.White,
-                        modifier = Modifier.size(9.dp)
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
@@ -1140,6 +1220,7 @@ private fun BottomNavBar(
     modifier: Modifier = Modifier
 ) {
     val c = LichSoThemeColors.current
+    val haptic = LocalHapticFeedback.current
 
     data class NavItem(
         val route: String,
@@ -1190,7 +1271,10 @@ private fun BottomNavBar(
                             .weight(1f)
                             .tourTarget(item.route)
                             .clip(RoundedCornerShape(20.dp))
-                            .clickable { onRouteSelected(item.route) },
+                            .clickable {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onRouteSelected(item.route)
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
@@ -1218,7 +1302,7 @@ private fun BottomNavBar(
                             Text(
                                 item.title,
                                 style = TextStyle(
-                                    fontSize = 10.sp,
+                                    fontSize = 11.sp,
                                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                                     color = tint
                                 )
@@ -1239,7 +1323,10 @@ private fun BottomNavBar(
                             .weight(1f)
                             .tourTarget(item.route)
                             .clip(RoundedCornerShape(20.dp))
-                            .clickable { onRouteSelected(item.route) },
+                            .clickable {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onRouteSelected(item.route)
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
@@ -1267,7 +1354,7 @@ private fun BottomNavBar(
                             Text(
                                 item.title,
                                 style = TextStyle(
-                                    fontSize = 10.sp,
+                                    fontSize = 11.sp,
                                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                                     color = tint
                                 )
@@ -1317,7 +1404,10 @@ private fun BottomNavBar(
                     .clickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() }
-                    ) { onCenterClick() },
+                    ) {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onCenterClick()
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -1333,7 +1423,7 @@ private fun BottomNavBar(
             Text(
                 "Hôm nay",
                 style = TextStyle(
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
                     fontWeight = if (isHomeSelected) FontWeight.SemiBold else FontWeight.Medium,
                     color = if (isHomeSelected) c.primary else c.outline
                 )

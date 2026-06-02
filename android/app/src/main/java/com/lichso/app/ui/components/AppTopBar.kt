@@ -189,7 +189,7 @@ fun HeaderIconButton(
                 Text(
                     text = if (badgeCount > 99) "99+" else "$badgeCount",
                     style = TextStyle(
-                        fontSize = 8.sp,
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )

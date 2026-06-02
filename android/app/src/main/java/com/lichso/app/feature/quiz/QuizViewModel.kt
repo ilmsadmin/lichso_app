@@ -95,6 +95,9 @@ class QuizViewModel @Inject constructor(
     private val _myRank = MutableStateFlow<MyRankResponse?>(null)
     val myRank: StateFlow<MyRankResponse?> = _myRank.asStateFlow()
 
+    private val _isLeaderboardRefreshing = MutableStateFlow(false)
+    val isLeaderboardRefreshing: StateFlow<Boolean> = _isLeaderboardRefreshing.asStateFlow()
+
     private val _homeState = MutableStateFlow(QuizHomeUiState())
     val homeState: StateFlow<QuizHomeUiState> = _homeState.asStateFlow()
 
@@ -890,9 +893,11 @@ class QuizViewModel @Inject constructor(
     fun loadLeaderboard(period: String = "weekly") {
         currentLeaderboardPeriod = period
         leaderboardJob?.cancel()
+        _isLeaderboardRefreshing.value = true
         leaderboardJob = viewModelScope.launch {
             repository.getLeaderboard(period).collectLatest { response ->
                 _leaderboard.value = response
+                _isLeaderboardRefreshing.value = false
             }
         }
         val token = authToken

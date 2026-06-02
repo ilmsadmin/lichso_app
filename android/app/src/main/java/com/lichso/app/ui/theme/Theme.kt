@@ -3,6 +3,7 @@ package com.lichso.app.ui.theme
 import android.graphics.Color as AndroidColor
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -122,7 +123,14 @@ fun LichSoTheme(
         MaterialTheme(
             colorScheme = materialScheme,
             typography = LichSoTypography,
-            content = content
-        )
+        ) {
+            // Đặt Be Vietnam Pro làm font mặc định cho toàn bộ nội dung. Vì hầu hết
+            // màn hình dùng TextStyle inline KHÔNG khai báo fontFamily, chúng sẽ merge
+            // và kế thừa font này từ LocalTextStyle (chỗ nào set serif rõ ràng vẫn giữ).
+            CompositionLocalProvider(
+                LocalTextStyle provides LocalTextStyle.current.copy(fontFamily = BeVietnamPro),
+                content = content,
+            )
+        }
     }
 }

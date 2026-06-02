@@ -723,7 +723,7 @@ private fun MiniCalendarStrip(
                     Text(
                         lunarText,
                         style = TextStyle(
-                            fontSize = 7.sp,
+                            fontSize = 9.sp,
                             color = if (isToday) Color.White.copy(alpha = 0.7f) else c.textSecondary
                         )
                     )

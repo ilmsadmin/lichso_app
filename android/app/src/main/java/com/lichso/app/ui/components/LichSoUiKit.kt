@@ -1,5 +1,11 @@
 package com.lichso.app.ui.components
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,6 +38,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -44,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
@@ -157,6 +165,7 @@ fun LichSoHeaderActionButton(
 ) {
     Box(
         modifier = modifier
+            .minimumInteractiveComponentSize()
             .size(34.dp)
             .background(Color.White.copy(alpha = 0.15f), CircleShape)
             .clickable(onClick = onClick),
@@ -174,6 +183,7 @@ fun LichSoDeleteButton(
 ) {
     Box(
         modifier = modifier
+            .minimumInteractiveComponentSize()
             .size(30.dp)
             .background(Color(0xFFFFEBEE), CircleShape)
             .clickable(onClick = onClick),
@@ -731,6 +741,7 @@ private fun LichSoIconCircleButton(
     val c = LichSoThemeColors.current
     Box(
         modifier = Modifier
+            .minimumInteractiveComponentSize()
             .size(34.dp)
             .clip(CircleShape)
             .clickable(onClick = onClick),
@@ -856,5 +867,103 @@ fun LichSoCheckboxRow(
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Checkbox(checked = checked, onCheckedChange = onCheckedChange)
         Text(label, style = TextStyle(fontSize = 14.sp, color = c.textPrimary))
+    }
+}
+
+// ══════════════════════════════════════════
+// SHIMMER / SKELETON LOADING
+// Trải nghiệm chờ mượt hơn so với spinner: hiển thị khung nội dung "lấp lánh"
+// gợi ý bố cục sắp tải. Dùng [LichSoSkeletonBox] cho từng khối, hoặc
+// [LichSoSkeletonList] cho danh sách thẻ.
+// ══════════════════════════════════════════
+
+@Composable
+fun rememberShimmerBrush(): Brush {
+    val c = LichSoThemeColors.current
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val translate by transition.animateFloat(
+        initialValue = -400f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "shimmer_translate",
+    )
+    val base = c.surfaceContainerHigh
+    val highlight = if (c.isDark) c.surface2 else Color.White.copy(alpha = 0.6f)
+    return Brush.linearGradient(
+        colors = listOf(base, highlight, base),
+        start = Offset(translate, 0f),
+        end = Offset(translate + 400f, 200f),
+    )
+}
+
+@Composable
+fun LichSoSkeletonBox(
+    modifier: Modifier = Modifier,
+    radius: Dp = 8.dp,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(radius))
+            .background(rememberShimmerBrush()),
+    )
+}
+
+@Composable
+fun LichSoSkeletonList(
+    modifier: Modifier = Modifier,
+    itemCount: Int = 5,
+) {
+    val brush = rememberShimmerBrush()
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = LichSoSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(LichSoSpacing.md),
+    ) {
+        repeat(itemCount) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = LichSoSpacing.md),
+                horizontalArrangement = Arrangement.spacedBy(LichSoSpacing.md),
+            ) {
+                // Thumbnail
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(LichSoRadius.card))
+                        .background(brush),
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.7f)
+                            .height(14.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(brush),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(brush),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.5f)
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(brush),
+                    )
+                }
+            }
+        }
     }
 }
