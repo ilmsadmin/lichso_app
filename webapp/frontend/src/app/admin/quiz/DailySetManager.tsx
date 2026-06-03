@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { useQuizDailySets, useSetDailySet, useQuizQuestions, useRandomizeDailySet } from "@/hooks/useQuiz";
 import type { QuizDailySet } from "@/types/quiz";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import { toast } from "sonner";
 
 export function DailySetManager() {
   const { data: setsData, isLoading } = useQuizDailySets();
@@ -27,6 +28,8 @@ export function DailySetManager() {
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [questionIds, setQuestionIds] = useState<number[]>([]);
   const [inputId, setInputId] = useState("");
+  const [fromId, setFromId] = useState("");
+  const [toId, setToId] = useState("");
 
   const handleAddId = () => {
     const id = parseInt(inputId.trim(), 10);
@@ -53,8 +56,38 @@ export function DailySetManager() {
 
   const handleRandomize = () => {
     if (!selectedDate) return;
+    
+    let fVal: number | undefined;
+    let tVal: number | undefined;
+
+    if (fromId.trim()) {
+      fVal = parseInt(fromId, 10);
+      if (isNaN(fVal)) {
+        toast.error("ID bắt đầu không hợp lệ");
+        return;
+      }
+    }
+
+    if (toId.trim()) {
+      tVal = parseInt(toId, 10);
+      if (isNaN(tVal)) {
+        toast.error("ID kết thúc không hợp lệ");
+        return;
+      }
+    }
+
+    if (fVal !== undefined && tVal !== undefined && fVal > tVal) {
+      toast.error("ID bắt đầu không được lớn hơn ID kết thúc");
+      return;
+    }
+
     randomizeDailySet.mutate(
-      { date: selectedDate, count: 20 },
+      { 
+        date: selectedDate, 
+        count: 20,
+        from_id: fVal,
+        to_id: tVal
+      },
       {
         onSuccess: (res) => {
           if (res.success && res.data?.question_ids) {
@@ -88,6 +121,32 @@ export function DailySetManager() {
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
               />
+            </div>
+
+            {/* Randomize Limits */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="from-id">Từ ID câu hỏi</Label>
+                <Input
+                  id="from-id"
+                  type="number"
+                  placeholder="Ví dụ: 1"
+                  value={fromId}
+                  onChange={(e) => setFromId(e.target.value)}
+                  min={0}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="to-id">Đến ID câu hỏi</Label>
+                <Input
+                  id="to-id"
+                  type="number"
+                  placeholder="Ví dụ: 100"
+                  value={toId}
+                  onChange={(e) => setToId(e.target.value)}
+                  min={0}
+                />
+              </div>
             </div>
 
             {/* Randomize */}

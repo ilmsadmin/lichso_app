@@ -23,11 +23,23 @@ struct AIChatScreen: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = ChatViewModel()
-    @State private var inputText = ""
+    @StateObject private var keyboard = ChatKeyboardObserver()
     @State private var showClearConfirm = false
     @FocusState private var isInputFocused: Bool
-    
+
     var initialMessage: String? = nil
+    var isEmbeddedInTabBar: Bool = false
+
+    private var safeAreaBottom: CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }?
+            .safeAreaInsets.bottom ?? 0
+    }
+
+    private let inputBottomGap: CGFloat = 28
+    private let inputKeyboardGap: CGFloat = 2
     
     var body: some View {
         VStack(spacing: 0) {
@@ -70,28 +82,45 @@ struct AIChatScreen: View {
                         }
                     }
                 }
+                .onChange(of: isInputFocused) { _, isFocused in
+                    if isFocused {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            withAnimation {
+                                if let last = viewModel.messages.last {
+                                    proxy.scrollTo(last.id, anchor: .bottom)
+                                } else if viewModel.isTyping {
+                                    proxy.scrollTo("typing", anchor: .bottom)
+                                }
+                            }
+                        }
+                    }
+                }
+                .scrollDismissesKeyboard(.interactively)   // vuốt tin nhắn → ẩn bàn phím
+                .dismissKeyboardOnTap()                     // chạm vùng tin nhắn → ẩn
             }
             
-            // ═══ FOLLOW-UP SUGGESTIONS ═══
-            if !viewModel.followUpSuggestions.isEmpty && !viewModel.isTyping {
-                FollowUpSuggestionsRow(suggestions: viewModel.followUpSuggestions) { suggestion in
-                    viewModel.sendMessage(suggestion)
-                }
-            }
-            
-            // ═══ INPUT BAR ═══
-            ChatInputBar(
-                text: $inputText,
-                isTyping: viewModel.isTyping,
-                isFocused: $isInputFocused,
-                onSend: {
-                    guard !inputText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                    viewModel.sendMessage(inputText)
-                    inputText = ""
-                }
-            )
         }
         .background(SurfaceBg)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 0) {
+                if !viewModel.followUpSuggestions.isEmpty && !viewModel.isTyping {
+                    FollowUpSuggestionsRow(suggestions: viewModel.followUpSuggestions) { suggestion in
+                        viewModel.sendMessage(suggestion)
+                    }
+                }
+
+                SharedAiCommandBar(
+                    placeholder: "Hỏi AI về tử vi, ngày tốt...",
+                    isProcessing: viewModel.isTyping,
+                    focused: $isInputFocused
+                ) { text in
+                    viewModel.sendMessage(text)
+                }
+                .padding(.bottom, keyboard.height > 0 ? inputKeyboardGap : inputBottomGap)
+            }
+            .background(SurfaceBg)
+            .animation(.easeOut(duration: 0.25), value: keyboard.height)
+        }
         .navigationBarHidden(true)
         .onAppear {
             viewModel.setModelContext(modelContext)
@@ -532,48 +561,43 @@ private struct TypingIndicatorView: View {
     }
 }
 
-// ══════════════════════════════════════════
-// CHAT INPUT BAR
-// ══════════════════════════════════════════
+private final class ChatKeyboardObserver: ObservableObject {
+    @Published var height: CGFloat = 0
 
-private struct ChatInputBar: View {
-    @Binding var text: String
-    let isTyping: Bool
-    var isFocused: FocusState<Bool>.Binding
-    let onSend: () -> Void
-    
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            TextField("Hỏi AI về tử vi, ngày tốt...", text: $text, axis: .vertical)
-                .lineLimit(1...4)
-                .font(.system(size: 14))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(SurfaceContainer)
-                .cornerRadius(24)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(OutlineVariant, lineWidth: 1)
-                )
-                .focused(isFocused)
-            
-            Button(action: onSend) {
-                Image(systemName: "arrow.up")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
-                    .background(
-                        !isTyping && !text.trimmingCharacters(in: .whitespaces).isEmpty
-                            ? PrimaryRed : PrimaryRed.opacity(0.4)
-                    )
-                    .clipShape(Circle())
-            }
-            .disabled(isTyping || text.trimmingCharacters(in: .whitespaces).isEmpty)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .padding(.bottom, 16)
-        .background(SurfaceBg)
+    init() {
+        let nc = NotificationCenter.default
+        nc.addObserver(
+            self,
+            selector: #selector(onChange(_:)),
+            name: UIResponder.keyboardWillChangeFrameNotification,
+            object: nil
+        )
+        nc.addObserver(
+            self,
+            selector: #selector(onChange(_:)),
+            name: UIResponder.keyboardWillShowNotification,
+            object: nil
+        )
+        nc.addObserver(
+            self,
+            selector: #selector(onHide),
+            name: UIResponder.keyboardWillHideNotification,
+            object: nil
+        )
+    }
+
+    @objc private func onChange(_ note: Notification) {
+        guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        let screenHeight = UIScreen.main.bounds.height
+        height = max(0, screenHeight - frame.origin.y)
+    }
+
+    @objc private func onHide() {
+        height = 0
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 }
 

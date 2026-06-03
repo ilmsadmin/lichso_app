@@ -85,14 +85,7 @@ public class QuizService: ObservableObject {
     }
 
     private func applyClientHeaders(to request: inout URLRequest) {
-        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-        request.setValue("IOS", forHTTPHeaderField: "X-Client-Platform")
-        request.setValue(appVersion, forHTTPHeaderField: "X-App-Version")
-        request.setValue(UIDevice.current.model, forHTTPHeaderField: "X-Device-Name")
-        request.setValue(UIDevice.current.systemVersion, forHTTPHeaderField: "X-OS-Version")
-        if let deviceId = UIDevice.current.identifierForVendor?.uuidString {
-            request.setValue(deviceId, forHTTPHeaderField: "X-Device-ID")
-        }
+        LichSoClientInfo.applyHeaders(to: &request)
     }
     
     public func fetchDailyQuestions(date: String) async throws -> [QuizQuestion] {
@@ -215,20 +208,44 @@ public class QuizService: ObservableObject {
         return try await execute(req)
     }
 
-    public func fetchArticles(page: Int = 1, limit: Int = 20) async throws -> [Article] {
-        let req = makeRequest(path: "/articles/?page=\(page)&limit=\(limit)")
+    public func fetchArticles(page: Int = 1, limit: Int = 20, category: String? = nil) async throws -> [Article] {
+        var path = "/articles/?page=\(page)&limit=\(limit)"
+        if let category, let encoded = category.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            path += "&category=\(encoded)"
+        }
+        let req = makeRequest(path: path)
         return try await execute(req)
     }
-    
+
     public func fetchArticle(id: String) async throws -> Article {
         let req = makeRequest(path: "/articles/\(id)")
         return try await execute(req)
     }
 
-    public func fetchBanners(type: String? = nil) async throws -> [Banner] {
+    // ── Khám phá (Knowledge Feed) — mirror Android content endpoints ──
+
+    public func fetchEventsByDate(month: Int, day: Int) async throws -> [ContentEvent] {
+        try await execute(makeRequest(path: "/events/date/\(month)/\(day)"))
+    }
+
+    public func fetchFamousPeople(month: Int, day: Int) async throws -> [FamousPerson] {
+        try await execute(makeRequest(path: "/famous-people/birthday/\(month)/\(day)"))
+    }
+
+    public func fetchCategories() async throws -> [ArticleCategory] {
+        try await execute(makeRequest(path: "/categories"))
+    }
+
+    public func fetchTodayQuote() async throws -> Quote {
+        try await execute(makeRequest(path: "/quotes/today"))
+    }
+
+    /// Lấy banner theo "location key" (mới). Truyền danh sách phân tách bằng dấu phẩy,
+    /// vd: "tools,tools_calendar,...". Backend lọc theo locations + platform (header).
+    public func fetchBanners(location: String? = nil) async throws -> [Banner] {
         let path: String
-        if let type, let encoded = type.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
-            path = "/banners?type=\(encoded)"
+        if let location, let encoded = location.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            path = "/banners?location=\(encoded)"
         } else {
             path = "/banners"
         }

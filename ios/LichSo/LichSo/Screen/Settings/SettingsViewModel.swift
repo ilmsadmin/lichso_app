@@ -124,8 +124,7 @@ class SettingsViewModel: ObservableObject {
 
     func rescheduleNotifications() {
         guard dailyReminder, notificationPermission == .authorized else {
-            UNUserNotificationCenter.current()
-                .removePendingNotificationRequests(withIdentifiers: ["daily_morning"])
+            NotificationScheduler.shared.cancelMorningSummaryNotifications()
             return
         }
         NotificationScheduler.shared.scheduleDailyNotification(

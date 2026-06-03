@@ -11,6 +11,7 @@ import (
 const (
 	ProviderLocal  = "local"
 	ProviderGoogle = "google"
+	ProviderApple  = "apple"
 	ProviderGuest  = "guest"
 )
 

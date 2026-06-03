@@ -15,6 +15,11 @@ struct GoogleUserInfo: Codable {
     let picture: String?
 }
 
+struct AppleUserInfo {
+    let sub: String
+    let email: String
+}
+
 struct GoogleTokenResponse: Codable {
     let access_token: String
     let id_token: String
@@ -224,7 +229,13 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         applyClientHeaders(to: &request)
-        request.httpBody = try JSONSerialization.data(withJSONObject: ["id_token": idToken])
+        
+        let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? ""
+        let payload: [String: Any] = [
+            "id_token": idToken,
+            "device_id": deviceId
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
@@ -242,6 +253,9 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
         if let refreshToken = decoded.refresh_token {
             UserDefaults.standard.set(refreshToken, forKey: Keys.refreshToken)
         }
+
+        // Save provider
+        UserDefaults.standard.set("google", forKey: "auth_provider")
 
         // Fetch user info from Google
         let userInfo = try await fetchGoogleUserInfo(idToken: idToken)
@@ -261,6 +275,102 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
         photoURL    = userInfo.picture ?? ""
         isSignedIn  = true
         isLoading   = false
+    }
+
+    // ── SIGN IN WITH APPLE ──
+    func signInWithApple(idToken: String, firstName: String?, lastName: String?) async {
+        isLoading = true
+        errorMessage = nil
+
+        var request = URLRequest(url: URL(string: "\(backendBaseURL)/auth/apple")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        applyClientHeaders(to: &request)
+
+        let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? ""
+        var payload: [String: Any] = [
+            "id_token": idToken,
+            "device_id": deviceId
+        ]
+        if let f = firstName { payload["first_name"] = f }
+        if let l = lastName { payload["last_name"] = l }
+
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                let body = String(data: data, encoding: .utf8) ?? ""
+                throw NSError(domain: "AppleAuth", code: -4,
+                              userInfo: [NSLocalizedDescriptionKey: "Xác thực máy chủ thất bại: \(body)"])
+            }
+
+            let decoded = try decodeBackendLoginResponse(from: data)
+
+            // Save tokens
+            if let accessToken = decoded.access_token {
+                UserDefaults.standard.set(accessToken, forKey: Keys.accessToken)
+            }
+            if let refreshToken = decoded.refresh_token {
+                UserDefaults.standard.set(refreshToken, forKey: Keys.refreshToken)
+            }
+
+            // Save provider
+            UserDefaults.standard.set("apple", forKey: "auth_provider")
+
+            // Parse email / name from token or payload
+            let appleClaims = try fetchAppleUserInfo(idToken: idToken)
+            let resolvedEmail = appleClaims.email.isEmpty ? (decoded.user?.email ?? "") : appleClaims.email
+            
+            // Build name: prioritize whatever Apple / decoded user returns
+            var resolvedName = ""
+            if let f = firstName {
+                resolvedName = f
+                if let l = lastName, !l.isEmpty {
+                    resolvedName += " " + l
+                }
+            }
+            if resolvedName.isEmpty {
+                resolvedName = decoded.user?.name ?? (resolvedEmail.components(separatedBy: "@").first ?? "Người dùng")
+            }
+
+            UserDefaults.standard.set(resolvedName, forKey: Keys.displayName)
+            UserDefaults.standard.set(resolvedEmail, forKey: Keys.email)
+            // No profile photo from Apple login, remove Google one
+            UserDefaults.standard.removeObject(forKey: Keys.googlePhoto)
+            UserDefaults.standard.removeObject(forKey: Keys.localAvatarPath)
+
+            // Update published state
+            displayName = resolvedName
+            email       = resolvedEmail
+            photoURL    = ""
+            isSignedIn  = true
+            isLoading   = false
+
+        } catch {
+            errorMessage = ApiErrorUX.userMessage(
+                from: error,
+                fallback: "Đăng nhập bằng Apple thất bại. Vui lòng thử lại."
+            )
+            isLoading = false
+        }
+    }
+
+    private func fetchAppleUserInfo(idToken: String) throws -> AppleUserInfo {
+        let parts = idToken.split(separator: ".")
+        guard parts.count >= 2 else {
+            throw NSError(domain: "AppleAuth", code: -5, userInfo: [NSLocalizedDescriptionKey: "id_token không hợp lệ"])
+        }
+        var base64 = String(parts[1])
+        let remainder = base64.count % 4
+        if remainder != 0 { base64 += String(repeating: "=", count: 4 - remainder) }
+        base64 = base64.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+        guard let payloadData = Data(base64Encoded: base64) else {
+            throw NSError(domain: "AppleAuth", code: -5, userInfo: [NSLocalizedDescriptionKey: "Không giải mã được token"])
+        }
+        let json = try JSONSerialization.jsonObject(with: payloadData) as? [String: Any] ?? [:]
+        let emailStr = json["email"] as? String ?? ""
+        let sub      = json["sub"] as? String ?? ""
+        return AppleUserInfo(sub: sub, email: emailStr)
     }
 
     // ── Decode JWT claims from id_token ──
@@ -295,12 +405,13 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
                 var req = URLRequest(url: URL(string: "\(backendBaseURL)/auth/logout")!)
                 req.httpMethod = "POST"
                 req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-                try? await URLSession.shared.data(for: req)
+                _ = try? await URLSession.shared.data(for: req)
             }
         }
         UserDefaults.standard.removeObject(forKey: Keys.accessToken)
         UserDefaults.standard.removeObject(forKey: Keys.refreshToken)
         UserDefaults.standard.removeObject(forKey: Keys.googlePhoto)
+        UserDefaults.standard.removeObject(forKey: "auth_provider")
         isSignedIn  = false
         displayName = ""
         email       = ""
@@ -355,14 +466,7 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
     }
 
     private func applyClientHeaders(to request: inout URLRequest) {
-        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-        request.setValue("IOS", forHTTPHeaderField: "X-Client-Platform")
-        request.setValue(appVersion, forHTTPHeaderField: "X-App-Version")
-        request.setValue(UIDevice.current.model, forHTTPHeaderField: "X-Device-Name")
-        request.setValue(UIDevice.current.systemVersion, forHTTPHeaderField: "X-OS-Version")
-        if let deviceId = UIDevice.current.identifierForVendor?.uuidString {
-            request.setValue(deviceId, forHTTPHeaderField: "X-Device-ID")
-        }
+        LichSoClientInfo.applyHeaders(to: &request)
     }
 
     // ── ASWebAuthenticationPresentationContextProviding ──

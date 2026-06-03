@@ -20,6 +20,8 @@ private var OutlineVar           : Color { LSTheme.outlineVariant }
 private var GoodGreen            : Color { LSTheme.goodGreen }
 
 struct CalendarScreen: View {
+    var onMenuClick: () -> Void = {}
+
     @StateObject private var vm = CalendarViewModel()
     @State private var detailDayInfo: DayInfo?
     @State private var featuredArticle: Article?
@@ -50,6 +52,7 @@ struct CalendarScreen: View {
             VStack(spacing: 0) {
                 // ═══ TOP BAR ═══
                 CalendarTopBar(
+                    onMenuTap: onMenuClick,
                     onSearchTap: { showSearch = true }
                 )
 
@@ -239,10 +242,22 @@ struct CalendarScreen: View {
 // ══════════════════════════════════════════
 
 private struct CalendarTopBar: View {
+    let onMenuTap: () -> Void
     let onSearchTap: () -> Void
 
     var body: some View {
         HStack {
+            Button(action: onMenuTap) {
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 36, height: 36)
+                    .background(Color.white.opacity(0.15))
+                    .clipShape(Circle())
+            }
+
+            Spacer().frame(width: 12)
+
             Text("Lịch")
                 .font(.system(size: 20, weight: .bold))
                 .foregroundColor(.white)

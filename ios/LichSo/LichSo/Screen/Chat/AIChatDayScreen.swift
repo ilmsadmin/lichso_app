@@ -90,6 +90,21 @@ struct AIChatDayScreen: View {
                         withAnimation { proxy.scrollTo("typing", anchor: .bottom) }
                     }
                 }
+                .onChange(of: isInputFocused) { _, isFocused in
+                    if isFocused {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            withAnimation {
+                                if let last = viewModel.messages.last {
+                                    proxy.scrollTo(last.id, anchor: .bottom)
+                                } else if viewModel.isTyping {
+                                    proxy.scrollTo("typing", anchor: .bottom)
+                                }
+                            }
+                        }
+                    }
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .dismissKeyboardOnTap()
             }
             
             // ═══ INPUT BAR ═══

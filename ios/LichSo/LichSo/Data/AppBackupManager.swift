@@ -19,7 +19,7 @@ struct AppBackupManager {
     // MARK: - Backup Data Models
 
     struct AppBackupData: Codable {
-        var version: Int = 1
+        var version: Int = 2
         var exportDate: String = ""
         var appId: String = "com.lichso.app"
         var type: String = "full_backup"
@@ -30,7 +30,10 @@ struct AppBackupManager {
         // Profile avatar
         var profileAvatarBase64: String?
 
-        // Room DB tables
+        // Mô hình hợp nhất (v2+). Backup v1 cũ dùng tasks/notes/reminders bên dưới.
+        var items: [BackupItem] = []
+
+        // Room DB tables (legacy v1 — vẫn đọc để tương thích ngược)
         var tasks: [BackupTask] = []
         var notes: [BackupNote] = []
         var reminders: [BackupReminder] = []
@@ -44,6 +47,27 @@ struct AppBackupManager {
         var memorialDays: [BackupMemorialDay] = []
         var memorialChecklist: [BackupMemorialChecklist] = []
         var memberPhotos: [BackupMemberPhoto] = []
+    }
+
+    struct BackupItem: Codable {
+        var title: String
+        var description: String = ""
+        var tags: String = ""
+        var isTask: Bool = false
+        var isDone: Bool = false
+        var priority: Int = 1
+        var dueDate: Int64?
+        var dueTime: String?
+        var hasReminder: Bool = false
+        var reminderAt: Int64?
+        var repeatType: Int = 0
+        var useLunar: Bool = false
+        var advanceDays: Int = 0
+        var reminderEnabled: Bool = true
+        var isPinned: Bool = false
+        var colorIndex: Int = 0
+        var createdAt: Int64 = 0
+        var updatedAt: Int64 = 0
     }
 
     struct BackupTask: Codable {
@@ -220,34 +244,17 @@ struct AppBackupManager {
             data.profileAvatarBase64 = imgData.base64EncodedString()
         }
 
-        // ── 3. Tasks ──
-        if let tasks = try? context.fetch(FetchDescriptor<TaskEntity>()) {
-            data.tasks = tasks.map { t in
-                BackupTask(title: t.title, description: t.taskDescription,
-                           dueDate: t.dueDate, dueTime: t.dueTime,
-                           priority: t.priority, isDone: t.isDone,
-                           labels: t.labels, hasReminder: t.hasReminder,
-                           createdAt: t.createdAt, updatedAt: t.updatedAt)
-            }
-        }
-
-        // ── 4. Notes ──
-        if let notes = try? context.fetch(FetchDescriptor<NoteEntity>()) {
-            data.notes = notes.map { n in
-                BackupNote(title: n.title, content: n.content,
-                           colorIndex: n.colorIndex, isPinned: n.isPinned,
-                           labels: n.labels, createdAt: n.createdAt, updatedAt: n.updatedAt)
-            }
-        }
-
-        // ── 5. Reminders ──
-        if let reminders = try? context.fetch(FetchDescriptor<ReminderEntity>()) {
-            data.reminders = reminders.map { r in
-                BackupReminder(title: r.title, subtitle: r.subtitle,
-                               triggerTime: r.triggerTime, repeatType: r.repeatType,
-                               isEnabled: r.isEnabled, useLunar: r.useLunar,
-                               advanceDays: r.advanceDays, category: r.category,
-                               labels: r.labels, createdAt: r.createdAt)
+        // ── 3. Items (mô hình hợp nhất) ──
+        if let items = try? context.fetch(FetchDescriptor<ItemEntity>()) {
+            data.items = items.map { i in
+                BackupItem(title: i.title, description: i.itemDescription, tags: i.tags,
+                           isTask: i.isTask, isDone: i.isDone, priority: i.priority,
+                           dueDate: i.dueDate, dueTime: i.dueTime,
+                           hasReminder: i.hasReminder, reminderAt: i.reminderAt,
+                           repeatType: i.repeatType, useLunar: i.useLunar,
+                           advanceDays: i.advanceDays, reminderEnabled: i.reminderEnabled,
+                           isPinned: i.isPinned, colorIndex: i.colorIndex,
+                           createdAt: i.createdAt, updatedAt: i.updatedAt)
             }
         }
 
@@ -374,6 +381,14 @@ struct AppBackupManager {
 
     static func getBackupSummary(_ data: AppBackupData) -> String {
         var parts: [String] = []
+        if !data.items.isEmpty {
+            let tasks = data.items.filter { $0.isTask }.count
+            let reminders = data.items.filter { $0.hasReminder }.count
+            let notes = data.items.filter { !$0.isTask && !$0.hasReminder }.count
+            if tasks > 0     { parts.append("\(tasks) công việc") }
+            if notes > 0     { parts.append("\(notes) ghi chú") }
+            if reminders > 0 { parts.append("\(reminders) nhắc nhở") }
+        }
         if !data.tasks.isEmpty      { parts.append("\(data.tasks.count) công việc") }
         if !data.notes.isEmpty      { parts.append("\(data.notes.count) ghi chú") }
         if !data.reminders.isEmpty  { parts.append("\(data.reminders.count) nhắc nhở") }
@@ -403,49 +418,57 @@ struct AppBackupManager {
             UserDefaults.standard.set(avatarPath, forKey: "profile_avatar_path")
         }
 
-        // ── 3. Restore tasks ──
-        if let existing = try? context.fetch(FetchDescriptor<TaskEntity>()) {
+        // ── 3-5. Restore items (mô hình hợp nhất) ──
+        // Xoá item hiện có (và mọi bản ghi cũ còn sót) trước khi nạp lại.
+        if let existing = try? context.fetch(FetchDescriptor<ItemEntity>()) {
             existing.forEach { context.delete($0) }
         }
-        for t in data.tasks {
-            let entity = TaskEntity(id: now + Int64.random(in: 1...999999),
-                                    title: t.title, taskDescription: t.description,
-                                    dueDate: t.dueDate, dueTime: t.dueTime,
-                                    priority: t.priority, isDone: t.isDone,
-                                    labels: t.labels, hasReminder: t.hasReminder)
-            entity.createdAt = t.createdAt
-            entity.updatedAt = t.updatedAt
-            context.insert(entity)
-        }
+        if let old = try? context.fetch(FetchDescriptor<TaskEntity>()) { old.forEach { context.delete($0) } }
+        if let old = try? context.fetch(FetchDescriptor<NoteEntity>()) { old.forEach { context.delete($0) } }
+        if let old = try? context.fetch(FetchDescriptor<ReminderEntity>()) { old.forEach { context.delete($0) } }
 
-        // ── 4. Restore notes ──
-        if let existing = try? context.fetch(FetchDescriptor<NoteEntity>()) {
-            existing.forEach { context.delete($0) }
-        }
-        for n in data.notes {
-            let entity = NoteEntity(id: now + Int64.random(in: 1...999999),
-                                    title: n.title, content: n.content,
-                                    colorIndex: n.colorIndex, isPinned: n.isPinned,
-                                    labels: n.labels)
-            entity.createdAt = n.createdAt
-            entity.updatedAt = n.updatedAt
-            context.insert(entity)
-        }
+        var seq = now
+        func nextId() -> Int64 { defer { seq += 1 }; return seq }
+        var restored: [ItemEntity] = []
 
-        // ── 5. Restore reminders ──
-        if let existing = try? context.fetch(FetchDescriptor<ReminderEntity>()) {
-            existing.forEach { context.delete($0) }
+        if !data.items.isEmpty {
+            // Backup v2+
+            for i in data.items {
+                let entity = ItemEntity(
+                    id: nextId(), title: i.title, itemDescription: i.description, tags: i.tags,
+                    isTask: i.isTask, isDone: i.isDone, priority: i.priority,
+                    dueDate: i.dueDate, dueTime: i.dueTime,
+                    hasReminder: i.hasReminder, reminderAt: i.reminderAt, repeatType: i.repeatType,
+                    useLunar: i.useLunar, advanceDays: i.advanceDays, reminderEnabled: i.reminderEnabled,
+                    isPinned: i.isPinned, colorIndex: i.colorIndex,
+                    createdAt: i.createdAt, updatedAt: i.updatedAt
+                )
+                context.insert(entity); restored.append(entity)
+            }
+        } else {
+            // Backup v1 (cũ) → map tasks/notes/reminders sang ItemEntity
+            for t in data.tasks {
+                let e = ItemEntity(id: nextId(), title: t.title, itemDescription: t.description, tags: t.labels,
+                                   isTask: true, isDone: t.isDone, priority: t.priority,
+                                   dueDate: t.dueDate, dueTime: t.dueTime,
+                                   createdAt: t.createdAt, updatedAt: t.updatedAt)
+                context.insert(e); restored.append(e)
+            }
+            for n in data.notes {
+                let e = ItemEntity(id: nextId(), title: n.title, itemDescription: n.content, tags: n.labels,
+                                   isPinned: n.isPinned, colorIndex: n.colorIndex,
+                                   createdAt: n.createdAt, updatedAt: n.updatedAt)
+                context.insert(e); restored.append(e)
+            }
+            for r in data.reminders {
+                let e = ItemEntity(id: nextId(), title: r.title, itemDescription: r.subtitle, tags: r.labels,
+                                   hasReminder: true, reminderAt: r.triggerTime, repeatType: r.repeatType,
+                                   useLunar: r.useLunar, advanceDays: r.advanceDays, reminderEnabled: r.isEnabled,
+                                   createdAt: r.createdAt, updatedAt: r.createdAt)
+                context.insert(e); restored.append(e)
+            }
         }
-        for r in data.reminders {
-            let entity = ReminderEntity(id: now + Int64.random(in: 1...999999),
-                                        title: r.title, subtitle: r.subtitle,
-                                        triggerTime: r.triggerTime, repeatType: r.repeatType,
-                                        isEnabled: r.isEnabled, useLunar: r.useLunar,
-                                        advanceDays: r.advanceDays, category: r.category,
-                                        labels: r.labels)
-            entity.createdAt = r.createdAt
-            context.insert(entity)
-        }
+        ItemReminderScheduler.rescheduleAll(restored)
 
         // ── 6. Restore bookmarks ──
         if let existing = try? context.fetch(FetchDescriptor<BookmarkEntity>()) {

@@ -6,12 +6,10 @@ import UIKit
 // SmartRatingDialog — Dialog xin đánh giá thông minh
 //
 // 3 nhánh:
-//   [emotion] → hỏi cảm xúc chung
-//       → "Rất hài lòng" → [stars] chọn 1–5 sao
-//           → 4–5 sao → StoreKit In-App Review
-//           → 1–3 sao → [feedback] form gửi mail
-//       → "Chưa hài lòng" → [feedback] form gửi mail
-//   [feedback] → nhập góp ý → gửi email
+//   [stars]    → chọn 1–5 sao
+//       → 4–5 sao → gửi bản sao review lên lichso.vn + mở StoreKit review
+//       → 1–3 sao → [feedback] form gửi phản hồi lên lichso.vn
+//   [feedback] → nhập góp ý
 //   [thanks]   → cảm ơn, tự đóng sau 2.5s
 // ═══════════════════════════════════════════
 
@@ -29,9 +27,11 @@ struct SmartRatingDialog: View {
     @ObservedObject var ratingManager: SmartRatingManager
     @Environment(\.requestReview) private var requestReview
 
-    @State private var step: String = "emotion"
+    @State private var step: String = "stars"
     @State private var feedbackText: String = ""
     @State private var selectedStars: Int = 0
+    @State private var isSubmitting = false
+    @State private var submissionError: String?
 
     var body: some View {
         if ratingManager.shouldShow {
@@ -39,7 +39,11 @@ struct SmartRatingDialog: View {
                 // Dimmed backdrop
                 Color.black.opacity(0.45)
                     .ignoresSafeArea()
-                    .onTapGesture { dismiss() }
+                    .onTapGesture {
+                        if !isSubmitting {
+                            dismiss()
+                        }
+                    }
 
                 // Dialog content
                 dialogContent
@@ -56,31 +60,61 @@ struct SmartRatingDialog: View {
     @ViewBuilder
     private var dialogContent: some View {
         switch step {
-        case "emotion":
-            EmotionStepView(
-                onHappy: { step = "stars" },
-                onUnhappy: { step = "feedback" },
-                onDismiss: { dismiss() }
-            )
         case "stars":
             StarsStepView(
                 selectedStars: $selectedStars,
                 onConfirm: { stars in
                     if stars >= 4 {
-                        ratingManager.recordRated()
-                        requestReview()
+                        Task { @MainActor in
+                            isSubmitting = true
+                            do {
+                                try await AppReviewService.shared.submitHighRatingReview(stars: stars)
+                            } catch {
+                                // Không chặn StoreKit review nếu request backend lỗi.
+                            }
+                            ratingManager.recordRated()
+                            requestReview()
+                            isSubmitting = false
+                            dismiss()
+                        }
                     } else {
+                        submissionError = nil
                         step = "feedback"
                     }
                 },
-                onDismiss: { dismiss() }
+                onDismiss: {
+                    if !isSubmitting {
+                        dismiss()
+                    }
+                }
             )
         case "feedback":
             FeedbackStepView(
                 feedbackText: $feedbackText,
                 selectedStars: selectedStars,
-                onSend: { step = "thanks" },
-                onSkip: { dismiss() }
+                isSubmitting: isSubmitting,
+                errorMessage: submissionError,
+                onSend: {
+                    Task { @MainActor in
+                        isSubmitting = true
+                        submissionError = nil
+                        do {
+                            try await AppReviewService.shared.submitLowRatingFeedback(
+                                stars: selectedStars,
+                                reviewText: feedbackText.trimmingCharacters(in: .whitespacesAndNewlines)
+                            )
+                            step = "thanks"
+                        } catch {
+                            submissionError = "Không gửi được phản hồi. Vui lòng thử lại khi mạng ổn định."
+                        }
+                        isSubmitting = false
+                    }
+                },
+                onSkip: {
+                    if !isSubmitting {
+                        dismiss()
+                    }
+                }
             )
         case "thanks":
             ThanksStepView(onDismiss: { dismiss() })
@@ -92,9 +126,11 @@ struct SmartRatingDialog: View {
     private func dismiss() {
         ratingManager.dismiss()
         // Reset state for next time
-        step = "emotion"
+        step = "stars"
         feedbackText = ""
         selectedStars = 0
+        isSubmitting = false
+        submissionError = nil
     }
 }
 
@@ -355,6 +391,8 @@ private struct StarsStepView: View {
 private struct FeedbackStepView: View {
     @Binding var feedbackText: String
     let selectedStars: Int
+    let isSubmitting: Bool
+    let errorMessage: String?
     let onSend: () -> Void
     let onSkip: () -> Void
 
@@ -380,7 +418,7 @@ private struct FeedbackStepView: View {
 
             Spacer().frame(height: 6)
 
-            Text("Phản hồi của bạn sẽ được gửi thẳng đến đội phát triển và được xử lý trong vòng 24 giờ")
+            Text("Phản hồi của bạn sẽ được gửi thẳng lên hệ thống Lịch Số để đội phát triển xử lý nhanh hơn.")
                 .font(.system(size: 12))
                 .foregroundColor(TextSub)
                 .multilineTextAlignment(.center)
@@ -413,16 +451,12 @@ private struct FeedbackStepView: View {
 
             Spacer().frame(height: 6)
 
-            // Email hint
-            HStack(spacing: 4) {
-                Image(systemName: "envelope.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(TextDim)
-                Text("Phản hồi gửi tới: zenixhq.com@gmail.com")
-                    .font(.system(size: 11))
-                    .foregroundColor(TextDim)
+            if let errorMessage, !errorMessage.isEmpty {
+                Text(errorMessage)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(PrimaryRed)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
 
             Spacer().frame(height: 20)
 
@@ -440,15 +474,11 @@ private struct FeedbackStepView: View {
                         )
                 }
                 .buttonStyle(.plain)
+                .disabled(isSubmitting)
 
-                Button(action: {
-                    sendFeedbackEmail(feedback: feedbackText, stars: selectedStars)
-                    onSend()
-                }) {
+                Button(action: onSend) {
                     HStack(spacing: 5) {
-                        Image(systemName: "paperplane.fill")
-                            .font(.system(size: 13))
-                        Text("Gửi phản hồi")
+                        Text(isSubmitting ? "Đang gửi..." : "Gửi phản hồi")
                             .font(.system(size: 13, weight: .bold))
                     }
                     .foregroundColor(.white)
@@ -461,7 +491,7 @@ private struct FeedbackStepView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .disabled(feedbackText.trimmingCharacters(in: .whitespaces).isEmpty)
+                .disabled(feedbackText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSubmitting)
             }
         }
         .padding(28)
@@ -527,34 +557,4 @@ private struct ThanksStepView: View {
             }
         }
     }
-}
-
-// ══════════════════════════════════════════
-// Helpers
-// ══════════════════════════════════════════
-
-private func sendFeedbackEmail(feedback: String, stars: Int) {
-    let starText = stars > 0
-        ? "\(String(repeating: "⭐", count: stars)) (\(stars)/5 sao)"
-        : "Không chọn"
-    let subject = "[Lịch Số] Phản hồi – \(starText)"
-
-    let device = UIDevice.current
-    let body = """
-    \(feedback)
-    
-    ---
-    Đánh giá: \(starText)
-    Thiết bị: \(device.model) (\(device.systemName) \(device.systemVersion))
-    App: Lịch Số \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"))
-    """
-
-    let to = "zenixhq.com@gmail.com"
-    guard let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-          let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-          let url = URL(string: "mailto:\(to)?subject=\(encodedSubject)&body=\(encodedBody)") else {
-        return
-    }
-
-    UIApplication.shared.open(url)
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices
 
 // ═══════════════════════════════════════════
 // LoginScreen — Google Sign-In for LichSo
@@ -131,6 +132,43 @@ struct LoginScreen: View {
                     .disabled(authService.isLoading)
                     .scaleEffect(authService.isLoading ? 0.97 : 1.0)
                     .animation(.spring(response: 0.3), value: authService.isLoading)
+
+                    // Apple sign-in button
+                    SignInWithAppleButton(.signIn) { request in
+                        request.requestedScopes = [.fullName, .email]
+                    } onCompletion: { result in
+                        switch result {
+                        case .success(let authorization):
+                            if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
+                                guard let identityTokenData = appleIDCredential.identityToken,
+                                      let idTokenString = String(data: identityTokenData, encoding: .utf8) else {
+                                    authService.errorMessage = "Không thể lấy mã xác thực từ Apple."
+                                    return
+                                }
+                                
+                                let firstName = appleIDCredential.fullName?.givenName
+                                let lastName = appleIDCredential.fullName?.familyName
+                                
+                                authService.errorMessage = nil
+                                Task {
+                                    await authService.signInWithApple(
+                                        idToken: idTokenString,
+                                        firstName: firstName,
+                                        lastName: lastName
+                                    )
+                                }
+                            }
+                        case .failure(let error):
+                            if (error as NSError).code != ASAuthorizationError.canceled.rawValue {
+                                authService.errorMessage = error.localizedDescription
+                            }
+                        }
+                    }
+                    .signInWithAppleButtonStyle(.white)
+                    .frame(height: 54)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+                    .disabled(authService.isLoading)
 
                     Text("Thông tin của bạn được bảo mật\nvà không chia sẻ với bên thứ ba")
                         .font(.system(size: 12))

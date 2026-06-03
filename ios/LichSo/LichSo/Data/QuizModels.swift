@@ -230,10 +230,89 @@ public struct SyncOfflineQuizResponse: Codable {
     }
 }
 
-public struct ArticleCategory: Codable, Hashable {
+public struct ArticleCategory: Codable, Hashable, Identifiable {
     public let id: String
     public let name: String
     public let slug: String
+    public let imageUrl: String?
+    public let children: [ArticleCategory]?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, slug, children
+        case imageUrl = "image_url"
+    }
+
+    public init(id: String, name: String, slug: String, imageUrl: String? = nil, children: [ArticleCategory]? = nil) {
+        self.id = id
+        self.name = name
+        self.slug = slug
+        self.imageUrl = imageUrl
+        self.children = children
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? ""
+        slug = try c.decodeIfPresent(String.self, forKey: .slug) ?? ""
+        imageUrl = try c.decodeIfPresent(String.self, forKey: .imageUrl)
+        children = try c.decodeIfPresent([ArticleCategory].self, forKey: .children)
+    }
+}
+
+// ── Khám phá (Knowledge Feed) — mirror Android ContentEvent/FamousPerson/Quote ──
+
+public struct ContentEvent: Codable, Identifiable, Hashable {
+    public let id: Int64
+    public let title: String
+    public let description: String?
+    public let eventDay: Int
+    public let eventMonth: Int
+    public let eventYear: Int?
+    public let imageUrl: String?
+    public let shortDescription: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, description
+        case eventDay = "event_day"
+        case eventMonth = "event_month"
+        case eventYear = "event_year"
+        case imageUrl = "image_url"
+        case shortDescription = "short_description"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = (try? c.decode(Int64.self, forKey: .id)) ?? 0
+        title = try c.decodeIfPresent(String.self, forKey: .title) ?? ""
+        description = try c.decodeIfPresent(String.self, forKey: .description)
+        eventDay = try c.decodeIfPresent(Int.self, forKey: .eventDay) ?? 0
+        eventMonth = try c.decodeIfPresent(Int.self, forKey: .eventMonth) ?? 0
+        eventYear = try c.decodeIfPresent(Int.self, forKey: .eventYear)
+        imageUrl = try c.decodeIfPresent(String.self, forKey: .imageUrl)
+        shortDescription = try c.decodeIfPresent(String.self, forKey: .shortDescription)
+    }
+}
+
+public struct FamousPerson: Codable, Identifiable, Hashable {
+    public let id: String
+    public let name: String
+    public let biography: String?
+    public let birthYear: Int?
+    public let avatarUrl: String?
+    public let description: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, biography, description
+        case birthYear = "birth_year"
+        case avatarUrl = "avatar_url"
+    }
+}
+
+public struct Quote: Codable, Identifiable, Hashable {
+    public let id: String
+    public let quote: String
+    public let author: String?
 }
 
 // ═══════════════════════════════════════════
@@ -252,11 +331,12 @@ public struct Banner: Codable, Identifiable, Hashable {
     public let ctaRoute: String?
     public let bgColor: String?
     public let type: String?
+    public let locations: [String]?   // backend mới: banner gắn theo nhiều "location key"
     public let active: Bool
     public let sortOrder: Int
 
     enum CodingKeys: String, CodingKey {
-        case id, title, subtitle, type
+        case id, title, subtitle, type, locations
         case imageUrl = "image_url"
         case iconUrl = "icon_url"
         case iconKey = "icon_key"
@@ -280,6 +360,7 @@ public struct Banner: Codable, Identifiable, Hashable {
         ctaRoute: String? = nil,
         bgColor: String? = nil,
         type: String? = nil,
+        locations: [String]? = nil,
         active: Bool = true,
         sortOrder: Int = 0
     ) {
@@ -294,6 +375,7 @@ public struct Banner: Codable, Identifiable, Hashable {
         self.ctaRoute = ctaRoute
         self.bgColor = bgColor
         self.type = type
+        self.locations = locations
         self.active = active
         self.sortOrder = sortOrder
     }
@@ -311,6 +393,7 @@ public struct Banner: Codable, Identifiable, Hashable {
         ctaRoute = try c.decodeIfPresent(String.self, forKey: .ctaRoute)
         bgColor = try c.decodeIfPresent(String.self, forKey: .bgColor)
         type = try c.decodeIfPresent(String.self, forKey: .type)
+        locations = try c.decodeIfPresent([String].self, forKey: .locations)
         active = try c.decodeIfPresent(Bool.self, forKey: .active) ?? true
         sortOrder = try c.decodeIfPresent(Int.self, forKey: .sortOrder) ?? 0
     }

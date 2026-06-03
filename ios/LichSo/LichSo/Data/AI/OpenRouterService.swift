@@ -40,26 +40,29 @@ struct OpenRouterResponse: Codable {
 class OpenRouterService: ObservableObject {
     static let shared = OpenRouterService()
     
-    private let apiKey: String = {
+    // ── AI proxy backend (DÙNG CHUNG với app Android) ──
+    // Gọi qua proxy ai.zenix.vn thay vì OpenRouter trực tiếp; xác thực bằng cặp
+    // X-App-Id / X-App-Secret (giống OpenRouterApi.kt bên Android).
+    private static func secret(_ key: String) -> String {
         guard let path = Bundle.main.path(forResource: "Secrets", ofType: "plist"),
               let dict = NSDictionary(contentsOfFile: path),
-              let key = dict["OPENROUTER_API_KEY"] as? String,
-              !key.isEmpty else {
-            // Graceful fallback — không crash, AI chat sẽ trả lời cục bộ
-            #if DEBUG
-            print("⚠️ Missing Secrets.plist or OPENROUTER_API_KEY. AI chat will use local responses.")
-            print("   Bundle path: \(Bundle.main.bundlePath)")
-            print("   Secrets.plist exists: \(Bundle.main.path(forResource: "Secrets", ofType: "plist") != nil)")
-            #endif
-            return ""
-        }
-        #if DEBUG
-        print("✅ OpenRouter API key loaded successfully (length: \(key.count))")
-        #endif
-        return key
-    }()
-    private let baseURL = "https://openrouter.ai/api/v1/chat/completions"
-    
+              let value = dict[key] as? String else { return "" }
+        return value.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private let proxyBaseURL = OpenRouterService.secret("AI_PROXY_BASE_URL")
+    private let proxyAppId = OpenRouterService.secret("AI_PROXY_APP_ID")
+    private let proxyAppSecret = OpenRouterService.secret("AI_PROXY_APP_SECRET")
+
+    /// URL đầy đủ: {base}/v1/chat/completions (chuẩn hoá dấu "/").
+    private var proxyURL: String {
+        let normalized = proxyBaseURL.hasSuffix("/") ? String(proxyBaseURL.dropLast()) : proxyBaseURL
+        return "\(normalized)/v1/chat/completions"
+    }
+    private var isProxyConfigured: Bool {
+        !proxyBaseURL.isEmpty && !proxyAppId.isEmpty && !proxyAppSecret.isEmpty
+    }
+
     private var systemPrompt: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "dd/MM/yyyy"
@@ -120,11 +123,10 @@ class OpenRouterService: ObservableObject {
         profileContext: String = "",
         history: [ChatMessage] = []
     ) async -> Result<String, Error> {
-        // Kiểm tra API key trước khi gọi
-        guard !apiKey.isEmpty else {
-            return .failure(NSError(domain: "OpenRouter", code: -4, userInfo: [NSLocalizedDescriptionKey: "API key chưa được cấu hình. Vui lòng thử lại sau."]))
+        guard isProxyConfigured else {
+            return .failure(NSError(domain: "AIProxy", code: -4, userInfo: [NSLocalizedDescriptionKey: "Tính năng AI hiện chưa sẵn sàng. Vui lòng thử lại sau."]))
         }
-        
+
         var messages: [ChatMessage] = []
         messages.append(ChatMessage(role: "system", content: systemPrompt))
         
@@ -138,39 +140,68 @@ class OpenRouterService: ObservableObject {
         
         messages.append(contentsOf: history.suffix(10))
         messages.append(ChatMessage(role: "user", content: userMessage))
-        
-        let requestBody = OpenRouterRequest(messages: messages)
-        
-        guard let url = URL(string: baseURL) else {
-            return .failure(NSError(domain: "OpenRouter", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"]))
+
+        return await send(messages)
+    }
+
+    /// Gọi model với system prompt TUỲ BIẾN (không kèm prompt phong thuỷ mặc định).
+    /// Dùng cho AiTaskService (parse lệnh → JSON action). temperature thấp cho ổn định.
+    func complete(
+        systemPrompt: String,
+        userMessage: String,
+        contextInfo: String = ""
+    ) async -> Result<String, Error> {
+        guard isProxyConfigured else {
+            return .failure(NSError(domain: "AIProxy", code: -4, userInfo: [NSLocalizedDescriptionKey: "Tính năng AI hiện chưa sẵn sàng. Vui lòng thử lại sau."]))
         }
-        
+        var messages: [ChatMessage] = [ChatMessage(role: "system", content: systemPrompt)]
+        if !contextInfo.isEmpty {
+            messages.append(ChatMessage(role: "system", content: contextInfo))
+        }
+        messages.append(ChatMessage(role: "user", content: userMessage))
+        return await send(messages, temperature: 0.2)
+    }
+
+    // ── HTTP dùng chung cho chat() và complete() ──
+    private func send(_ messages: [ChatMessage], temperature: Double = 0.7) async -> Result<String, Error> {
+        let requestBody = OpenRouterRequest(messages: messages, temperature: temperature)
+
+        guard let url = URL(string: proxyURL) else {
+            return .failure(NSError(domain: "AIProxy", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"]))
+        }
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("https://lichso.app", forHTTPHeaderField: "HTTP-Referer")
-        request.addValue("Lich So - Lich Van Nien", forHTTPHeaderField: "X-Title")
+        request.addValue(proxyAppId, forHTTPHeaderField: "X-App-Id")
+        request.addValue(proxyAppSecret, forHTTPHeaderField: "X-App-Secret")
         request.timeoutInterval = 30
-        
+
         do {
             request.httpBody = try JSONEncoder().encode(requestBody)
             let (data, response) = try await URLSession.shared.data(for: request)
-            
+
             guard let httpResponse = response as? HTTPURLResponse else {
-                return .failure(NSError(domain: "OpenRouter", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid response"]))
+                return .failure(NSError(domain: "AIProxy", code: -2, userInfo: [NSLocalizedDescriptionKey: "Phản hồi máy chủ không hợp lệ"]))
             }
-            
-            guard httpResponse.statusCode == 200 else {
-                let body = String(data: data, encoding: .utf8) ?? ""
-                return .failure(NSError(domain: "OpenRouter", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "API error \(httpResponse.statusCode): \(body.prefix(200))"]))
+
+            guard (200...299).contains(httpResponse.statusCode) else {
+                let message: String
+                switch httpResponse.statusCode {
+                case 401, 403: message = "Tính năng AI hiện chưa sẵn sàng. Vui lòng thử lại sau."
+                case 408:      message = "Kết nối AI quá chậm. Vui lòng thử lại."
+                case 429:      message = "AI đang có nhiều yêu cầu. Vui lòng chờ một lát rồi thử lại."
+                case 500...599: message = "Máy chủ AI đang bận. Vui lòng thử lại sau."
+                default:       message = "Không thể kết nối AI lúc này. Vui lòng thử lại."
+                }
+                return .failure(NSError(domain: "AIProxy", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: message]))
             }
-            
+
             let decoded = try JSONDecoder().decode(OpenRouterResponse.self, from: data)
             if let content = decoded.choices?.first?.message?.content {
                 return .success(content.trimmingCharacters(in: .whitespacesAndNewlines))
             } else {
-                return .failure(NSError(domain: "OpenRouter", code: -3, userInfo: [NSLocalizedDescriptionKey: "Empty response from AI"]))
+                return .failure(NSError(domain: "AIProxy", code: -3, userInfo: [NSLocalizedDescriptionKey: "AI chưa có phản hồi phù hợp. Vui lòng thử lại."]))
             }
         } catch {
             return .failure(error)

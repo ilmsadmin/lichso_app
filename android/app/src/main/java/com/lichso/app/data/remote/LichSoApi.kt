@@ -442,6 +442,19 @@ class LichSoApi @Inject constructor(
         ), token))
     }
 
+    suspend fun submitAppReview(
+        token: String?,
+        stars: Int,
+        reviewText: String,
+        reviewFlow: String,
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        executeVoid(postJson("/app-reviews", mapOf(
+            "stars" to stars,
+            "review_text" to reviewText,
+            "review_flow" to reviewFlow,
+        ), token))
+    }
+
     suspend fun getScreenBackgrounds(): Result<List<ScreenBackground>> = withContext(Dispatchers.IO) {
         // Bypass disk cache: admin changes must be visible on next app launch
         execute(Request.Builder()

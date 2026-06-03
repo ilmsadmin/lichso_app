@@ -14,6 +14,7 @@ func SetupAuthRoutes(router fiber.Router, authHandler *handlers.AuthHandler, aut
 	auth.Post("/register", authHandler.Register)
 	auth.Post("/login", authHandler.Login)
 	auth.Post("/google", authHandler.GoogleLogin)
+	auth.Post("/apple", authHandler.AppleLogin)
 	auth.Post("/guest", authHandler.GuestLogin)
 	auth.Post("/refresh", authHandler.RefreshToken)
 	auth.Post("/forgot-password", authHandler.ForgotPassword)

@@ -50,6 +50,7 @@ func main() {
 		seedRolePermissions(db)
 		seedUsers(db)
 		seedContentData(db)
+		seedAppReviews(db)
 	case "roles":
 		seedRoles(db)
 	case "permissions":
@@ -76,6 +77,8 @@ func main() {
 		seedAllArticles(db)
 	case "ai-prompts":
 		seedAIPrompts(db)
+	case "app-reviews":
+		seedAppReviews(db)
 	case "fresh":
 		freshSeed(db)
 	default:
@@ -110,6 +113,7 @@ Commands:
   content-permissions Seed content permissions and role assignments
   articles         Seed all articles (~170 SEO articles)
   ai-prompts       Seed AI prompt templates
+  app-reviews      Seed sample app reviews
   fresh            Clean and re-seed everything
 `)
 }
@@ -152,6 +156,7 @@ func freshSeed(db *gorm.DB) {
 	seedRolePermissions(db)
 	seedUsers(db)
 	seedContentData(db)
+	seedAppReviews(db)
 }
 
 // seedRoles creates default system roles

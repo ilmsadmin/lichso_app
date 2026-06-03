@@ -391,6 +391,11 @@ func setupRoutes(app *fiber.App, cfg *config.Config, pgDB *gorm.DB, mongoDB *mon
 	surveyService := services.NewSurveyService(surveyRepo, logger)
 	surveyHandler := handlers.NewSurveyHandler(surveyService, validator, logger)
 
+	// App review infrastructure
+	appReviewRepo := repositories.NewAppReviewRepository(pgDB)
+	appReviewService := services.NewAppReviewService(appReviewRepo, logger)
+	appReviewHandler := handlers.NewAppReviewHandler(appReviewService, validator)
+
 	// Public content routes
 	routes.SetupContentRoutes(api, articleHandler, articleCategoryHandler, articleTagHandler, quoteHandler, famousPersonHandler, eventHandler, folkFestivalHandler)
 
@@ -405,6 +410,7 @@ func setupRoutes(app *fiber.App, cfg *config.Config, pgDB *gorm.DB, mongoDB *mon
 
 	// Survey routes (public + admin)
 	routes.SetupSurveyRoutes(api, authMiddleware, permMiddleware, surveyHandler)
+	routes.SetupAppReviewRoutes(api, authMiddleware, permMiddleware, appReviewHandler)
 
 	// Export routes (public — no auth required)
 	exportService := services.NewExportService(calService, logger)

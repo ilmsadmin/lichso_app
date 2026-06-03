@@ -138,7 +138,7 @@ struct ToolsScreen: View {
             .navigationDestination(for: String.self) { route in
                 if route.hasPrefix("ai_chat:") {
                     let prompt = String(route.dropFirst(8))
-                    AIChatScreen(initialMessage: prompt)
+                    AIChatScreen(initialMessage: prompt, isEmbeddedInTabBar: true)
                 } else {
                     switch route {
                     case "gooddays":
@@ -166,13 +166,13 @@ struct ToolsScreen: View {
                             activeRoute = "ai_chat:" + prompt
                         }
                     case "xong_dat":
-                        AIChatScreen(initialMessage: "Hãy gợi ý người xông đất hợp tuổi, hợp mệnh và các lưu ý cần tránh cho năm nay.")
+                        AIChatScreen(initialMessage: "Hãy gợi ý người xông đất hợp tuổi, hợp mệnh và các lưu ý cần tránh cho năm nay.", isEmbeddedInTabBar: true)
                     case "xuat_hanh":
-                        AIChatScreen(initialMessage: "Hãy gợi ý hướng và giờ xuất hành tốt, kèm giải thích ngắn gọn theo phong thuỷ.")
+                        AIChatScreen(initialMessage: "Hãy gợi ý hướng và giờ xuất hành tốt, kèm giải thích ngắn gọn theo phong thuỷ.", isEmbeddedInTabBar: true)
                     case "sao_han":
-                        AIChatScreen(initialMessage: "Hãy phân tích sao hạn năm nay và cho lời khuyên hoá giải đơn giản, dễ hiểu.")
+                        AIChatScreen(initialMessage: "Hãy phân tích sao hạn năm nay và cho lời khuyên hoá giải đơn giản, dễ hiểu.", isEmbeddedInTabBar: true)
                     case "phi_tinh":
-                        AIChatScreen(initialMessage: "Hãy giải thích phi tinh cửu cung và gợi ý cách đọc cơ bản cho người mới.")
+                        AIChatScreen(initialMessage: "Hãy giải thích phi tinh cửu cung và gợi ý cách đọc cơ bản cho người mới.", isEmbeddedInTabBar: true)
                     case "datemath":
                         DateMathScreen()
                     case "countdown":
@@ -194,7 +194,7 @@ struct ToolsScreen: View {
                     case "knowledge_feed":
                         KnowledgeFeedScreen()
                     case "ai_chat":
-                        AIChatScreen()
+                        AIChatScreen(isEmbeddedInTabBar: true)
                     case "oracle_draw":
                         OracleDrawScreen { prompt in
                             activeRoute = "ai_chat:" + prompt
@@ -221,7 +221,7 @@ struct ToolsScreen: View {
     
     private func sectionView(_ section: ToolSection) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let banner = sectionBanners.first(where: { $0.type?.lowercased() == section.bannerType.lowercased() }) {
+            if let banner = bannerFor(section) {
                 sectionBannerView(banner)
                     .padding(.horizontal, 16)
             }
@@ -361,10 +361,25 @@ struct ToolsScreen: View {
         .buttonStyle(.plain)
     }
 
+    /// Khớp banner cho 1 section theo "location key" (giống Android: banner.locations chứa key).
+    /// Vẫn fallback theo `type` để tương thích banner cấu hình kiểu cũ.
+    private func bannerFor(_ section: ToolSection) -> Banner? {
+        let key = section.bannerType.lowercased()
+        return sectionBanners.first { banner in
+            if let locs = banner.locations, locs.contains(where: { $0.lowercased() == key }) {
+                return true
+            }
+            return banner.type?.lowercased() == key
+        }
+    }
+
     @MainActor
     private func loadSectionBanners() async {
         do {
-            let list = try await QuizService.shared.fetchBanners()
+            // Lấy đúng phạm vi tiện ích (server lọc theo locations + platform).
+            let list = try await QuizService.shared.fetchBanners(
+                location: "tools,tools_calendar,tools_feng_shui,tools_utility,tools_collection"
+            )
             sectionBanners = list.filter { $0.active }.sorted { $0.sortOrder < $1.sortOrder }
         } catch {
             sectionBanners = []

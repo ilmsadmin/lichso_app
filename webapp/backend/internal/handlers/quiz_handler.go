@@ -410,6 +410,8 @@ func (h *QuizHandler) AdminRandomizeDailySet(c *fiber.Ctx) error {
 		Count      int    `json:"count"`
 		Category   string `json:"category"`
 		Difficulty string `json:"difficulty"`
+		FromID     int64  `json:"from_id"`
+		ToID       int64  `json:"to_id"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body")
@@ -429,7 +431,7 @@ func (h *QuizHandler) AdminRandomizeDailySet(c *fiber.Ctx) error {
 		count = 20
 	}
 
-	ids, err := h.service.RandomizeDailySet(userID, date, count, req.Category, req.Difficulty)
+	ids, err := h.service.RandomizeDailySet(userID, date, count, req.Category, req.Difficulty, req.FromID, req.ToID)
 	if err != nil {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, err.Error())
 	}

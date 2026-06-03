@@ -115,7 +115,7 @@ struct QuizHomeScreen: View {
         dailyQuestionCount = loadedDaily?.count
 
         do {
-            let list = try await QuizService.shared.fetchBanners(type: "quiz_home")
+            let list = try await QuizService.shared.fetchBanners(location: "quiz_home")
             quizBanners = list.filter { $0.active }.sorted { $0.sortOrder < $1.sortOrder }
         } catch {
             quizBanners = []

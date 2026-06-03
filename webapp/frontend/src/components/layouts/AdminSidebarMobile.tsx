@@ -25,6 +25,7 @@ import {
   Bell,
   BarChart3,
   ClipboardList,
+  Star,
 } from "lucide-react";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useAuth } from "@/hooks/useAuth";
@@ -120,6 +121,12 @@ const navItems: NavItem[] = [
     label: "Khảo sát",
     href: ROUTES.ADMIN_SURVEYS,
     icon: ClipboardList,
+    permission: "content.read",
+  },
+  {
+    label: "Đánh giá app",
+    href: ROUTES.ADMIN_APP_REVIEWS,
+    icon: Star,
     permission: "content.read",
   },
   {

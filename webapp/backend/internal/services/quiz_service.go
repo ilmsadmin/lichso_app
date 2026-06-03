@@ -1191,11 +1191,11 @@ func (s *QuizService) GetDailySets() ([]models.QuizDailySet, error) {
 }
 
 // RandomizeDailySet picks `count` random active questions and saves them as the daily set for `date`.
-func (s *QuizService) RandomizeDailySet(adminID uuid.UUID, date time.Time, count int, category, difficulty string) ([]int64, error) {
+func (s *QuizService) RandomizeDailySet(adminID uuid.UUID, date time.Time, count int, category, difficulty string, fromID, toID int64) ([]int64, error) {
 	if count <= 0 {
 		count = 20
 	}
-	ids, err := s.repo.GetRandomActiveQuestionIDs(count, category, difficulty)
+	ids, err := s.repo.GetRandomActiveQuestionIDs(count, category, difficulty, fromID, toID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch random questions: %w", err)
 	}

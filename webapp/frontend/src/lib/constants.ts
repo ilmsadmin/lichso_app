@@ -71,6 +71,7 @@ export const ROUTES = {
   ADMIN_BANNERS: "/admin/banners",
   ADMIN_POPUPS: "/admin/popups",
   ADMIN_SURVEYS: "/admin/surveys",
+  ADMIN_APP_REVIEWS: "/admin/app-reviews",
   ADMIN_SCREEN_BACKGROUNDS: "/admin/screen-backgrounds",
   // V4 AI Management
   ADMIN_AI_ARTICLES: "/admin/ai-articles",

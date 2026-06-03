@@ -67,14 +67,31 @@ struct MainTabView: View {
             // Main content with tabs
             mainContent
 
-            // Sidebar overlay
-            SidebarView(isOpen: $showSidebar) { route in
-                handleSidebarNavigation(route)
+            // Sidebar overlay — MOUNT/UNMOUNT theo điều kiện.
+            // Quan trọng: phải dùng `if showSidebar` (thay đổi cấu trúc) chứ KHÔNG truyền
+            // trạng thái mở/đóng vào trong SidebarView qua @Binding/Bool. SwiftUI bỏ qua việc
+            // re-render một struct có closure khi chỉ giá trị thuộc tính đổi → drawer không mở.
+            // Mount/unmount ở view cha là cách SwiftUI không thể skip.
+            if showSidebar {
+                SidebarView(
+                    onClose: { closeSidebar() },
+                    onNavigate: { route in handleSidebarNavigation(route) }
+                )
+                .zIndex(10)
             }
 
             // Smart Rating Dialog overlay
             SmartRatingDialog(ratingManager: ratingManager)
         }
+        .animation(.easeInOut(duration: 0.28), value: showSidebar)
+    }
+
+    private func openSidebar() {
+        showSidebar = true
+    }
+
+    private func closeSidebar() {
+        showSidebar = false
     }
 
     // MARK: - Main Content
@@ -98,21 +115,23 @@ struct MainTabView: View {
                 Group {
                     switch selectedTab {
                     case .calendar:
-                        CalendarScreen()
+                        CalendarScreen(onMenuClick: { openSidebar() })
                     case .notes:
-                        NotesScreen()
+                        ItemsScreen(onMenuClick: { openSidebar() })
                     case .today:
                         HomeScreen(
-                            onMenuClick: { showSidebar = true },
+                            onMenuClick: { openSidebar() },
                             onBannerAction: { route in handleBannerAction(route) }
                         )
+                        .overlay(alignment: .bottom) { LoginNudgeBanner() }
                     case .quiz:
                         QuizHomeScreen(
                             onBannerAction: { route in handleBannerAction(route) }
                         )
+                        .overlay(alignment: .bottom) { LoginNudgeBanner() }
                     case .tools:
                         ToolsScreen(
-                            onMenuClick: { showSidebar = true },
+                            onMenuClick: { openSidebar() },
                             onBannerAction: { route in handleBannerAction(route) }
                         )
                     }

@@ -29,6 +29,7 @@ const segmentLabels: Record<string, string> = {
   "famous-people": "Danh nhân",
   events: "Sự kiện",
   festivals: "Lễ hội",
+  "app-reviews": "Đánh giá app",
   files: "Files",
   // Public content pages (Vietnamese slugs)
   "bai-viet": "Bài Viết",

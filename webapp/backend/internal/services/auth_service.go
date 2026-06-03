@@ -704,6 +704,199 @@ func (s *AuthService) GoogleLogin(req *dto.GoogleLoginRequest, ipAddress, userAg
 	}, nil
 }
 
+// AppleLogin authenticates a user via Apple ID token and returns tokens
+func (s *AuthService) AppleLogin(req *dto.AppleLoginRequest, ipAddress, userAgent string) (*dto.LoginResponse, error) {
+	// Check if Apple login is configured (has ClientID)
+	if s.cfg.Apple.ClientID == "" {
+		return nil, utils.NewAppError(500, "Apple sign in is not configured")
+	}
+
+	// Verify Apple ID token
+	appleClaims, err := utils.VerifyAppleIDToken(req.IDToken, s.cfg.Apple.ClientID)
+	if err != nil {
+		s.logger.Error("Failed to verify Apple ID token", zap.Error(err))
+		s.logActivity("", "", models.ActionLoginFailed, models.ModuleAuth,
+			"Apple login failed: invalid id token", models.StatusFailure, ipAddress, userAgent)
+		return nil, utils.NewAppError(400, "Invalid Apple ID token")
+	}
+
+	// Look up any anonymous guest tied to this device so we can fold it into the
+	// Apple account (upgrade-in-place when possible, merge otherwise).
+	var guest *models.User
+	if deviceID := strings.TrimSpace(req.DeviceID); deviceID != "" {
+		guest, _ = s.userRepo.FindByProvider(models.ProviderGuest, deviceID)
+	}
+
+	// Try to find existing user by provider
+	user, err := s.userRepo.FindByProvider(models.ProviderApple, appleClaims.Subject)
+	if err != nil {
+		// User not found by provider, check by email
+		if appleClaims.Email == "" {
+			s.logger.Error("Apple ID token does not contain email")
+			return nil, utils.NewAppError(400, "Apple ID token does not contain email")
+		}
+		user, err = s.userRepo.FindByEmail(appleClaims.Email)
+		if err != nil {
+			if guest != nil {
+				// Upgrade the existing guest in place
+				guest.Provider = models.ProviderApple
+				guest.ProviderID = appleClaims.Subject
+				guest.Email = appleClaims.Email
+				if req.FirstName != "" {
+					guest.FirstName = req.FirstName
+					guest.LastName = req.LastName
+				}
+				if err := s.userRepo.Update(guest); err != nil {
+					s.logger.Error("Failed to upgrade guest to Apple user", zap.Error(err))
+					return nil, utils.ErrDatabaseFail
+				}
+				user = guest
+				guest = nil // consumed
+
+				if len(user.Roles) == 0 {
+					var viewerRole models.Role
+					s.userRepo.FindRoleByName(models.RoleViewer, &viewerRole)
+					if viewerRole.ID != uuid.Nil {
+						_ = s.userRepo.AssignRole(user.ID, viewerRole.ID, nil)
+						user.Roles = []models.Role{viewerRole}
+					}
+				}
+
+				s.logActivity(user.ID.String(), user.Email, models.ActionUserUpdate, models.ModuleAuth,
+					"Guest upgraded to Apple account", models.StatusSuccess, ipAddress, userAgent)
+			} else {
+				// No existing user, create a new one
+				firstName := req.FirstName
+				lastName := req.LastName
+				if firstName == "" {
+					firstName = "Người dùng"
+				}
+				user = &models.User{
+					ID:         uuid.New(),
+					Email:      appleClaims.Email,
+					FirstName:  firstName,
+					LastName:   lastName,
+					Provider:   models.ProviderApple,
+					ProviderID: appleClaims.Subject,
+					IsActive:   true,
+				}
+
+				if err := s.userRepo.Create(user); err != nil {
+					s.logger.Error("Failed to create Apple user", zap.Error(err))
+					return nil, utils.ErrDatabaseFail
+				}
+
+				// Assign default viewer role
+				var viewerRole models.Role
+				s.userRepo.FindRoleByName(models.RoleViewer, &viewerRole)
+				if viewerRole.ID != uuid.Nil {
+					_ = s.userRepo.AssignRole(user.ID, viewerRole.ID, nil)
+					user.Roles = []models.Role{viewerRole}
+				}
+
+				s.logActivity(user.ID.String(), user.Email, models.ActionUserCreate, models.ModuleAuth,
+					"New user registered via Apple", models.StatusSuccess, ipAddress, userAgent)
+			}
+		} else {
+			// User exists with same email but different provider — link Apple provider
+			user.Provider = models.ProviderApple
+			user.ProviderID = appleClaims.Subject
+			if req.FirstName != "" && (user.FirstName == "" || user.FirstName == "Người dùng") {
+				user.FirstName = req.FirstName
+				user.LastName = req.LastName
+			}
+			if err := s.userRepo.Update(user); err != nil {
+				s.logger.Error("Failed to link Apple provider to existing user", zap.Error(err))
+				return nil, utils.ErrDatabaseFail
+			}
+		}
+	} else {
+		// User found by provider - update display name if user passes it and current name is empty
+		if req.FirstName != "" && (user.FirstName == "" || user.FirstName == "Người dùng") {
+			user.FirstName = req.FirstName
+			user.LastName = req.LastName
+			_ = s.userRepo.Update(user)
+		}
+	}
+
+	// Reconcile guest data if present
+	if guest != nil && guest.ID != user.ID {
+		if err := s.userRepo.MergeGuestInto(guest.ID, user.ID); err != nil {
+			s.logger.Warn("Failed to merge guest into Apple account", zap.Error(err))
+		} else {
+			_ = s.userRepo.SoftDelete(guest.ID)
+			s.logActivity(user.ID.String(), user.Email, models.ActionUserUpdate, models.ModuleAuth,
+				"Merged guest device data into account", models.StatusSuccess, ipAddress, userAgent)
+		}
+	}
+
+	// Check if user is active
+	if !user.IsActive {
+		s.logActivity(user.ID.String(), user.Email, models.ActionLoginFailed, models.ModuleAuth,
+			"Apple login failed: account inactive", models.StatusFailure, ipAddress, userAgent)
+		return nil, utils.ErrUserInactive
+	}
+
+	// Get role names
+	roleNames := make([]string, len(user.Roles))
+	for i, role := range user.Roles {
+		roleNames[i] = role.Name
+	}
+
+	// Get permissions
+	permissions, err := s.userRepo.GetUserPermissions(user.ID)
+	if err != nil {
+		s.logger.Error("Failed to get user permissions", zap.Error(err))
+		permissions = []string{}
+	}
+
+	// Generate token pair
+	jwtCfg := &utils.JWTConfig{
+		Secret:             s.cfg.JWT.Secret,
+		AccessTokenExpiry:  s.cfg.JWT.AccessTokenExpiry,
+		RefreshTokenExpiry: s.cfg.JWT.RefreshTokenExpiry,
+		Issuer:             s.cfg.JWT.Issuer,
+	}
+
+	tokenPair, _, err := utils.GenerateTokenPair(jwtCfg, user.ID, user.Email, roleNames)
+	if err != nil {
+		s.logger.Error("Failed to generate tokens", zap.Error(err))
+		return nil, utils.ErrInternal
+	}
+
+	// Save refresh token to database
+	refreshToken := &models.RefreshToken{
+		UserID:    user.ID,
+		Token:     tokenPair.RefreshToken,
+		UserAgent: userAgent,
+		IPAddress: ipAddress,
+		ExpiresAt: time.Now().Add(s.cfg.JWT.RefreshTokenExpiry),
+	}
+
+	if err := s.userRepo.SaveRefreshToken(refreshToken); err != nil {
+		s.logger.Error("Failed to save refresh token", zap.Error(err))
+		return nil, utils.ErrDatabaseFail
+	}
+
+	// Update last login
+	_ = s.userRepo.UpdateLastLogin(user.ID)
+
+	// Cache permissions
+	_ = s.cacheService.CacheUserPermissions(user.ID, permissions)
+
+	// Log activity
+	s.logActivity(user.ID.String(), user.Email, models.ActionUserLogin, models.ModuleAuth,
+		"User logged in via Apple", models.StatusSuccess, ipAddress, userAgent)
+
+	return &dto.LoginResponse{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		ExpiresIn:    tokenPair.ExpiresIn,
+		TokenType:    tokenPair.TokenType,
+		User:         dto.ToAuthUserResponse(user, permissions),
+	}, nil
+}
+
 // GuestLogin creates or resumes an anonymous guest user keyed by device id and
 // returns a token pair. This lets the app use the authenticated infrastructure
 // (device linking, profile updates, quiz/points) without a real account, and

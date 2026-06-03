@@ -24,6 +24,7 @@ struct LichSoApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             ChatMessageEntity.self,
+            ItemEntity.self,
             TaskEntity.self,
             NoteEntity.self,
             ReminderEntity.self,
@@ -57,14 +58,10 @@ struct LichSoApp: App {
 
     var body: some Scene {
         WindowGroup {
+            // Không còn màn splash in-app (giống Android): chỉ còn LaunchScreen native
+            // (nền đỏ) hiện chớp nhoáng → vào thẳng Onboarding (nếu chưa xong) hoặc Main.
             Group {
-                if appState.isSplashActive {
-                    SplashScreen {
-                        withAnimation(.easeInOut(duration: 0.5)) {
-                            appState.isSplashActive = false
-                        }
-                    }
-                } else if !hasCompletedOnboarding {
+                if !hasCompletedOnboarding {
                     OnboardingScreen {
                         hasCompletedOnboarding = true
                     }
@@ -73,11 +70,16 @@ struct LichSoApp: App {
                         .environmentObject(appState)
                         .environmentObject(googleAuth)
                         .onAppear {
+                            migrateToUnifiedItems()
                             setupNotifications()
                             // Track app open as a lightweight happy action
                             SmartRatingManager.shared.recordHappyAction(weight: 1)
                             // Attempt token refresh on launch
                             Task { await googleAuth.refreshTokenIfNeeded() }
+                            // Làm nóng bàn phím để lần focus đầu tiên không bị chậm (cold-start)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                                KeyboardWarmer.warmUp()
+                            }
                         }
                 }
             }
@@ -96,14 +98,70 @@ struct LichSoApp: App {
     }
 
     private func setupNotifications() {
-        guard dailyReminder else { return }
+        guard dailyReminder else {
+            NotificationScheduler.shared.cancelMorningSummaryNotifications()
+            return
+        }
         NotificationScheduler.shared.setupAllNotifications(
             dailyHour: reminderHour,
             dailyMinute: reminderMinute
         )
     }
+
+    /// Di trú một lần: gộp NoteEntity/TaskEntity/ReminderEntity cũ → ItemEntity hợp nhất.
+    /// Chạy đúng 1 lần (cờ UserDefaults). Sau khi gộp, xoá bản ghi cũ + đặt lại lịch nhắc.
+    @MainActor private func migrateToUnifiedItems() {
+        let key = "items_migrated_v1"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        let ctx = sharedModelContainer.mainContext
+        var nextId = Int64(Date().timeIntervalSince1970 * 1000)
+        func newId() -> Int64 { defer { nextId += 1 }; return nextId }
+        var migrated: [ItemEntity] = []
+
+        // Notes → ghi chú thuần
+        if let notes = try? ctx.fetch(FetchDescriptor<NoteEntity>()) {
+            for n in notes {
+                let item = ItemEntity(
+                    id: newId(), title: n.title, itemDescription: n.content, tags: n.labels,
+                    isPinned: n.isPinned, colorIndex: n.colorIndex,
+                    createdAt: n.createdAt, updatedAt: n.updatedAt
+                )
+                ctx.insert(item); migrated.append(item)
+            }
+            notes.forEach { ctx.delete($0) }
+        }
+        // Tasks → việc cần làm
+        if let tasks = try? ctx.fetch(FetchDescriptor<TaskEntity>()) {
+            for t in tasks {
+                let item = ItemEntity(
+                    id: newId(), title: t.title, itemDescription: t.taskDescription, tags: t.labels,
+                    isTask: true, isDone: t.isDone, priority: t.priority, dueDate: t.dueDate,
+                    dueTime: t.dueTime, createdAt: t.createdAt, updatedAt: t.updatedAt
+                )
+                ctx.insert(item); migrated.append(item)
+            }
+            tasks.forEach { ctx.delete($0) }
+        }
+        // Reminders → có nhắc nhở
+        if let reminders = try? ctx.fetch(FetchDescriptor<ReminderEntity>()) {
+            for r in reminders {
+                let item = ItemEntity(
+                    id: newId(), title: r.title, itemDescription: r.subtitle, tags: r.labels,
+                    hasReminder: true, reminderAt: r.triggerTime, repeatType: r.repeatType,
+                    useLunar: r.useLunar, advanceDays: r.advanceDays, reminderEnabled: r.isEnabled,
+                    createdAt: r.createdAt, updatedAt: r.createdAt
+                )
+                ctx.insert(item); migrated.append(item)
+            }
+            reminders.forEach { ctx.delete($0) }
+        }
+
+        try? ctx.save()
+        ItemReminderScheduler.rescheduleAll(migrated)
+        UserDefaults.standard.set(true, forKey: key)
+    }
 }
 
 class AppState: ObservableObject {
-    @Published var isSplashActive = true
+    // (Trước đây giữ cờ splash; splash in-app đã bỏ để giống Android.)
 }

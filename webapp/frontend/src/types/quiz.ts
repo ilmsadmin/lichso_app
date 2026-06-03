@@ -77,6 +77,8 @@ export interface RandomizeDailySetRequest {
   count?: number;
   category?: string;
   difficulty?: string;
+  from_id?: number;
+  to_id?: number;
 }
 
 export interface RandomizeDailySetResponse {

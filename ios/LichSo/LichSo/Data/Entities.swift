@@ -6,6 +6,88 @@ import SwiftData
 // KHÔNG ĐƯỢC THAY ĐỔI CẤU TRÚC DATABASE
 // ═══════════════════════════════════════════
 
+// ═══════════════════════════════════════════
+// ItemEntity — Đối tượng hợp nhất: Ghi chú + Việc cần làm + Nhắc nhở
+// Mirror của Android `ItemEntity` (Room bảng `items`, DB v15).
+// Một item luôn có title + description + tags, và bật/tắt độc lập 3 năng lực:
+//   • Task     : isTask + priority + isDone + dueDate/dueTime
+//   • Reminder : hasReminder + reminderAt + repeatType + useLunar + advanceDays + reminderEnabled
+//   • Note/UI  : isPinned + colorIndex
+// Thời gian theo epoch millis (Int64) — đồng nhất với các entity còn lại.
+// ═══════════════════════════════════════════
+@Model
+final class ItemEntity {
+    @Attribute(.unique) var id: Int64
+    var title: String
+    var itemDescription: String       // mô tả (gộp content/subtitle cũ)
+    var tags: String                  // comma-separated (gộp labels cũ)
+
+    // ── Task capability ──
+    var isTask: Bool
+    var isDone: Bool
+    var priority: Int                 // 0=Low, 1=Medium, 2=High
+    var dueDate: Int64?               // epoch millis (ngày đến hạn)
+    var dueTime: String?              // "HH:mm"
+
+    // ── Reminder capability ──
+    var hasReminder: Bool
+    var reminderAt: Int64?            // epoch millis trigger
+    var repeatType: Int               // 0=Once,1=Daily,2=Weekly,3=Monthly,4=MonthlyLunar,5=Yearly
+    var useLunar: Bool
+    var advanceDays: Int              // nhắc trước N ngày (0=đúng ngày)
+    var reminderEnabled: Bool
+
+    // ── Note / visual ──
+    var isPinned: Bool
+    var colorIndex: Int
+
+    var createdAt: Int64
+    var updatedAt: Int64
+
+    init(
+        id: Int64 = 0,
+        title: String,
+        itemDescription: String = "",
+        tags: String = "",
+        isTask: Bool = false,
+        isDone: Bool = false,
+        priority: Int = 1,
+        dueDate: Int64? = nil,
+        dueTime: String? = nil,
+        hasReminder: Bool = false,
+        reminderAt: Int64? = nil,
+        repeatType: Int = 0,
+        useLunar: Bool = false,
+        advanceDays: Int = 0,
+        reminderEnabled: Bool = true,
+        isPinned: Bool = false,
+        colorIndex: Int = 0,
+        createdAt: Int64? = nil,
+        updatedAt: Int64? = nil
+    ) {
+        let now = Int64(Date().timeIntervalSince1970 * 1000)
+        self.id = id
+        self.title = title
+        self.itemDescription = itemDescription
+        self.tags = tags
+        self.isTask = isTask
+        self.isDone = isDone
+        self.priority = priority
+        self.dueDate = dueDate
+        self.dueTime = dueTime
+        self.hasReminder = hasReminder
+        self.reminderAt = reminderAt
+        self.repeatType = repeatType
+        self.useLunar = useLunar
+        self.advanceDays = advanceDays
+        self.reminderEnabled = reminderEnabled
+        self.isPinned = isPinned
+        self.colorIndex = colorIndex
+        self.createdAt = createdAt ?? now
+        self.updatedAt = updatedAt ?? now
+    }
+}
+
 @Model
 final class TaskEntity {
     @Attribute(.unique) var id: Int64

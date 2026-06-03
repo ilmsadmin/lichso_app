@@ -50,6 +50,14 @@ type GoogleLoginRequest struct {
 	DeviceID string `json:"device_id"`
 }
 
+// AppleLoginRequest represents an Apple OAuth login request
+type AppleLoginRequest struct {
+	IDToken   string `json:"id_token" validate:"required"`
+	DeviceID  string `json:"device_id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+}
+
 // GuestLoginRequest creates or resumes an anonymous guest session keyed by device id.
 type GuestLoginRequest struct {
 	DeviceID    string `json:"device_id" validate:"required,min=4"`

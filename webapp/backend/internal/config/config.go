@@ -20,6 +20,7 @@ type Config struct {
 	Log       LogConfig
 	Upload    UploadConfig
 	Google    GoogleConfig
+	Apple     AppleConfig
 	SMTP      SMTPConfig
 	AI        AIConfig
 	FCM       FCMConfig
@@ -72,6 +73,11 @@ type GoogleConfig struct {
 	ClientID        string
 	AndroidClientID string // Firebase web client ID used by Android app
 	IOSClientID     string // iOS OAuth client ID used by native iOS app
+}
+
+// AppleConfig holds Apple OAuth configuration
+type AppleConfig struct {
+	ClientID string
 }
 
 // AppConfig holds application-level configuration
@@ -276,6 +282,9 @@ func LoadConfig(path ...string) (*Config, error) {
 			AndroidClientID: viper.GetString("GOOGLE_ANDROID_CLIENT_ID"),
 			IOSClientID:     viper.GetString("GOOGLE_IOS_CLIENT_ID"),
 		},
+		Apple: AppleConfig{
+			ClientID:        viper.GetString("APPLE_CLIENT_ID"),
+		},
 		SMTP: SMTPConfig{
 			Host:       viper.GetString("SMTP_HOST"),
 			Port:       viper.GetInt("SMTP_PORT"),
@@ -371,6 +380,7 @@ func setDefaults() {
 	viper.SetDefault("GOOGLE_CLIENT_ID", "")
 	viper.SetDefault("GOOGLE_ANDROID_CLIENT_ID", "")
 	viper.SetDefault("GOOGLE_IOS_CLIENT_ID", "")
+	viper.SetDefault("APPLE_CLIENT_ID", "com.lichso.app")
 
 	viper.SetDefault("SMTP_HOST", "localhost")
 	viper.SetDefault("SMTP_PORT", 587)

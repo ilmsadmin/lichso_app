@@ -40,63 +40,53 @@ private struct MenuItem: Identifiable {
 // MARK: - Sidebar View
 
 struct SidebarView: View {
-    @Binding var isOpen: Bool
+    /// Gọi khi cần đóng drawer (tap backdrop, vuốt sang trái, hoặc chọn 1 mục).
+    var onClose: () -> Void
     var onNavigate: (String) -> Void
 
     @State private var dragOffset: CGFloat = 0
 
     private let drawerWidth: CGFloat = 300
 
+    // Lưu ý kiến trúc: View này được MainTabView mount/unmount qua `if showSidebar`.
+    // KHÔNG dùng `@Binding isOpen` để bật/tắt nội bộ: SwiftUI bỏ qua (skip) việc re-render
+    // một struct chỉ thay đổi ở @Binding khi struct còn có closure → drawer không mở dù state
+    // đã đổi. Mount/unmount theo điều kiện ở view cha là cách duy nhất SwiftUI không thể skip.
     var body: some View {
         ZStack(alignment: .leading) {
-            // Dimmed backdrop
-            if isOpen {
-                Color.black
-                    .opacity(0.5 * Double(1 - dragOffset / drawerWidth))
-                    .ignoresSafeArea()
-                    .onTapGesture { close() }
-                    .transition(.opacity)
-            }
+            // Dimmed backdrop — mờ dần khi kéo drawer ra
+            Color.black
+                .opacity(0.5 * Double(max(0, 1 + dragOffset / drawerWidth)))
+                .ignoresSafeArea()
+                .onTapGesture { onClose() }
+                .transition(.opacity)
 
-            // Drawer panel
-            HStack(spacing: 0) {
-                drawerContent
-                    .frame(width: drawerWidth)
-                    .background(SurfaceBg)
-                    .offset(x: isOpen ? dragOffset : -drawerWidth)
-
-                Spacer()
-            }
-            .ignoresSafeArea()
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        let offset = value.translation.width
-                        if offset < 0 {
-                            dragOffset = offset
-                        }
-                    }
-                    .onEnded { value in
-                        if value.translation.width < -80 {
-                            close()
-                        } else {
-                            withAnimation(.easeOut(duration: 0.2)) {
-                                dragOffset = 0
+            // Drawer panel — trượt vào/ra từ cạnh trái
+            drawerContent
+                .frame(width: drawerWidth)
+                .frame(maxHeight: .infinity)
+                .background(SurfaceBg)
+                .ignoresSafeArea()
+                .offset(x: dragOffset)
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            let offset = value.translation.width
+                            if offset < 0 {
+                                dragOffset = offset
                             }
                         }
-                    }
-            )
-        }
-        .animation(.easeInOut(duration: 0.28), value: isOpen)
-        .onChange(of: isOpen) {
-            if isOpen { dragOffset = 0 }
-        }
-    }
-
-    private func close() {
-        withAnimation(.easeInOut(duration: 0.25)) {
-            isOpen = false
-            dragOffset = 0
+                        .onEnded { value in
+                            if value.translation.width < -80 {
+                                onClose()
+                            } else {
+                                withAnimation(.easeOut(duration: 0.2)) {
+                                    dragOffset = 0
+                                }
+                            }
+                        }
+                )
+                .transition(.move(edge: .leading))
         }
     }
 
@@ -202,7 +192,7 @@ struct SidebarView: View {
     private func menuRow(item: MenuItem) -> some View {
         Button {
             onNavigate(item.route)
-            close()
+            onClose()
         } label: {
             HStack(spacing: 16) {
                 Image(systemName: item.icon)
@@ -406,8 +396,9 @@ https://apps.apple.com/app/id6740048518
 #Preview {
     ZStack {
         Color(hex: "0F0E0C").ignoresSafeArea()
-        SidebarView(isOpen: .constant(true)) { route in
-            print("Navigate to: \(route)")
-        }
+        SidebarView(
+            onClose: {},
+            onNavigate: { route in print("Navigate to: \(route)") }
+        )
     }
 }

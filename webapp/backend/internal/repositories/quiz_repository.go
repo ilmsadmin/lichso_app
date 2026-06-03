@@ -224,13 +224,19 @@ func (r *QuizRepository) ListDailySets() ([]models.QuizDailySet, error) {
 }
 
 // GetRandomActiveQuestionIDs returns n random IDs from active (and optionally published) questions.
-func (r *QuizRepository) GetRandomActiveQuestionIDs(n int, category, difficulty string) ([]int64, error) {
+func (r *QuizRepository) GetRandomActiveQuestionIDs(n int, category, difficulty string, fromID, toID int64) ([]int64, error) {
 	query := r.db.Model(&models.QuizQuestion{}).Where("is_active = ?", true)
 	if category != "" {
 		query = query.Where("category = ?", category)
 	}
 	if difficulty != "" {
 		query = query.Where("difficulty = ?", difficulty)
+	}
+	if fromID > 0 {
+		query = query.Where("id >= ?", fromID)
+	}
+	if toID > 0 {
+		query = query.Where("id <= ?", toID)
 	}
 	var ids []int64
 	err := query.Order("RANDOM()").Limit(n).Pluck("id", &ids).Error

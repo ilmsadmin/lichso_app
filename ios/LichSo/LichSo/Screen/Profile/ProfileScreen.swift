@@ -63,11 +63,11 @@ struct ProfileScreen: View {
     @AppStorage("profile_avatar_path") private var avatarPath  = ""
 
     @Query private var allBookmarks: [BookmarkEntity]
-    @Query private var allReminders: [ReminderEntity]
-    @Query private var allNotes:     [NoteEntity]
+    @Query private var allItems: [ItemEntity]
     @Environment(\.modelContext) private var modelContext
 
-    var activeReminderCount: Int { allReminders.filter { $0.isEnabled }.count }
+    var activeReminderCount: Int { allItems.filter { $0.hasReminder && $0.reminderEnabled }.count }
+    var noteCount: Int { allItems.count }
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -93,7 +93,7 @@ struct ProfileScreen: View {
                         ProfileStatsRow(
                             bookmarkCount: allBookmarks.count,
                             reminderCount: activeReminderCount,
-                            noteCount: allNotes.count
+                            noteCount: noteCount
                         )
 
                         // Birth info
@@ -114,7 +114,7 @@ struct ProfileScreen: View {
 
                         // Menu sections
                         ProfileMenuSection(
-                            noteCount: allNotes.count,
+                            noteCount: noteCount,
                             reminderCount: activeReminderCount,
                             bookmarkCount: allBookmarks.count,
                             onNotificationsTap: { showNotifications = true },
@@ -309,6 +309,8 @@ private struct ProfileHeader: View {
     let onGoogleSignOut: () -> Void
     var onDismiss: (() -> Void)? = nil
 
+    @AppStorage("auth_provider") private var authProvider = ""
+
     var body: some View {
         ZStack(alignment: .top) {
             LinearGradient(colors: [Color(red: 0.773, green: 0.157, blue: 0.157),
@@ -370,7 +372,7 @@ private struct ProfileHeader: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "checkmark.seal.fill")
                                     .font(.system(size: 12, weight: .semibold))
-                                Text("Đã kết nối Google")
+                                Text(authProvider == "apple" ? "Đã kết nối Apple" : "Đã kết nối Google")
                                     .font(.system(size: 12, weight: .semibold))
                                 Image(systemName: "rectangle.portrait.and.arrow.right")
                                     .font(.system(size: 11, weight: .semibold))
@@ -385,8 +387,9 @@ private struct ProfileHeader: View {
                     } else {
                         Button(action: onGoogleLogin) {
                             HStack(spacing: 8) {
-                                GoogleLogoView().frame(width: 14, height: 14)
-                                Text("Đăng nhập Google")
+                                Image(systemName: "person.crop.circle.badge.plus")
+                                    .font(.system(size: 14))
+                                Text("Đăng nhập / Đăng ký")
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(.white)
                             }

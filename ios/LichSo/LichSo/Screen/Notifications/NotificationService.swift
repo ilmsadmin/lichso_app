@@ -16,6 +16,12 @@ class NotificationService {
 
     /// Tạo thông báo tóm tắt ngày mới (tương tự DailyNotificationWorker Android)
     func generateDailyNotification(for date: Date = Date()) -> (title: String, description: String, type: String) {
+        generateMorningSummaryNotification(for: date)
+    }
+
+    /// Tạo thông báo buổi sáng đã gộp: thời tiết nếu có cache + thông tin ngày +
+    /// giờ hoàng đạo + nên/tránh. Mirror Android `fireMorningSummary`.
+    func generateMorningSummaryNotification(for date: Date = Date()) -> (title: String, description: String, type: String) {
         let cal = Calendar.current
         let dd = cal.component(.day, from: date)
         let mm = cal.component(.month, from: date)
@@ -26,33 +32,67 @@ class NotificationService {
         let ddStr = String(format: "%02d", dd)
         let mmStr = String(format: "%02d", mm)
         let lunarStr = "\(dayInfo.lunar.day)/\(dayInfo.lunar.month) Âm lịch"
-        let isGoodDay = !dayInfo.activities.isXauDay
-        let dayQuality = isGoodDay ? "Ngày Hoàng Đạo" : "Ngày Hắc Đạo"
+        let title = "Chào buổi sáng — \(ddStr)/\(mmStr)"
+        var lines: [String] = []
 
-        // Title giống Android
-        let title = "\(dayInfo.dayOfWeek), \(ddStr)/\(mmStr) — \(lunarStr)"
-
-        // Description: tóm tắt thông tin ngày
-        var descParts: [String] = []
-        descParts.append("\(dayInfo.dayCanChi) | \(dayQuality) | \(dayInfo.dayRating.label)")
-
-        // Giờ hoàng đạo top 3
-        let gioText = dayInfo.gioHoangDao.prefix(3).map { "\($0.name) (\($0.time))" }.joined(separator: ", ")
-        if !gioText.isEmpty {
-            descParts.append("Giờ tốt: \(gioText)")
+        if cal.isDateInToday(date), let weather = WeatherService.shared.weather {
+            let unit = UserDefaults.standard.string(forKey: "setting_temp_unit") ?? "°C"
+            let city = UserDefaults.standard.string(forKey: "setting_location") ?? weather.cityName
+            let tempNow = Int(weather.temperature.rounded())
+            let tempMin = Int((weather.dailyForecast.first?.tempMin ?? weather.temperature).rounded())
+            let tempMax = Int((weather.dailyForecast.first?.tempMax ?? weather.temperature).rounded())
+            lines.append("\(city): \(tempNow)\(unit), \(tempMin)\(unit)-\(tempMax)\(unit), \(weather.conditionText)")
+            lines.append(weatherAdvice(weather))
         }
 
-        descParts.append("Hướng Thần Tài: \(dayInfo.huong.thanTai)")
+        lines.append("Ngày: \(dayInfo.dayOfWeek) \(ddStr)/\(mmStr) - \(lunarStr)")
+        lines.append("Can Chi: \(dayInfo.dayCanChi) - \(dayInfo.dayRating.label)")
 
-        // Ngày lễ
+        if dayInfo.activities.isNguyetKy {
+            lines.append("Lưu ý: Ngày Nguyệt kỵ")
+        }
+        if dayInfo.activities.isTamNuong {
+            lines.append("Lưu ý: Ngày Tam nương")
+        }
+
+        let gioText = dayInfo.gioHoangDao.prefix(3)
+            .map { "\($0.name) (\($0.time))" }
+            .joined(separator: ", ")
+        if !gioText.isEmpty {
+            lines.append("Giờ hoàng đạo: \(gioText)")
+        }
+        if !dayInfo.activities.nenLam.isEmpty {
+            lines.append("Nên: \(dayInfo.activities.nenLam.prefix(2).joined(separator: ", "))")
+        }
+        if !dayInfo.activities.khongNen.isEmpty {
+            lines.append("Tránh: \(dayInfo.activities.khongNen.prefix(2).joined(separator: ", "))")
+        }
         if let sHol = dayInfo.solarHoliday {
-            descParts.append("🎉 \(sHol)")
+            lines.append("Ngày lễ: \(sHol)")
         }
         if let lHol = dayInfo.lunarHoliday {
-            descParts.append("🏮 \(lHol)")
+            lines.append("Âm lịch: \(lHol)")
         }
 
-        return (title, descParts.joined(separator: "\n"), "daily")
+        return (title, lines.joined(separator: "\n"), "daily")
+    }
+
+    private func weatherAdvice(_ weather: WeatherData) -> String {
+        let maxTempC = weather.dailyForecast.first?.tempMax ?? weather.temperature
+        let minTempC = weather.dailyForecast.first?.tempMin ?? weather.temperature
+        if maxTempC >= 34 {
+            return "Nắng khá gắt, nhớ mang nước và che nắng khi ra ngoài."
+        }
+        if maxTempC >= 30 {
+            return "Trưa có thể nắng nóng, nên mang ô hoặc áo khoác mỏng."
+        }
+        if minTempC <= 18 {
+            return "Sáng sớm khá mát, nên mặc thêm áo khoác nhẹ."
+        }
+        if weather.humidity >= 85 {
+            return "Độ ẩm cao, có thể oi nhẹ. Uống đủ nước để giữ sức."
+        }
+        return "Thời tiết tương đối dễ chịu, chúc bạn một ngày nhiều năng lượng."
     }
 
     // MARK: - Generate festival reminder (ngày mai)
@@ -238,8 +278,6 @@ class NotificationService {
     /// Sinh tất cả thông báo thật cho ngày hiện tại và lưu vào SwiftData
     func generateAllNotifications(context: ModelContext, for date: Date = Date()) {
         let now = Int64(date.timeIntervalSince1970 * 1000)
-        let hour: Int64 = 3_600_000
-
         // Kiểm tra đã tạo thông báo hôm nay chưa (tránh trùng lặp)
         let todayStart = Calendar.current.startOfDay(for: date)
         let todayStartMs = Int64(todayStart.timeIntervalSince1970 * 1000)
@@ -251,43 +289,28 @@ class NotificationService {
         let existingCount = (try? context.fetchCount(descriptor)) ?? 0
         guard existingCount == 0 else { return }
 
-        // 1. Thông báo buổi sáng — tóm tắt ngày
-        let daily = generateDailyNotification(for: date)
-        let n1 = NotificationEntity(id: now, title: daily.title, notificationDescription: daily.description, type: daily.type)
+        // 1. Thông báo buổi sáng — đã gộp ngày + giờ hoàng đạo + nên/tránh
+        let morning = generateMorningSummaryNotification(for: date)
+        let n1 = NotificationEntity(id: now, title: morning.title, notificationDescription: morning.description, type: morning.type)
         n1.createdAt = now
         context.insert(n1)
 
-        // 2. Giờ hoàng đạo
-        let gio = generateGioHoangDaoNotification(for: date)
-        let n2 = NotificationEntity(id: now - hour / 6, title: gio.title, notificationDescription: gio.description, type: gio.type)
-        n2.createdAt = now - hour / 6
-        context.insert(n2)
-
-        // 3. Nên & Không nên
-        let activities = generateActivitiesSummary(for: date)
-        let n3 = NotificationEntity(id: now - hour / 3, title: activities.title, notificationDescription: activities.description, type: activities.type)
-        n3.createdAt = now - hour / 3
-        context.insert(n3)
-
-        // 4. Nhắc lễ ngày mai (nếu có)
         if let festival = generateFestivalReminder(for: date) {
-            let n4 = NotificationEntity(id: now - hour / 2, title: festival.title, notificationDescription: festival.description, type: festival.type)
-            n4.createdAt = now - hour / 2
+            let n4 = NotificationEntity(id: now - 1, title: festival.title, notificationDescription: festival.description, type: festival.type)
+            n4.createdAt = now - 1
             context.insert(n4)
         }
 
-        // 5. Nhắc Rằm/Mùng 1 (nếu có)
         if let lunarReminder = generateLunarDateReminder(for: date) {
-            let n5 = NotificationEntity(id: now - hour, title: lunarReminder.title, notificationDescription: lunarReminder.description, type: lunarReminder.type)
-            n5.createdAt = now - hour
+            let n5 = NotificationEntity(id: now - 2, title: lunarReminder.title, notificationDescription: lunarReminder.description, type: lunarReminder.type)
+            n5.createdAt = now - 2
             context.insert(n5)
         }
 
-        // 6. Ngày tốt sắp tới (chỉ tạo vào Thứ 2)
         let weekday = Calendar.current.component(.weekday, from: date)
         if weekday == 2, let goodDay = generateGoodDaySuggestion(for: date) {
-            let n6 = NotificationEntity(id: now - hour * 2, title: goodDay.title, notificationDescription: goodDay.description, type: goodDay.type)
-            n6.createdAt = now - hour * 2
+            let n6 = NotificationEntity(id: now - 3, title: goodDay.title, notificationDescription: goodDay.description, type: goodDay.type)
+            n6.createdAt = now - 3
             context.insert(n6)
         }
 
@@ -309,19 +332,12 @@ class NotificationService {
         guard count == 0 else { return }
 
         // === Thông báo HÔM NAY ===
-        // 1. Tóm tắt ngày
-        let daily = generateDailyNotification(for: now)
+        // 1. Tóm tắt buổi sáng đã gộp
+        let daily = generateMorningSummaryNotification(for: now)
         let n1 = NotificationEntity(id: nowMs, title: daily.title, notificationDescription: daily.description, type: daily.type)
         n1.createdAt = nowMs
         context.insert(n1)
 
-        // 2. Giờ hoàng đạo
-        let gio = generateGioHoangDaoNotification(for: now)
-        let n2 = NotificationEntity(id: nowMs - hour / 4, title: gio.title, notificationDescription: gio.description, type: gio.type)
-        n2.createdAt = nowMs - hour / 4
-        context.insert(n2)
-
-        // 3. Nhắc lễ nếu có
         if let festival = generateFestivalReminder(for: now) {
             let n3 = NotificationEntity(id: nowMs - hour / 2, title: festival.title, notificationDescription: festival.description, type: festival.type)
             n3.createdAt = nowMs - hour / 2
@@ -332,7 +348,7 @@ class NotificationService {
         if let yesterday = cal.date(byAdding: .day, value: -1, to: now) {
             let yMs = Int64(yesterday.timeIntervalSince1970 * 1000)
 
-            let yDaily = generateDailyNotification(for: yesterday)
+            let yDaily = generateMorningSummaryNotification(for: yesterday)
             let ny1 = NotificationEntity(id: yMs, title: yDaily.title, notificationDescription: yDaily.description, type: yDaily.type)
             ny1.createdAt = yMs
             ny1.isRead = true
@@ -344,20 +360,13 @@ class NotificationService {
                 ny2.isRead = true
                 context.insert(ny2)
             }
-
-            // Nên & Không nên hôm qua
-            let yActivities = generateActivitiesSummary(for: yesterday)
-            let ny3 = NotificationEntity(id: yMs - hour / 2, title: yActivities.title, notificationDescription: yActivities.description, type: yActivities.type)
-            ny3.createdAt = yMs - hour / 2
-            ny3.isRead = true
-            context.insert(ny3)
         }
 
         // === Thông báo 2 NGÀY TRƯỚC (đã đọc) ===
         if let twoDaysAgo = cal.date(byAdding: .day, value: -2, to: now) {
             let tMs = Int64(twoDaysAgo.timeIntervalSince1970 * 1000)
 
-            let tDaily = generateDailyNotification(for: twoDaysAgo)
+            let tDaily = generateMorningSummaryNotification(for: twoDaysAgo)
             let nt1 = NotificationEntity(id: tMs, title: tDaily.title, notificationDescription: tDaily.description, type: tDaily.type)
             nt1.createdAt = tMs
             nt1.isRead = true

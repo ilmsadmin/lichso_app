@@ -68,7 +68,6 @@ struct HomePopupOverlay: View {
                 .id(popup.id)
             }
         }
-        .allowsHitTesting(currentPopup != nil)
     }
 
     private func alignment(for position: String?) -> Alignment {

@@ -13,6 +13,7 @@ class NotificationScheduler: ObservableObject {
 
     private let notificationCenter = UNUserNotificationCenter.current()
     private let service = NotificationService.shared
+    private let morningSummaryDays = 14
 
     // MARK: - Permission
 
@@ -30,100 +31,53 @@ class NotificationScheduler: ObservableObject {
 
     // MARK: - Schedule daily notification
 
-    /// Lên lịch thông báo hàng ngày (tương tự DailyNotificationWorker)
+    /// Lên lịch thông báo buổi sáng DUY NHẤT.
+    /// Android gộp weather + ngày + giờ hoàng đạo vào TYPE_DAILY; iOS không chạy code
+    /// tại thời điểm local notification fire, nên đặt các one-shot summary cho những
+    /// ngày tới thay vì nhiều repeating notification riêng lẻ.
     func scheduleDailyNotification(hour: Int = 7, minute: Int = 0) {
-        // Xóa thông báo daily cũ
-        notificationCenter.removePendingNotificationRequests(withIdentifiers: ["daily_morning"])
+        cancelMorningSummaryNotifications()
 
-        let daily = service.generateDailyNotification()
+        let cal = Calendar.current
+        let now = Date()
+        for offset in 0..<morningSummaryDays {
+            guard
+                let day = cal.date(byAdding: .day, value: offset, to: cal.startOfDay(for: now)),
+                let fireDate = cal.date(bySettingHour: hour, minute: minute, second: 0, of: day),
+                fireDate > now
+            else { continue }
 
-        let content = UNMutableNotificationContent()
-        content.title = daily.title
-        content.body = daily.description
-        content.sound = .default
-        content.categoryIdentifier = "daily"
-
-        var dateComponents = DateComponents()
-        dateComponents.hour = hour
-        dateComponents.minute = minute
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-        let request = UNNotificationRequest(identifier: "daily_morning", content: content, trigger: trigger)
-
-        notificationCenter.add(request) { error in
-            #if DEBUG
-            if let error { print("Schedule daily error: \(error)") }
-            #endif
-        }
-    }
-
-    /// Lên lịch thông báo giờ hoàng đạo (tương tự GioDaiCatWorker)
-    func scheduleGioHoangDaoNotification(hour: Int = 6, minute: Int = 30) {
-        notificationCenter.removePendingNotificationRequests(withIdentifiers: ["gio_hoang_dao"])
-
-        let gio = service.generateGioHoangDaoNotification()
-
-        let content = UNMutableNotificationContent()
-        content.title = gio.title
-        // Chỉ lấy 2 dòng đầu cho push notification
-        let lines = gio.description.components(separatedBy: "\n")
-        content.body = lines.prefix(3).joined(separator: "\n")
-        content.sound = .default
-        content.categoryIdentifier = "good_day"
-
-        var dateComponents = DateComponents()
-        dateComponents.hour = hour
-        dateComponents.minute = minute
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-        let request = UNNotificationRequest(identifier: "gio_hoang_dao", content: content, trigger: trigger)
-
-        notificationCenter.add(request) { error in
-            #if DEBUG
-            if let error { print("Schedule gio hoang dao error: \(error)") }
-            #endif
-        }
-    }
-
-    /// Lên lịch thông báo thời tiết buổi sáng lúc 07:00.
-    /// Nội dung lấy theo thành phố + đơn vị nhiệt độ trong Settings.
-    func scheduleWeatherMorningNotification(hour: Int = 7, minute: Int = 0) {
-        notificationCenter.removePendingNotificationRequests(withIdentifiers: ["weather_morning"])
-
-        Task { @MainActor in
-            let city = UserDefaults.standard.string(forKey: "setting_location") ?? "Hà Nội"
-            let unit = UserDefaults.standard.string(forKey: "setting_temp_unit") ?? "°C"
-
-            await WeatherService.shared.fetchWeather(for: city, unit: unit)
-            let weather = WeatherService.shared.weather
-
+            let summary = service.generateMorningSummaryNotification(for: day)
             let content = UNMutableNotificationContent()
-            if let weather {
-                let tempNow = Int(weather.temperature)
-                let tempMin = Int(weather.dailyForecast.first?.tempMin ?? weather.temperature)
-                let tempMax = Int(weather.dailyForecast.first?.tempMax ?? weather.temperature)
-
-                content.title = "Chào buổi sáng! \(weather.weatherEmoji)"
-                content.body = "\(city) \(tempMin)°–\(tempMax)° • \(weather.conditionText)\nNhiệt độ hiện tại: \(tempNow)\(unit)\nChúc bạn một ngày thuận lợi!"
-            } else {
-                content.title = "Chào buổi sáng!"
-                content.body = "Hiện chưa lấy được thời tiết tại \(city). Mở app để cập nhật chi tiết nhé."
-            }
+            content.title = summary.title
+            content.body = summary.description
             content.sound = .default
             content.categoryIdentifier = "daily"
 
-            var dateComponents = DateComponents()
-            dateComponents.hour = hour
-            dateComponents.minute = minute
+            let comps = cal.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+            let request = UNNotificationRequest(
+                identifier: morningSummaryIdentifier(for: day),
+                content: content,
+                trigger: trigger
+            )
 
-            let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-            let request = UNNotificationRequest(identifier: "weather_morning", content: content, trigger: trigger)
             notificationCenter.add(request) { error in
                 #if DEBUG
-                if let error { print("Schedule weather morning error: \(error)") }
+                if let error { print("Schedule morning summary error: \(error)") }
                 #endif
             }
         }
+    }
+
+    /// Legacy: giờ hoàng đạo buổi sáng đã được gộp vào daily summary.
+    func scheduleGioHoangDaoNotification(hour: Int = 6, minute: Int = 30) {
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: ["gio_hoang_dao"])
+    }
+
+    /// Legacy: thời tiết buổi sáng đã được gộp vào daily summary.
+    func scheduleWeatherMorningNotification(hour: Int = 7, minute: Int = 0) {
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: ["weather_morning"])
     }
 
     /// Lên lịch thông báo nhắc lễ buổi tối (tương tự FestivalReminderWorker)
@@ -274,8 +228,6 @@ class NotificationScheduler: ObservableObject {
             guard granted else { return }
 
             scheduleDailyNotification(hour: dailyHour, minute: dailyMinute)
-            scheduleWeatherMorningNotification(hour: 7, minute: 0)
-            scheduleGioHoangDaoNotification(hour: max(dailyHour - 1, 5), minute: 30)
             scheduleUpcomingFestivalNotifications()
             scheduleRamMung1Reminders()
         }
@@ -285,5 +237,29 @@ class NotificationScheduler: ObservableObject {
 
     func cancelAllNotifications() {
         notificationCenter.removeAllPendingNotificationRequests()
+    }
+
+    func cancelMorningSummaryNotifications() {
+        var identifiers = ["daily_morning", "weather_morning", "gio_hoang_dao"]
+        let cal = Calendar.current
+        let startOfToday = cal.startOfDay(for: Date())
+
+        for offset in -1...(morningSummaryDays * 3) {
+            if let day = cal.date(byAdding: .day, value: offset, to: startOfToday) {
+                identifiers.append(morningSummaryIdentifier(for: day))
+            }
+        }
+
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+
+    private func morningSummaryIdentifier(for date: Date) -> String {
+        let comps = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(
+            format: "daily_morning_%04d%02d%02d",
+            comps.year ?? 0,
+            comps.month ?? 0,
+            comps.day ?? 0
+        )
     }
 }

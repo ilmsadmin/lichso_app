@@ -2,8 +2,6 @@ package com.lichso.app.ui.components
 
 import android.app.Activity
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
@@ -34,15 +32,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Feedback
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -77,8 +72,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.lichso.app.util.AppReviewReporter
 import com.lichso.app.util.SmartRatingManager
-import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -90,15 +85,13 @@ private val TextSub    = Color(0xFF534340)
 private val TextDim    = Color(0xFF857371)
 private val Outline    = Color(0xFFD8C2BF)
 
-private const val FEEDBACK_EMAIL = "zenixhq.com@gmail.com"
-
 /**
  * SmartRatingDialog — Dialog xin đánh giá ứng dụng (luồng mới).
  *
  *   [stars]    → user chọn 1-5 sao
  *       → 4-5 sao → Google Play In-App Review (fallback Play Store listing)
- *       → 1-3 sao → [feedback] form gửi email
- *   [feedback] → gửi mail tới zenixhq.com@gmail.com
+ *       → 1-3 sao → [feedback] form gửi phản hồi lên server
+ *   [feedback] → gửi phản hồi tới lichso.vn
  *   [thanks]   → cảm ơn, tự đóng sau 2.5s
  *
  * Không còn EmotionStep "👍/👎" — đi thẳng vào sao luôn cho gọn.
@@ -115,19 +108,9 @@ fun SmartRatingDialog(
     var step by remember { mutableStateOf("stars") }
     var feedbackText by remember { mutableStateOf("") }
     var selectedStars by remember { mutableIntStateOf(0) }
+    var isSubmitting by remember { mutableStateOf(false) }
 
     val dialogScope = rememberCoroutineScope()
-
-    // Helpers ghi outcome lên DataStore — dùng scope của composition để tránh leak.
-    val recordSkippedSafe: () -> Unit = {
-        dialogScope.launch { SmartRatingManager.recordSkipped(context.applicationContext) }
-    }
-    val recordFeedbackSafe: () -> Unit = {
-        dialogScope.launch { SmartRatingManager.recordFeedbackSent(context.applicationContext) }
-    }
-    val recordReviewIntentSafe: () -> Unit = {
-        dialogScope.launch { SmartRatingManager.recordReviewIntent(context.applicationContext) }
-    }
 
     // Ghi nhận đã hiển thị (chỉ tăng quota nếu auto-trigger).
     LaunchedEffect(Unit) {
@@ -136,8 +119,10 @@ fun SmartRatingDialog(
 
     Dialog(
         onDismissRequest = {
-            recordSkippedSafe()
-            onDismiss()
+            if (!isSubmitting) {
+                dialogScope.launch { SmartRatingManager.recordSkipped(context.applicationContext) }
+                onDismiss()
+            }
         },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
@@ -161,37 +146,72 @@ fun SmartRatingDialog(
                         onStarSelect = { selectedStars = it },
                         onConfirm = { stars ->
                             if (stars >= 4) {
-                                // 4-5 sao → in-app review API. Cần Activity.
-                                val activity = context.findActivity()
-                                if (activity != null) {
-                                    SmartRatingManager.launchInAppReview(activity)
-                                } else {
-                                    SmartRatingManager.openPlayStoreListing(context)
+                                isSubmitting = true
+                                dialogScope.launch {
+                                    val submitResult = AppReviewReporter.submitHighRatingReview(
+                                        context = context.applicationContext,
+                                        stars = stars,
+                                    )
+                                    if (submitResult.isFailure) {
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            "Không gửi được bản sao đánh giá lên máy chủ, nhưng Google Play vẫn sẽ được mở.",
+                                            android.widget.Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+
+                                    val activity = context.findActivity()
+                                    if (activity != null) {
+                                        SmartRatingManager.launchInAppReview(activity)
+                                    } else {
+                                        SmartRatingManager.openPlayStoreListing(context)
+                                    }
+                                    SmartRatingManager.recordReviewIntent(context.applicationContext)
+                                    isSubmitting = false
+                                    onDismiss()
                                 }
-                                recordReviewIntentSafe()
-                                onDismiss()
                             } else {
-                                // 1-3 sao → form feedback
                                 step = "feedback"
                             }
                         },
                         onDismiss = {
-                            recordSkippedSafe()
-                            onDismiss()
+                            if (!isSubmitting) {
+                                dialogScope.launch { SmartRatingManager.recordSkipped(context.applicationContext) }
+                                onDismiss()
+                            }
                         }
                     )
 
                     "feedback" -> FeedbackStep(
                         feedbackText = feedbackText,
+                        isSubmitting = isSubmitting,
                         onFeedbackChange = { feedbackText = it },
                         onSend = {
-                            sendFeedbackEmail(context, feedbackText, selectedStars)
-                            recordFeedbackSafe()
-                            step = "thanks"
+                            isSubmitting = true
+                            dialogScope.launch {
+                                val submitResult = AppReviewReporter.submitLowRatingFeedback(
+                                    context = context.applicationContext,
+                                    stars = selectedStars,
+                                    reviewText = feedbackText,
+                                )
+                                if (submitResult.isSuccess) {
+                                    SmartRatingManager.recordFeedbackSent(context.applicationContext)
+                                    step = "thanks"
+                                } else {
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Không gửi được phản hồi. Vui lòng thử lại khi có mạng ổn định.",
+                                        android.widget.Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                                isSubmitting = false
+                            }
                         },
                         onSkip = {
-                            recordSkippedSafe()
-                            onDismiss()
+                            if (!isSubmitting) {
+                                dialogScope.launch { SmartRatingManager.recordSkipped(context.applicationContext) }
+                                onDismiss()
+                            }
                         }
                     )
 
@@ -385,6 +405,7 @@ private fun StarsStep(
 @Composable
 private fun FeedbackStep(
     feedbackText: String,
+    isSubmitting: Boolean,
     onFeedbackChange: (String) -> Unit,
     onSend: () -> Unit,
     onSkip: () -> Unit
@@ -431,7 +452,7 @@ private fun FeedbackStep(
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                "Phản hồi của bạn sẽ được gửi thẳng đến đội phát triển và được xử lý trong vòng 24 giờ.",
+                "Phản hồi của bạn sẽ được gửi thẳng lên hệ thống Lịch Số để đội phát triển xử lý nhanh hơn.",
                 style = TextStyle(
                     fontSize = 12.sp,
                     color = TextSub,
@@ -465,24 +486,6 @@ private fun FeedbackStep(
             )
 
             Spacer(modifier = Modifier.height(6.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Filled.Email,
-                    contentDescription = null,
-                    tint = TextDim,
-                    modifier = Modifier.size(14.dp)
-                )
-                Text(
-                    "Phản hồi gửi tới: $FEEDBACK_EMAIL",
-                    style = TextStyle(fontSize = 11.sp, color = TextDim)
-                )
-            }
-
             Spacer(modifier = Modifier.height(20.dp))
 
             Row(
@@ -491,6 +494,7 @@ private fun FeedbackStep(
             ) {
                 OutlinedButton(
                     onClick = onSkip,
+                    enabled = !isSubmitting,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(14.dp),
                     border = BorderStroke(1.dp, Outline),
@@ -501,7 +505,7 @@ private fun FeedbackStep(
 
                 Button(
                     onClick = onSend,
-                    enabled = feedbackText.isNotBlank(),
+                    enabled = feedbackText.isNotBlank() && !isSubmitting,
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp),
@@ -512,14 +516,8 @@ private fun FeedbackStep(
                     ),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                 ) {
-                    Icon(
-                        Icons.Filled.Send,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
                     Text(
-                        "Gửi phản hồi",
+                        if (isSubmitting) "Đang gửi..." else "Gửi phản hồi",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -618,40 +616,4 @@ private fun Context.findActivity(): Activity? {
         ctx = ctx.baseContext
     }
     return null
-}
-
-private fun sendFeedbackEmail(context: Context, feedback: String, stars: Int) {
-    val starText = if (stars > 0) "$stars/5 sao" else "Không chọn"
-    val subject = "[Lịch Số] Phản hồi – $starText"
-
-    val body = buildString {
-        appendLine(feedback)
-        appendLine()
-        appendLine("---")
-        appendLine("Đánh giá: $starText")
-        appendLine("Thiết bị: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
-        appendLine("Android: ${android.os.Build.VERSION.RELEASE}")
-        try {
-            val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val versionCode = androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(pInfo)
-            appendLine("App: Lịch Số ${pInfo.versionName} ($versionCode)")
-        } catch (_: Exception) { /* ignore */ }
-    }
-
-    // mailto URI: encode subject + body thủ công, KHÔNG dùng appendQueryParameter
-    // (sẽ double-encode dấu + thành %2B → Gmail hiểu sai).
-    val encodedSubject = Uri.encode(subject)
-    val encodedBody = Uri.encode(body)
-    val mailtoUri = Uri.parse("mailto:$FEEDBACK_EMAIL?subject=$encodedSubject&body=$encodedBody")
-
-    val intent = Intent(Intent.ACTION_SENDTO, mailtoUri)
-    try {
-        context.startActivity(intent)
-    } catch (_: android.content.ActivityNotFoundException) {
-        android.widget.Toast.makeText(
-            context,
-            "Không tìm thấy ứng dụng email. Vui lòng liên hệ: $FEEDBACK_EMAIL",
-            android.widget.Toast.LENGTH_LONG
-        ).show()
-    }
 }
