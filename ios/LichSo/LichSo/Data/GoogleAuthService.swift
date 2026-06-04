@@ -69,8 +69,6 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
     @Published var errorMessage: String? = nil
 
     private enum Keys {
-        static let accessToken = "backend_access_token"
-        static let refreshToken = "backend_refresh_token"
         static let displayName = "displayName"
         static let email = "profile_email"
         static let googlePhoto = "profile_google_photo_url"
@@ -106,6 +104,7 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
     private let backendBaseURL = "https://api.lichso.vn/api"
 
     private var codeVerifier: String = ""
+    private var expectedState: String = ""
 
     private override init() {
         super.init()
@@ -133,6 +132,7 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
         codeVerifier = generateCodeVerifier()
         let challenge = codeChallenge(for: codeVerifier)
         let state = UUID().uuidString
+        expectedState = state
 
         var components = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")!
         components.queryItems = [
@@ -176,6 +176,13 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
                   let code = components.queryItems?.first(where: { $0.name == "code" })?.value else {
                 throw NSError(domain: "GoogleAuth", code: -2,
                               userInfo: [NSLocalizedDescriptionKey: "Không tìm thấy mã xác thực"])
+            }
+
+            // Xác thực state để chống CSRF / authorization-code injection
+            let returnedState = components.queryItems?.first(where: { $0.name == "state" })?.value
+            guard returnedState == expectedState, !expectedState.isEmpty else {
+                throw NSError(domain: "GoogleAuth", code: -6,
+                              userInfo: [NSLocalizedDescriptionKey: "State không hợp lệ. Vui lòng thử lại."])
             }
 
             // Exchange code → tokens
@@ -246,12 +253,12 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
 
         let decoded = try decodeBackendLoginResponse(from: data)
 
-        // Save tokens
+        // Save tokens (Keychain)
         if let accessToken = decoded.access_token {
-            UserDefaults.standard.set(accessToken, forKey: Keys.accessToken)
+            TokenStore.accessToken = accessToken
         }
         if let refreshToken = decoded.refresh_token {
-            UserDefaults.standard.set(refreshToken, forKey: Keys.refreshToken)
+            TokenStore.refreshToken = refreshToken
         }
 
         // Save provider
@@ -306,12 +313,12 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
 
             let decoded = try decodeBackendLoginResponse(from: data)
 
-            // Save tokens
+            // Save tokens (Keychain)
             if let accessToken = decoded.access_token {
-                UserDefaults.standard.set(accessToken, forKey: Keys.accessToken)
+                TokenStore.accessToken = accessToken
             }
             if let refreshToken = decoded.refresh_token {
-                UserDefaults.standard.set(refreshToken, forKey: Keys.refreshToken)
+                TokenStore.refreshToken = refreshToken
             }
 
             // Save provider
@@ -400,7 +407,7 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
     // ── SIGN OUT ──
     func signOut() {
         // Revoke backend token if any
-        if let token = UserDefaults.standard.string(forKey: Keys.accessToken) {
+        if let token = TokenStore.accessToken {
             Task {
                 var req = URLRequest(url: URL(string: "\(backendBaseURL)/auth/logout")!)
                 req.httpMethod = "POST"
@@ -408,8 +415,7 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
                 _ = try? await URLSession.shared.data(for: req)
             }
         }
-        UserDefaults.standard.removeObject(forKey: Keys.accessToken)
-        UserDefaults.standard.removeObject(forKey: Keys.refreshToken)
+        TokenStore.clear()
         UserDefaults.standard.removeObject(forKey: Keys.googlePhoto)
         UserDefaults.standard.removeObject(forKey: "auth_provider")
         isSignedIn  = false
@@ -420,8 +426,8 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
 
     // ── Restore session on launch ──
     private func restoreSession() {
-        let accessToken = UserDefaults.standard.string(forKey: Keys.accessToken) ?? ""
-        let refreshToken = UserDefaults.standard.string(forKey: Keys.refreshToken) ?? ""
+        let accessToken = TokenStore.accessToken ?? ""
+        let refreshToken = TokenStore.refreshToken ?? ""
         if !accessToken.isEmpty || !refreshToken.isEmpty {
             isSignedIn  = true
             displayName = UserDefaults.standard.string(forKey: Keys.displayName) ?? ""
@@ -432,7 +438,7 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
 
     // ── Refresh backend token ──
     func refreshTokenIfNeeded() async {
-        guard let refreshToken = UserDefaults.standard.string(forKey: Keys.refreshToken),
+        guard let refreshToken = TokenStore.refreshToken,
               !refreshToken.isEmpty else { return }
         var request = URLRequest(url: URL(string: "\(backendBaseURL)/auth/refresh")!)
         request.httpMethod = "POST"
@@ -442,9 +448,9 @@ class GoogleAuthService: NSObject, ObservableObject, ASWebAuthenticationPresenta
         guard let (data, _) = try? await URLSession.shared.data(for: request),
               let decoded = try? decodeBackendLoginResponse(from: data),
               let newToken = decoded.access_token else { return }
-        UserDefaults.standard.set(newToken, forKey: Keys.accessToken)
+        TokenStore.accessToken = newToken
         if let newRefresh = decoded.refresh_token {
-            UserDefaults.standard.set(newRefresh, forKey: Keys.refreshToken)
+            TokenStore.refreshToken = newRefresh
         }
     }
 

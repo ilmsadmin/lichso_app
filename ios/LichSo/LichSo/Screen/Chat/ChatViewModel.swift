@@ -43,7 +43,7 @@ class ChatViewModel: ObservableObject {
             }
         } catch {
             #if DEBUG
-            print("Failed to load messages: \(error)")
+            debugLog("Failed to load messages: \(error)")
             #endif
         }
     }
@@ -213,7 +213,7 @@ class ChatViewModel: ObservableObject {
             addGreetingMessage()
         } catch {
             #if DEBUG
-            print("Failed to clear chat: \(error)")
+            debugLog("Failed to clear chat: \(error)")
             #endif
         }
     }

@@ -72,11 +72,8 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 
-	<!-- ── Background modes ── -->
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>fetch</string>
-		<string>remote-notification</string>
-	</array>
+	<!-- ── Location (compass / heading service) ── -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Ứng dụng dùng cảm biến la bàn để xác định hướng cho tính năng phong thuỷ. Vị trí của bạn không được lưu hay chia sẻ.</string>
 </dict>
 </plist>

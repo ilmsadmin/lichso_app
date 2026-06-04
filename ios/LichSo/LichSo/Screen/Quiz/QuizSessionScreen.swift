@@ -133,7 +133,7 @@ private final class QuizPlayViewModel: ObservableObject {
                 )
                 startTimer()
             } catch {
-                print("QuizSession start error: \(error)")
+                debugLog("QuizSession start error: \(error)")
                 state = .error("Không thể tải câu hỏi. Lỗi: \(error.localizedDescription)")
             }
         }
@@ -313,7 +313,7 @@ private final class QuizPlayViewModel: ObservableObject {
     }
 
     private var hasBackendToken: Bool {
-        !(UserDefaults.standard.string(forKey: "backend_access_token") ?? "").isEmpty
+        !(TokenStore.accessToken ?? "").isEmpty
     }
 
     private func startTimer() {

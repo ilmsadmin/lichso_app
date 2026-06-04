@@ -5,7 +5,9 @@ import android.util.Log
 import androidx.credentials.*
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
@@ -81,11 +83,13 @@ class AuthRepository @Inject constructor(
             )
         }
 
-        return try {
-            val credentialManager = CredentialManager.create(activityContext)
+        val credentialManager = CredentialManager.create(activityContext)
 
+        return try {
+            // Fast path for returning users: only surface accounts that have already
+            // authorized this app, allowing a silent one-tap sign-in.
             val googleIdOption = GetGoogleIdOption.Builder()
-                .setFilterByAuthorizedAccounts(false)
+                .setFilterByAuthorizedAccounts(true)
                 .setServerClientId(webClientId)
                 .setAutoSelectEnabled(true)
                 .build()
@@ -103,8 +107,48 @@ class AuthRepository @Inject constructor(
         } catch (e: GetCredentialCancellationException) {
             Log.d(tag, "Sign-in cancelled by user")
             Result.failure(e)
+        } catch (e: NoCredentialException) {
+            // No previously-authorized account (e.g. first-time user). Fall back to the
+            // full "Sign in with Google" flow, which lets the user pick any Google account
+            // on the device or add a brand-new one.
+            Log.d(tag, "No authorized account, falling back to Sign in with Google flow")
+            signInWithGoogleButtonFlow(credentialManager, activityContext)
         } catch (e: GetCredentialException) {
             Log.e(tag, "Sign-in failed: ${e.message}", e)
+            Result.failure(e)
+        } catch (e: Exception) {
+            Log.e(tag, "Unexpected error: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Full "Sign in with Google" flow. Unlike [GetGoogleIdOption], this always presents
+     * the account chooser and offers to add a new Google account, so it works for users
+     * who have never signed in to Google in this app before.
+     */
+    private suspend fun signInWithGoogleButtonFlow(
+        credentialManager: CredentialManager,
+        activityContext: Context,
+    ): Result<UserInfo> {
+        return try {
+            val signInOption = GetSignInWithGoogleOption.Builder(webClientId).build()
+
+            val request = GetCredentialRequest.Builder()
+                .addCredentialOption(signInOption)
+                .build()
+
+            val result = credentialManager.getCredential(
+                request = request,
+                context = activityContext,
+            )
+
+            handleSignInResult(result)
+        } catch (e: GetCredentialCancellationException) {
+            Log.d(tag, "Sign-in cancelled by user")
+            Result.failure(e)
+        } catch (e: GetCredentialException) {
+            Log.e(tag, "Sign in with Google flow failed: ${e.message}", e)
             Result.failure(e)
         } catch (e: Exception) {
             Log.e(tag, "Unexpected error: ${e.message}", e)

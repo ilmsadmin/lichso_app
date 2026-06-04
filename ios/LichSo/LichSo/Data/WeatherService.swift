@@ -206,7 +206,7 @@ final class WeatherService: ObservableObject {
             } catch {
                 lastError = error
                 #if DEBUG
-                print("❌ WeatherService attempt \(attempt) error: \(error)")
+                debugLog("❌ WeatherService attempt \(attempt) error: \(error)")
                 #endif
                 if attempt < 2 {
                     try? await Task.sleep(nanoseconds: 1_000_000_000) // wait 1s before retry
@@ -216,7 +216,7 @@ final class WeatherService: ObservableObject {
 
         if let lastError {
             #if DEBUG
-            print("❌ WeatherService failed after retries: \(lastError)")
+            debugLog("❌ WeatherService failed after retries: \(lastError)")
             #endif
             self.error = "Không thể tải thời tiết"
             cachedCity = nil

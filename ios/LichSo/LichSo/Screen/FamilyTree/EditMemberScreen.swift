@@ -286,7 +286,7 @@ struct EditMemberScreen: View {
         let spouseIdList = member.spouseIds.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
 
         #if DEBUG
-        print("🔍 EditMember populateFromMember: role=\(member.role), parentIds='\(member.parentIds)', spouseIds='\(member.spouseIds)', members count=\(viewModel.members.count)")
+        debugLog("🔍 EditMember populateFromMember: role=\(member.role), parentIds='\(member.parentIds)', spouseIds='\(member.spouseIds)', members count=\(viewModel.members.count)")
         #endif
 
         let role = member.role
@@ -363,7 +363,7 @@ struct EditMemberScreen: View {
         }
 
         #if DEBUG
-        print("🔍 EditMember populateFromMember: found relatedMember=\(relatedMember?.name ?? "nil")")
+        debugLog("🔍 EditMember populateFromMember: found relatedMember=\(relatedMember?.name ?? "nil")")
         #endif
 
         recalculateCanChi()
@@ -1263,7 +1263,7 @@ struct EditMemberScreen: View {
             return filePath.path
         } catch {
             #if DEBUG
-            print("⚠️ Failed to save avatar: \(error)")
+            debugLog("⚠️ Failed to save avatar: \(error)")
             #endif
             return nil
         }

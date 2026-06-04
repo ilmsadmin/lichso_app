@@ -23,7 +23,7 @@ class NotificationScheduler: ObservableObject {
             return granted
         } catch {
             #if DEBUG
-            print("Notification permission error: \(error)")
+            debugLog("Notification permission error: \(error)")
             #endif
             return false
         }
@@ -64,7 +64,7 @@ class NotificationScheduler: ObservableObject {
 
             notificationCenter.add(request) { error in
                 #if DEBUG
-                if let error { print("Schedule morning summary error: \(error)") }
+                if let error { debugLog("Schedule morning summary error: \(error)") }
                 #endif
             }
         }
@@ -100,7 +100,7 @@ class NotificationScheduler: ObservableObject {
 
         notificationCenter.add(request) { error in
             #if DEBUG
-            if let error { print("Schedule festival error: \(error)") }
+            if let error { debugLog("Schedule festival error: \(error)") }
             #endif
         }
     }
@@ -164,7 +164,7 @@ class NotificationScheduler: ObservableObject {
 
             notificationCenter.add(request) { error in
                 #if DEBUG
-                if let error { print("Schedule festival \(dd)/\(mm) error: \(error)") }
+                if let error { debugLog("Schedule festival \(dd)/\(mm) error: \(error)") }
                 #endif
             }
         }
@@ -213,7 +213,7 @@ class NotificationScheduler: ObservableObject {
 
             notificationCenter.add(request) { error in
                 #if DEBUG
-                if let error { print("Schedule \(label) error: \(error)") }
+                if let error { debugLog("Schedule \(label) error: \(error)") }
                 #endif
             }
         }

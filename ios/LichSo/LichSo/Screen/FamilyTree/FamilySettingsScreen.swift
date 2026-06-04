@@ -850,7 +850,7 @@ struct FamilySettingsScreen: View {
                 viewModel.settings?.familyName = editText.trimmingCharacters(in: .whitespaces)
                 viewModel.updateSettings()
                 #if DEBUG
-                print("✅ Saved familyName: \(viewModel.settings?.familyName ?? "nil")")
+                debugLog("✅ Saved familyName: \(viewModel.settings?.familyName ?? "nil")")
                 #endif
             }
         }
@@ -862,7 +862,7 @@ struct FamilySettingsScreen: View {
                 viewModel.settings?.familyCrest = editText.trimmingCharacters(in: .whitespaces)
                 viewModel.updateSettings()
                 #if DEBUG
-                print("✅ Saved familyCrest: \(viewModel.settings?.familyCrest ?? "nil")")
+                debugLog("✅ Saved familyCrest: \(viewModel.settings?.familyCrest ?? "nil")")
                 #endif
             }
         }
@@ -873,7 +873,7 @@ struct FamilySettingsScreen: View {
                 viewModel.settings?.hometown = editText.trimmingCharacters(in: .whitespaces)
                 viewModel.updateSettings()
                 #if DEBUG
-                print("✅ Saved hometown: \(viewModel.settings?.hometown ?? "nil")")
+                debugLog("✅ Saved hometown: \(viewModel.settings?.hometown ?? "nil")")
                 #endif
             }
         }

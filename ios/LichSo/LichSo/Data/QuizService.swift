@@ -16,7 +16,7 @@ public class QuizService: ObservableObject {
     }
     
     private var token: String? {
-        UserDefaults.standard.string(forKey: "backend_access_token")
+        TokenStore.accessToken
     }
 
     private var hasValidToken: Bool {

@@ -1,5 +1,13 @@
 import Foundation
 
+/// Ghi log chỉ trong bản DEBUG — no-op khi build Release để không lộ thông tin nội bộ.
+@inline(__always)
+func debugLog(_ items: Any..., separator: String = " ", terminator: String = "\n") {
+    #if DEBUG
+    print(items.map { "\($0)" }.joined(separator: separator), terminator: terminator)
+    #endif
+}
+
 enum ApiErrorUX {
     static func userMessage(
         from error: Error,

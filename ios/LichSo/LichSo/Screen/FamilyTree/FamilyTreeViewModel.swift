@@ -58,12 +58,12 @@ class FamilyTreeViewModel: ObservableObject {
         let descriptor = FetchDescriptor<FamilySettingsEntity>()
         let fetched = (try? ctx.fetch(descriptor)) ?? []
         #if DEBUG
-        print("🔍 loadSettings: fetched \(fetched.count) settings entities")
+        debugLog("🔍 loadSettings: fetched \(fetched.count) settings entities")
         #endif
         if let existing = fetched.first {
             settings = existing
             #if DEBUG
-            print("🔍 loadSettings: familyName=\(existing.familyName), crest=\(existing.familyCrest), hometown=\(existing.hometown)")
+            debugLog("🔍 loadSettings: familyName=\(existing.familyName), crest=\(existing.familyCrest), hometown=\(existing.hometown)")
             #endif
         } else {
             let newSettings = FamilySettingsEntity()
@@ -71,7 +71,7 @@ class FamilyTreeViewModel: ObservableObject {
             try? ctx.save()
             settings = newSettings
             #if DEBUG
-            print("🔍 loadSettings: created new default settings")
+            debugLog("🔍 loadSettings: created new default settings")
             #endif
         }
     }
@@ -285,13 +285,13 @@ class FamilyTreeViewModel: ObservableObject {
     func updateSettings() {
         guard let ctx = modelContext else {
             #if DEBUG
-            print("⚠️ updateSettings: modelContext is nil")
+            debugLog("⚠️ updateSettings: modelContext is nil")
             #endif
             return
         }
         guard let s = settings else {
             #if DEBUG
-            print("⚠️ updateSettings: settings is nil")
+            debugLog("⚠️ updateSettings: settings is nil")
             #endif
             return
         }
@@ -299,11 +299,11 @@ class FamilyTreeViewModel: ObservableObject {
         do {
             try ctx.save()
             #if DEBUG
-            print("✅ updateSettings saved — familyName: \(s.familyName), crest: \(s.familyCrest), hometown: \(s.hometown)")
+            debugLog("✅ updateSettings saved — familyName: \(s.familyName), crest: \(s.familyCrest), hometown: \(s.hometown)")
             #endif
         } catch {
             #if DEBUG
-            print("⚠️ updateSettings save error: \(error)")
+            debugLog("⚠️ updateSettings save error: \(error)")
             #endif
         }
         // Force @Published to fire by re-assigning the reference.

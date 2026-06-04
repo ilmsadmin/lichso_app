@@ -22,7 +22,7 @@ class NotificationsViewModel: ObservableObject {
         ])
         do { notifications = try ctx.fetch(descriptor) } catch {
             #if DEBUG
-            print("Notif fetch error: \(error)")
+            debugLog("Notif fetch error: \(error)")
             #endif
         }
     }

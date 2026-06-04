@@ -398,7 +398,7 @@ https://apps.apple.com/app/id6740048518
         Color(hex: "0F0E0C").ignoresSafeArea()
         SidebarView(
             onClose: {},
-            onNavigate: { route in print("Navigate to: \(route)") }
+            onNavigate: { route in debugLog("Navigate to: \(route)") }
         )
     }
 }

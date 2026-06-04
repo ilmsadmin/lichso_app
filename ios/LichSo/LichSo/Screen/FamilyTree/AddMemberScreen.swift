@@ -1096,7 +1096,7 @@ struct AddMemberScreen: View {
             return filePath.path
         } catch {
             #if DEBUG
-            print("⚠️ Failed to save avatar: \(error)")
+            debugLog("⚠️ Failed to save avatar: \(error)")
             #endif
             return nil
         }

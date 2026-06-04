@@ -19,6 +19,7 @@
 		0DCEC8AD2A2ECD8B2AE6B614 /* SmartRatingDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C7E1322F5E22A9026609A04 /* SmartRatingDialog.swift */; };
 		0DE0B078379AFB0BEEB40B68 /* AiFab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7200B8F813DD8352AC58E51C /* AiFab.swift */; };
 		0E66F8FACDA1842DFD4B0B31 /* GoogleAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2985A2F04658381F617E542 /* GoogleAuthService.swift */; };
+		A0B1C2D3E4F5A6B7C8D9E0F4 /* TokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B1C2D3E4F5A6B7C8D9E0F3 /* TokenStore.swift */; };
 		0F52CD78C1CE1CA5EF78BA59 /* LichSoClientInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4C59E31BE4773FE8BDF4716 /* LichSoClientInfo.swift */; };
 		114F3E30250B8F6DD0D12B60 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6B4C1B48B3A4C0CBB6F6B63 /* SettingsViewModel.swift */; };
 		1168324776DAB337A4B5D65D /* PickMemberScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF15BBA4B6E7C3E9CCE689DD /* PickMemberScreen.swift */; };
@@ -63,6 +64,7 @@
 		6F32B711BA8FCACED4AFC126 /* WidgetManagerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9188D7F183ECE658BDA41E47 /* WidgetManagerScreen.swift */; };
 		73488F405233102F35EEBECB /* DayDetailScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BF301DC84D4DA25C5441573 /* DayDetailScreen.swift */; };
 		74D284316501FBAD802B9FE3 /* Secrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1950E794DC4558102A9FE153 /* Secrets.plist */; };
+		A0B1C2D3E4F5A6B7C8D9E0F2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A0B1C2D3E4F5A6B7C8D9E0F1 /* PrivacyInfo.xcprivacy */; };
 		7A3CDDF90A13F93DA9BB9EAE /* LichSoColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACBAEBDD79189A245AD7190D /* LichSoColors.swift */; };
 		802B9DD78A4673E0B251DE14 /* NotificationsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0349D65E1C9E0F8F3A50FE8B /* NotificationsViewModel.swift */; };
 		84158C8D097B50E3A270ABFD /* DayInfoProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4E369E4847BED14BD269318 /* DayInfoProvider.swift */; };
@@ -155,7 +157,8 @@
 		4EA1DECFA6C7FC75EA7048B1 /* AppBackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBackupManager.swift; sourceTree = "<group>"; };
 		5038DCE81065180B2807F5F5 /* FamilySettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilySettingsScreen.swift; sourceTree = "<group>"; };
 		5175ECFD2DE4CB84D13AF472 /* QuizService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuizService.swift; sourceTree = "<group>"; };
-		54EFDD3E2FD0172C00D43AEC /* LichSoDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LichSoDebug.entitlements; sourceTree = "<group>"; };
+		54EFDD3E2FD0172C00D43AEC /* LichSo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LichSo.entitlements; sourceTree = "<group>"; };
+		A0B1C2D3E4F5A6B7C8D9E0F1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		559A30F5767FE34B9E3C53A0 /* TrucNgayCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrucNgayCalculator.swift; sourceTree = "<group>"; };
 		55B655565A433A89918B62C6 /* KeyboardDismissGestures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardDismissGestures.swift; sourceTree = "<group>"; };
 		5686435845FC0CDD98E6D77A /* ToolsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsScreen.swift; sourceTree = "<group>"; };
@@ -201,6 +204,7 @@
 		BE3B968E2DC4D3751FEE069A /* HomePopupOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomePopupOverlay.swift; sourceTree = "<group>"; };
 		BE8D8F1D5A5156218C02C8E5 /* LichSoTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LichSoTheme.swift; sourceTree = "<group>"; };
 		C2985A2F04658381F617E542 /* GoogleAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthService.swift; sourceTree = "<group>"; };
+		A0B1C2D3E4F5A6B7C8D9E0F3 /* TokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenStore.swift; sourceTree = "<group>"; };
 		C4E369E4847BED14BD269318 /* DayInfoProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayInfoProvider.swift; sourceTree = "<group>"; };
 		C6B4C1B48B3A4C0CBB6F6B63 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		CE02FAD01538F1F1D3202ACA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -346,6 +350,7 @@
 				33E4338310F73C0E3DBADDA1 /* Entities.swift */,
 				71E203C1F2B0E27525C0DE59 /* FamilyTreeEntities.swift */,
 				C2985A2F04658381F617E542 /* GoogleAuthService.swift */,
+				A0B1C2D3E4F5A6B7C8D9E0F3 /* TokenStore.swift */,
 				D4C59E31BE4773FE8BDF4716 /* LichSoClientInfo.swift */,
 				259FE89A9F2586DD35768D2C /* QuizModels.swift */,
 				5175ECFD2DE4CB84D13AF472 /* QuizService.swift */,
@@ -484,7 +489,8 @@
 		E109AEB32A504F9AB22B5B9A /* LichSo */ = {
 			isa = PBXGroup;
 			children = (
-				54EFDD3E2FD0172C00D43AEC /* LichSoDebug.entitlements */,
+				54EFDD3E2FD0172C00D43AEC /* LichSo.entitlements */,
+				A0B1C2D3E4F5A6B7C8D9E0F1 /* PrivacyInfo.xcprivacy */,
 				6DA92200BBE894EE60626D1B /* Data */,
 				6469DD6BFF163A7153DFB570 /* LichSoApp.swift */,
 				4DA49C476857D07B750DCCC9 /* Model */,
@@ -607,6 +613,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				74D284316501FBAD802B9FE3 /* Secrets.plist in Resources */,
+				A0B1C2D3E4F5A6B7C8D9E0F2 /* PrivacyInfo.xcprivacy in Resources */,
 				0C5C1AAB139E0601CB53E883 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -625,6 +632,7 @@
 				9E19FD797DD1B7E8909D67E5 /* Entities.swift in Sources */,
 				0D2691BFD3CD58007DC65412 /* FamilyTreeEntities.swift in Sources */,
 				0E66F8FACDA1842DFD4B0B31 /* GoogleAuthService.swift in Sources */,
+				A0B1C2D3E4F5A6B7C8D9E0F4 /* TokenStore.swift in Sources */,
 				0F52CD78C1CE1CA5EF78BA59 /* LichSoClientInfo.swift in Sources */,
 				BF6537B953DD8930474D0304 /* QuizModels.swift in Sources */,
 				4EA7DE484C166EA5C463FE6A /* QuizService.swift in Sources */,
@@ -795,8 +803,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = LichSo/LichSo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A759U6QWJ9;
 				DEVELOPMENT_ASSET_PATHS = "\"LichSo/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -874,7 +884,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = LichSo/LichSoDebug.entitlements;
+				CODE_SIGN_ENTITLEMENTS = LichSo/LichSo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"LichSo/Preview Content\"";
