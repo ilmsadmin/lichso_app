@@ -12,6 +12,7 @@ import com.lichso.app.feature.points.domain.ActionType
 import com.lichso.app.feature.points.domain.AwardPointsUseCase
 import com.lichso.app.notification.NotificationScheduler
 import com.lichso.app.util.SmartRatingManager
+import com.lichso.app.util.stripHtml
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -31,12 +32,20 @@ data class ItemsUiState(
     val reminderCount: Int = 0,
     val totalCount: Int = 0,
     val deletingItem: ItemEntity? = null,
+    val selectedTag: String? = null,
     // AI
     val isAiProcessing: Boolean = false,
     val aiMessage: String? = null,
     val showAiTemplates: Boolean = false,
     val aiError: String? = null,
 ) {
+    /** Danh sách tất cả các tags duy nhất từ các item. */
+    val allTags: List<String>
+        get() = items.flatMap { item ->
+            item.tags.split(",")
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+        }.distinct().sorted()
     /** Danh sách đã áp bộ lọc + tìm kiếm (ghim luôn lên đầu trong từng nhóm). */
     val visibleItems: List<ItemEntity>
         get() {
@@ -49,11 +58,14 @@ data class ItemsUiState(
                     ItemFilter.NOTES -> !item.isTask && !item.hasReminder
                     ItemFilter.PINNED -> item.isPinned
                 }
-                val matchQuery = q.isBlank() ||
+				val matchTag = selectedTag == null ||
+					item.tags.split(",").map { it.trim().lowercase() }.contains(selectedTag.lowercase())
+
+				val matchQuery = q.isBlank() ||
                     item.title.lowercase().contains(q) ||
-                    item.description.lowercase().contains(q) ||
+                    item.description.stripHtml().lowercase().contains(q) ||
                     item.tags.lowercase().contains(q)
-                matchFilter && matchQuery
+                matchFilter && matchTag && matchQuery
             }
         }
 }
@@ -95,6 +107,7 @@ class ItemsViewModel @Inject constructor(
     // ── Bộ lọc / tìm kiếm ──
     fun setFilter(filter: ItemFilter) = _uiState.update { it.copy(filter = filter) }
     fun setQuery(query: String) = _uiState.update { it.copy(query = query) }
+    fun setSelectedTag(tag: String?) = _uiState.update { it.copy(selectedTag = tag) }
 
     // ── CRUD ──
     /** Tạo mới (id==0) hoặc cập nhật. Tự lên lịch / huỷ nhắc nhở. */
@@ -102,7 +115,7 @@ class ItemsViewModel @Inject constructor(
         if (item.title.isBlank() && item.description.isBlank()) return
         viewModelScope.launch {
             val toSave = item.copy(
-                title = item.title.ifBlank { item.description.take(50) },
+                title = item.title.ifBlank { item.description.stripHtml().take(50) },
                 updatedAt = System.currentTimeMillis(),
             )
             val id = if (toSave.id == 0L) {

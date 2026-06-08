@@ -54,20 +54,14 @@ object AppModule {
                 .header("X-Device-Name", deviceName)
                 .header("X-OS-Version", Build.VERSION.RELEASE ?: "")
 
-            val deviceId = try {
-                kotlinx.coroutines.runBlocking { tokenManager.getInstallationId() }
-            } catch (_: Exception) {
-                ""
-            }
+            // Read from in-memory cache — no runBlocking, no ANR risk
+            val deviceId = tokenManager.cachedDeviceId
             if (deviceId.isNotEmpty()) {
                 builder.header("X-Device-ID", deviceId)
             }
 
-            val token = try {
-                kotlinx.coroutines.runBlocking { tokenManager.getAccessToken() }
-            } catch (_: Exception) {
-                null
-            }
+            // Read from in-memory cache — always up-to-date via TokenManager.saveTokens()
+            val token = tokenManager.cachedAccessToken
             if (!token.isNullOrEmpty() &&
                 request.header("Authorization") == null &&
                 !request.isPublicContentRequest()

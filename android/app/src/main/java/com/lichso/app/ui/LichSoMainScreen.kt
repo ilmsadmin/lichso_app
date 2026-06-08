@@ -169,7 +169,7 @@ fun LichSoMainScreen(
             steps = listOf(
                 TourStep("home", "Hôm nay", "Chạm để xem nhanh thông tin ngày hôm nay: âm lịch, giờ hoàng đạo, tiết khí."),
                 TourStep("calendar", "Lịch tháng", "Xem lịch âm – dương cả tháng và tra cứu ngày tốt / ngày xấu."),
-                TourStep("tasks", "Ghi chú", "Ghi chú và đặt nhắc việc theo từng ngày."),
+                TourStep("tasks", "Sổ tay", "Sổ tay ghi chú và đặt nhắc việc theo từng ngày."),
                 TourStep("quiz_home", "Đố Vui", "Chơi đố vui kiến thức để nhận điểm thưởng mỗi ngày."),
                 TourStep("tools", "Tiện ích", "Phong thủy, xem ngày, văn khấn, gia phả, trợ lý AI… đều ở đây."),
                 TourStep("menu", "Menu", "Mở menu để vào tất cả tính năng: Văn khấn, Gia phả, Cài đặt và nhiều hơn nữa."),
@@ -1232,7 +1232,7 @@ private fun BottomNavBar(
     // Side items (2 left, 2 right — center is the raised home/daily button)
     val leftItems = listOf(
         NavItem("calendar", "Lịch tháng", Icons.Outlined.CalendarMonth, Icons.Filled.CalendarMonth),
-        NavItem("tasks", "Ghi chú", Icons.Outlined.EditNote, Icons.Filled.EditNote),
+        NavItem("tasks", "Sổ tay", Icons.Outlined.EditNote, Icons.Filled.EditNote),
     )
     val rightItems = listOf(
         NavItem("quiz_home", "Đố Vui", Icons.Outlined.Quiz, Icons.Filled.Quiz),

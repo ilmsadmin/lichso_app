@@ -5,8 +5,11 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -24,6 +27,24 @@ class TokenManager @Inject constructor(
     private val USER_PERMISSIONS = stringPreferencesKey("user_permissions") // comma-separated
     private val FCM_TOKEN = stringPreferencesKey("fcm_token")
     private val INSTALLATION_ID = stringPreferencesKey("installation_id")
+
+    /**
+     * In-memory cache — luôn có giá trị mới nhất, tránh runBlocking trên OkHttp interceptor.
+     * Warm trên init, cập nhật khi save/clear.
+     */
+    @Volatile var cachedAccessToken: String? = null
+        private set
+    @Volatile var cachedDeviceId: String = ""
+        private set
+
+    init {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                cachedAccessToken = getAccessToken()
+                cachedDeviceId = getInstallationId()
+            } catch (_: Exception) { /* DataStore chưa sẵn sàng — sẽ được populate khi save */ }
+        }
+    }
 
     suspend fun getAccessToken(): String? =
         context.backendTokenDataStore.data.map { it[ACCESS_TOKEN] }.firstOrNull()
@@ -45,6 +66,7 @@ class TokenManager @Inject constructor(
             .firstOrNull() ?: emptyList()
 
     suspend fun saveTokens(accessToken: String, refreshToken: String) {
+        cachedAccessToken = accessToken
         context.backendTokenDataStore.edit { prefs ->
             prefs[ACCESS_TOKEN] = accessToken
             prefs[REFRESH_TOKEN] = refreshToken
@@ -60,6 +82,7 @@ class TokenManager @Inject constructor(
     }
 
     suspend fun clearTokens() {
+        cachedAccessToken = null
         context.backendTokenDataStore.edit { prefs ->
             prefs.remove(ACCESS_TOKEN)
             prefs.remove(REFRESH_TOKEN)
@@ -73,7 +96,10 @@ class TokenManager @Inject constructor(
         val existing = context.backendTokenDataStore.data
             .map { it[INSTALLATION_ID] }
             .firstOrNull()
-        if (!existing.isNullOrBlank()) return existing
+        if (!existing.isNullOrBlank()) {
+            cachedDeviceId = existing
+            return existing
+        }
 
         val created = UUID.randomUUID().toString()
         context.backendTokenDataStore.edit { prefs ->
@@ -81,10 +107,12 @@ class TokenManager @Inject constructor(
                 prefs[INSTALLATION_ID] = created
             }
         }
-        return context.backendTokenDataStore.data
+        val result = context.backendTokenDataStore.data
             .map { it[INSTALLATION_ID] }
             .firstOrNull()
             ?: created
+        cachedDeviceId = result
+        return result
     }
 
     suspend fun saveFcmToken(token: String) {

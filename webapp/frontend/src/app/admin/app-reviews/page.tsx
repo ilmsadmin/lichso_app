@@ -44,6 +44,12 @@ const flowLabels = {
   high_rating_prompt: "4-5 sao",
 } as const;
 
+const sourceLabels: Record<string, string> = {
+  in_app_review: "In-App Review",
+  play_store_fallback: "Play Store (fallback)",
+  play_store_manual: "Play Store (thủ công)",
+};
+
 function renderStars(stars: number) {
   return "★".repeat(stars) + "☆".repeat(5 - stars);
 }
@@ -361,6 +367,13 @@ export default function AppReviewsPage() {
                     {selectedReview.stars}/5 sao
                   </Badge>
                   <Badge variant="outline">{flowLabels[selectedReview.review_flow]}</Badge>
+                  {selectedReview.review_source && (
+                    <Badge
+                      variant={selectedReview.review_source === "in_app_review" ? "default" : "secondary"}
+                    >
+                      {sourceLabels[selectedReview.review_source] || selectedReview.review_source}
+                    </Badge>
+                  )}
                   <span className="text-muted-foreground text-sm">
                     Gửi lúc {formatDate(selectedReview.created_at)}
                   </span>

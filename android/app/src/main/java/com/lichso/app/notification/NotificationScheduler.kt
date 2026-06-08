@@ -320,15 +320,23 @@ object NotificationScheduler {
     }
 
     private fun nextRepeat(base: Long, now: Long, interval: Long): Long {
+        if (interval <= 0) return now + DAY_MS // safety: avoid infinite loop on corrupt data
         var t = base
+        // Fast-forward if base is very old (>1000 iterations away) — avoids ANR
+        if (now > t && (now - t) / interval > 1000) {
+            val periods = (now - t) / interval
+            t += periods * interval
+        }
         while (t <= now) t += interval
         return t
     }
 
     private fun nextMonthlySolar(base: Long, now: Long): Long {
         val cal = Calendar.getInstance().apply { timeInMillis = base }
-        while (cal.timeInMillis <= now) {
+        var guard = 0
+        while (cal.timeInMillis <= now && guard < 1200) {
             cal.add(Calendar.MONTH, 1)
+            guard++
         }
         return cal.timeInMillis
     }
@@ -340,8 +348,10 @@ object NotificationScheduler {
 
         if (!useLunar) {
             val cal = Calendar.getInstance().apply { timeInMillis = base }
-            while (cal.timeInMillis <= now) {
+            var guard = 0
+            while (cal.timeInMillis <= now && guard < 200) {
                 cal.add(Calendar.YEAR, 1)
+                guard++
             }
             return cal.timeInMillis
         }

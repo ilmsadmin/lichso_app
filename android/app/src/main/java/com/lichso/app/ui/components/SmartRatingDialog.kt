@@ -148,27 +148,47 @@ fun SmartRatingDialog(
                             if (stars >= 4) {
                                 isSubmitting = true
                                 dialogScope.launch {
-                                    val submitResult = AppReviewReporter.submitHighRatingReview(
-                                        context = context.applicationContext,
-                                        stars = stars,
-                                    )
-                                    if (submitResult.isFailure) {
-                                        android.widget.Toast.makeText(
-                                            context,
-                                            "Không gửi được bản sao đánh giá lên máy chủ, nhưng Google Play vẫn sẽ được mở.",
-                                            android.widget.Toast.LENGTH_LONG
-                                        ).show()
-                                    }
-
                                     val activity = context.findActivity()
                                     if (activity != null) {
-                                        SmartRatingManager.launchInAppReview(activity)
+                                        // Thử Google In-App Review trước
+                                        SmartRatingManager.launchInAppReview(activity) { apiReady ->
+                                            dialogScope.launch {
+                                                if (apiReady) {
+                                                    // Google API sẵn sàng → dialog có thể đã hiện
+                                                    // Gửi lên backend với source = in_app_review
+                                                    AppReviewReporter.submitHighRatingReview(
+                                                        context = context.applicationContext,
+                                                        stars = stars,
+                                                        reviewSource = "in_app_review",
+                                                    )
+                                                    SmartRatingManager.recordReviewIntent(context.applicationContext)
+                                                    isSubmitting = false
+                                                    onDismiss()
+                                                } else {
+                                                    // Google API KHÔNG sẵn sàng → hiện fallback
+                                                    // Gửi lên backend với source = play_store_fallback
+                                                    AppReviewReporter.submitHighRatingReview(
+                                                        context = context.applicationContext,
+                                                        stars = stars,
+                                                        reviewSource = "play_store_fallback",
+                                                    )
+                                                    SmartRatingManager.recordReviewApiUnavailable(context.applicationContext)
+                                                    isSubmitting = false
+                                                    step = "thanks_with_playstore"
+                                                }
+                                            }
+                                        }
                                     } else {
-                                        SmartRatingManager.openPlayStoreListing(context)
+                                        // Không tìm được Activity → fallback Play Store
+                                        AppReviewReporter.submitHighRatingReview(
+                                            context = context.applicationContext,
+                                            stars = stars,
+                                            reviewSource = "play_store_fallback",
+                                        )
+                                        SmartRatingManager.recordReviewApiUnavailable(context.applicationContext)
+                                        isSubmitting = false
+                                        step = "thanks_with_playstore"
                                     }
-                                    SmartRatingManager.recordReviewIntent(context.applicationContext)
-                                    isSubmitting = false
-                                    onDismiss()
                                 }
                             } else {
                                 step = "feedback"
@@ -216,6 +236,22 @@ fun SmartRatingDialog(
                     )
 
                     "thanks" -> ThanksStep(onDismiss = onDismiss)
+
+                    "thanks_with_playstore" -> ThanksWithPlayStoreStep(
+                        onOpenPlayStore = {
+                            dialogScope.launch {
+                                // Ghi nhận user chủ động mở Play Store
+                                AppReviewReporter.submitHighRatingReview(
+                                    context = context.applicationContext,
+                                    stars = selectedStars,
+                                    reviewSource = "play_store_manual",
+                                )
+                            }
+                            SmartRatingManager.openPlayStoreListing(context)
+                            onDismiss()
+                        },
+                        onDismiss = onDismiss
+                    )
                 }
             }
         }
@@ -600,6 +636,114 @@ private fun ThanksStep(onDismiss: () -> Unit) {
             TextButton(onClick = onDismiss) {
                 Text("Đóng", color = TextDim, fontSize = 13.sp)
             }
+        }
+    }
+}
+
+// ══════════════════════════════════════════
+// STEP 3b — Cảm ơn + nút mở Play Store
+// (khi Google In-App Review API không khả dụng)
+// ══════════════════════════════════════════
+@Composable
+private fun ThanksWithPlayStoreStep(
+    onOpenPlayStore: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val transition = rememberInfiniteTransition(label = "heart_pulse_ps")
+    val scale by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 700),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "heart_scale_ps"
+    )
+
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = SurfaceBg),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                Icons.Filled.Favorite,
+                contentDescription = null,
+                tint = GoldAccent,
+                modifier = Modifier
+                    .size(52.dp)
+                    .scale(scale)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                "Cảm ơn bạn rất nhiều!",
+                style = TextStyle(
+                    fontFamily = FontFamily.Serif,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextMain,
+                    textAlign = TextAlign.Center
+                )
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                "Nếu bạn có thể dành chút thời gian đánh giá trên Google Play, đó sẽ là động lực rất lớn để chúng tôi phát triển Lịch Số tốt hơn!",
+                style = TextStyle(
+                    fontSize = 13.sp,
+                    color = TextSub,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 20.sp
+                ),
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = onOpenPlayStore,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF43A047)
+                )
+            ) {
+                Icon(
+                    Icons.Filled.Star,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = Color.White
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(
+                    "Đánh giá trên Google Play",
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                "Để sau",
+                style = TextStyle(fontSize = 12.sp, color = TextDim),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onDismiss() }
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+            )
         }
     }
 }

@@ -314,9 +314,11 @@ class MonthCalendarWidget : AppWidgetProvider() {
 
                 views.setTextViewText(cellId, spannable)
 
-                if (day.isToday) {
-                    views.setInt(cellId, "setBackgroundResource", R.drawable.widget_cal_today_bg)
-                }
+                // Always reset background, then apply today highlight if needed.
+                // Without this, partiallyUpdateAppWidget leaves stale backgrounds
+                // on cells that were previously highlighted when navigating months.
+                views.setInt(cellId, "setBackgroundResource",
+                    if (day.isToday) R.drawable.widget_cal_today_bg else 0)
             }
         }
 

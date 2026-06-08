@@ -328,6 +328,12 @@ class LichSoApi @Inject constructor(
             }
         } catch (e: IOException) {
             Result.failure(e)
+        } catch (e: com.google.gson.JsonSyntaxException) {
+            Result.failure(LichSoApiException(-1, "Máy chủ trả về dữ liệu không hợp lệ"))
+        } catch (e: com.google.gson.JsonParseException) {
+            Result.failure(LichSoApiException(-1, "Không thể phân tích dữ liệu từ máy chủ"))
+        } catch (e: ClassCastException) {
+            Result.failure(LichSoApiException(-1, "Dữ liệu từ máy chủ không đúng định dạng"))
         } catch (e: Exception) {
             Result.failure(LichSoApiException(-1, "Không thể đọc dữ liệu từ máy chủ"))
         }
@@ -346,6 +352,8 @@ class LichSoApi @Inject constructor(
             }
         } catch (e: IOException) {
             Result.failure(e)
+        } catch (e: com.google.gson.JsonSyntaxException) {
+            Result.failure(LichSoApiException(-1, "Máy chủ trả về dữ liệu không hợp lệ"))
         } catch (e: Exception) {
             Result.failure(LichSoApiException(-1, "Không thể xử lý phản hồi từ máy chủ"))
         }
@@ -447,12 +455,14 @@ class LichSoApi @Inject constructor(
         stars: Int,
         reviewText: String,
         reviewFlow: String,
+        reviewSource: String? = null,
     ): Result<Unit> = withContext(Dispatchers.IO) {
-        executeVoid(postJson("/app-reviews", mapOf(
-            "stars" to stars,
-            "review_text" to reviewText,
-            "review_flow" to reviewFlow,
-        ), token))
+        executeVoid(postJson("/app-reviews", buildMap {
+            put("stars", stars)
+            put("review_text", reviewText)
+            put("review_flow", reviewFlow)
+            if (reviewSource != null) put("review_source", reviewSource)
+        }, token))
     }
 
     suspend fun getScreenBackgrounds(): Result<List<ScreenBackground>> = withContext(Dispatchers.IO) {

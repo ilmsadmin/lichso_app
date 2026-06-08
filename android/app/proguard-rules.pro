@@ -53,6 +53,11 @@
 -keep class com.lichso.app.domain.model.WeatherInfo { *; }
 -keep class com.lichso.app.domain.model.LocationInfo { *; }
 
+# ── Widget Weather Gson models (in widget package, NOT covered by data.remote rule) ──
+-keep class com.lichso.app.widget.OpenMeteoWidgetResponse { *; }
+-keep class com.lichso.app.widget.OpenMeteoWidgetCurrent { *; }
+-keep class com.lichso.app.widget.OpenMeteoWidgetDaily { *; }
+
 # ── Backup / Export data models (Gson reflection) ──
 -keep class com.lichso.app.data.local.AppBackupManager$* { *; }
 -keep class com.lichso.app.data.local.FamilyTreeExportImport$* { *; }

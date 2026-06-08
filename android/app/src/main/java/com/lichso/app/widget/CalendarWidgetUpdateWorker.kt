@@ -37,7 +37,11 @@ class CalendarWidgetUpdateWorker(
             )
             Log.d("WidgetWorker", "Updating ${calendarIds.size} CalendarWidget(s)")
             for (appWidgetId in calendarIds) {
-                CalendarWidget.updateWidget(applicationContext, appWidgetManager, appWidgetId)
+                try {
+                    CalendarWidget.updateWidget(applicationContext, appWidgetManager, appWidgetId)
+                } catch (e: Exception) {
+                    Log.e("WidgetWorker", "CalendarWidget $appWidgetId failed", e)
+                }
             }
 
             // Update AI widgets
@@ -46,7 +50,11 @@ class CalendarWidgetUpdateWorker(
             )
             Log.d("WidgetWorker", "Updating ${aiIds.size} AiWidget(s)")
             for (appWidgetId in aiIds) {
-                AiWidget.updateWidget(applicationContext, appWidgetManager, appWidgetId)
+                try {
+                    AiWidget.updateWidget(applicationContext, appWidgetManager, appWidgetId)
+                } catch (e: Exception) {
+                    Log.e("WidgetWorker", "AiWidget $appWidgetId failed", e)
+                }
             }
 
             // Update Clock widgets
@@ -55,7 +63,11 @@ class CalendarWidgetUpdateWorker(
             )
             Log.d("WidgetWorker", "Updating ${clockIds.size} ClockWidget(s)")
             for (appWidgetId in clockIds) {
-                ClockWidget.updateWidget(applicationContext, appWidgetManager, appWidgetId)
+                try {
+                    ClockWidget.updateWidget(applicationContext, appWidgetManager, appWidgetId)
+                } catch (e: Exception) {
+                    Log.e("WidgetWorker", "ClockWidget $appWidgetId failed", e)
+                }
             }
 
             // Update Month Calendar widgets
@@ -64,7 +76,11 @@ class CalendarWidgetUpdateWorker(
             )
             Log.d("WidgetWorker", "Updating ${monthIds.size} MonthCalendarWidget(s)")
             for (appWidgetId in monthIds) {
-                MonthCalendarWidget.updateWidget(applicationContext, appWidgetManager, appWidgetId)
+                try {
+                    MonthCalendarWidget.updateWidget(applicationContext, appWidgetManager, appWidgetId)
+                } catch (e: Exception) {
+                    Log.e("WidgetWorker", "MonthCalendarWidget $appWidgetId failed", e)
+                }
             }
 
             // Update Clock2 widgets (light/dark adaptive)
@@ -73,7 +89,11 @@ class CalendarWidgetUpdateWorker(
             )
             Log.d("WidgetWorker", "Updating ${clock2Ids.size} ClockWidget2(s)")
             for (appWidgetId in clock2Ids) {
-                ClockWidget2.updateWidget(applicationContext, appWidgetManager, appWidgetId)
+                try {
+                    ClockWidget2.updateWidget(applicationContext, appWidgetManager, appWidgetId)
+                } catch (e: Exception) {
+                    Log.e("WidgetWorker", "ClockWidget2 $appWidgetId failed", e)
+                }
             }
 
             // Update Canh Giờ widgets (12 địa chi rotation)
@@ -82,7 +102,11 @@ class CalendarWidgetUpdateWorker(
             )
             Log.d("WidgetWorker", "Updating ${canhGioIds.size} CanhGioWidget(s)")
             for (appWidgetId in canhGioIds) {
-                CanhGioWidget.updateWidget(applicationContext, appWidgetManager, appWidgetId)
+                try {
+                    CanhGioWidget.updateWidget(applicationContext, appWidgetManager, appWidgetId)
+                } catch (e: Exception) {
+                    Log.e("WidgetWorker", "CanhGioWidget $appWidgetId failed", e)
+                }
             }
 
             Result.success()

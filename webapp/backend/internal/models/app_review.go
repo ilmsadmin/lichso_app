@@ -54,8 +54,9 @@ type AppReview struct {
 	OSVersion  string         `gorm:"type:varchar(100);not null;default:''" json:"os_version"`
 	Stars      int            `gorm:"type:smallint;not null" json:"stars"`
 	ReviewText string         `gorm:"type:text;not null;default:''" json:"review_text"`
-	ReviewFlow string         `gorm:"type:varchar(40);not null" json:"review_flow"`
-	Status     string         `gorm:"type:varchar(20);not null;default:'new'" json:"status"`
+	ReviewFlow   string         `gorm:"type:varchar(40);not null" json:"review_flow"`
+	ReviewSource string         `gorm:"type:varchar(40);not null;default:''" json:"review_source"`
+	Status       string         `gorm:"type:varchar(20);not null;default:'new'" json:"status"`
 	AdminNote  string         `gorm:"type:text;not null;default:''" json:"admin_note"`
 	CreatedAt  time.Time      `gorm:"type:timestamptz;not null;default:now()" json:"created_at"`
 	UpdatedAt  time.Time      `gorm:"type:timestamptz;not null;default:now()" json:"updated_at"`

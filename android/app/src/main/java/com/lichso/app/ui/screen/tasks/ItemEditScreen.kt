@@ -30,6 +30,8 @@ import com.lichso.app.ui.components.LichSoDeleteButton
 import com.lichso.app.ui.components.LichSoNullableDatePickerField
 import com.lichso.app.ui.components.LichSoPrimaryButton
 import com.lichso.app.ui.components.LichSoTextField
+import com.lichso.app.ui.components.LichSoRichTextEditor
+import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.lichso.app.ui.theme.LichSoThemeColors
 import com.lichso.app.ui.theme.screenBackground
 import java.time.Instant
@@ -66,6 +68,7 @@ private fun itemColors(): List<Color> {
 fun ItemEditScreen(
     initialItem: ItemEntity? = null,
     attachedDate: AttachedDate? = null,
+    allExistingTags: List<String> = emptyList(),
     onBackClick: () -> Unit,
     onSave: (ItemEntity) -> Unit,
     onDelete: (() -> Unit)? = null,
@@ -74,9 +77,17 @@ fun ItemEditScreen(
     val context = LocalContext.current
     val colors = itemColors()
 
-    var title by remember { mutableStateOf(initialItem?.title ?: "") }
-    var description by remember { mutableStateOf(initialItem?.description ?: "") }
-    var tags by remember { mutableStateOf(initialItem?.tags ?: "") }
+	var title by remember { mutableStateOf(initialItem?.title ?: "") }
+	val richTextState = rememberRichTextState()
+
+	// Set initial rich text HTML content
+	LaunchedEffect(initialItem) {
+		initialItem?.description?.let {
+			richTextState.setHtml(it)
+		}
+	}
+
+	var tags by remember { mutableStateOf(initialItem?.tags ?: "") }
 
     var isTask by remember { mutableStateOf(initialItem?.isTask ?: false) }
     var priority by remember { mutableIntStateOf(initialItem?.priority ?: 1) }
@@ -105,7 +116,7 @@ fun ItemEditScreen(
         } else null
         return (initialItem ?: ItemEntity(title = "")).copy(
             title = title.trim(),
-            description = description.trim(),
+            description = richTextState.toHtml().trim(),
             tags = tags.trim(),
             isTask = isTask,
             priority = priority,
@@ -150,14 +161,64 @@ fun ItemEditScreen(
             }
 
             LichSoTextField(value = title, onValueChange = { title = it }, label = "Tiêu đề")
-            LichSoTextField(
-                value = description, onValueChange = { description = it },
-                label = "Mô tả", singleLine = false, maxLines = 6,
+            LichSoRichTextEditor(
+                state = richTextState,
+                label = "Mô tả",
+                placeholder = "Nhập mô tả chi tiết..."
             )
             LichSoTextField(
                 value = tags, onValueChange = { tags = it },
                 label = "Tags (phân cách bằng dấu phẩy)", leadingIcon = Icons.Outlined.Label,
             )
+
+            if (allExistingTags.isNotEmpty()) {
+                val currentTagsList = tags.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Chọn nhanh tag đã có:",
+                        style = TextStyle(fontSize = 12.sp, color = c.textSecondary, fontWeight = FontWeight.Medium),
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        allExistingTags.forEach { tag ->
+                            val isSelected = currentTagsList.any { it.equals(tag, ignoreCase = true) }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSelected) c.primary.copy(alpha = 0.15f) else c.surfaceContainerHigh)
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isSelected) c.primary else Color.Transparent,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .clickable {
+                                        if (isSelected) {
+                                            tags = currentTagsList
+                                                .filter { !it.equals(tag, ignoreCase = true) }
+                                                .joinToString(", ")
+                                        } else {
+                                            tags = (currentTagsList + tag).joinToString(", ")
+                                        }
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = tag,
+                                    style = TextStyle(
+                                        fontSize = 11.sp,
+                                        color = if (isSelected) c.primary else c.textSecondary,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
             // ── Màu & ghim ──
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -277,7 +338,7 @@ fun ItemEditScreen(
                     if (item.title.isNotBlank() || item.description.isNotBlank()) onSave(item)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = title.isNotBlank() || description.isNotBlank(),
+                enabled = title.isNotBlank() || richTextState.toHtml().isNotBlank(),
                 icon = Icons.Filled.Check,
             )
             Spacer(Modifier.navigationBarsPadding())

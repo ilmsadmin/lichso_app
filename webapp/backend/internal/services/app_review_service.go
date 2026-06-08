@@ -43,16 +43,17 @@ func (s *AppReviewService) Submit(
 	}
 
 	review := &models.AppReview{
-		UserID:     userID,
-		Platform:   platform,
-		AppVersion: strings.TrimSpace(appVersion),
-		DeviceID:   strings.TrimSpace(deviceID),
-		DeviceName: strings.TrimSpace(deviceName),
-		OSVersion:  strings.TrimSpace(osVersion),
-		Stars:      req.Stars,
-		ReviewText: strings.TrimSpace(req.ReviewText),
-		ReviewFlow: reviewFlow,
-		Status:     models.AppReviewStatusNew,
+		UserID:       userID,
+		Platform:     platform,
+		AppVersion:   strings.TrimSpace(appVersion),
+		DeviceID:     strings.TrimSpace(deviceID),
+		DeviceName:   strings.TrimSpace(deviceName),
+		OSVersion:    strings.TrimSpace(osVersion),
+		Stars:        req.Stars,
+		ReviewText:   strings.TrimSpace(req.ReviewText),
+		ReviewFlow:   reviewFlow,
+		ReviewSource: strings.TrimSpace(req.ReviewSource),
+		Status:       models.AppReviewStatusNew,
 	}
 
 	if err := s.repo.Create(ctx, review); err != nil {
@@ -135,20 +136,21 @@ func toAppReviewResponse(review *models.AppReview) *dto.AppReviewResponse {
 	}
 
 	return &dto.AppReviewResponse{
-		ID:         review.ID.String(),
-		UserID:     userID,
-		Platform:   review.Platform,
-		AppVersion: review.AppVersion,
-		DeviceID:   review.DeviceID,
-		DeviceName: review.DeviceName,
-		OSVersion:  review.OSVersion,
-		Stars:      review.Stars,
-		ReviewText: review.ReviewText,
-		ReviewFlow: review.ReviewFlow,
-		Status:     review.Status,
-		AdminNote:  review.AdminNote,
-		CreatedAt:  review.CreatedAt,
-		UpdatedAt:  review.UpdatedAt,
-		User:       user,
+		ID:           review.ID.String(),
+		UserID:       userID,
+		Platform:     review.Platform,
+		AppVersion:   review.AppVersion,
+		DeviceID:     review.DeviceID,
+		DeviceName:   review.DeviceName,
+		OSVersion:    review.OSVersion,
+		Stars:        review.Stars,
+		ReviewText:   review.ReviewText,
+		ReviewFlow:   review.ReviewFlow,
+		ReviewSource: review.ReviewSource,
+		Status:       review.Status,
+		AdminNote:    review.AdminNote,
+		CreatedAt:    review.CreatedAt,
+		UpdatedAt:    review.UpdatedAt,
+		User:         user,
 	}
 }

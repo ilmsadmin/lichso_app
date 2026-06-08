@@ -32,7 +32,7 @@ object SmartRatingManager {
     private val KEY_HAPPY_ACTION_COUNT = intPreferencesKey("smart_rating_happy_action_count")
     private val KEY_LAST_ASKED_TIME    = longPreferencesKey("smart_rating_last_asked_time")
     private val KEY_TIMES_ASKED        = intPreferencesKey("smart_rating_times_asked")
-    // 0 = chưa | 1 = mở Play/in-app review (4-5 sao) | 2 = đã gửi feedback (1-3 sao)
+    // 0 = chưa | 1 = mở Play/in-app review (4-5 sao) | 2 = đã gửi feedback (1-3 sao) | 3 = Google API unavailable
     private val KEY_LAST_OUTCOME       = intPreferencesKey("smart_rating_last_outcome")
 
     // ── Thresholds ──
@@ -40,6 +40,7 @@ object SmartRatingManager {
     private const val COOLDOWN_AFTER_SKIP_DAYS  = 7L     // user skip → 7 ngày
     private const val COOLDOWN_AFTER_REVIEW_DAYS = 90L   // đã 4-5 sao → 90 ngày
     private const val COOLDOWN_AFTER_FEEDBACK_DAYS = 30L // đã gửi feedback → 30 ngày
+    private const val COOLDOWN_AFTER_API_UNAVAIL_DAYS = 14L // Google API unavailable → 14 ngày (retry sớm hơn)
     private const val MAX_TIMES_TO_ASK          = 5      // tối đa 5 lần auto-trigger
 
     // ── Observable state ──
@@ -101,6 +102,21 @@ object SmartRatingManager {
         dismissNow()
     }
 
+    /**
+     * Google In-App Review API không sẵn sàng (quota hết, thiết bị không hỗ trợ...).
+     * Cooldown ngắn hơn (14 ngày) và KHÔNG tính vào quota MAX_TIMES_TO_ASK
+     * để user có cơ hội review lần sau.
+     */
+    suspend fun recordReviewApiUnavailable(context: Context) {
+        writeOutcome(context, outcome = 3)
+        // Hoàn lại quota: trừ đi 1 lần timesAsked đã tăng ở recordShown()
+        context.settingsDataStore.edit { p ->
+            val current = p[KEY_TIMES_ASKED] ?: 0
+            if (current > 0) p[KEY_TIMES_ASKED] = current - 1
+        }
+        dismissNow()
+    }
+
     /** User skip / đóng dialog mà không tương tác. */
     suspend fun recordSkipped(context: Context) {
         writeOutcome(context, outcome = 0)
@@ -125,28 +141,32 @@ object SmartRatingManager {
     // ─────────────────────────────────────────────────────────────────────
 
     /**
-     * Hiển thị Google Play In-App Review dialog. Nếu API không sẵn sàng (quota,
-     * thiết bị không có Play Store...) → fallback mở Play Store listing.
+     * Hiển thị Google Play In-App Review dialog.
      *
-     * Bắt buộc truyền Activity (API yêu cầu). [onComplete] luôn được gọi
-     * (success / fail).
+     * Bắt buộc truyền Activity (API yêu cầu).
+     *
+     * @param onResult callback trả về `true` nếu `requestReviewFlow` thành công
+     *   (Google có thể hiện dialog), `false` nếu API fail / không sẵn sàng
+     *   (quota, thiết bị không có Play Store...). Khi `false`, caller nên
+     *   hiển thị fallback (ví dụ nút mở Play Store).
+     *
+     * Lưu ý: `true` chỉ có nghĩa là Google **có thể** hiện dialog,
+     *   KHÔNG đảm bảo dialog thực sự xuất hiện (Google tự quyết định).
      */
-    fun launchInAppReview(activity: Activity, onComplete: () -> Unit = {}) {
+    fun launchInAppReview(activity: Activity, onResult: (apiReady: Boolean) -> Unit = {}) {
         try {
             val manager = ReviewManagerFactory.create(activity)
             manager.requestReviewFlow().addOnCompleteListener { req ->
                 if (req.isSuccessful) {
                     manager.launchReviewFlow(activity, req.result)
-                        .addOnCompleteListener { onComplete() }
+                        .addOnCompleteListener { onResult(true) }
                 } else {
-                    // API fail → fallback Play Store
-                    openPlayStoreListing(activity)
-                    onComplete()
+                    // API fail → báo cho caller biết để xử lý fallback
+                    onResult(false)
                 }
             }
         } catch (_: Exception) {
-            openPlayStoreListing(activity)
-            onComplete()
+            onResult(false)
         }
     }
 
@@ -200,6 +220,7 @@ object SmartRatingManager {
             val cooldown = when (lastOutcome) {
                 1 -> COOLDOWN_AFTER_REVIEW_DAYS
                 2 -> COOLDOWN_AFTER_FEEDBACK_DAYS
+                3 -> COOLDOWN_AFTER_API_UNAVAIL_DAYS
                 else -> COOLDOWN_AFTER_SKIP_DAYS
             }
             if (daysSince < cooldown) return

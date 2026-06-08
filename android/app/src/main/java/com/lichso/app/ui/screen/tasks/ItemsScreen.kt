@@ -39,6 +39,7 @@ import com.lichso.app.ui.components.HeaderIconButton
 import com.lichso.app.ui.components.LichSoEmptyState
 import com.lichso.app.ui.theme.LichSoThemeColors
 import com.lichso.app.ui.theme.screenBackground
+import com.lichso.app.util.stripHtml
 
 private val filterLabels = listOf(
     ItemFilter.ALL to "Tất cả",
@@ -79,6 +80,7 @@ fun ItemsScreen(
     if (editing) {
         ItemEditScreen(
             initialItem = editingItem,
+            allExistingTags = state.allTags,
             onBackClick = { editing = false },
             onSave = { item -> viewModel.saveItem(item); editing = false },
             onDelete = editingItem?.let { item -> { viewModel.requestDelete(item); editing = false } },
@@ -113,13 +115,41 @@ fun ItemsScreen(
                 shape = RoundedCornerShape(14.dp),
             )
 
-            // Bộ lọc
             Row(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 filterLabels.forEach { (f, label) ->
                     FilterChipItem(label = label, selected = state.filter == f) { viewModel.setFilter(f) }
+                }
+            }
+
+            // Danh sách các Tags của Sổ tay
+            if (state.allTags.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilterChipItem(
+                        label = "Tất cả tag",
+                        selected = state.selectedTag == null
+                    ) {
+                        viewModel.setSelectedTag(null)
+                    }
+                    state.allTags.forEach { tag ->
+                        TagChipItem(
+                            label = tag,
+                            selected = state.selectedTag == tag
+                        ) {
+                            if (state.selectedTag == tag) viewModel.setSelectedTag(null)
+                            else viewModel.setSelectedTag(tag)
+                        }
+                    }
                 }
             }
 
@@ -221,25 +251,25 @@ private fun ItemRow(
             if (item.description.isNotBlank()) {
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    item.description, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    item.description.stripHtml(), maxLines = 2, overflow = TextOverflow.Ellipsis,
                     style = TextStyle(fontSize = 13.sp, color = c.textSecondary),
                 )
             }
             // Badges
             val badges = buildList {
-                if (item.isTask) add(Icons.Outlined.Flag to viewModel.getPriorityLabel(item.priority))
-                item.dueDate?.let { if (item.isTask) add(Icons.Outlined.Event to viewModel.formatDate(it)) }
+                if (item.isTask) add(Triple(Icons.Outlined.Flag, viewModel.getPriorityLabel(item.priority), null as (() -> Unit)?))
+                item.dueDate?.let { if (item.isTask) add(Triple(Icons.Outlined.Event, viewModel.formatDate(it), null)) }
                 if (item.hasReminder) item.reminderAt?.let {
-                    add(Icons.Outlined.Notifications to viewModel.formatDateTime(it))
+                    add(Triple(Icons.Outlined.Notifications, viewModel.formatDateTime(it), null))
                 }
-                item.tags.split(",").map { it.trim() }.filter { it.isNotBlank() }.take(2).forEach {
-                    add(Icons.Outlined.Label to it)
+                item.tags.split(",").map { it.trim() }.filter { it.isNotBlank() }.take(3).forEach { tag ->
+                    add(Triple(Icons.Outlined.Label, tag, { viewModel.setSelectedTag(tag) }))
                 }
             }
             if (badges.isNotEmpty()) {
                 Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                    badges.forEach { (icon, label) -> Badge(icon, label) }
+                    badges.forEach { (icon, label, onClick) -> Badge(icon, label, onClick) }
                 }
             }
         }
@@ -247,18 +277,59 @@ private fun ItemRow(
 }
 
 @Composable
-private fun Badge(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String) {
+private fun Badge(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: (() -> Unit)? = null
+) {
     val c = LichSoThemeColors.current
     Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(c.surfaceContainerHigh)
+		modifier = Modifier
+			.clip(RoundedCornerShape(8.dp))
+			.background(c.surfaceContainerHigh)
+			.let {
+				if (onClick != null) it.clickable(onClick = onClick) else it
+			}
             .padding(horizontal = 6.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         Icon(icon, contentDescription = null, tint = c.textTertiary, modifier = Modifier.size(12.dp))
         Text(label, style = TextStyle(fontSize = 11.sp, color = c.textSecondary), maxLines = 1)
+    }
+}
+
+@Composable
+private fun TagChipItem(label: String, selected: Boolean, onClick: () -> Unit) {
+    val c = LichSoThemeColors.current
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(if (selected) c.primary.copy(alpha = 0.15f) else c.surfaceContainerHigh)
+            .border(
+                width = 1.dp,
+                color = if (selected) c.primary else Color.Transparent,
+                shape = RoundedCornerShape(18.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Label,
+            contentDescription = null,
+            tint = if (selected) c.primary else c.textTertiary,
+            modifier = Modifier.size(12.dp)
+        )
+        Text(
+            text = label,
+            style = TextStyle(
+                fontSize = 12.sp,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (selected) c.primary else c.textSecondary
+            )
+        )
     }
 }
 

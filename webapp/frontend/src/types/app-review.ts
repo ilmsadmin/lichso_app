@@ -20,6 +20,7 @@ export interface AppReview {
   stars: number;
   review_text: string;
   review_flow: AppReviewFlow;
+  review_source: string;
   status: AppReviewStatus;
   admin_note: string;
   created_at: string;
