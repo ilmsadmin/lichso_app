@@ -66,7 +66,7 @@ struct LeaderboardScreen: View {
                         Spacer()
                     } else {
                         // My rank banner
-                        if let rank = myRank {
+                        if let rank = myRank, rank.rank > 0 {
                             myRankBanner(rank: rank)
                                 .padding(.horizontal, 16)
                                 .padding(.bottom, 10)

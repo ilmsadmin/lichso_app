@@ -113,6 +113,19 @@ const (
 	leaderboardCacheTTL    = 15 * time.Minute
 )
 
+func vnLocation() *time.Location {
+	loc, err := time.LoadLocation("Asia/Ho_Chi_Minh")
+	if err != nil {
+		return time.FixedZone("ICT", 7*60*60)
+	}
+	return loc
+}
+
+func startOfDayInLocation(t time.Time, loc *time.Location) time.Time {
+	localTime := t.In(loc)
+	return time.Date(localTime.Year(), localTime.Month(), localTime.Day(), 0, 0, 0, 0, loc)
+}
+
 // QuizService handles all quiz business logic.
 type QuizService struct {
 	repo       *repositories.QuizRepository
@@ -655,7 +668,9 @@ func (s *QuizService) SubmitAnswer(userID, sessionID uuid.UUID, questionID int64
 }
 
 func (s *QuizService) applyScoreForUser(userID uuid.UUID, totalPoints int, xp int, now time.Time) (*models.QuizScore, int, error) {
-	today := now.Truncate(24 * time.Hour)
+	loc := vnLocation()
+	nowVN := now.In(loc)
+	today := startOfDayInLocation(nowVN, loc)
 	existing, err := s.repo.GetScore(userID)
 	publicInfo, publicInfoErr := s.repo.GetUserPublicInfo(userID)
 	if publicInfoErr != nil {
@@ -693,26 +708,32 @@ func (s *QuizService) applyScoreForUser(userID uuid.UUID, totalPoints int, xp in
 		scoreRow.XP += xp
 		scoreRow.UpdatedAt = now
 
-		// Reset week_score at the start of a new ISO week
+		lastQuizDay := time.Time{}
+		hasLastQuiz := existing.LastQuiz != nil
+		if hasLastQuiz {
+			lastQuizDay = startOfDayInLocation(*existing.LastQuiz, loc)
+		}
+
+		// Reset week_score at the start of a new ISO week in VN time.
 		if existing.LastQuiz != nil {
-			nowYear, nowWeek := now.ISOWeek()
-			lastYear, lastWeek := existing.LastQuiz.ISOWeek()
+			nowYear, nowWeek := today.ISOWeek()
+			lastYear, lastWeek := lastQuizDay.ISOWeek()
 			if nowYear != lastYear || nowWeek != lastWeek {
 				scoreRow.WeekScore = 0
 			}
 		}
 		scoreRow.WeekScore += totalPoints
 
-		// Reset month_score at the start of a new calendar month
+		// Reset month_score at the start of a new calendar month in VN time.
 		if existing.LastQuiz != nil {
-			if now.Year() != existing.LastQuiz.Year() || now.Month() != existing.LastQuiz.Month() {
+			if today.Year() != lastQuizDay.Year() || today.Month() != lastQuizDay.Month() {
 				scoreRow.MonthScore = 0
 			}
 		}
 		scoreRow.MonthScore += totalPoints
 
-		if existing.LastQuiz != nil {
-			diff := today.Sub(existing.LastQuiz.Truncate(24 * time.Hour))
+		if hasLastQuiz {
+			diff := today.Sub(lastQuizDay)
 			switch {
 			case diff == 24*time.Hour:
 				scoreRow.CurStreak++
@@ -1021,7 +1042,7 @@ func (s *QuizService) GetUserHistory(userID uuid.UUID) ([]models.QuizSession, er
 // ============================================
 
 func leaderboardCacheKey(period string) string {
-	return fmt.Sprintf("quiz:leaderboard:%s", period)
+	return fmt.Sprintf("quiz:leaderboard:v2:%s", period)
 }
 
 // GetLeaderboard returns the top scores, with Redis caching.
@@ -1066,28 +1087,9 @@ func (s *QuizService) GetMyRank(userID uuid.UUID, period string) (*MyRankRespons
 		return nil, fmt.Errorf("failed to get rank: %w", err)
 	}
 
-	weekScore := scoreRow.WeekScore
-	monthScore := scoreRow.MonthScore
-	if scoreRow.LastQuiz != nil {
-		loc, err := time.LoadLocation("Asia/Ho_Chi_Minh")
-		if err != nil {
-			loc = time.FixedZone("ICT", 7*60*60)
-		}
-		nowVN := time.Now().In(loc)
-		lastVN := scoreRow.LastQuiz.In(nowVN.Location())
-		weekStart := startOfWeekMonday(nowVN)
-		weekEnd := weekStart.AddDate(0, 0, 7)
-		monthStart := time.Date(nowVN.Year(), nowVN.Month(), 1, 0, 0, 0, 0, nowVN.Location())
-		monthEnd := monthStart.AddDate(0, 1, 0)
-		if lastVN.Before(weekStart) || !lastVN.Before(weekEnd) {
-			weekScore = 0
-		}
-		if lastVN.Before(monthStart) || !lastVN.Before(monthEnd) {
-			monthScore = 0
-		}
-	} else {
-		weekScore = 0
-		monthScore = 0
+	weekScore, monthScore, err := s.repo.GetUserPeriodScores(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user period scores: %w", err)
 	}
 
 	return &MyRankResponse{

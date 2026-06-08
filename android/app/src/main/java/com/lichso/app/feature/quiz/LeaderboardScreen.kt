@@ -105,7 +105,7 @@ fun LeaderboardScreen(
         }
 
         // My rank banner (if available)
-        myRank?.let { rank ->
+        myRank?.takeIf { it.rank > 0 }?.let { rank ->
             val myScore = when (selectedPeriod) {
                 "monthly" -> rank.monthScore
                 "alltime" -> rank.totalScore

@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -18,12 +19,16 @@ type QuizRepository struct {
 }
 
 func localVNTime() time.Time {
+	return time.Now().In(vnLocation())
+}
+
+func vnLocation() *time.Location {
 	loc, err := time.LoadLocation("Asia/Ho_Chi_Minh")
 	if err != nil {
 		// Fallback UTC+7
-		loc = time.FixedZone("ICT", 7*60*60)
+		return time.FixedZone("ICT", 7*60*60)
 	}
-	return time.Now().In(loc)
+	return loc
 }
 
 func currentWeekRangeVN(nowVN time.Time) (time.Time, time.Time) {
@@ -43,6 +48,14 @@ func currentMonthRangeVN(nowVN time.Time) (time.Time, time.Time) {
 	start := time.Date(nowVN.Year(), nowVN.Month(), 1, 0, 0, 0, 0, nowVN.Location())
 	end := start.AddDate(0, 1, 0) // first day next month 00:00
 	return start, end
+}
+
+func dateOnlyVN(t time.Time) string {
+	return t.In(vnLocation()).Format("2006-01-02")
+}
+
+func quizSessionScoreSQL(alias string) string {
+	return fmt.Sprintf("COALESCE(NULLIF(%s.score_v2, 0), %s.score)", alias, alias)
 }
 
 // QuizUserPublicInfo is the minimal user profile needed by leaderboard rows.
@@ -317,8 +330,7 @@ func (r *QuizRepository) GetScore(userID uuid.UUID) (*models.QuizScore, error) {
 // period: "weekly" | "monthly" | "alltime"
 func (r *QuizRepository) GetLeaderboard(period string, limit int) ([]models.QuizScore, error) {
 	var scores []models.QuizScore
-	query := r.db.Table("quiz_scores AS qs").
-		Select(`
+	baseSelect := `
 			qs.user_id,
 			COALESCE(
 				NULLIF(REGEXP_REPLACE(TRIM(COALESCE(qs.display_name, '')), '\s+', ' ', 'g'), ''),
@@ -328,29 +340,43 @@ func (r *QuizRepository) GetLeaderboard(period string, limit int) ([]models.Quiz
 			) AS display_name,
 			COALESCE(NULLIF(qs.avatar_url, ''), u.avatar, '') AS avatar_url,
 			qs.total_score,
-			qs.week_score,
-			qs.month_score,
+			%s AS week_score,
+			%s AS month_score,
 			qs.best_streak,
 			qs.cur_streak,
 			qs.last_quiz,
 			qs.updated_at
-		`).
-		Joins("LEFT JOIN users u ON u.id = qs.user_id")
+		`
 
 	nowVN := localVNTime()
+	query := r.db.Table("quiz_scores AS qs").Joins("LEFT JOIN users u ON u.id = qs.user_id")
 	switch period {
 	case "monthly":
 		start, end := currentMonthRangeVN(nowVN)
-		query = query.Where("qs.last_quiz >= ? AND qs.last_quiz < ?", start.UTC(), end.UTC()).
-			Where("qs.month_score > 0")
-		query = query.Order("month_score DESC, total_score DESC")
+		periodScores := r.db.Table("quiz_sessions AS s").
+			Select("s.user_id, SUM("+quizSessionScoreSQL("s")+") AS period_score").
+			Where("s.completed = ? AND s.finished_at >= ? AND s.finished_at < ?", true, start.UTC(), end.UTC()).
+			Group("s.user_id")
+		query = query.
+			Joins("JOIN (?) ps ON ps.user_id = qs.user_id", periodScores).
+			Select(fmt.Sprintf(baseSelect, "qs.week_score", "ps.period_score")).
+			Where("ps.period_score > 0").
+			Order("ps.period_score DESC, qs.cur_streak DESC, qs.total_score DESC, qs.user_id ASC")
 	case "alltime":
-		query = query.Order("total_score DESC, best_streak DESC")
+		query = query.
+			Select(fmt.Sprintf(baseSelect, "qs.week_score", "qs.month_score")).
+			Order("qs.total_score DESC, qs.best_streak DESC, qs.cur_streak DESC, qs.user_id ASC")
 	default: // weekly
 		start, end := currentWeekRangeVN(nowVN)
-		query = query.Where("qs.last_quiz >= ? AND qs.last_quiz < ?", start.UTC(), end.UTC()).
-			Where("qs.week_score > 0")
-		query = query.Order("week_score DESC, total_score DESC")
+		periodScores := r.db.Table("quiz_sessions AS s").
+			Select("s.user_id, SUM("+quizSessionScoreSQL("s")+") AS period_score").
+			Where("s.completed = ? AND s.finished_at >= ? AND s.finished_at < ?", true, start.UTC(), end.UTC()).
+			Group("s.user_id")
+		query = query.
+			Joins("JOIN (?) ps ON ps.user_id = qs.user_id", periodScores).
+			Select(fmt.Sprintf(baseSelect, "ps.period_score", "qs.month_score")).
+			Where("ps.period_score > 0").
+			Order("ps.period_score DESC, qs.cur_streak DESC, qs.total_score DESC, qs.user_id ASC")
 	}
 
 	if limit > 0 {
@@ -364,47 +390,130 @@ func (r *QuizRepository) GetLeaderboard(period string, limit int) ([]models.Quiz
 // GetUserRank returns the 1-based rank of a user for the given period.
 func (r *QuizRepository) GetUserRank(userID uuid.UUID, period string) (int, error) {
 	var rank int64
-	var col string
-	baseQuery := r.db.Model(&models.QuizScore{})
 	nowVN := localVNTime()
 
 	switch period {
 	case "monthly":
-		col = "month_score"
 		start, end := currentMonthRangeVN(nowVN)
-		baseQuery = baseQuery.Where("last_quiz >= ? AND last_quiz < ?", start.UTC(), end.UTC()).
-			Where("month_score > 0")
+		return r.getUserPeriodRank(userID, start, end)
 	case "alltime":
-		col = "total_score"
+		baseQuery := r.db.Model(&models.QuizScore{}).Where("total_score > 0")
+		var userRow struct {
+			UserID     uuid.UUID `gorm:"column:user_id"`
+			TotalScore int64     `gorm:"column:total_score"`
+			BestStreak int64     `gorm:"column:best_streak"`
+			CurStreak  int64     `gorm:"column:cur_streak"`
+		}
+		if err := baseQuery.
+			Where("user_id = ?", userID).
+			Select("user_id, total_score, best_streak, cur_streak").
+			Take(&userRow).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return 0, nil
+			}
+			return 0, err
+		}
+		if userRow.TotalScore <= 0 {
+			return 0, nil
+		}
+
+		err := baseQuery.Session(&gorm.Session{}).
+			Where(`
+				total_score > ?
+				OR (total_score = ? AND best_streak > ?)
+				OR (total_score = ? AND best_streak = ? AND cur_streak > ?)
+				OR (total_score = ? AND best_streak = ? AND cur_streak = ? AND user_id < ?)
+			`,
+				userRow.TotalScore,
+				userRow.TotalScore, userRow.BestStreak,
+				userRow.TotalScore, userRow.BestStreak, userRow.CurStreak,
+				userRow.TotalScore, userRow.BestStreak, userRow.CurStreak, userRow.UserID,
+			).
+			Count(&rank).Error
+		if err != nil {
+			return 0, err
+		}
+		return int(rank) + 1, nil
 	default:
-		col = "week_score"
 		start, end := currentWeekRangeVN(nowVN)
-		baseQuery = baseQuery.Where("last_quiz >= ? AND last_quiz < ?", start.UTC(), end.UTC()).
-			Where("week_score > 0")
+		return r.getUserPeriodRank(userID, start, end)
+	}
+}
+
+func (r *QuizRepository) getUserPeriodRank(userID uuid.UUID, startVN, endVN time.Time) (int, error) {
+	var userRow struct {
+		UserID     uuid.UUID `gorm:"column:user_id"`
+		Score      int64     `gorm:"column:period_score"`
+		TotalScore int64     `gorm:"column:total_score"`
+		CurStreak  int64     `gorm:"column:cur_streak"`
 	}
 
-	// If user has no valid score in the requested period, they are not ranked.
-	var userScore int64
-	if err := baseQuery.
-		Where("user_id = ?", userID).
-		Select(col).
-		Limit(1).
-		Scan(&userScore).Error; err != nil {
+	periodScores := r.db.Table("quiz_sessions AS s").
+		Select("s.user_id, SUM("+quizSessionScoreSQL("s")+") AS period_score").
+		Where("s.completed = ? AND s.finished_at >= ? AND s.finished_at < ?", true, startVN.UTC(), endVN.UTC()).
+		Group("s.user_id")
+
+	baseQuery := r.db.Table("quiz_scores AS qs").
+		Joins("JOIN (?) ps ON ps.user_id = qs.user_id", periodScores).
+		Where("ps.period_score > 0")
+
+	if err := baseQuery.Session(&gorm.Session{}).
+		Where("qs.user_id = ?", userID).
+		Select("qs.user_id, ps.period_score, qs.total_score, qs.cur_streak").
+		Take(&userRow).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, nil
+		}
 		return 0, err
 	}
-	if userScore <= 0 {
+	if userRow.Score <= 0 {
 		return 0, nil
 	}
 
-	// Count how many users have a higher score than this user.
-	subQuery := baseQuery.Session(&gorm.Session{}).Select(col).Where("user_id = ?", userID)
+	var rank int64
 	err := baseQuery.Session(&gorm.Session{}).
-		Where(col+" > (?)", subQuery).
+		Where(`
+			ps.period_score > ?
+			OR (ps.period_score = ? AND qs.cur_streak > ?)
+			OR (ps.period_score = ? AND qs.cur_streak = ? AND qs.total_score > ?)
+			OR (ps.period_score = ? AND qs.cur_streak = ? AND qs.total_score = ? AND qs.user_id < ?)
+		`,
+			userRow.Score,
+			userRow.Score, userRow.CurStreak,
+			userRow.Score, userRow.CurStreak, userRow.TotalScore,
+			userRow.Score, userRow.CurStreak, userRow.TotalScore, userRow.UserID,
+		).
 		Count(&rank).Error
 	if err != nil {
 		return 0, err
 	}
+
 	return int(rank) + 1, nil
+}
+
+// GetUserPeriodScores returns current week/month points from completed sessions.
+func (r *QuizRepository) GetUserPeriodScores(userID uuid.UUID) (int, int, error) {
+	nowVN := localVNTime()
+	weekStart, weekEnd := currentWeekRangeVN(nowVN)
+	monthStart, monthEnd := currentMonthRangeVN(nowVN)
+
+	var row struct {
+		WeekScore  int `gorm:"column:week_score"`
+		MonthScore int `gorm:"column:month_score"`
+	}
+
+	err := r.db.Raw(`
+		SELECT
+			COALESCE(SUM(CASE WHEN finished_at >= ? AND finished_at < ? THEN `+quizSessionScoreSQL("quiz_sessions")+` ELSE 0 END), 0)::int AS week_score,
+			COALESCE(SUM(CASE WHEN finished_at >= ? AND finished_at < ? THEN `+quizSessionScoreSQL("quiz_sessions")+` ELSE 0 END), 0)::int AS month_score
+		FROM quiz_sessions
+		WHERE user_id = ? AND completed = TRUE
+	`, weekStart.UTC(), weekEnd.UTC(), monthStart.UTC(), monthEnd.UTC(), userID).Scan(&row).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return row.WeekScore, row.MonthScore, nil
 }
 
 // GetUserPublicInfo returns the best available display name + avatar for leaderboard usage.

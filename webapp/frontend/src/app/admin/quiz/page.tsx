@@ -264,6 +264,7 @@ function LeaderboardTab() {
   const [period, setPeriod] = useState<"weekly" | "monthly" | "alltime">("weekly");
   const { data, isLoading } = useQuizLeaderboard(period);
   const scores = data?.data ?? [];
+  const streakLabel = period === "alltime" ? "Chuỗi tốt nhất" : "Chuỗi hiện tại";
 
   return (
     <div className="space-y-4">
@@ -302,7 +303,7 @@ function LeaderboardTab() {
                 <TableHead className="w-28 text-right">Điểm tuần</TableHead>
                 <TableHead className="w-28 text-right">Điểm tháng</TableHead>
                 <TableHead className="w-28 text-right">Tổng điểm</TableHead>
-                <TableHead className="w-24 text-right">Chuỗi</TableHead>
+                <TableHead className="w-28 text-right">{streakLabel}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -323,7 +324,9 @@ function LeaderboardTab() {
                   <TableCell className="text-right text-sm">{s.month_score}</TableCell>
                   <TableCell className="text-right text-sm font-bold">{s.total_score}</TableCell>
                   <TableCell className="text-right text-sm">
-                    {s.cur_streak > 0 ? `🔥 ${s.cur_streak}` : "—"}
+                    {(period === "alltime" ? s.best_streak : s.cur_streak) > 0
+                      ? `🔥 ${period === "alltime" ? s.best_streak : s.cur_streak}`
+                      : "—"}
                   </TableCell>
                 </TableRow>
               ))}
