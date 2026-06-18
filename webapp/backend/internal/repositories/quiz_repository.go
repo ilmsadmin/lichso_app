@@ -292,6 +292,27 @@ func (r *QuizRepository) UpdateSession(s *models.QuizSession) error {
 	return r.db.Save(s).Error
 }
 
+// CountCompletedSessionsSince counts a user's completed sessions finished at/after `since`.
+// Used to enforce anti-farming daily caps on leaderboard scoring.
+func (r *QuizRepository) CountCompletedSessionsSince(userID uuid.UUID, since time.Time) (int64, error) {
+	var count int64
+	err := r.db.Model(&models.QuizSession{}).
+		Where("user_id = ? AND completed = ? AND finished_at >= ?", userID, true, since.UTC()).
+		Count(&count).Error
+	return count, err
+}
+
+// CountCompletedSessionsByTypeSince counts a user's completed sessions of a given type
+// finished at/after `since`. Used to cap how many "daily" sessions can score per day.
+func (r *QuizRepository) CountCompletedSessionsByTypeSince(userID uuid.UUID, sessionType string, since time.Time) (int64, error) {
+	var count int64
+	err := r.db.Model(&models.QuizSession{}).
+		Where("user_id = ? AND session_type = ? AND completed = ? AND finished_at >= ?",
+			userID, sessionType, true, since.UTC()).
+		Count(&count).Error
+	return count, err
+}
+
 // GetUserSessions returns recent sessions for a user.
 func (r *QuizRepository) GetUserSessions(userID uuid.UUID, limit int) ([]models.QuizSession, error) {
 	var sessions []models.QuizSession

@@ -468,7 +468,7 @@ func setupRoutes(app *fiber.App, cfg *config.Config, pgDB *gorm.DB, mongoDB *mon
 	quizService.SetPointsService(pointsService)
 	quizHandler := handlers.NewQuizHandler(quizService, validator, logger)
 	routes.SetupQuizRoutes(api, authMiddleware, permMiddleware, quizHandler)
-	routes.SetupPointsRoutes(api, authMiddleware, pointsHandler)
+	routes.SetupPointsRoutes(api, authMiddleware, permMiddleware, pointsHandler)
 
 	// Push Notifications (FCM)
 	fcmService, err := services.NewFCMService(&cfg.FCM, logger)

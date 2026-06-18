@@ -54,6 +54,7 @@ func SetupQuizRoutes(
 func SetupPointsRoutes(
 	router fiber.Router,
 	authMiddleware *middleware.AuthMiddleware,
+	permMiddleware *middleware.PermissionMiddleware,
 	pointsHandler *handlers.PointsHandler,
 ) {
 	points := router.Group("/points", authMiddleware.Authenticate())
@@ -61,4 +62,13 @@ func SetupPointsRoutes(
 	points.Get("/transactions", pointsHandler.GetTransactions)
 	points.Post("/spend", pointsHandler.SpendPoints)
 	points.Post("/sync-guest", pointsHandler.SyncGuestPoints)
+
+	// ============================================
+	// Admin points moderation — view & reset user points / quiz scores
+	// ============================================
+	adminPoints := router.Group("/admin/points", authMiddleware.Authenticate())
+	adminPoints.Get("/users", permMiddleware.RequirePermission("users.read"), pointsHandler.AdminListUserPoints)
+	adminPoints.Get("/users/:userId/daily", permMiddleware.RequirePermission("users.read"), pointsHandler.AdminGetUserDailyPoints)
+	adminPoints.Get("/users/:userId", permMiddleware.RequirePermission("users.read"), pointsHandler.AdminGetUserPoints)
+	adminPoints.Post("/users/:userId/adjust", permMiddleware.RequirePermission("users.update"), pointsHandler.AdminAdjustUserPoints)
 }

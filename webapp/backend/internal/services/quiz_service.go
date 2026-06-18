@@ -92,6 +92,7 @@ type SessionResult struct {
 	SessionTitle          string              `json:"session_title"`
 	UnlockedMasteryTitles []string            `json:"unlocked_mastery_titles,omitempty"`
 	UnlockedBadges        []string            `json:"unlocked_badges,omitempty"`
+	ScoreCapped           bool                `json:"score_capped"` // true if daily anti-farming cap was hit
 }
 
 // MyRankResponse is the personalised leaderboard info for the current user.
@@ -111,6 +112,14 @@ const (
 	pointsPerCorrectAnswer = 3
 	bonusPerfectScore      = 5
 	leaderboardCacheTTL    = 15 * time.Minute
+
+	// Anti-farming caps (server-side, VN day boundary).
+	// A user may only earn leaderboard/app-point rewards from a bounded number of
+	// sessions per day; sessions beyond the cap are still recorded but score 0.
+	maxScoringSessionsPerDay   = 15 // total completed sessions that earn rewards per day
+	maxDailyTypeSessionsPerDay = 1  // the curated "daily" quiz scores at most once per day
+	maxSyncSessionsPerRequest  = 50 // hard limit on offline sessions accepted per sync call
+	offlineSyncMaxAgeDays      = 7  // offline sessions older than this are clamped to now
 )
 
 func vnLocation() *time.Location {
@@ -583,7 +592,9 @@ func (s *QuizService) SubmitAnswer(userID, sessionID uuid.UUID, questionID int64
 	if isCorrect {
 		baseCorrect := 100
 		speedBonus := 0
-		if timeMs >= 0 && timeMs < 30000 {
+		// timeMs is client-supplied; only grant the speed bonus for a plausible answer
+		// time (>0 and under 30s). timeMs <= 0 means the client omitted/forged it, so no bonus.
+		if timeMs > 0 && timeMs < 30000 {
 			speedBonus = int(float64(30000-timeMs) / 30000.0 * 50.0)
 		}
 		if speedBonus < 0 {
@@ -761,6 +772,33 @@ func (s *QuizService) applyScoreForUser(userID uuid.UUID, totalPoints int, xp in
 	return &scoreRow, rank, nil
 }
 
+// startOfTodayVNUTC returns the start of the current VN day, expressed in UTC,
+// for use in "since" queries against finished_at (stored UTC).
+func startOfTodayVNUTC() time.Time {
+	loc := vnLocation()
+	return startOfDayInLocation(time.Now().In(loc), loc).UTC()
+}
+
+// isScoringCapped reports whether a newly-completing session of `sessionType` should
+// be excluded from leaderboard/app-point rewards because the user has already hit a
+// daily anti-farming cap. It is evaluated against sessions already completed today.
+func (s *QuizService) isScoringCapped(userID uuid.UUID, sessionType string) bool {
+	dayStart := startOfTodayVNUTC()
+
+	if sessionType == "daily" {
+		dailyDone, err := s.repo.CountCompletedSessionsByTypeSince(userID, "daily", dayStart)
+		if err == nil && dailyDone >= maxDailyTypeSessionsPerDay {
+			return true
+		}
+	}
+
+	totalDone, err := s.repo.CountCompletedSessionsSince(userID, dayStart)
+	if err == nil && totalDone >= maxScoringSessionsPerDay {
+		return true
+	}
+	return false
+}
+
 // FinishSession marks a session as completed and updates the user's aggregated scores.
 func (s *QuizService) FinishSession(userID, sessionID uuid.UUID) (*SessionResult, error) {
 	session, err := s.repo.GetSession(sessionID)
@@ -775,8 +813,19 @@ func (s *QuizService) FinishSession(userID, sessionID uuid.UUID) (*SessionResult
 	}
 
 	now := time.Now()
+
+	// Anti-farming: decide BEFORE marking complete (the cap counts sessions already
+	// completed today). A capped session is still recorded for history but earns 0
+	// leaderboard score, 0 app points and 0 XP, and is excluded from the leaderboard
+	// SUM by zeroing its score columns.
+	scoreCapped := s.isScoringCapped(userID, session.SessionType)
+
 	session.Completed = true
 	session.FinishedAt = &now
+	if scoreCapped {
+		session.Score = 0
+		session.ScoreV2 = 0
+	}
 
 	if err := s.repo.UpdateSession(session); err != nil {
 		return nil, fmt.Errorf("failed to finish session: %w", err)
@@ -785,6 +834,24 @@ func (s *QuizService) FinishSession(userID, sessionID uuid.UUID) (*SessionResult
 	// Decode answers.
 	var answers []models.QuizAnswer
 	_ = json.Unmarshal(session.Answers, &answers)
+
+	if scoreCapped {
+		s.logger.Info("Quiz session score capped by daily anti-farming limit",
+			zap.String("user_id", userID.String()),
+			zap.String("session_id", session.ID.String()),
+			zap.String("session_type", session.SessionType),
+		)
+		return &SessionResult{
+			SessionID:    session.ID,
+			Score:        0,
+			ScoreV2:      0,
+			Total:        session.Total,
+			Answers:      answers,
+			PointsEarned: 0,
+			SessionTitle: "Đã đạt giới hạn tính điểm hôm nay",
+			ScoreCapped:  true,
+		}, nil
+	}
 
 	// 1. Calculate App Points & XP Earned
 	appPointsEarned := 0
@@ -916,9 +983,33 @@ func (s *QuizService) FinishSession(userID, sessionID uuid.UUID) (*SessionResult
 }
 
 // SyncOfflineSessions imports locally completed guest sessions into the user's account.
+//
+// Anti-farming hardening:
+//   - the number of sessions accepted per call is hard-capped;
+//   - client-supplied timestamps are never trusted: finished_at is clamped to a recent
+//     window so fake history cannot be back/forward-dated to inflate streaks or spread
+//     across leaderboard periods;
+//   - the same per-day scoring cap as the online flow applies across both online and
+//     offline sessions; sessions beyond the cap are imported for history with score 0
+//     (excluded from the leaderboard SUM) and grant no leaderboard score / XP.
 func (s *QuizService) SyncOfflineSessions(userID uuid.UUID, sessions []OfflineQuizSession) (*SyncOfflineQuizResponse, error) {
 	syncedIDs := make([]string, 0, len(sessions))
 	skippedIDs := make([]string, 0)
+
+	// Hard limit per request to prevent bulk injection. Overflow stays queued on the
+	// client and is retried on the next sync.
+	if len(sessions) > maxSyncSessionsPerRequest {
+		sessions = sessions[:maxSyncSessionsPerRequest]
+	}
+
+	// Seed today's scored-session counters for the daily anti-farming cap. These apply
+	// across both online and offline play.
+	dayStart := startOfTodayVNUTC()
+	scoredToday, _ := s.repo.CountCompletedSessionsSince(userID, dayStart)
+	dailyTypeToday, _ := s.repo.CountCompletedSessionsByTypeSince(userID, "daily", dayStart)
+
+	now := time.Now()
+	minFinished := now.AddDate(0, 0, -offlineSyncMaxAgeDays)
 
 	for _, session := range sessions {
 		clientID := strings.TrimSpace(session.ClientSessionID)
@@ -968,8 +1059,27 @@ func (s *QuizService) SyncOfflineSessions(userID uuid.UUID, sessions []OfflineQu
 			})
 		}
 
-		startedAt := timeFromMillis(session.StartedAtMs)
+		// Sanitize client-supplied timestamps — never trust them for scoring.
 		finishedAt := timeFromMillis(session.FinishedAtMs)
+		if finishedAt.After(now) || finishedAt.Before(minFinished) {
+			finishedAt = now
+		}
+		startedAt := timeFromMillis(session.StartedAtMs)
+		if startedAt.After(finishedAt) || startedAt.Before(minFinished) {
+			startedAt = finishedAt
+		}
+
+		// Apply the per-day scoring cap (shared with the online flow).
+		capped := scoredToday >= maxScoringSessionsPerDay
+		if session.SessionType == "daily" && dailyTypeToday >= maxDailyTypeSessionsPerDay {
+			capped = true
+		}
+
+		storedScore := score
+		if capped {
+			storedScore = 0 // exclude from leaderboard SUM
+		}
+
 		clientIDCopy := clientID
 		sessionRow := &models.QuizSession{
 			UserID:          userID,
@@ -977,7 +1087,7 @@ func (s *QuizService) SyncOfflineSessions(userID uuid.UUID, sessions []OfflineQu
 			SessionType:     session.SessionType,
 			Category:        session.Category,
 			QuestionIDs:     session.QuestionIDs,
-			Score:           score,
+			Score:           storedScore,
 			Total:           len(session.QuestionIDs),
 			Completed:       true,
 			StartedAt:       startedAt,
@@ -988,6 +1098,17 @@ func (s *QuizService) SyncOfflineSessions(userID uuid.UUID, sessions []OfflineQu
 
 		if err := s.repo.CreateSession(sessionRow); err != nil {
 			return nil, fmt.Errorf("failed to import offline session: %w", err)
+		}
+
+		if capped {
+			// Recorded for history only; no leaderboard score / XP.
+			syncedIDs = append(syncedIDs, clientID)
+			continue
+		}
+
+		scoredToday++
+		if session.SessionType == "daily" {
+			dailyTypeToday++
 		}
 
 		totalPoints := score

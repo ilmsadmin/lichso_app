@@ -42,3 +42,6 @@ webapp/deploy/*.tar.gz
 android/.kotlin/
 
 webapp/*.tar.gz
+
+# Compiled Go admin tool binary
+webapp/backend/quizaudit

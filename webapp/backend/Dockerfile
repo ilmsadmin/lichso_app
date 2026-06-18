@@ -33,6 +33,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /server ./cmd/server/main.go
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /migrate ./cmd/migrate/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /quizaudit ./cmd/quizaudit/main.go
 
 # ============================================
 # Stage 3: Production
@@ -45,6 +46,7 @@ WORKDIR /app
 
 COPY --from=builder /server .
 COPY --from=builder /migrate .
+COPY --from=builder /quizaudit .
 COPY --from=builder /app/migrations ./migrations
 
 EXPOSE 8080
