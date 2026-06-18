@@ -1,20 +1,17 @@
 "use client";
 
-import { Suspense, lazy } from "react";
-import { useCalendarToday } from "@/hooks/useCalendar";
+import { Suspense, lazy, useMemo, useState, useCallback } from "react";
+import { useCalendarToday, useCalendarDate } from "@/hooks/useCalendar";
 import type { DayResponse } from "@/types/calendar";
 
 // Direct imports — critical path
-import { V2Hero } from "@/components/lichso/V2Hero";
+import { DailyBlocSheet } from "@/components/lichso/DailyBlocSheet";
+import { MonthCalendar } from "@/components/lichso/MonthCalendar";
 import { V2QuoteCard } from "@/components/lichso/V2QuoteCard";
-import { V2MiniCalendar } from "@/components/lichso/V2MiniCalendar";
 
 // Lazy imports — non-critical
-const V2HistoryCard = lazy(() =>
-  import("@/components/lichso/V2HistoryCard").then((m) => ({ default: m.V2HistoryCard }))
-);
-const V2FestivalsCard = lazy(() =>
-  import("@/components/lichso/V2FestivalsCard").then((m) => ({ default: m.V2FestivalsCard }))
+const CultureSection = lazy(() =>
+  import("@/components/lichso/CultureSection").then((m) => ({ default: m.CultureSection }))
 );
 const V2SolarTermWidget = lazy(() =>
   import("@/components/lichso/V2SolarTermWidget").then((m) => ({ default: m.V2SolarTermWidget }))
@@ -25,6 +22,17 @@ const V2QuickSearch = lazy(() =>
 const V2RemindersWidget = lazy(() =>
   import("@/components/lichso/V2RemindersWidget").then((m) => ({ default: m.V2RemindersWidget }))
 );
+
+function pad(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+/** Cộng/trừ ngày trên chuỗi YYYY-MM-DD (an toàn theo local time). */
+function shiftDate(dateStr: string, delta: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(y, m - 1, d + delta);
+  return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+}
 
 function CardSkeleton() {
   return (
@@ -48,11 +56,32 @@ export default function V2HomeClient({
 }) {
   const { data: todayData, isLoading, error } = useCalendarToday(initialTodayData ?? undefined);
 
+  // Ngày hôm nay (chuỗi) — ưu tiên từ data, fallback đồng hồ máy
+  const todayStr = useMemo(() => {
+    if (todayData) {
+      return `${todayData.solar_year}-${pad(todayData.solar_month)}-${pad(todayData.solar_day)}`;
+    }
+    const now = new Date();
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  }, [todayData]);
+
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const activeDate = selectedDate ?? todayStr;
+  const isToday = activeDate === todayStr;
+
+  // Khi xem ngày khác hôm nay → fetch riêng; ngày hôm nay dùng todayData
+  const { data: otherDayData, isFetching: otherFetching } = useCalendarDate(activeDate, !isToday);
+  const dayData: DayResponse | undefined = isToday ? todayData : otherDayData;
+
+  const goPrev = useCallback(() => setSelectedDate(shiftDate(activeDate, -1)), [activeDate]);
+  const goNext = useCallback(() => setSelectedDate(shiftDate(activeDate, 1)), [activeDate]);
+  const goToday = useCallback(() => setSelectedDate(null), []);
+
   return (
     <div style={{ background: "var(--v2-bg-primary)" }} className="min-h-screen">
       <div className="mx-auto max-w-[1400px] px-4 py-7 sm:px-8">
         {/* Error state */}
-        {error && (
+        {error && !todayData && (
           <div
             className="mb-6 rounded-xl p-8 text-center"
             style={{
@@ -71,91 +100,77 @@ export default function V2HomeClient({
 
         {/* Loading */}
         {isLoading && !todayData && (
-          <div className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
             <div
-              className="h-48 animate-pulse rounded-[28px]"
+              className="h-[520px] animate-pulse rounded-[26px]"
               style={{ background: "var(--v2-bg-accent-soft)" }}
             />
-            <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-              <div className="space-y-5">
-                <CardSkeleton />
-                <CardSkeleton />
-              </div>
-              <div className="space-y-5">
-                <CardSkeleton />
-                <CardSkeleton />
-              </div>
-            </div>
+            <div
+              className="h-[420px] animate-pulse rounded-2xl"
+              style={{ background: "var(--v2-bg-hover)" }}
+            />
           </div>
         )}
 
-        {todayData && (
+        {(dayData || todayData) && (
           <>
-            {/* ═══════ HERO ═══════ */}
-            <V2Hero data={todayData} />
-
-            {/* Slogan */}
-            <div className="relative mb-6 text-center">
-              <p className="text-[13px] font-medium tracking-wider" style={{ color: "var(--v2-text-muted)" }}>
-                <span className="font-semibold" style={{ color: "var(--v2-text-accent)" }}>
-                  Lịch Số
-                </span>
-                {" "}— Nơi truyền thống gặp gỡ công nghệ, giữ hồn Việt trong thời đại số
-              </p>
-            </div>
-
-            {/* ═══════ CONTENT GRID ═══════ */}
-            <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-              {/* Main content */}
-              <div>
-                {/* Quote */}
-                <V2QuoteCard />
-
-                {/* History events */}
-                <Suspense fallback={<CardSkeleton />}>
-                  <V2HistoryCard
-                    month={todayData.solar_month}
-                    day={todayData.solar_day}
-                    lunarMonth={todayData.lunar_month}
-                    lunarDay={todayData.lunar_day}
+            {/* ═══════ HÀNG CHÍNH: Tờ lịch ngày × Lịch tháng ═══════ */}
+            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+              {/* Tờ lịch ngày — centerpiece */}
+              <div className="relative" style={{ opacity: !isToday && otherFetching ? 0.6 : 1 }}>
+                {dayData ? (
+                  <DailyBlocSheet
+                    data={dayData}
+                    isToday={isToday}
+                    onPrevDay={goPrev}
+                    onNextDay={goNext}
+                    onToday={goToday}
                   />
-                </Suspense>
-
-                {/* Festivals */}
-                <Suspense fallback={<CardSkeleton />}>
-                  <V2FestivalsCard />
-                </Suspense>
-
-                {/* Ornament */}
-                <div
-                  className="my-3 text-center text-[12px] opacity-30"
-                  style={{ color: "var(--v2-text-muted)", letterSpacing: "10px" }}
-                >
-                  ◆ ◆ ◆
-                </div>
+                ) : (
+                  <div
+                    className="h-[520px] animate-pulse rounded-[26px]"
+                    style={{ background: "var(--v2-bg-accent-soft)" }}
+                  />
+                )}
               </div>
 
-              {/* ═══════ SIDEBAR ═══════ */}
+              {/* Cột phải: Lịch tháng + tiết khí + tìm kiếm + nhắc nhở */}
               <aside className="flex flex-col gap-5">
-                {/* Mini Calendar */}
-                <V2MiniCalendar />
-
-                {/* Solar Term */}
-                <Suspense fallback={<CardSkeleton />}>
-                  <V2SolarTermWidget solarTerm={todayData.tiet_khi} />
-                </Suspense>
-
-                {/* Quick Search */}
+                <MonthCalendar selectedDate={activeDate} onSelectDate={setSelectedDate} />
+                {dayData?.tiet_khi && (
+                  <Suspense fallback={<CardSkeleton />}>
+                    <V2SolarTermWidget solarTerm={dayData.tiet_khi} />
+                  </Suspense>
+                )}
                 <Suspense fallback={<CardSkeleton />}>
                   <V2QuickSearch />
                 </Suspense>
-
-                {/* Reminders */}
                 <Suspense fallback={<CardSkeleton />}>
                   <V2RemindersWidget />
                 </Suspense>
               </aside>
             </div>
+
+            {/* Slogan */}
+            <div className="relative my-7 text-center">
+              <p
+                className="text-[13px] font-medium tracking-wider"
+                style={{ color: "var(--v2-text-muted)" }}
+              >
+                <span className="font-semibold" style={{ color: "var(--v2-text-accent)" }}>
+                  Lịch Số
+                </span>{" "}
+                — Nơi truyền thống gặp gỡ công nghệ, giữ hồn Việt trong thời đại số
+              </p>
+            </div>
+
+            {/* Danh ngôn hôm nay — dải toàn chiều rộng */}
+            <V2QuoteCard />
+
+            {/* ═══════ ĐẶC TRƯNG VĂN HÓA VIỆT ═══════ */}
+            <Suspense fallback={<CardSkeleton />}>
+              <CultureSection />
+            </Suspense>
           </>
         )}
       </div>
