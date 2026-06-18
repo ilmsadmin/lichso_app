@@ -87,6 +87,7 @@ struct LoginNudgeBanner: View {
                 visible = false
             } label: {
                 Image(systemName: "xmark")
+                .accessibilityLabel("Đóng")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(LSTheme.textTertiary)
                     .frame(width: 24, height: 24)

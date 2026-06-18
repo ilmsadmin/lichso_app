@@ -127,26 +127,31 @@ struct HomeScreen: View {
         VStack(spacing: 0) {
             HStack {
                 circleButton(icon: "line.3.horizontal") { onMenuClick() }
+                    .tourTarget("menu")
+                    .accessibilityLabel("Menu")
                 Spacer()
                 weatherChip
                 Spacer()
                 HStack(spacing: 8) {
                     ZStack(alignment: .topTrailing) {
                         circleButton(icon: "bell") { showNotifications = true }
+                            .accessibilityLabel(unreadNotifications.isEmpty ? "Thông báo" : "Thông báo, có thông báo mới")
                         if !unreadNotifications.isEmpty {
                             Circle()
                                 .fill(Color(hex: "FF6B6B"))
                                 .frame(width: 7, height: 7)
                                 .offset(x: -6, y: 6)
+                                .accessibilityHidden(true)
                         }
                     }
-                    
+
                     Button {
                         showProfile = true
                     } label: {
                         AvatarView(name: displayName, path: avatarPath, size: 40)
                             .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 1.5))
                     }
+                    .accessibilityLabel("Hồ sơ")
                 }
             }
             .padding(.horizontal, 24)
@@ -467,6 +472,12 @@ private struct CalendarPageBody: View {
                     Spacer().frame(height: 8)
                 }
 
+                // Smart contextual hint (Tết, Rằm, Mùng 1, Tam Nương...) — parity with Android
+                if let hint = SmartReminderProvider.contextualHint(for: info) {
+                    smartHintBanner(hint)
+                    Spacer().frame(height: 8)
+                }
+
                 // Event chips — controlled by setting
                 if showFestivals {
                     let hasHistory = HistoricalEventProvider.hasEvents(day: info.solar.dd, month: info.solar.mm)
@@ -474,6 +485,12 @@ private struct CalendarPageBody: View {
                     if holiday != nil || hasHistory {
                         eventChips
                     }
+                }
+
+                // Nearest countdown event card — parity with Android HomeCountdownCard
+                if let next = HomeCountdownLoader.nextEvent() {
+                    Spacer().frame(height: 10)
+                    homeCountdownCard(next)
                 }
 
                 Spacer()
@@ -576,6 +593,63 @@ private struct CalendarPageBody: View {
                 .foregroundColor(TextTertiary)
         }
         .padding(.horizontal, 4)
+    }
+
+    // MARK: Smart Hint Banner
+
+    private func smartHintBanner(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "lightbulb.fill")
+                .font(.system(size: 13))
+                .foregroundColor(GoldChip)
+            Text(text)
+                .font(.system(size: 12.5, weight: .medium))
+                .foregroundColor(TextSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(GoldChip.opacity(0.10))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(GoldChip.opacity(0.30), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    // MARK: Home Countdown Card
+
+    private func homeCountdownCard(_ event: CountdownEvent) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(PrimaryRed.opacity(0.12))
+                    .frame(width: 44, height: 44)
+                Image(systemName: "timer")
+                    .font(.system(size: 20))
+                    .foregroundColor(PrimaryRed)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("ĐẾM NGƯỢC")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(TextTertiary)
+                Text(event.title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(TextPrimary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 0) {
+                Text("\(max(0, event.daysRemaining))")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(PrimaryRed)
+                Text("ngày")
+                    .font(.system(size: 10))
+                    .foregroundColor(TextTertiary)
+            }
+        }
+        .padding(12)
+        .background(SurfaceCard)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(OutlineColor, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
     // MARK: Event Chips

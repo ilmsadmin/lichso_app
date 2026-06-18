@@ -39,7 +39,8 @@ struct ToolsScreen: View {
                 ToolItem(action: "zodiac", title: "Xem tuổi hợp", subtitle: "Tương sinh · Tương khắc", icon: "heart.fill", colors: [Color(hex: "C2185B"), Color(hex: "E91E63")]),
                 ToolItem(action: "lunar", title: "Đổi ngày Âm / Dương", subtitle: "Chuyển đổi nhanh", icon: "arrow.left.and.right", colors: [Color(hex: "512DA8"), Color(hex: "7E57C2")]),
                 ToolItem(action: "tiet_khi", title: "24 Tiết Khí", subtitle: "Vòng năm Á Đông · phong thuỷ", icon: "leaf.fill", colors: [Color(hex: "388E3C"), Color(hex: "FFB300")]),
-                ToolItem(action: "prayers", title: "Văn khấn", subtitle: "Bài cúng truyền thống", icon: "book.fill", colors: [Color(hex: "BF360C"), Color(hex: "E65100")])
+                ToolItem(action: "prayers", title: "Văn khấn", subtitle: "Bài cúng truyền thống", icon: "book.fill", colors: [Color(hex: "BF360C"), Color(hex: "E65100")]),
+                ToolItem(action: "templates", title: "Mẫu tra cứu", subtitle: "Cưới hỏi · Động thổ · Khai trương", icon: "doc.text.magnifyingglass", colors: [Color(hex: "00838F"), Color(hex: "26A69A")])
             ]
         ),
         ToolSection(
@@ -107,7 +108,8 @@ struct ToolsScreen: View {
                                 .foregroundColor(LSTheme.textPrimary)
                                 .frame(width: 44, height: 44)
                         }
-                        
+                        .accessibilityLabel("Menu")
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Tiện ích")
                                 .font(.system(size: 20, weight: .bold))
@@ -202,7 +204,9 @@ struct ToolsScreen: View {
                     case "zodiac_collection":
                         ZodiacCollectionScreen()
                     case "bookmarks":
-                        SearchScreen()
+                        BookmarksScreen()
+                    case "templates":
+                        TemplatesScreen()
                     case "points_ledger":
                         LedgerScreen()
                     case "daily_store":

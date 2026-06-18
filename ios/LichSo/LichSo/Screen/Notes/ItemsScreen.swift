@@ -415,7 +415,7 @@ private struct AiCard: View {
             Text(text).font(.system(size: 13)).foregroundColor(LSTheme.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Button(action: onDismiss) {
-                Image(systemName: "xmark").font(.system(size: 14)).foregroundColor(LSTheme.textTertiary)
+                Image(systemName: "xmark").font(.system(size: 14)).foregroundColor(LSTheme.textTertiary).accessibilityLabel("Đóng")
             }
             .buttonStyle(.plain)
         }

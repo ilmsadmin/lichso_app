@@ -137,6 +137,19 @@ struct SearchScreen: View {
                             }
                         }
                         .padding(.horizontal, 16)
+                    } else if !vm.query.isEmpty {
+                        VStack(spacing: 8) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 36))
+                                .foregroundColor(TextDim)
+                            Text("Không tìm thấy kết quả cho \u{201C}\(vm.query)\u{201D}")
+                                .font(.system(size: 14))
+                                .foregroundColor(TextDim)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
+                        .padding(.horizontal, 20)
                     }
 
                     // ═══ LUNAR CONVERTER ═══
@@ -394,6 +407,7 @@ private struct RecentRow: View {
 
             Button(action: onRemove) {
                 Image(systemName: "xmark")
+                    .accessibilityLabel("Xóa khỏi lịch sử")
                     .font(.system(size: 14))
                     .foregroundColor(OutlineVariant)
             }

@@ -18,6 +18,7 @@ struct LeaderboardScreen: View {
                     HStack {
                         Button(action: { dismiss() }) {
                             Image(systemName: "chevron.left")
+                            .accessibilityLabel("Quay lại")
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.white)
                                 .frame(width: 36, height: 36)
@@ -64,6 +65,17 @@ struct LeaderboardScreen: View {
                         Text(error)
                             .foregroundColor(LSTheme.textSecondary)
                         Spacer()
+                    } else if entries.isEmpty {
+                        Spacer()
+                        VStack(spacing: 8) {
+                            Image(systemName: "trophy")
+                                .font(.system(size: 48))
+                                .foregroundColor(LSTheme.textTertiary)
+                            Text("Chưa có dữ liệu")
+                                .font(.system(size: 14))
+                                .foregroundColor(LSTheme.textSecondary)
+                        }
+                        Spacer()
                     } else {
                         // My rank banner
                         if let rank = myRank, rank.rank > 0 {
@@ -71,7 +83,7 @@ struct LeaderboardScreen: View {
                                 .padding(.horizontal, 16)
                                 .padding(.bottom, 10)
                         }
-                        
+
                         List {
                             ForEach(entries) { entry in
                                 leaderboardRow(entry: entry)

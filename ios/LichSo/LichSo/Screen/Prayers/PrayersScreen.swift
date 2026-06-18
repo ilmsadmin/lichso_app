@@ -98,6 +98,7 @@ private struct PrayersHeader: View {
                 if let onClose = onCloseTap {
                     Button(action: onClose) {
                         Image(systemName: "chevron.left")
+                        .accessibilityLabel("Quay lại")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
                             .frame(width: 40, height: 40)

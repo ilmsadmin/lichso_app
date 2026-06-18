@@ -203,6 +203,7 @@ private struct DetailNavBar: View {
         HStack {
             Button(action: onBack) {
                 Image(systemName: "chevron.left")
+                .accessibilityLabel("Quay lại")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(width: 40, height: 40)

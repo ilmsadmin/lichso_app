@@ -128,6 +128,7 @@ private struct TreeHeader: View {
             HStack {
                 Button(action: onBack) {
                     Image(systemName: "chevron.left")
+                    .accessibilityLabel("Quay lại")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white.opacity(0.9))
                         .frame(width: 40, height: 40)

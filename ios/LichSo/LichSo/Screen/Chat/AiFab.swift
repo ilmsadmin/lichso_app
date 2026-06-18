@@ -12,7 +12,7 @@ private var SurfaceBg: Color { LSTheme.bg }
 struct AiFab: View {
     var onTap: () -> Void = {}
     var body: some View {
-        Button(action: onTap) {
+        Button(action: { Haptics.light(); onTap() }) {
             ZStack(alignment: .topTrailing) {
                 Circle()
                     .fill(
@@ -42,6 +42,7 @@ struct AiFab: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Trợ lý AI")
     }
 }
 

@@ -147,6 +147,7 @@ private struct ChatDayHeader: View {
         HStack(spacing: 12) {
             Button(action: onBackClick) {
                 Image(systemName: "chevron.left")
+                .accessibilityLabel("Quay lại")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(width: 36, height: 36)

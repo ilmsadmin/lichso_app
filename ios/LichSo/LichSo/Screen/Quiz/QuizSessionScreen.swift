@@ -340,6 +340,7 @@ private final class QuizPlayViewModel: ObservableObject {
     }
 
     private func updateWithAnswer(_ result: SubmitAnswerResult) {
+        if result.isCorrect { Haptics.success() } else { Haptics.error() }
         updateQuestionState { current in
             if current.answers.indices.contains(current.currentIndex) {
                 current.answers[current.currentIndex] = result
@@ -860,6 +861,7 @@ private struct QuizTopHeader: View {
         HStack(spacing: 8) {
             Button(action: onBack) {
                 Image(systemName: "chevron.left")
+                .accessibilityLabel("Quay lại")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(width: 36, height: 36)

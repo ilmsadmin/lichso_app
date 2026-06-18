@@ -55,6 +55,7 @@ struct PickMemberScreen: View {
                     HStack(spacing: 8) {
                         Button { dismiss() } label: {
                             Image(systemName: "xmark")
+                            .accessibilityLabel("Đóng")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.white)
                                 .frame(width: 36, height: 36)

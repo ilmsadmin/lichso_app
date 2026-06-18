@@ -122,6 +122,7 @@ private struct DayHero: View {
                 HStack {
                     Button(action: onBack) {
                         Image(systemName: "chevron.left")
+                        .accessibilityLabel("Quay lại")
                             .font(.system(size: 18, weight: .medium))
                             .foregroundColor(.white)
                             .frame(width: 36, height: 36)

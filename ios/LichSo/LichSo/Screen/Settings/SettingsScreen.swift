@@ -362,6 +362,7 @@ private struct SettingsTopBar: View {
         HStack(spacing: 12) {
             Button(action: onBack) {
                 Image(systemName: "chevron.left")
+                .accessibilityLabel("Quay lại")
                     .font(.system(size: 18, weight: .medium))
                     .foregroundColor(.white)
                     .frame(width: 40, height: 40)

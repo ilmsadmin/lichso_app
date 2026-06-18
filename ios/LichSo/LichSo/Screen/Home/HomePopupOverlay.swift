@@ -44,6 +44,7 @@ struct HomePopupOverlay: View {
                         ZStack {
                             Circle().fill(Color.black.opacity(0.5)).frame(width: 18, height: 18)
                             Image(systemName: "xmark")
+                            .accessibilityLabel("Đóng")
                                 .font(.system(size: 9, weight: .bold))
                                 .foregroundColor(.white)
                         }

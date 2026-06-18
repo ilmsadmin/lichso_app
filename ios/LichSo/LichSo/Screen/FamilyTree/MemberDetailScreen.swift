@@ -35,12 +35,14 @@ struct MemberDetailScreen: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
 
     var body: some View {
+        let kinshipTitle = viewModel.kinshipTitle(for: member)
         VStack(spacing: 0) {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
                     // ═══ HERO HEADER ═══
                     MemberHero(
                         member: member,
+                        kinshipTitle: kinshipTitle,
                         viewModel: viewModel,
                         onBack: { dismiss() },
                         onShare: { shareMember() }
@@ -71,7 +73,7 @@ struct MemberDetailScreen: View {
 
                         // ═══ PERSONAL INFO ═══
                         SectionLabel(icon: "info.circle.fill", text: "THÔNG TIN CÁ NHÂN")
-                        PersonalInfoGroup(member: member)
+                        PersonalInfoGroup(member: member, kinshipTitle: kinshipTitle)
 
                         // ═══ RELATIONS ═══
                         let relations = viewModel.relatedMembers(for: member)
@@ -172,6 +174,7 @@ struct MemberDetailScreen: View {
 
 private struct MemberHero: View {
     let member: FamilyMemberEntity
+    let kinshipTitle: String
     let viewModel: FamilyTreeViewModel
     let onBack: () -> Void
     let onShare: () -> Void
@@ -189,6 +192,7 @@ private struct MemberHero: View {
                 HStack {
                     Button(action: onBack) {
                         Image(systemName: "chevron.left")
+                        .accessibilityLabel("Quay lại")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white.opacity(0.9))
                             .frame(width: 40, height: 40)
@@ -226,7 +230,7 @@ private struct MemberHero: View {
                         Text(member.name)
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(.white)
-                        Text("\(member.role) — Thế hệ \(member.generation)")
+                        Text("\(kinshipTitle) — Thế hệ \(member.generation)")
                             .font(.system(size: 13))
                             .foregroundColor(.white.opacity(0.6))
 
@@ -424,6 +428,7 @@ private struct MemorialMiniCard: View {
 
 private struct PersonalInfoGroup: View {
     let member: FamilyMemberEntity
+    let kinshipTitle: String
 
     private var rows: [(icon: String, iconBg: Color, iconFg: Color, label: String, value: String)] {
         var r: [(String, Color, Color, String, String)] = []
@@ -442,7 +447,7 @@ private struct PersonalInfoGroup: View {
             r.append(("mappin.and.ellipse", Color(hex: "FFF8E1"), Color(hex: "F57F17"), "Nơi ở", hometown))
         }
         r.append(("person.fill", Color(hex: "F3E5F5"), Color(hex: "7B1FA2"), "Giới tính", member.gender == "MALE" ? "Nam" : "Nữ"))
-        r.append(("person.2.fill", Color(hex: "EFEBE9"), Color(hex: "5D4037"), "Vai trò", member.role))
+        r.append(("person.2.fill", Color(hex: "EFEBE9"), Color(hex: "5D4037"), "Danh xưng", kinshipTitle))
         return r
     }
 

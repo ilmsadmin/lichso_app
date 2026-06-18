@@ -26,6 +26,7 @@ struct NotificationsScreen: View {
             HStack(spacing: 12) {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
+                    .accessibilityLabel("Quay lại")
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(.white)
                         .frame(width: 40, height: 40)

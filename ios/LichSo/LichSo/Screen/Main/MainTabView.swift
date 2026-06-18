@@ -45,7 +45,28 @@ enum MainTab: Int, CaseIterable {
         case .tools: return "square.grid.2x2.fill"
         }
     }
+
+    /// Stable key used to register this tab as an app-tour highlight target.
+    var tourKey: String {
+        switch self {
+        case .calendar: return "calendar"
+        case .notes: return "notes"
+        case .today: return "today"
+        case .quiz: return "quiz"
+        case .tools: return "tools"
+        }
+    }
 }
+
+// First-run onboarding tour steps (parity with Android AppTour).
+let mainTourSteps: [TourStep] = [
+    TourStep(key: "today", title: "Hôm nay", text: "Chạm để xem nhanh thông tin ngày hôm nay: âm lịch, giờ hoàng đạo, tiết khí."),
+    TourStep(key: "calendar", title: "Lịch tháng", text: "Xem lịch âm – dương cả tháng và tra cứu ngày tốt / ngày xấu."),
+    TourStep(key: "notes", title: "Ghi chú", text: "Sổ tay ghi chú và đặt nhắc việc theo từng ngày."),
+    TourStep(key: "quiz", title: "Đố Vui", text: "Chơi đố vui kiến thức để nhận điểm thưởng mỗi ngày."),
+    TourStep(key: "tools", title: "Tiện ích", text: "Phong thủy, xem ngày, văn khấn, gia phả, trợ lý AI… đều ở đây."),
+    TourStep(key: "menu", title: "Menu", text: "Mở menu để vào tất cả tính năng: Văn khấn, Gia phả, Cài đặt và nhiều hơn nữa."),
+]
 
 struct MainTabView: View {
     @EnvironmentObject private var appState: AppState
@@ -61,6 +82,11 @@ struct MainTabView: View {
     @State private var showPrayers = false
     @State private var showKnowledgeFeed = false
     @State private var showQuizSession = false
+
+    @AppStorage("app_tour_done") private var tourDone = false
+    @StateObject private var tour = TourController(steps: mainTourSteps, onFinished: {
+        UserDefaults.standard.set(true, forKey: "app_tour_done")
+    })
 
     var body: some View {
         ZStack {
@@ -83,7 +109,18 @@ struct MainTabView: View {
             // Smart Rating Dialog overlay
             SmartRatingDialog(ratingManager: ratingManager)
         }
+        .overlayPreferenceValue(TourAnchorKey.self) { anchors in
+            if tour.isActive {
+                TourOverlay(controller: tour, anchors: anchors)
+                    .zIndex(50)
+                    .transition(.opacity)
+            }
+        }
         .animation(.easeInOut(duration: 0.28), value: showSidebar)
+        .onAppear {
+            guard !tourDone else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { tour.start() }
+        }
     }
 
     private func openSidebar() {
@@ -169,7 +206,7 @@ struct MainTabView: View {
         }
         .sheet(isPresented: $showBookmarks) {
             NavigationStack {
-                SearchScreen()
+                BookmarksScreen()
             }
         }
         .fullScreenCover(isPresented: $showPrayers) {
@@ -258,15 +295,17 @@ struct CustomTabBar: View {
                     // Center raised circle button
                     CenterTabButton(
                         isSelected: selectedTab == .today,
-                        onTap: { selectedTab = .today }
+                        onTap: { Haptics.selection(); selectedTab = .today }
                     )
+                    .tourTarget(tab.tourKey)
                 } else {
                     // Regular tab
                     RegularTabButton(
                         tab: tab,
                         isSelected: selectedTab == tab,
-                        onTap: { selectedTab = tab }
+                        onTap: { Haptics.selection(); selectedTab = tab }
                     )
+                    .tourTarget(tab.tourKey)
                 }
             }
         }

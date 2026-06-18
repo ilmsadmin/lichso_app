@@ -85,6 +85,9 @@
 		A60BF5DD352399C6DB381353 /* KnowledgeFeedScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FA2ECF0D942BC0175B07169 /* KnowledgeFeedScreen.swift */; };
 		A91CFA51AE32D3FFFA0B6AC7 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF8F57C61DCF345F18AA0DC8 /* SidebarView.swift */; };
 		AC198FD55E5688847C66DF8C /* SmartRatingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD00BA42392EA9A7CE65A79D /* SmartRatingManager.swift */; };
+		5A17B8C9D0E1F20304050607 /* SmartReminderProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AFE11220033445566778899 /* SmartReminderProvider.swift */; };
+		7A22330044556677889900BB /* AppTour.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ABB00998877665544332200 /* AppTour.swift */; };
+		7C334455667788990011AABB /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CBBAA1100998877665544DD /* Haptics.swift */; };
 		B9CBD55472D50CE86DBAF616 /* ItemsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBDE1EA9113798A174F71239 /* ItemsViewModel.swift */; };
 		BA1D322A47A158770E0CC7B9 /* LichSoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6469DD6BFF163A7153DFB570 /* LichSoApp.swift */; };
 		BF6537B953DD8930474D0304 /* QuizModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 259FE89A9F2586DD35768D2C /* QuizModels.swift */; };
@@ -109,6 +112,8 @@
 		ED54FEFA501094DD948C250E /* FamilyTreeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15E75DD0A3EE5A96C0D4F66F /* FamilyTreeViewModel.swift */; };
 		EDD76019EEC4E57A9B42EA24 /* AiTaskService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76AD9297247BB9360944C347 /* AiTaskService.swift */; };
 		EDDCAE92C0E2BEA00F0BACE9 /* ZodiacCollectionScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 012DDFBC990CCCDDA64D0AAA /* ZodiacCollectionScreen.swift */; };
+		BF1A2B3C4D5E6F7081920304 /* BookmarksScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFAA11BB22CC33DD44EE5500 /* BookmarksScreen.swift */; };
+		7E11220033445566778899AA /* TemplatesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EAA998877665544332211EE /* TemplatesScreen.swift */; };
 		EE7A64EBF2F9DC52DBB6B1B9 /* KnowledgeFeedViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B6874D3B885618078FC9C7E /* KnowledgeFeedViewModel.swift */; };
 		EF15874876928E6F4DE82E4E /* GoodDaysViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B72D13539EC4053A9655FF88 /* GoodDaysViewModel.swift */; };
 		F6CD9D9E3BA340D8538FC687 /* DatePickerToolScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD22F68EACD5D581487FCA9 /* DatePickerToolScreen.swift */; };
@@ -121,6 +126,8 @@
 		006AE3F6344B7BE33E08B81B /* OpenRouterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenRouterService.swift; sourceTree = "<group>"; };
 		00892FD6220D06BF01F427E2 /* LedgerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LedgerScreen.swift; sourceTree = "<group>"; };
 		012DDFBC990CCCDDA64D0AAA /* ZodiacCollectionScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZodiacCollectionScreen.swift; sourceTree = "<group>"; };
+		BFAA11BB22CC33DD44EE5500 /* BookmarksScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarksScreen.swift; sourceTree = "<group>"; };
+		7EAA998877665544332211EE /* TemplatesScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplatesScreen.swift; sourceTree = "<group>"; };
 		030B3DC583D4213C47A9177B /* AIChatScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIChatScreen.swift; sourceTree = "<group>"; };
 		0349D65E1C9E0F8F3A50FE8B /* NotificationsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsViewModel.swift; sourceTree = "<group>"; };
 		046FF9555FE182208518874F /* PrayerDetailScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrayerDetailScreen.swift; sourceTree = "<group>"; };
@@ -201,6 +208,9 @@
 		BA0ADEEB5155A9FDBA7A512A /* CanChiCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanChiCalculator.swift; sourceTree = "<group>"; };
 		BAA3C800D16D47F4F644BB3D /* ItemEditScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemEditScreen.swift; sourceTree = "<group>"; };
 		BD00BA42392EA9A7CE65A79D /* SmartRatingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartRatingManager.swift; sourceTree = "<group>"; };
+		5AFE11220033445566778899 /* SmartReminderProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartReminderProvider.swift; sourceTree = "<group>"; };
+		7ABB00998877665544332200 /* AppTour.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTour.swift; sourceTree = "<group>"; };
+		7CBBAA1100998877665544DD /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		BE3B968E2DC4D3751FEE069A /* HomePopupOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomePopupOverlay.swift; sourceTree = "<group>"; };
 		BE8D8F1D5A5156218C02C8E5 /* LichSoTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LichSoTheme.swift; sourceTree = "<group>"; };
 		C2985A2F04658381F617E542 /* GoogleAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthService.swift; sourceTree = "<group>"; };
@@ -278,6 +288,9 @@
 				0DE4B53336EF2A3FC69D6197 /* SaoChieuCalculator.swift */,
 				1C7E1322F5E22A9026609A04 /* SmartRatingDialog.swift */,
 				BD00BA42392EA9A7CE65A79D /* SmartRatingManager.swift */,
+				5AFE11220033445566778899 /* SmartReminderProvider.swift */,
+				7ABB00998877665544332200 /* AppTour.swift */,
+				7CBBAA1100998877665544DD /* Haptics.swift */,
 				D5FAE0B312668640164A5959 /* TietKhiCalculator.swift */,
 				559A30F5767FE34B9E3C53A0 /* TrucNgayCalculator.swift */,
 			);
@@ -384,6 +397,8 @@
 				9188D7F183ECE658BDA41E47 /* WidgetManagerScreen.swift */,
 				EB10031F0138EC1B96D9BD69 /* WorldClockScreen.swift */,
 				012DDFBC990CCCDDA64D0AAA /* ZodiacCollectionScreen.swift */,
+				BFAA11BB22CC33DD44EE5500 /* BookmarksScreen.swift */,
+				7EAA998877665544332211EE /* TemplatesScreen.swift */,
 			);
 			path = Tools;
 			sourceTree = "<group>";
@@ -712,6 +727,8 @@
 				6F32B711BA8FCACED4AFC126 /* WidgetManagerScreen.swift in Sources */,
 				9A83E719AE121A9DA3F09801 /* WorldClockScreen.swift in Sources */,
 				EDDCAE92C0E2BEA00F0BACE9 /* ZodiacCollectionScreen.swift in Sources */,
+				BF1A2B3C4D5E6F7081920304 /* BookmarksScreen.swift in Sources */,
+				7E11220033445566778899AA /* TemplatesScreen.swift in Sources */,
 				7A3CDDF90A13F93DA9BB9EAE /* LichSoColors.swift in Sources */,
 				4A9B63991AA22148221C7387 /* LichSoTheme.swift in Sources */,
 				947B9009BE0DC9D462054C1D /* ApiErrorUX.swift in Sources */,
@@ -728,6 +745,9 @@
 				D679C8AD420AA0AF755323CA /* SaoChieuCalculator.swift in Sources */,
 				0DCEC8AD2A2ECD8B2AE6B614 /* SmartRatingDialog.swift in Sources */,
 				AC198FD55E5688847C66DF8C /* SmartRatingManager.swift in Sources */,
+				5A17B8C9D0E1F20304050607 /* SmartReminderProvider.swift in Sources */,
+				7A22330044556677889900BB /* AppTour.swift in Sources */,
+				7C334455667788990011AABB /* Haptics.swift in Sources */,
 				85160CD9974A3871DD107C81 /* TietKhiCalculator.swift in Sources */,
 				93897C7D0053EF026832529A /* TrucNgayCalculator.swift in Sources */,
 			);

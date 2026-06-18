@@ -154,30 +154,37 @@ class FamilyTreeViewModel: ObservableObject {
         var result: [(FamilyMemberEntity, String)] = []
 
         // Parents
-        let parentIdList = member.parentIds.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+        let parentIdList = idList(member.parentIds)
         for pid in parentIdList {
             if let parent = self.member(byId: pid) {
-                result.append((parent, parent.gender == "MALE" ? "Cha" : "Mẹ"))
+                let relation = kinshipTitle(for: parent).isEmpty ? (parent.gender == "MALE" ? "Cha" : "Mẹ") : kinshipTitle(for: parent)
+                result.append((parent, relation))
             }
         }
 
         // Spouses
-        let spouseIdList = member.spouseIds.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+        let spouseIdList = idList(member.spouseIds)
         for sid in spouseIdList {
             if let spouse = self.member(byId: sid) {
-                result.append((spouse, spouse.gender == "MALE" ? "Chồng" : "Vợ"))
+                let relation = kinshipTitle(for: spouse).isEmpty ? (spouse.gender == "MALE" ? "Chồng" : "Vợ") : kinshipTitle(for: spouse)
+                result.append((spouse, relation))
             }
         }
 
         // Children (members who list this member as parent)
         let children = members.filter { m in
-            m.parentIds.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }.contains(member.id)
+            idList(m.parentIds).contains(member.id)
         }
         for child in children {
-            result.append((child, child.gender == "MALE" ? "Con trai" : "Con gái"))
+            let relation = kinshipTitle(for: child).isEmpty ? (child.gender == "MALE" ? "Con trai" : "Con gái") : kinshipTitle(for: child)
+            result.append((child, relation))
         }
 
         return result
+    }
+
+    func kinshipTitle(for member: FamilyMemberEntity) -> String {
+        kinshipTitle(for: member, in: members)
     }
 
     // ── CRUD: Members ──
@@ -185,8 +192,9 @@ class FamilyTreeViewModel: ObservableObject {
     func addMember(_ member: FamilyMemberEntity) {
         guard let ctx = modelContext else { return }
         ctx.insert(member)
+        syncMemorial(for: member, context: ctx)
         try? ctx.save()
-        loadMembers()
+        loadAll()
     }
 
     func deleteMember(_ member: FamilyMemberEntity) {
@@ -212,8 +220,9 @@ class FamilyTreeViewModel: ObservableObject {
     func updateMember(_ member: FamilyMemberEntity) {
         guard let ctx = modelContext else { return }
         member.updatedAt = Int64(Date().timeIntervalSince1970 * 1000)
+        syncMemorial(for: member, context: ctx)
         try? ctx.save()
-        loadMembers()
+        loadAll()
     }
 
     // ── CRUD: Memorials ──
@@ -431,5 +440,215 @@ class FamilyTreeViewModel: ObservableObject {
 
     func isDeceased(_ member: FamilyMemberEntity) -> Bool {
         return member.deathYear != nil
+    }
+
+    // ── Kinship labels, mirrored from Android FamilyTreeViewModel ──
+
+    private func kinshipTitle(for member: FamilyMemberEntity, in sourceMembers: [FamilyMemberEntity]) -> String {
+        guard let selfMember = sourceMembers.first(where: { $0.isSelf }) else {
+            return "\(member.role) · Đời \(member.generation)"
+        }
+        if member.id == selfMember.id { return "Bản thân" }
+
+        let byId = Dictionary(uniqueKeysWithValues: sourceMembers.map { ($0.id, $0) })
+        let selfParents = idList(selfMember.parentIds).compactMap { byId[$0] }
+
+        if idList(selfMember.parentIds).contains(member.id) {
+            return member.gender == "MALE" ? "Cha" : "Mẹ"
+        }
+        if idList(member.spouseIds).contains(selfMember.id) || idList(selfMember.spouseIds).contains(member.id) {
+            return member.gender == "MALE" ? "Chồng" : "Vợ"
+        }
+        if idList(member.parentIds).contains(selfMember.id) {
+            return member.gender == "MALE" ? "Con trai" : "Con gái"
+        }
+
+        let selfParentIds = idList(selfMember.parentIds)
+        if !selfParentIds.isEmpty, member.id != selfMember.id,
+           idList(member.parentIds).contains(where: { selfParentIds.contains($0) }) {
+            let older: Bool
+            if let memberBirth = member.birthYear, let selfBirth = selfMember.birthYear {
+                older = memberBirth < selfBirth
+            } else {
+                older = member.isElder
+            }
+            switch (member.gender, older) {
+            case ("MALE", true): return "Anh trai"
+            case ("MALE", false): return "Em trai"
+            case ("FEMALE", true): return "Chị gái"
+            default: return "Em gái"
+            }
+        }
+
+        if let path = ancestorPath(from: selfMember, targetId: member.id, byId: byId) {
+            let side = path.first.flatMap { byId[$0] }.map { $0.gender == "MALE" ? "nội" : "ngoại" } ?? ""
+            return ancestorTitle(depth: path.count, gender: member.gender, side: side)
+        }
+
+        if let depth = descendantDepth(from: member, ancestorId: selfMember.id, byId: byId) {
+            return descendantTitle(depth: depth, gender: member.gender)
+        }
+
+        if let title = parentSiblingTitle(for: member, selfParents: selfParents, byId: byId) {
+            return title
+        }
+
+        return "\(member.role) · Đời \(member.generation)"
+    }
+
+    private func ancestorPath(
+        from current: FamilyMemberEntity,
+        targetId: String,
+        byId: [String: FamilyMemberEntity],
+        path: [String] = []
+    ) -> [String]? {
+        for parentId in idList(current.parentIds) {
+            let nextPath = path + [parentId]
+            if parentId == targetId { return nextPath }
+            guard let parent = byId[parentId] else { continue }
+            if let found = ancestorPath(from: parent, targetId: targetId, byId: byId, path: nextPath) {
+                return found
+            }
+        }
+        return nil
+    }
+
+    private func descendantDepth(
+        from member: FamilyMemberEntity,
+        ancestorId: String,
+        byId: [String: FamilyMemberEntity]
+    ) -> Int? {
+        if idList(member.parentIds).contains(ancestorId) { return 1 }
+        for parentId in idList(member.parentIds) {
+            guard let parent = byId[parentId] else { continue }
+            if let depth = descendantDepth(from: parent, ancestorId: ancestorId, byId: byId) {
+                return depth + 1
+            }
+        }
+        return nil
+    }
+
+    private func ancestorTitle(depth: Int, gender: String, side: String) -> String {
+        let base: String
+        switch depth {
+        case 1:
+            base = gender == "MALE" ? "Cha" : "Mẹ"
+        case 2:
+            base = gender == "MALE" ? "Ông" : "Bà"
+        case 3:
+            base = gender == "MALE" ? "Cụ ông" : "Cụ bà"
+        case 4:
+            base = gender == "MALE" ? "Kỵ ông" : "Kỵ bà"
+        default:
+            base = gender == "MALE" ? "Cụ tổ ông" : "Cụ tổ bà"
+        }
+        return (2...4).contains(depth) && !side.isEmpty ? "\(base) \(side)" : base
+    }
+
+    private func descendantTitle(depth: Int, gender: String) -> String {
+        let base: String
+        switch depth {
+        case 1: base = "Con"
+        case 2: base = "Cháu"
+        case 3: base = "Chắt"
+        case 4: base = "Chút"
+        default: return "Hậu duệ đời \(depth)"
+        }
+        return "\(base) \(gender == "MALE" ? "trai" : "gái")"
+    }
+
+    private func parentSiblingTitle(
+        for member: FamilyMemberEntity,
+        selfParents: [FamilyMemberEntity],
+        byId: [String: FamilyMemberEntity],
+        includeSpouse: Bool = true
+    ) -> String? {
+        for parent in selfParents {
+            let parentParentIds = idList(parent.parentIds)
+            let sharesGrandParent = !parentParentIds.isEmpty && idList(member.parentIds).contains(where: { parentParentIds.contains($0) })
+            if !sharesGrandParent || member.id == parent.id { continue }
+
+            let olderThanParent: Bool
+            if let memberBirth = member.birthYear, let parentBirth = parent.birthYear {
+                olderThanParent = memberBirth < parentBirth
+            } else {
+                olderThanParent = member.isElder
+            }
+            let parentIsFather = parent.gender == "MALE"
+
+            if parentIsFather && member.gender == "MALE" && olderThanParent { return "Bác trai" }
+            if parentIsFather && member.gender == "MALE" { return "Chú" }
+            if parentIsFather && member.gender == "FEMALE" && olderThanParent { return "Bác gái" }
+            if parentIsFather { return "Cô" }
+            if !parentIsFather && member.gender == "MALE" { return "Cậu" }
+            if olderThanParent { return "Bác gái" }
+            return "Dì"
+        }
+
+        guard includeSpouse else { return nil }
+        return sourceRelativeSpouse(for: member, selfParents: selfParents, byId: byId)
+    }
+
+    private func sourceRelativeSpouse(
+        for member: FamilyMemberEntity,
+        selfParents: [FamilyMemberEntity],
+        byId: [String: FamilyMemberEntity]
+    ) -> String? {
+        let spouse = idList(member.spouseIds).compactMap { byId[$0] }.first
+            ?? byId.values.first(where: { idList($0.spouseIds).contains(member.id) })
+        guard let spouse,
+              let spouseTitle = parentSiblingTitle(for: spouse, selfParents: selfParents, byId: byId, includeSpouse: false) else {
+            return nil
+        }
+        switch spouseTitle {
+        case "Bác trai": return "Bác gái"
+        case "Bác gái": return "Bác trai"
+        case "Chú": return "Thím"
+        case "Cô": return "Chú"
+        case "Cậu": return "Mợ"
+        case "Dì": return "Dượng"
+        default: return nil
+        }
+    }
+
+    private func syncMemorial(for member: FamilyMemberEntity, context: ModelContext) {
+        guard member.deathYear != nil,
+              let lunar = parseLunarDate(member.deathDateLunar),
+              (1...30).contains(lunar.day),
+              (1...12).contains(lunar.month) else {
+            return
+        }
+
+        let relation = kinshipTitle(for: member, in: members.filter { $0.id != member.id } + [member])
+        if let existing = memorials.first(where: { $0.memberId == member.id }) {
+            existing.memberName = member.name
+            existing.relation = relation
+            existing.lunarDay = lunar.day
+            existing.lunarMonth = lunar.month
+            existing.updatedAt = Int64(Date().timeIntervalSince1970 * 1000)
+        } else {
+            let memorial = MemorialDayEntity(
+                id: UUID().uuidString,
+                memberId: member.id,
+                memberName: member.name,
+                relation: relation,
+                lunarDay: lunar.day,
+                lunarMonth: lunar.month
+            )
+            context.insert(memorial)
+        }
+    }
+
+    private func parseLunarDate(_ raw: String?) -> (day: Int, month: Int, year: Int)? {
+        guard let raw else { return nil }
+        let parts = raw.split(separator: "/").compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+        guard parts.count >= 3 else { return nil }
+        return (parts[0], parts[1], parts[2])
+    }
+
+    private func idList(_ raw: String) -> [String] {
+        raw.split(separator: ",")
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
     }
 }

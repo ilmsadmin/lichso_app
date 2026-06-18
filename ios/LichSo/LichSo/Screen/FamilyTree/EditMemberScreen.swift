@@ -378,6 +378,7 @@ struct EditMemberScreen: View {
                     dismiss()
                 } label: {
                     Image(systemName: "xmark")
+                    .accessibilityLabel("Đóng")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(TextMain)
                         .frame(width: 36, height: 36)

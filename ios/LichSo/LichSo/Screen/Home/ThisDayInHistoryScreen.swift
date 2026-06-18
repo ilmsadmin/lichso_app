@@ -91,6 +91,7 @@ struct ThisDayInHistoryScreen: View {
                 HStack {
                     Button { dismiss() } label: {
                         Image(systemName: "chevron.left")
+                            .accessibilityLabel("Quay lại")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
                             .frame(width: 36, height: 36)
@@ -155,6 +156,7 @@ struct ThisDayInHistoryScreen: View {
                 }
             } label: {
                 Image(systemName: "chevron.left")
+                    .accessibilityLabel("Ngày trước")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(TextMain)
                     .frame(width: 36, height: 36)
@@ -175,6 +177,7 @@ struct ThisDayInHistoryScreen: View {
                 }
             } label: {
                 Image(systemName: "chevron.right")
+                    .accessibilityLabel("Ngày sau")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(TextMain)
                     .frame(width: 36, height: 36)

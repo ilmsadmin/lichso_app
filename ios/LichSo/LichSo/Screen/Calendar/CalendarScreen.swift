@@ -255,6 +255,7 @@ private struct CalendarTopBar: View {
                     .background(Color.white.opacity(0.15))
                     .clipShape(Circle())
             }
+            .accessibilityLabel("Menu")
 
             Spacer().frame(width: 12)
 
@@ -270,6 +271,7 @@ private struct CalendarTopBar: View {
                     .background(Color.white.opacity(0.15))
                     .clipShape(Circle())
             }
+            .accessibilityLabel("Tìm kiếm")
         }
         .padding(.horizontal, 16)
         .padding(.top, 12)
@@ -304,13 +306,14 @@ private struct MonthSelector: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            Button(action: onPrev) {
+            Button(action: { Haptics.selection(); onPrev() }) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(TextMain)
                     .frame(width: 32, height: 32)
                     .overlay(Circle().stroke(OutlineVar, lineWidth: 1))
             }
+            .accessibilityLabel("Tháng trước")
 
             Button {
                 onTitleTap?()
@@ -332,13 +335,14 @@ private struct MonthSelector: View {
             .buttonStyle(.plain)
             .frame(minWidth: 160)
 
-            Button(action: onNext) {
+            Button(action: { Haptics.selection(); onNext() }) {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(TextMain)
                     .frame(width: 32, height: 32)
                     .overlay(Circle().stroke(OutlineVar, lineWidth: 1))
             }
+            .accessibilityLabel("Tháng sau")
         }
         .padding(.vertical, 8)
     }

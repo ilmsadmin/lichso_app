@@ -36,6 +36,7 @@ struct ArticleDetailScreen: View {
         HStack {
             Button { dismiss() } label: {
                 Image(systemName: "chevron.left")
+                .accessibilityLabel("Quay lại")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(LSTheme.textPrimary)
                     .frame(width: 44, height: 44)

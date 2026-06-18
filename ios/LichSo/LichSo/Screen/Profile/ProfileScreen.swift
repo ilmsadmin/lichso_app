@@ -325,6 +325,7 @@ private struct ProfileHeader: View {
                 HStack {
                     Button(action: { onDismiss?() }) {
                         Image(systemName: "chevron.left")
+                        .accessibilityLabel("Quay lại")
                             .font(.system(size: 20, weight: .bold))
                             .foregroundColor(.white)
                             .frame(width: 40, height: 40)

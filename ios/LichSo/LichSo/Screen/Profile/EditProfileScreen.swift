@@ -137,6 +137,7 @@ private struct FormHeader: View {
         HStack {
             Button(action: onClose) {
                 Image(systemName: "xmark")
+                .accessibilityLabel("Đóng")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(width: 36, height: 36)
