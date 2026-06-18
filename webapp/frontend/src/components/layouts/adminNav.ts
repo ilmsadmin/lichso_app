@@ -23,6 +23,7 @@ import {
   ClipboardList,
   FolderOpen,
   Star,
+  Coins,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ROUTES } from "@/lib/constants";
@@ -100,6 +101,7 @@ export const adminNavSections: AdminNavSection[] = [
     tint: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     items: [
       { label: "Đố vui", href: ROUTES.ADMIN_QUIZ, icon: BrainCircuit, permission: "content.read" },
+      { label: "Điểm thưởng", href: ROUTES.ADMIN_POINTS, icon: Coins, permission: "users.read" },
       { label: "Banners", href: ROUTES.ADMIN_BANNERS, icon: Megaphone, permission: "content.read" },
       { label: "Popups", href: ROUTES.ADMIN_POPUPS, icon: Layers3, permission: "content.read" },
       {

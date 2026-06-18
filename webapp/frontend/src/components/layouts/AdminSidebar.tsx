@@ -30,6 +30,7 @@ import {
   Bell,
   ClipboardList,
   Star,
+  Coins,
 } from "lucide-react";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { useAuth } from "@/hooks/useAuth";
@@ -118,6 +119,12 @@ const navItems: NavItem[] = [
     icon: BrainCircuit,
     permission: "content.read",
     separator: true,
+  },
+  {
+    label: "Điểm thưởng",
+    href: ROUTES.ADMIN_POINTS,
+    icon: Coins,
+    permission: "users.read",
   },
   {
     label: "Banners",
