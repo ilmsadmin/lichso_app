@@ -64,6 +64,7 @@ fun MemberDetailScreen(
     val isDeceased = member.deathYear != null
     val relationships = viewModel.getRelationshipsFor(member.id)
     val memorial = viewModel.getMemorialForMember(member.id)
+    val kinshipTitle = viewModel.getKinshipTitle(member.id).ifBlank { member.role }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     // Photos
@@ -85,7 +86,7 @@ fun MemberDetailScreen(
             .screenBackground(c.bg)
     ) {
         // ── Hero ──
-        MemberHero(member, isDeceased, onBack, onEdit = { viewModel.openEditMember(member.id) }, onDelete = { showDeleteDialog = true })
+        MemberHero(member, kinshipTitle, isDeceased, onBack, onEdit = { viewModel.openEditMember(member.id) }, onDelete = { showDeleteDialog = true })
 
         // ── Scrollable content ──
         Column(
@@ -115,7 +116,7 @@ fun MemberDetailScreen(
 
             // Personal info
             SectionTitle("Thông tin cá nhân", Icons.Filled.Person, c)
-            PersonalInfoGroup(member, c)
+            PersonalInfoGroup(member, kinshipTitle, c)
 
             // Relationships
             if (relationships.isNotEmpty()) {
@@ -181,7 +182,7 @@ fun MemberDetailScreen(
 // HERO HEADER
 // ══════════════════════════════════════════
 @Composable
-private fun MemberHero(member: FamilyMember, isDeceased: Boolean, onBack: () -> Unit, onEdit: () -> Unit = {}, onDelete: () -> Unit = {}) {
+private fun MemberHero(member: FamilyMember, kinshipTitle: String, isDeceased: Boolean, onBack: () -> Unit, onEdit: () -> Unit = {}, onDelete: () -> Unit = {}) {
     val c = LichSoThemeColors.current
     Box(
         modifier = Modifier
@@ -266,7 +267,7 @@ private fun MemberHero(member: FamilyMember, isDeceased: Boolean, onBack: () -> 
                 style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
             )
             Text(
-                member.role,
+                kinshipTitle,
                 style = TextStyle(fontSize = 14.sp, color = Color.White.copy(alpha = 0.6f))
             )
 
@@ -521,11 +522,12 @@ private fun SectionTitle(title: String, icon: ImageVector, c: LichSoColors) {
 // PERSONAL INFO GROUP
 // ══════════════════════════════════════════
 @Composable
-private fun PersonalInfoGroup(member: FamilyMember, c: LichSoColors) {
+private fun PersonalInfoGroup(member: FamilyMember, kinshipTitle: String, c: LichSoColors) {
     data class InfoRow(val icon: ImageVector, val iconBg: Color, val iconTint: Color, val label: String, val value: String)
 
     val rows = buildList {
         add(InfoRow(Icons.Filled.Badge, Color(0xFFEFEBE9), Color(0xFF5D4037), "Họ và tên", member.name))
+        add(InfoRow(Icons.Filled.Group, Color(0xFFFFF8E1), Color(0xFFF57F17), "Danh xưng", kinshipTitle))
         add(InfoRow(
             Icons.Filled.Male, Color(0xFFE3F2FD), Color(0xFF1565C0),
             "Giới tính", if (member.gender == Gender.MALE) "Nam" else "Nữ"

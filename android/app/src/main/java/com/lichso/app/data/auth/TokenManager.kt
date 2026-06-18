@@ -1,36 +1,38 @@
 package com.lichso.app.data.auth
 
 import android.content.Context
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
-
-private val Context.backendTokenDataStore by preferencesDataStore(name = "backend_tokens")
 
 @Singleton
 class TokenManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val ACCESS_TOKEN = stringPreferencesKey("access_token")
-    private val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
-    private val BACKEND_USER_ID = stringPreferencesKey("backend_user_id")
-    private val USER_ROLES = stringPreferencesKey("user_roles")           // comma-separated
-    private val USER_PERMISSIONS = stringPreferencesKey("user_permissions") // comma-separated
-    private val FCM_TOKEN = stringPreferencesKey("fcm_token")
-    private val INSTALLATION_ID = stringPreferencesKey("installation_id")
+    private val prefs: SharedPreferences by lazy {
+        val master = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            context,
+            "backend_tokens_enc",
+            master,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
 
     /**
-     * In-memory cache — luôn có giá trị mới nhất, tránh runBlocking trên OkHttp interceptor.
-     * Warm trên init, cập nhật khi save/clear.
+     * In-memory cache — tránh disk I/O trên OkHttp interceptor thread.
+     * Warm on first access, updated on save/clear.
      */
     @Volatile var cachedAccessToken: String? = null
         private set
@@ -42,87 +44,92 @@ class TokenManager @Inject constructor(
             try {
                 cachedAccessToken = getAccessToken()
                 cachedDeviceId = getInstallationId()
-            } catch (_: Exception) { /* DataStore chưa sẵn sàng — sẽ được populate khi save */ }
+            } catch (_: Exception) { /* prefs chưa sẵn sàng */ }
         }
     }
 
-    suspend fun getAccessToken(): String? =
-        context.backendTokenDataStore.data.map { it[ACCESS_TOKEN] }.firstOrNull()
+    suspend fun getAccessToken(): String? = withContext(Dispatchers.IO) {
+        prefs.getString("access_token", null)
+    }
 
-    suspend fun getRefreshToken(): String? =
-        context.backendTokenDataStore.data.map { it[REFRESH_TOKEN] }.firstOrNull()
+    suspend fun getRefreshToken(): String? = withContext(Dispatchers.IO) {
+        prefs.getString("refresh_token", null)
+    }
 
-    suspend fun getUserId(): String? =
-        context.backendTokenDataStore.data.map { it[BACKEND_USER_ID] }.firstOrNull()
+    suspend fun getUserId(): String? = withContext(Dispatchers.IO) {
+        prefs.getString("backend_user_id", null)
+    }
 
-    suspend fun getUserRoles(): List<String> =
-        context.backendTokenDataStore.data
-            .map { it[USER_ROLES]?.split(",")?.filter { s -> s.isNotEmpty() } ?: emptyList() }
-            .firstOrNull() ?: emptyList()
+    suspend fun getUserRoles(): List<String> = withContext(Dispatchers.IO) {
+        prefs.getString("user_roles", null)
+            ?.split(",")?.filter { it.isNotEmpty() } ?: emptyList()
+    }
 
-    suspend fun getUserPermissions(): List<String> =
-        context.backendTokenDataStore.data
-            .map { it[USER_PERMISSIONS]?.split(",")?.filter { s -> s.isNotEmpty() } ?: emptyList() }
-            .firstOrNull() ?: emptyList()
+    suspend fun getUserPermissions(): List<String> = withContext(Dispatchers.IO) {
+        prefs.getString("user_permissions", null)
+            ?.split(",")?.filter { it.isNotEmpty() } ?: emptyList()
+    }
 
     suspend fun saveTokens(accessToken: String, refreshToken: String) {
         cachedAccessToken = accessToken
-        context.backendTokenDataStore.edit { prefs ->
-            prefs[ACCESS_TOKEN] = accessToken
-            prefs[REFRESH_TOKEN] = refreshToken
+        withContext(Dispatchers.IO) {
+            prefs.edit()
+                .putString("access_token", accessToken)
+                .putString("refresh_token", refreshToken)
+                .apply()
         }
     }
 
     suspend fun saveUserSession(userId: String, roles: List<String>, permissions: List<String>) {
-        context.backendTokenDataStore.edit { prefs ->
-            prefs[BACKEND_USER_ID] = userId
-            prefs[USER_ROLES] = roles.joinToString(",")
-            prefs[USER_PERMISSIONS] = permissions.joinToString(",")
+        withContext(Dispatchers.IO) {
+            prefs.edit()
+                .putString("backend_user_id", userId)
+                .putString("user_roles", roles.joinToString(","))
+                .putString("user_permissions", permissions.joinToString(","))
+                .apply()
         }
     }
 
     suspend fun clearTokens() {
         cachedAccessToken = null
-        context.backendTokenDataStore.edit { prefs ->
-            prefs.remove(ACCESS_TOKEN)
-            prefs.remove(REFRESH_TOKEN)
-            prefs.remove(BACKEND_USER_ID)
-            prefs.remove(USER_ROLES)
-            prefs.remove(USER_PERMISSIONS)
+        withContext(Dispatchers.IO) {
+            prefs.edit()
+                .remove("access_token")
+                .remove("refresh_token")
+                .remove("backend_user_id")
+                .remove("user_roles")
+                .remove("user_permissions")
+                .apply()
         }
     }
 
     suspend fun getInstallationId(): String {
-        val existing = context.backendTokenDataStore.data
-            .map { it[INSTALLATION_ID] }
-            .firstOrNull()
+        val existing = withContext(Dispatchers.IO) { prefs.getString("installation_id", null) }
         if (!existing.isNullOrBlank()) {
             cachedDeviceId = existing
             return existing
         }
 
         val created = UUID.randomUUID().toString()
-        context.backendTokenDataStore.edit { prefs ->
-            if (prefs[INSTALLATION_ID].isNullOrBlank()) {
-                prefs[INSTALLATION_ID] = created
-            }
+        withContext(Dispatchers.IO) {
+            prefs.edit().putString("installation_id", created).apply()
         }
-        val result = context.backendTokenDataStore.data
-            .map { it[INSTALLATION_ID] }
-            .firstOrNull()
-            ?: created
+        val result = withContext(Dispatchers.IO) {
+            prefs.getString("installation_id", null)
+        } ?: created
         cachedDeviceId = result
         return result
     }
 
     suspend fun saveFcmToken(token: String) {
-        context.backendTokenDataStore.edit { prefs -> prefs[FCM_TOKEN] = token }
+        withContext(Dispatchers.IO) { prefs.edit().putString("fcm_token", token).apply() }
     }
 
-    suspend fun getFcmToken(): String? =
-        context.backendTokenDataStore.data.map { it[FCM_TOKEN] }.firstOrNull()
+    suspend fun getFcmToken(): String? = withContext(Dispatchers.IO) {
+        prefs.getString("fcm_token", null)
+    }
 
     suspend fun clearFcmToken() {
-        context.backendTokenDataStore.edit { prefs -> prefs.remove(FCM_TOKEN) }
+        withContext(Dispatchers.IO) { prefs.edit().remove("fcm_token").apply() }
     }
 }

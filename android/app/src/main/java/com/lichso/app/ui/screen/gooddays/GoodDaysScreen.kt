@@ -211,7 +211,7 @@ fun GoodDaysScreen(onBackClick: () -> Unit = {}, viewModel: HomeViewModel = hilt
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
-                items(filteredDays) { day ->
+                items(filteredDays, key = { it.solarDate }) { day ->
                     DayCard(day = day, onClick = { selectedDay = day })
                 }
             }

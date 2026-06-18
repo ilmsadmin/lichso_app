@@ -9,6 +9,7 @@ import com.lichso.app.feature.points.domain.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import javax.inject.Inject
 
 /**
@@ -51,6 +52,39 @@ class PointsViewModel @Inject constructor(
     val recentLogs: StateFlow<List<LedgerEntry>> = repo.observeRecentLogs(30)
         .mapToLedgerEntries()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val dailyMissions: StateFlow<List<DailyMission>> =
+        combine(recentLogs, streak) { logs, streakState ->
+            val today = clock.todayEpochDay()
+            val todayCounts = logs
+                .asSequence()
+                .filter { it.epochDay == today }
+                .groupingBy { it.rawActionType }
+                .eachCount()
+
+            ActionType.entries
+                .asSequence()
+                .filter { it.dailyPoints > 0 && it.category != ActionCategory.MILESTONE }
+                .map { action ->
+                    val completed = todayCounts[action.name] ?: 0
+                    val capped = action.dailyCap != -1 && completed >= action.dailyCap
+                    DailyMission(
+                        action = action,
+                        potentialDailyGain = (action.dailyPoints * streakState.tier.dailyMultiplier).roundToInt(),
+                        completedCount = completed,
+                        dailyCap = action.dailyCap,
+                        isCompleted = capped,
+                        remainingCount = if (action.dailyCap == -1) null
+                            else (action.dailyCap - completed).coerceAtLeast(0),
+                    )
+                }
+                .sortedWith(
+                    compareBy<DailyMission> { it.isCompleted }
+                        .thenByDescending { it.potentialDailyGain }
+                        .thenBy { it.action.label }
+                )
+                .toList()
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     // ── Daily Oracle popup — hiển thị 1 lần/ngày khi mở app ──
     val shouldShowDailyOraclePopup: StateFlow<Boolean> =

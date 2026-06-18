@@ -25,6 +25,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -260,6 +261,7 @@ fun BannerCard(
                         color = Color.White,
                     ),
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 if (!banner.subtitle.isNullOrEmpty()) {
                     Text(
@@ -269,6 +271,7 @@ fun BannerCard(
                             color = Color.White.copy(alpha = 0.8f),
                         ),
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

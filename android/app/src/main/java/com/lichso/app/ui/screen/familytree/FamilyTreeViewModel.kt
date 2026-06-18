@@ -673,6 +673,163 @@ class FamilyTreeViewModel @Inject constructor(
         else -> "Đời $gen"
     }
 
+    fun getKinshipTitle(memberId: String): String {
+        val member = getMember(memberId) ?: return ""
+        return kinshipTitleFor(member, members)
+    }
+
+    private fun kinshipTitleFor(member: FamilyMember, sourceMembers: List<FamilyMember>): String {
+        val self = sourceMembers.firstOrNull { it.isSelf } ?: return "${member.role} · Đời ${member.generation}"
+        if (member.id == self.id) return "Bản thân"
+
+        val byId = sourceMembers.associateBy { it.id }
+        val selfParents = self.parentIds.mapNotNull { byId[it] }
+
+        if (member.id in self.parentIds) return if (member.gender == Gender.MALE) "Cha" else "Mẹ"
+        if (member.spouseIds.contains(self.id) || self.spouseIds.contains(member.id)) {
+            return if (member.gender == Gender.MALE) "Chồng" else "Vợ"
+        }
+        if (member.parentIds.contains(self.id)) {
+            return if (member.gender == Gender.MALE) "Con trai" else "Con gái"
+        }
+        if (self.parentIds.isNotEmpty() && member.id != self.id &&
+            member.parentIds.any { it in self.parentIds }
+        ) {
+            val older = when {
+                member.birthYear != null && self.birthYear != null -> member.birthYear < self.birthYear
+                member.isElder -> true
+                else -> false
+            }
+            return when {
+                member.gender == Gender.MALE && older -> "Anh trai"
+                member.gender == Gender.MALE -> "Em trai"
+                member.gender == Gender.FEMALE && older -> "Chị gái"
+                else -> "Em gái"
+            }
+        }
+
+        ancestorPath(self, member.id, byId)?.let { path ->
+            val side = path.getOrNull(0)?.let { byId[it] }?.let {
+                if (it.gender == Gender.MALE) "nội" else "ngoại"
+            }.orEmpty()
+            return ancestorTitle(path.size, member.gender, side)
+        }
+
+        descendantDepth(member, self.id, byId)?.let { depth ->
+            return descendantTitle(depth, member.gender)
+        }
+
+        parentSiblingTitle(member, selfParents, byId)?.let { return it }
+
+        return "${member.role} · Đời ${member.generation}"
+    }
+
+    private fun ancestorPath(
+        current: FamilyMember,
+        targetId: String,
+        byId: Map<String, FamilyMember>,
+        path: List<String> = emptyList(),
+    ): List<String>? {
+        current.parentIds.forEach { parentId ->
+            val nextPath = path + parentId
+            if (parentId == targetId) return nextPath
+            val parent = byId[parentId] ?: return@forEach
+            ancestorPath(parent, targetId, byId, nextPath)?.let { return it }
+        }
+        return null
+    }
+
+    private fun descendantDepth(
+        member: FamilyMember,
+        ancestorId: String,
+        byId: Map<String, FamilyMember>,
+    ): Int? {
+        if (member.parentIds.contains(ancestorId)) return 1
+        member.parentIds.forEach { parentId ->
+            val parent = byId[parentId] ?: return@forEach
+            descendantDepth(parent, ancestorId, byId)?.let { return it + 1 }
+        }
+        return null
+    }
+
+    private fun ancestorTitle(depth: Int, gender: Gender, side: String): String {
+        val base = when (depth) {
+            1 -> if (gender == Gender.MALE) "Cha" else "Mẹ"
+            2 -> if (gender == Gender.MALE) "Ông" else "Bà"
+            3 -> if (gender == Gender.MALE) "Cụ ông" else "Cụ bà"
+            4 -> if (gender == Gender.MALE) "Kỵ ông" else "Kỵ bà"
+            else -> if (gender == Gender.MALE) "Cụ tổ ông" else "Cụ tổ bà"
+        }
+        return if (depth in 2..4 && side.isNotBlank()) "$base $side" else base
+    }
+
+    private fun descendantTitle(depth: Int, gender: Gender): String {
+        val base = when (depth) {
+            1 -> "Con"
+            2 -> "Cháu"
+            3 -> "Chắt"
+            4 -> "Chút"
+            else -> "Hậu duệ đời $depth"
+        }
+        if (depth > 4) return base
+        val suffix = if (gender == Gender.MALE) "trai" else "gái"
+        return "$base $suffix"
+    }
+
+    private fun parentSiblingTitle(
+        member: FamilyMember,
+        selfParents: List<FamilyMember>,
+        byId: Map<String, FamilyMember>,
+        includeSpouse: Boolean = true,
+    ): String? {
+        selfParents.forEach { parent ->
+            val sharesGrandParent = parent.parentIds.isNotEmpty() &&
+                member.parentIds.any { it in parent.parentIds }
+            if (!sharesGrandParent || member.id == parent.id) return@forEach
+
+            val olderThanParent = when {
+                member.birthYear != null && parent.birthYear != null -> member.birthYear < parent.birthYear
+                member.isElder -> true
+                else -> false
+            }
+            val parentIsFather = parent.gender == Gender.MALE
+            return when {
+                parentIsFather && member.gender == Gender.MALE && olderThanParent -> "Bác trai"
+                parentIsFather && member.gender == Gender.MALE -> "Chú"
+                parentIsFather && member.gender == Gender.FEMALE && olderThanParent -> "Bác gái"
+                parentIsFather -> "Cô"
+                !parentIsFather && member.gender == Gender.MALE -> "Cậu"
+                olderThanParent -> "Bác gái"
+                else -> "Dì"
+            }
+        }
+
+        if (!includeSpouse) return null
+
+        val parentSibling = sourceRelativeSpouse(member, selfParents, byId)
+        return parentSibling
+    }
+
+    private fun sourceRelativeSpouse(
+        member: FamilyMember,
+        selfParents: List<FamilyMember>,
+        byId: Map<String, FamilyMember>,
+    ): String? {
+        val spouse = member.spouseIds.mapNotNull { byId[it] }.firstOrNull()
+            ?: byId.values.firstOrNull { it.spouseIds.contains(member.id) }
+            ?: return null
+        val spouseTitle = parentSiblingTitle(spouse, selfParents, byId, includeSpouse = false) ?: return null
+        return when (spouseTitle) {
+            "Bác trai" -> "Bác gái"
+            "Bác gái" -> "Bác trai"
+            "Chú" -> "Thím"
+            "Cô" -> "Chú"
+            "Cậu" -> "Mợ"
+            "Dì" -> "Dượng"
+            else -> null
+        }
+    }
+
     fun getRelationshipsFor(memberId: String): List<Relationship> {
         val member = getMember(memberId) ?: return emptyList()
         val result = mutableListOf<Relationship>()
@@ -680,7 +837,9 @@ class FamilyTreeViewModel @Inject constructor(
         member.parentIds.forEach { pid ->
             val p = getMember(pid)
             if (p != null) {
-                val relLabel = if (p.gender == Gender.MALE) "Cha (${p.role})" else "Mẹ (${p.role})"
+                val relLabel = getKinshipTitle(p.id).ifBlank {
+                    if (p.gender == Gender.MALE) "Cha (${p.role})" else "Mẹ (${p.role})"
+                }
                 result.add(Relationship(p.id, p.name, relLabel, p.emoji, p.gender, p.isElder))
             }
         }
@@ -696,13 +855,17 @@ class FamilyTreeViewModel @Inject constructor(
                         else -> if (index > 0) " (Vợ ${index + 1})" else ""
                     }
                 } else ""
-                val relLabel = if (s.gender == Gender.MALE) "Chồng (${s.role})" else "Vợ$orderLabel (${s.role})"
+                val relLabel = getKinshipTitle(s.id).ifBlank {
+                    if (s.gender == Gender.MALE) "Chồng (${s.role})" else "Vợ$orderLabel (${s.role})"
+                }
                 result.add(Relationship(s.id, s.name, relLabel, s.emoji, s.gender, s.isElder))
             }
         }
 
         members.filter { it.parentIds.contains(memberId) }.forEach { child ->
-            val relLabel = if (child.gender == Gender.MALE) "Con trai (${child.role})" else "Con gái (${child.role})"
+            val relLabel = getKinshipTitle(child.id).ifBlank {
+                if (child.gender == Gender.MALE) "Con trai (${child.role})" else "Con gái (${child.role})"
+            }
             result.add(Relationship(child.id, child.name, relLabel, child.emoji, child.gender, child.isElder))
         }
 
@@ -710,7 +873,9 @@ class FamilyTreeViewModel @Inject constructor(
             members.filter {
                 it.id != memberId && it.parentIds.any { pid -> member.parentIds.contains(pid) }
             }.forEach { sib ->
-                val relLabel = if (sib.gender == Gender.MALE) "Anh/Em trai" else "Chị/Em gái"
+                val relLabel = getKinshipTitle(sib.id).ifBlank {
+                    if (sib.gender == Gender.MALE) "Anh/Em trai" else "Chị/Em gái"
+                }
                 result.add(Relationship(sib.id, sib.name, relLabel, sib.emoji, sib.gender, sib.isElder))
             }
         }
@@ -817,23 +982,23 @@ class FamilyTreeViewModel @Inject constructor(
         if (member.deathYear != null && lunarDay != null && lunarMonth != null
             && lunarDay in 1..30 && lunarMonth in 1..12
         ) {
+            val relation = kinshipTitleFor(member, members.filterNot { it.id == member.id } + member)
             // Deceased with valid lunar date → create or update memorial
             val existingMemorial = repository.getMemorialByMemberId(member.id)
             if (existingMemorial != null) {
                 // Update date & name if changed
                 repository.updateMemorial(existingMemorial.copy(
-                    memberName = "Giỗ ${member.role} ${member.name}",
-                    relation = "${member.role} · Đời ${member.generation}",
+                    memberName = "Giỗ $relation ${member.name}",
+                    relation = relation,
                     lunarDay = lunarDay,
                     lunarMonth = lunarMonth,
                 ))
             } else {
                 // Create new memorial
-                val relation = "${member.role} · Đời ${member.generation}"
                 val memorial = MemorialDay(
                     id = FamilyTreeRepository.generateId(),
                     memberId = member.id,
-                    memberName = "Giỗ ${member.role} ${member.name}",
+                    memberName = "Giỗ $relation ${member.name}",
                     relation = relation,
                     lunarDay = lunarDay,
                     lunarMonth = lunarMonth,
@@ -1938,7 +2103,9 @@ class FamilyTreeViewModel @Inject constructor(
                     destFile.absolutePath
                 }
                 if (savedPath != null) callback(savedPath)
-            } catch (_: Exception) { }
+            } catch (_: Exception) {
+                _uiState.update { it.copy(exportImportMessage = "Không thể lưu ảnh đại diện, vui lòng thử lại") }
+            }
         }
     }
 
@@ -1996,7 +2163,9 @@ class FamilyTreeViewModel @Inject constructor(
                 if (savedPath != null) {
                     repository.addPhoto(memberId, savedPath)
                 }
-            } catch (_: Exception) { }
+            } catch (_: Exception) {
+                _uiState.update { it.copy(exportImportMessage = "Không thể thêm ảnh, vui lòng thử lại") }
+            }
         }
     }
 

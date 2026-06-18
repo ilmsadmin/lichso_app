@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -665,7 +666,8 @@ private fun FamilyTreeHeader(uiState: FamilyTreeUiState, onBackClick: () -> Unit
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     ),
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 // Line 2: "X thế hệ · Y thành viên"
                 Text(
@@ -1435,7 +1437,8 @@ private fun PersonNodeView(member: FamilyMember, onClick: () -> Unit) {
                 textAlign = TextAlign.Center,
                 lineHeight = 12.sp
             ),
-            maxLines = 2
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
 
         // Role

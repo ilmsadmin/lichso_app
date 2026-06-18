@@ -63,9 +63,9 @@ class MainActivity : ComponentActivity() {
 
         // If launched from a background FCM notification that carries a URL (ad/promo),
         // open it in the browser. data["url"] is set by the backend for HTTP(S) click_actions.
-        intent?.getStringExtra("url")?.takeIf { it.startsWith("http") }?.let { url ->
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-        }
+        intent?.getStringExtra("url")
+            ?.takeIf { it.startsWith("https://") && (it.contains("lichso.vn") || it.contains("zenix.vn")) }
+            ?.let { url -> startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
 
         // All screens navigable from a push notification or external deep link.
         val validRoutes = setOf(

@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,7 +25,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lichso.app.R
+import com.lichso.app.feature.points.domain.ActionType
 import com.lichso.app.feature.points.domain.DailyUnlockKey
+import com.lichso.app.feature.points.domain.DailyMission
 import com.lichso.app.feature.points.domain.SpendResult
 import com.lichso.app.ui.theme.LichSoThemeColors
 import kotlinx.coroutines.launch
@@ -37,11 +40,13 @@ import kotlinx.coroutines.launch
 @Composable
 fun DailyUnlockStoreScreen(
     onBackClick: () -> Unit,
+    onMissionClick: (ActionType) -> Unit,
     vm: PointsViewModel = hiltViewModel(),
 ) {
     val c = LichSoThemeColors.current
     val balance by vm.balance.collectAsState()
     val unlocked by vm.todayUnlocks.collectAsState()
+    val missions by vm.dailyMissions.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -94,6 +99,12 @@ fun DailyUnlockStoreScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item {
+                DailyMissionsCard(
+                    missions = missions,
+                    onMissionClick = onMissionClick,
+                )
+            }
+            item {
                 BucketHeader(
                     title = "HÔM NAY — ${balance.daily}⚡ khả dụng",
                     right = "${unlocked.size}/${DailyUnlockKey.entries.size} đã mở",
@@ -121,6 +132,143 @@ fun DailyUnlockStoreScreen(
             }
             item { Spacer(Modifier.height(32.dp)) }
         }
+    }
+}
+
+@Composable
+private fun DailyMissionsCard(
+    missions: List<DailyMission>,
+    onMissionClick: (ActionType) -> Unit,
+) {
+    val c = LichSoThemeColors.current
+    val done = missions.count { it.isCompleted }
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Brush.linearGradient(
+                    if (c.isDark) listOf(Color(0xFF2E2510), Color(0xFF3A2416))
+                    else listOf(Color(0xFFFFF8E1), Color(0xFFFFF3E0))
+                )
+            )
+            .border(1.dp, c.gold.copy(alpha = 0.35f), RoundedCornerShape(20.dp))
+            .padding(14.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(c.gold.copy(alpha = 0.18f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_bolt),
+                    contentDescription = null,
+                    tint = c.gold,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Nhiệm vụ kiếm điểm hôm nay",
+                    style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = c.textPrimary),
+                )
+                Text(
+                    "Chạm một nhiệm vụ để đi tới đúng nơi làm",
+                    style = TextStyle(fontSize = 12.sp, color = c.textSecondary),
+                )
+            }
+            Text(
+                "$done/${missions.size}",
+                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = c.gold),
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        missions.take(8).forEachIndexed { index, mission ->
+            MissionRow(mission = mission, onClick = { onMissionClick(mission.action) })
+            if (index < missions.take(8).lastIndex) {
+                HorizontalDivider(color = c.outlineVariant.copy(alpha = 0.6f))
+            }
+        }
+
+        if (missions.size > 8) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Mẹo: các nhiệm vụ đã hết lượt sẽ tự chuyển xuống cuối danh sách.",
+                style = TextStyle(fontSize = 11.sp, color = c.textTertiary, lineHeight = 15.sp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun MissionRow(mission: DailyMission, onClick: () -> Unit) {
+    val c = LichSoThemeColors.current
+    val statusText = when {
+        mission.isCompleted -> "Đã xong"
+        mission.remainingCount == null -> "Không giới hạn"
+        else -> "Còn ${mission.remainingCount} lượt"
+    }
+    val statusColor = if (mission.isCompleted) c.goodGreen else c.primary
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(statusColor.copy(alpha = 0.13f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(if (mission.isCompleted) R.drawable.ic_check_circle else R.drawable.ic_sparkle),
+                contentDescription = null,
+                tint = statusColor,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+        Column(Modifier.weight(1f)) {
+            Text(
+                mission.action.label,
+                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = c.textPrimary),
+            )
+            Text(
+                statusText,
+                style = TextStyle(fontSize = 11.sp, color = c.textTertiary),
+            )
+        }
+        Row(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(c.gold.copy(alpha = if (mission.isCompleted) 0.10f else 0.18f))
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                "+${mission.potentialDailyGain}",
+                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = c.gold),
+            )
+            Icon(
+                painter = painterResource(R.drawable.ic_bolt),
+                contentDescription = null,
+                tint = c.gold,
+                modifier = Modifier.size(11.dp),
+            )
+        }
+        Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = c.textTertiary, modifier = Modifier.size(18.dp))
     }
 }
 

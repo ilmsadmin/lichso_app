@@ -125,7 +125,7 @@ fun LichSoMainScreen(
     val currentRouteState = remember {
         object : MutableState<String> {
             override var value: String
-                get() = backStack.last()
+                get() = backStack.lastOrNull() ?: "home"
                 set(route) {
                     val cur = backStack.lastOrNull()
                     if (route == cur) return
@@ -594,6 +594,26 @@ fun LichSoMainScreen(
                     )
                     "daily_store" -> com.lichso.app.feature.points.ui.DailyUnlockStoreScreen(
                         onBackClick = { goBack() },
+                        onMissionClick = { actionType ->
+                            currentRoute = when (actionType.deeplink) {
+                                "lichso://home" -> "home"
+                                "lichso://calendar" -> "calendar"
+                                "lichso://prayers" -> "prayers"
+                                "lichso://tools" -> "tools"
+                                "lichso://chat" -> "chat"
+                                "lichso://oracle" -> "oracle_draw"
+                                "lichso://history" -> "history"
+                                "lichso://ledger" -> "ledger"
+                                "lichso://profile" -> "profile"
+                                "lichso://store" -> "daily_store"
+                                "lichso://search" -> "search"
+                                "lichso://date_picker" -> "date_picker"
+                                "lichso://bookmarks" -> "bookmarks"
+                                "lichso://tiet_khi" -> "tiet_khi"
+                                "lichso://tasks" -> "tasks"
+                                else -> "home"
+                            }
+                        },
                     )
                     "zodiac_collection" -> com.lichso.app.feature.points.ui.ZodiacCollectionScreen(
                         onBackClick = { goBack() },
@@ -640,7 +660,7 @@ fun LichSoMainScreen(
                                 "lichso://date_picker" -> "date_picker"
                                 "lichso://bookmarks" -> "bookmarks"
                                 "lichso://tiet_khi" -> "tiet_khi"
-                                "lichso://tasks" -> "home" // tasks integrated in home
+                                "lichso://tasks" -> "tasks"
                                 else -> "home"
                             }
                         },

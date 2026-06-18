@@ -223,7 +223,7 @@ fun CalendarScreen(
                 onSave = { item ->
                     if (item.hasReminder && item.reminderAt != null) {
                         val cal = java.util.Calendar.getInstance()
-                        cal.timeInMillis = item.reminderAt!!
+                        cal.timeInMillis = item.reminderAt
                         dayActionsViewModel.addReminderForDay(
                             item.title,
                             cal.get(java.util.Calendar.HOUR_OF_DAY),

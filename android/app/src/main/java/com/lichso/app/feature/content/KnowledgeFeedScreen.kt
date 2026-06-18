@@ -114,7 +114,7 @@ fun KnowledgeFeedScreen(
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            items(uiState.events) { event ->
+                            items(uiState.events, key = { it.id }) { event ->
                                 EventCard(event = event)
                             }
                         }
@@ -130,7 +130,7 @@ fun KnowledgeFeedScreen(
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            items(uiState.famousPeople) { person ->
+                            items(uiState.famousPeople, key = { it.id }) { person ->
                                 PersonCard(person = person)
                             }
                         }
@@ -154,7 +154,7 @@ fun KnowledgeFeedScreen(
                                     onClick = { viewModel.selectCategory(null) },
                                 )
                             }
-                            items(uiState.categories) { category ->
+                            items(uiState.categories, key = { it.id }) { category ->
                                 CategoryCard(
                                     name = category.name,
                                     imageUrl = category.imageUrl,
@@ -170,7 +170,7 @@ fun KnowledgeFeedScreen(
                     item {
                         SectionHeader(title = uiState.selectedCategoryName ?: "Bài viết mới nhất")
                     }
-                    items(uiState.articles) { article ->
+                    items(uiState.articles, key = { it.id }) { article ->
                         ArticleCard(article = article, onClick = { onArticleClick(article.id) })
                     }
                     if (uiState.isLoadingMore) {

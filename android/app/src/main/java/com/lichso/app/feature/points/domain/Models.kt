@@ -40,6 +40,16 @@ data class ActionSuggestion(
     val deeplink: String,
 )
 
+/** Checklist item for "kiếm điểm hôm nay". */
+data class DailyMission(
+    val action: ActionType,
+    val potentialDailyGain: Int,
+    val completedCount: Int,
+    val dailyCap: Int,
+    val isCompleted: Boolean,
+    val remainingCount: Int?,
+)
+
 /** Immutable log entry shown in Ledger screen. */
 data class LedgerEntry(
     val id: Long,

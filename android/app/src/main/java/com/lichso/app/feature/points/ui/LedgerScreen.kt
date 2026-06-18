@@ -118,7 +118,7 @@ fun LedgerScreen(
                 item {
                     DayHeader(epochDay = epochDay, logs = dayLogs)
                 }
-                items(dayLogs) { entry ->
+                items(dayLogs, key = { it.id }) { entry ->
                     LedgerEntryRow(entry = entry)
                 }
             }
