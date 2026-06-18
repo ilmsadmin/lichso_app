@@ -58,6 +58,15 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="lichso" android:host="streak-gift" />
             </intent-filter>
+            <!-- Campaign deep link: mọi lichso://<đích> mở app vào đúng màn quảng cáo
+                 hứa. VD: lichso://chat · lichso://quiz · lichso://open?screen=home
+                 Parse + ánh xạ alias trong MainActivity.resolveCampaignRoute(). -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="lichso" />
+            </intent-filter>
         </activity>
 
         <!-- Receiver duy nhất cho mọi notification alarm (system + per-row reminder) -->

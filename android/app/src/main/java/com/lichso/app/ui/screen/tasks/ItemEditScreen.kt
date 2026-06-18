@@ -1,6 +1,10 @@
 package com.lichso.app.ui.screen.tasks
 
 import android.app.TimePickerDialog
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -94,6 +98,22 @@ fun ItemEditScreen(
     var dueDate by remember { mutableStateOf(initialItem?.dueDate?.toLocalDate()) }
 
     var hasReminder by remember { mutableStateOf(initialItem?.hasReminder ?: false) }
+
+    // Xin quyền thông báo (Android 13+) đúng lúc user bật "Nhắc nhở" lần đầu —
+    // contextual permission, thay cho việc hỏi ngay khi mở app.
+    val notifPermLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* user chọn cho/không — vẫn lưu được nhắc nhở bình thường */ }
+    fun requestNotifPermIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.POST_NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                notifPermLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
     val initCal = remember {
         Calendar.getInstance().apply { initialItem?.reminderAt?.let { timeInMillis = it } }
     }
@@ -273,7 +293,10 @@ fun ItemEditScreen(
                 title = "Nhắc nhở",
                 icon = Icons.Outlined.Notifications,
                 checked = hasReminder,
-                onCheckedChange = { hasReminder = it },
+                onCheckedChange = {
+                    hasReminder = it
+                    if (it) requestNotifPermIfNeeded()
+                },
             )
             if (hasReminder) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

@@ -181,10 +181,12 @@ fun LichSoMainScreen(
             },
         )
     }
-    // Tự khởi động tour lần đầu (sau onboarding, khi vào Home).
-    LaunchedEffect(Unit) {
-        val done = context.settingsDataStore.data.first()[SettingsKeys.HOME_TOUR_COMPLETED] ?: false
-        if (!done && currentRoute == "home") {
+    // Tour KHÔNG còn tự bật lần đầu: user mới (đặc biệt từ ads) bị overlay 6 bước
+    // chặn trước khi kịp thấy app làm gì → ma sát + gỡ app. Giờ tour là tùy chọn,
+    // bật qua mục "Xem hướng dẫn" trong menu. Helper để bật thủ công từ drawer:
+    fun replayTour() {
+        scope.launch {
+            currentRoute = "home"
             kotlinx.coroutines.delay(450) // chờ layout đo xong vị trí các mục
             tourController.start()
         }
@@ -350,6 +352,10 @@ fun LichSoMainScreen(
                 onItemClick = { route ->
                     scope.launch { drawerState.close() }
                     currentRoute = route
+                },
+                onReplayTour = {
+                    scope.launch { drawerState.close() }
+                    replayTour()
                 }
             )
         }
@@ -901,7 +907,8 @@ private data class DrawerMenuItem(
 @Composable
 private fun DrawerMenuContent(
     currentRoute: String,
-    onItemClick: (String) -> Unit
+    onItemClick: (String) -> Unit,
+    onReplayTour: () -> Unit = {}
 ) {
     val c = LichSoThemeColors.current
 
@@ -1061,6 +1068,14 @@ private fun DrawerMenuContent(
 
                 // Info items
                 val context = LocalContext.current
+
+                DrawerActionItem(
+                    icon = Icons.Outlined.Lightbulb,
+                    title = "Xem hướng dẫn",
+                    c = c
+                ) {
+                    onReplayTour()
+                }
 
                 DrawerActionItem(
                     icon = Icons.Outlined.StarRate,

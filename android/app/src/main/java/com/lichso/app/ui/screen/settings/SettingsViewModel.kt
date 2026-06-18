@@ -54,6 +54,10 @@ object SettingsKeys {
     val LOCATION_NAME = stringPreferencesKey("location_name")
     /** epochDay lần cuối popup rút quẻ đầu ngày hiển thị — dùng để show 1 lần/ngày */
     val DAILY_ORACLE_EPOCH_DAY = longPreferencesKey("daily_oracle_popup_epoch_day")
+    /** Đã query Google Play Install Referrer chưa (chỉ chạy 1 lần/đời cài đặt). */
+    val INSTALL_REFERRER_PROCESSED = booleanPreferencesKey("install_referrer_processed")
+    /** Route deferred deep link suy ra từ referrer, chờ tiêu thụ ở lần mở Main đầu. */
+    val PENDING_DEFERRED_ROUTE = stringPreferencesKey("pending_deferred_route")
 }
 
 data class SettingsUiState(

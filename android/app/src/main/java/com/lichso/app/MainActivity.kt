@@ -1,18 +1,13 @@
 package com.lichso.app
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,8 +15,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
 import androidx.datastore.preferences.core.edit
+import com.lichso.app.deeplink.CampaignRoutes
+import com.lichso.app.deeplink.InstallReferrerManager
 import com.lichso.app.ui.LichSoMainScreen
 import com.lichso.app.ui.screen.onboarding.OnboardingScreen
 import com.lichso.app.ui.screen.settings.SettingsKeys
@@ -68,14 +64,7 @@ class MainActivity : ComponentActivity() {
             ?.let { url -> startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
 
         // All screens navigable from a push notification or external deep link.
-        val validRoutes = setOf(
-            "home", "calendar", "gooddays", "knowledge_feed", "quiz_home", "chat",
-            "tools", "prayers", "history", "profile", "bookmarks", "tasks", "countdown",
-            "familytree", "oracle_draw", "daily_store", "ledger", "zodiac_collection",
-            "date_picker", "tiet_khi", "date_math", "birth_planner", "cycle_tracker",
-            "world_clock", "widget_manager", "leaderboard", "notifications", "search",
-            "settings", "bat_trach", "feng_shui_compass", "lo_ban",
-        )
+        val validRoutes = CampaignRoutes.valid
 
         // Determine if launched from a push notification or widget with a specific destination
         val notificationRoute = intent?.getStringExtra("navigate_to")?.let { raw ->
@@ -93,6 +82,20 @@ class MainActivity : ComponentActivity() {
             ?.data
             ?.takeIf { it.scheme == "lichso" && it.host == "streak-gift" }
             ?.getQueryParameter("token")
+
+        // ── Campaign deep link (khớp quảng cáo ↔ màn hình) ──
+        // Mỗi creative quảng cáo gắn 1 link để mở thẳng đúng tính năng nó hứa,
+        // tránh user mới hụt hẫng vì rơi vào Home chung chung rồi gỡ app.
+        // Hỗ trợ 2 dạng cho team marketing:
+        //   lichso://chat            (host = đích, ngắn gọn nhất)
+        //   lichso://open?screen=chat
+        // Kèm alias thân thiện (ai/tuvi → chat, lich → home, dovui → quiz_home…).
+        val campaignRoute = intent?.takeIf { it.action == android.content.Intent.ACTION_VIEW }
+            ?.data
+            ?.takeIf { it.scheme == "lichso" }
+            ?.let { uri ->
+                CampaignRoutes.resolve(uri.getQueryParameter("screen") ?: uri.host)
+            }
 
         setContent {
             val context = LocalContext.current
@@ -120,29 +123,24 @@ class MainActivity : ComponentActivity() {
             // currentScreen = null trong lúc đọc cờ onboarding từ DataStore (rất nhanh)
             // → chỉ hiển thị nền theme, tránh nháy sai màn.
             var currentScreen by remember { mutableStateOf<AppScreen?>(null) }
+            // Route từ deferred deep link (Install Referrer) — tiêu thụ 1 lần khi vào Main.
+            var deferredRoute by remember { mutableStateOf<String?>(null) }
             LaunchedEffect(Unit) {
                 val prefs = context.safeSettingsData.first()
                 val done = prefs[SettingsKeys.ONBOARDING_COMPLETED] ?: false
-                currentScreen = if (done) AppScreen.MAIN else AppScreen.ONBOARDING
-            }
-
-            // ── Xin quyền thông báo (Android 13+) khi vào Home ──
-            // Thay cho trang cấp quyền trong onboarding: hệ thống sẽ tự hỏi 1 lần.
-            val notifPermLauncher = rememberLauncherForActivityResult(
-                ActivityResultContracts.RequestPermission()
-            ) { /* user chọn cho/không — app vẫn chạy bình thường */ }
-            LaunchedEffect(currentScreen) {
-                if (currentScreen == AppScreen.MAIN &&
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                ) {
-                    val granted = ContextCompat.checkSelfPermission(
-                        context, Manifest.permission.POST_NOTIFICATIONS
-                    ) == PackageManager.PERMISSION_GRANTED
-                    if (!granted) {
-                        notifPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    }
+                if (done) {
+                    deferredRoute = InstallReferrerManager.consumePendingRoute(context)
+                    currentScreen = AppScreen.MAIN
+                } else {
+                    currentScreen = AppScreen.ONBOARDING
                 }
             }
+
+            // ── Quyền thông báo (Android 13+) ──
+            // KHÔNG xin ngay khi vào Home: user mới (đặc biệt từ ads) bị dialog
+            // hệ thống chặn trước khi thấy giá trị → tỉ lệ từ chối + gỡ app cao.
+            // Thay vào đó xin theo ngữ cảnh khi user bật "Nhắc nhở" lần đầu
+            // (ItemEditScreen), và có sẵn card bật thủ công trong Cài đặt.
 
             LichSoTheme(darkTheme = darkMode, seasonalColors = seasonalColors) {
                 when (currentScreen) {
@@ -156,13 +154,16 @@ class MainActivity : ComponentActivity() {
                     AppScreen.ONBOARDING -> {
                         OnboardingScreen(
                             onFinish = {
-                                // Mark onboarding as completed
                                 coroutineScope.launch {
+                                    // Mark onboarding as completed
                                     context.settingsDataStore.edit { prefs ->
                                         prefs[SettingsKeys.ONBOARDING_COMPLETED] = true
                                     }
+                                    // Tiêu thụ deferred deep link (nếu referrer đã về kịp
+                                    // trong lúc xem welcome) trước khi vào Main.
+                                    deferredRoute = InstallReferrerManager.consumePendingRoute(context)
+                                    currentScreen = AppScreen.MAIN
                                 }
-                                currentScreen = AppScreen.MAIN
                             }
                         )
                     }
@@ -170,7 +171,7 @@ class MainActivity : ComponentActivity() {
                     AppScreen.MAIN -> {
                         LichSoMainScreen(
                             modifier = Modifier.fillMaxSize(),
-                            initialRoute = notificationRoute ?: widgetRoute ?: giftToken?.let { "streak_freeze" } ?: "home",
+                            initialRoute = notificationRoute ?: widgetRoute ?: campaignRoute ?: deferredRoute ?: giftToken?.let { "streak_freeze" } ?: "home",
                             giftToken = giftToken,
                         )
                     }

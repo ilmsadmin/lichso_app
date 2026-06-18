@@ -180,6 +180,8 @@ dependencies {
     implementation("androidx.exifinterface:exifinterface:1.3.7")
     implementation("com.google.android.play:review-ktx:2.0.2")
     implementation("com.google.android.play:app-update-ktx:2.1.0")
+    // Deferred deep link: đọc referrer của lượt cài từ Play Store (ads → đúng màn)
+    implementation("com.android.installreferrer:installreferrer:2.2")
     implementation("me.leolin:ShortcutBadger:1.1.22@aar")
     implementation("com.mohamedrejeb.richeditor:richeditor-compose:1.0.0-rc12")
     testImplementation("junit:junit:4.13.2")

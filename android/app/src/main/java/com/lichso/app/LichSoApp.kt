@@ -52,6 +52,16 @@ class LichSoApp : Application() {
             }
         }
 
+        // Deferred deep link: đọc Install Referrer 1 lần ở lần cài đầu để ad mở
+        // đúng màn (kết quả lưu DataStore, tiêu thụ khi vào Main). Idempotent.
+        appScope.launch {
+            try {
+                com.lichso.app.deeplink.InstallReferrerManager.fetchAndStoreIfNeeded(this@LichSoApp)
+            } catch (e: Exception) {
+                android.util.Log.w("LichSoApp", "install referrer fetch failed: ${e.message}")
+            }
+        }
+
         // Keep launcher badge synced with unread notification count.
         appScope.launch {
             try {
